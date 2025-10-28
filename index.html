@@ -1,4 +1,5 @@
-<!doctype html>
+# Writing a new index.html that removes the "¿Cómo agrego nuevos códigos?" button and the instructions dialog.
+html = """<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
@@ -78,7 +79,6 @@
         <div>
           <div class="tag" style="margin-bottom:8px">Nota técnica</div>
           <p class="meta">Este portal usa verificación por <em>hash</em> (SHA‑256) del código. No es un sistema de autenticación fuerte, pero es suficiente para compartir materiales de baja sensibilidad vía GitHub Pages o hosting estático.</p>
-          <button id="btn-how" class="btn secondary" type="button">¿Cómo agrego nuevos códigos?</button>
         </div>
       </div>
     </section>
@@ -103,24 +103,6 @@
       </div>
       <p class="footer">© <span id="year"></span> EduSalud · Materiales oficiales para consultores.</p>
     </section>
-
-    <!-- MODAL SIMPLE CON INSTRUCCIONES -->
-    <dialog id="dlgHow" style="max-width:720px; border:none; border-radius:16px; padding:0; background:#0f1732; color:var(--text)">
-      <div class="card" style="margin:0">
-        <h3 style="margin-top:0">Cómo agregar o cambiar códigos</h3>
-        <ol class="meta" style="line-height:1.7">
-          <li>Elija un código, por ejemplo: <strong>GASH2025-EDU</strong>.</li>
-          <li>Obtenga su SHA‑256: puede usar la consola del navegador con <code>await crypto.subtle.digest('SHA-256', new TextEncoder().encode('GASH2025-EDU'))</code> y convertir a hex, o cualquier generador en línea confiable.</li>
-          <li>Abra este archivo y agregue un nuevo objeto al mapa <code>ACCESS_HASH_MAP</code> con la <em>clave</em> igual al hash en hex.</li>
-          <li>Dentro del objeto, edite <code>title</code>, <code>meta</code> y la lista <code>files</code> con las URLs (Drive, Dropbox, GitHub Releases, etc.).</li>
-          <li>Publique los cambios en GitHub Pages o su hosting. Listo.</li>
-        </ol>
-        <p class="meta">Sugerencias: cambie los códigos cada edición; use zips por edición; si requiere controles más fuertes (correo autorizado, caducidad real, registros), considere Netlify Functions/Cloudflare Workers o un backend ligero.</p>
-        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px">
-          <button class="btn secondary" onclick="document.getElementById('dlgHow').close()">Cerrar</button>
-        </div>
-      </div>
-    </dialog>
   </div>
 
   <script>
@@ -144,33 +126,17 @@
     function downloadFile(url) { window.open(url, '_blank', 'noopener'); }
 
     // ========= CONFIGURACIÓN (EDITE AQUÍ) =========
-    // Ejemplo: el hash para "GASH2025-EDU" es: 1fd3be... (reemplazar por el suyo)
-    // Use valores REALES. URLs pueden ser de Drive (compartidos con enlace), Dropbox, Box, GitHub, etc.
-
+    // Entradas actualizadas con el hash calculado para GASH3-2025
     const ACCESS_HASH_MAP = {
-      // Hash de ejemplo (de una cadena demo). Reemplace los hashes y las URLs por las suyas.
-      // "<hash-en-hex>": { title: "Nombre del curso/diplomado", meta: "Edición/Módulos/Fechas", files: [ {label, url}, ... ] }
-
       "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0": {
-        // hash de "1" (SOLO DEMO). NO usar en producción.
         title: "Diplomado en Gerencia y Administración de Servicios Hospitalarios (GASH) – 3ª Ed. 2025",
         meta: "Material oficial para consultoría (logos, PPT, manual de marca, social kit)",
         files: [
-          { label: "Logos (ZIP)", url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
-          { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/drive/folders/14E42MPlcjsIcc6OWNCYJ2J1HRzcdr21F?usp=sharing" },
+          { label: "Logos (ZIP)",           url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
+          { label: "Plantilla PPT (PPTX)",  url: "https://drive.google.com/drive/folders/14E42MPlcjsIcc6OWNCYJ2J1HRzcdr21F?usp=sharing" },
           { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
-          { label: "Social Kit (ZIP)", url: "https://drive.google.com/your-socialzip" },
+          { label: "Social Kit (ZIP)",      url: "https://drive.google.com/your-socialzip" },
           { label: "Formato de Informe (DOCX)", url: "https://drive.google.com/your-docx" }
-        ]
-      },
-
-      "4bf2b9...reemplazar_con_hash_real": {
-        title: "Curso de Salud Mental Perinatal – 2025",
-        meta: "Recursos oficiales para docente/consultor(a)",
-        files: [
-          { label: "Logos (ZIP)", url: "#" },
-          { label: "Plantilla PPT (PPTX)", url: "#" },
-          { label: "Guía de Estilo (PDF)", url: "#" }
         ]
       }
     };
@@ -231,7 +197,6 @@
     // ========= EVENTOS =========
     $('#btn-enter').addEventListener('click', () => tryLoginByCode($('#code').value));
     $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#btn-enter').click(); } });
-    $('#btn-how').addEventListener('click', () => $('#dlgHow').showModal());
     $('#btn-logout').addEventListener('click', () => { currentKeyHex = null; setQueryParam('code', null); showAccess(); });
 
     $('#btn-copy-code-link').addEventListener('click', async () => {
@@ -264,3 +229,7 @@
   </script>
 </body>
 </html>
+"""
+with open('/mnt/data/index_no_how.html', 'w', encoding='utf-8') as f:
+    f.write(html)
+print("Archivo creado en /mnt/data/index_no_how.html")
