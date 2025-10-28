@@ -1,4 +1,4 @@
-# Writing a new index.html that removes the "Nota técnica" block and any reference to the how button/modal.
+# Create an updated index.html that removes the explanatory paragraph about hash verification entirely.
 html = """<!doctype html>
 <html lang="es">
 <head>
@@ -64,7 +64,7 @@ html = """<!doctype html>
       </div>
     </header>
 
-    <!-- BLOQUE DE ACCESO (sin nota técnica) -->
+    <!-- BLOQUE DE ACCESO (sin nota técnica ni párrafo explicativo) -->
     <section id="access" class="card">
       <div class="grid cols-2">
         <div>
@@ -75,7 +75,7 @@ html = """<!doctype html>
           </div>
           <div id="msg" class="msg">Si no tiene código, solicítelo a coordinación.</div>
         </div>
-        <!-- Segunda columna intencionalmente vacía para conservar el diseño responsivo -->
+        <!-- Segunda columna vacía para diseño responsivo -->
         <div aria-hidden="true"></div>
       </div>
     </section>
@@ -90,7 +90,7 @@ html = """<!doctype html>
               <div class="meta" id="courseMeta">Material oficial para consultoría</div>
             </div>
             <div class="row">
-              <button id="btn-copy-code-link" class="btn secondary" type="button" title="Comprarta un link que precarga el código">Compartir enlace con código</button>
+              <button id="btn-copy-code-link" class="btn secondary" type="button" title="Comparte un link que precarga el código">Compartir enlace con código</button>
               <button id="btn-logout" class="btn secondary" type="button">Salir</button>
             </div>
           </div>
@@ -226,7 +226,7 @@ html = """<!doctype html>
 </body>
 </html>
 """
-with open('/mnt/data/index_no_note.html', 'w', encoding='utf-8') as f:
+with open('/mnt/data/index_clean.html', 'w', encoding='utf-8') as f:
     f.write(html)
-print("Archivo creado en /mnt/data/index_no_note.html")
+print("Archivo creado en /mnt/data/index_clean.html")
 
