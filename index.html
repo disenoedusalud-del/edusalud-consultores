@@ -1,4 +1,4 @@
-# Writing a new index.html that removes the "¿Cómo agrego nuevos códigos?" button and the instructions dialog.
+# Writing a new index.html that removes the "Nota técnica" block and any reference to the how button/modal.
 html = """<!doctype html>
 <html lang="es">
 <head>
@@ -51,7 +51,6 @@ html = """<!doctype html>
     .file strong { font-size: 14px; }
 
     .footer { margin: 28px 0 8px; color: var(--muted); font-size: 12px; text-align: center; }
-    .tag { display: inline-flex; gap: 6px; align-items: center; padding: 2px 8px; border-radius: 999px; border: 1px solid rgba(255,255,255,.12); font-size: 12px; color: var(--muted); }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -65,7 +64,7 @@ html = """<!doctype html>
       </div>
     </header>
 
-    <!-- BLOQUE DE ACCESO -->
+    <!-- BLOQUE DE ACCESO (sin nota técnica) -->
     <section id="access" class="card">
       <div class="grid cols-2">
         <div>
@@ -76,10 +75,8 @@ html = """<!doctype html>
           </div>
           <div id="msg" class="msg">Si no tiene código, solicítelo a coordinación.</div>
         </div>
-        <div>
-          <div class="tag" style="margin-bottom:8px">Nota técnica</div>
-          <p class="meta">Este portal usa verificación por <em>hash</em> (SHA‑256) del código. No es un sistema de autenticación fuerte, pero es suficiente para compartir materiales de baja sensibilidad vía GitHub Pages o hosting estático.</p>
-        </div>
+        <!-- Segunda columna intencionalmente vacía para conservar el diseño responsivo -->
+        <div aria-hidden="true"></div>
       </div>
     </section>
 
@@ -93,7 +90,7 @@ html = """<!doctype html>
               <div class="meta" id="courseMeta">Material oficial para consultoría</div>
             </div>
             <div class="row">
-              <button id="btn-copy-code-link" class="btn secondary" type="button" title="Comparte un link que precarga el código">Compartir enlace con código</button>
+              <button id="btn-copy-code-link" class="btn secondary" type="button" title="Comprarta un link que precarga el código">Compartir enlace con código</button>
               <button id="btn-logout" class="btn secondary" type="button">Salir</button>
             </div>
           </div>
@@ -126,7 +123,6 @@ html = """<!doctype html>
     function downloadFile(url) { window.open(url, '_blank', 'noopener'); }
 
     // ========= CONFIGURACIÓN (EDITE AQUÍ) =========
-    // Entradas actualizadas con el hash calculado para GASH3-2025
     const ACCESS_HASH_MAP = {
       "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0": {
         title: "Diplomado en Gerencia y Administración de Servicios Hospitalarios (GASH) – 3ª Ed. 2025",
@@ -230,6 +226,6 @@ html = """<!doctype html>
 </body>
 </html>
 """
-with open('/mnt/data/index_no_how.html', 'w', encoding='utf-8') as f:
+with open('/mnt/data/index_no_note.html', 'w', encoding='utf-8') as f:
     f.write(html)
-print("Archivo creado en /mnt/data/index_no_how.html")
+print("Archivo creado en /mnt/data/index_no_note.html")
