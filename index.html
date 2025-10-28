@@ -201,7 +201,7 @@
     const ACCESS_HASH_MAP = {
       "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0": {
         title: "Diplomado en Gerencia y Administración de Servicios Hospitalarios (GASH) – 3ª Ed. 2025",
-        meta: "Recursos oficiales para docentes/consultores (logos, PPT, manual de marca, social kit)",
+        meta: "Material oficial para consultoría (logos, PPT, manual de marca, social kit)",
         files: [
           { label: "Logos (PNG)", url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
           { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/drive/folders/14E42MPlcjsIcc6OWNCYJ2J1HRzcdr21F?usp=sharing" },
@@ -212,7 +212,7 @@
       },
       "88f62dd4f34bc0c54550634cee859bb2178aa0e69041e1bee3be5a132e1c7456": {
         title: "Curso Manejo Básico de Fracturas (MBF) – 2ª Ed. 2025",
-        meta: "Recursos oficiales para docentes/consultores (logos, PPT, manual de marca, social kit))",
+        meta: ""Material oficial para consultoría (logos, PPT, manual de marca, social kit)",
         files: [
           { label: "Logos (PNG)", url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
           { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/drive/folders/1qJqRPO2akiosdJ9BMBXp49gYgrRExcD2?usp=sharing" },
@@ -223,142 +223,14 @@
       }
     };
 
-    let currentKeyHex = null;
+    // Intentos: parámetros
     const ATTEMPT_KEY = 'edusalud_attempts';
+    const ATTEMPT_WINDOW_MS = 10 * 60 * 1000; // 10 min
+    const ATTEMPT_LIMIT = 8; // bloquear si >=
 
-    function showAccess() { $('#access').classList.remove('hidden'); $('#content').classList.add('hidden'); $('#code').focus(); }
-    function showContent() { $('#access').classList.add('hidden'); $('#content').classList.remove('hidden'); }
-
-    function renderCourse(keyHex) {
-      const data = ACCESS_HASH_MAP[keyHex];
-      if (!data) return;
-      $('#courseTitle').textContent = data.title;
-      $('#courseMeta').textContent = data.meta || '';
-      const list = $('#filelist');
-      list.innerHTML = '';
-      (data.files || []).forEach(item => {
-        const row = document.createElement('div');
-        row.className = 'file';
-        let host = '';
-        try { host = new URL(item.url).hostname; } catch { host = ''; }
-        row.innerHTML = `<div><strong>${item.label}</strong><div class="meta">${host}</div></div>`;
-        const btn = document.createElement('button');
-        btn.className = 'btn';
-        btn.type = 'button';
-        btn.textContent = 'Descargar';
-        btn.addEventListener('click', () => downloadFile(item.url));
-        row.appendChild(btn);
-        list.appendChild(row);
-      });
-    }
-
-    // simple client-side rate limiter (evita intentos rápidos por fuerza bruta desde el mismo navegador)
-    function tooManyAttempts() {
+    // helpers de intentos
+    function getRecentAttempts() {
       try {
         const raw = localStorage.getItem(ATTEMPT_KEY);
-        const attempts = raw ? JSON.parse(raw) : [];
-        const now = Date.now();
-        // dejamos sólo intentos en los últimos 10 minutos
-        const recent = attempts.filter(t => now - t < 10 * 60 * 1000);
-        if (recent.length >= 8) {
-          return true;
-        }
-        recent.push(now);
-        localStorage.setItem(ATTEMPT_KEY, JSON.stringify(recent));
-        return false;
-      } catch (e) { return false; }
-    }
-
-    async function tryLoginByCode(code) {
-      const msg = $('#msg');
-      msg.textContent = 'Verificando…';
-      msg.classList.remove('error');
-      if (!code || String(code).trim().length === 0) {
-        msg.textContent = 'Ingrese un código válido.';
-        msg.classList.add('error');
-        return false;
-      }
-      if (tooManyAttempts()) {
-        msg.textContent = 'Demasiados intentos. Espere unos minutos e intente de nuevo.';
-        msg.classList.add('error');
-        return false;
-      }
-      try {
-        const hex = await sha256Hex(code);
-        if (ACCESS_HASH_MAP[hex]) {
-          currentKeyHex = hex;
-          // Guardamos solo base64 en la URL para permitir compartir (no es seguro: ver nota abajo)
-          setQueryParam('code', btoa(code));
-          renderCourse(hex);
-          showContent();
-          return true;
-        } else {
-          msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
-          msg.classList.add('error');
-          return false;
-        }
-      } catch (e) {
-        console.error(e);
-        msg.textContent = 'Ocurrió un error al verificar el código.';
-        msg.classList.add('error');
-        return false;
-      }
-    }
-
-    // Eventos UI
-    $('#btn-enter').addEventListener('click', () => tryLoginByCode($('#code').value));
-    $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#btn-enter').click(); } });
-    $('#btn-logout').addEventListener('click', () => { currentKeyHex = null; setQueryParam('code', null); showAccess(); });
-
-    $('#btn-copy-code-link').addEventListener('click', async () => {
-      if (!currentKeyHex) return;
-      const url = new URL(location.href);
-      const codeField = $('#code');
-      // preferimos recuperar desde el campo o desde la URL
-      const encoded = url.searchParams.get('code');
-      const codeVal = (encoded ? atob(encoded) : codeField.value) || '';
-      if (!codeVal) return;
-      url.searchParams.set('code', btoa(codeVal));
-      try {
-        await navigator.clipboard.writeText(url.toString());
-        alert('Enlace copiado al portapapeles');
-      } catch (e) {
-        // fallback
-        prompt('Copie este enlace:', url.toString());
-      }
-    });
-
-    // Init: precarga por ?code=BASE64
-    (async function init(){
-      $('#year').textContent = new Date().getFullYear();
-      const qp = new URLSearchParams(location.search);
-      const pre = qp.get('code');
-      if (pre) {
-        try {
-          const decoded = atob(pre);
-          if (decoded) {
-            // intentamos login silencioso (no mostramos string en input si es inválido)
-            const ok = await tryLoginByCode(decoded);
-            if (ok) {
-              // si todo bien, ponemos el código en el campo (opcional)
-              try { $('#code').value = decoded; } catch(e) {}
-              return;
-            } else {
-              // si no válido, limpiamos param y mostramos acceso
-              setQueryParam('code', null);
-              showAccess();
-              $('#msg').textContent = 'El enlace contiene código inválido o expirado.';
-              $('#msg').classList.add('error');
-              return;
-            }
-          }
-        } catch (e) {
-          console.warn('Parámetro code inválido', e);
-        }
-      }
-      // por defecto mostramos acceso
-      showAccess();
-    })();
-  </script>
-</body>
-</html>
+        const arr = raw ? JSON.parse(raw) : [];
+       
