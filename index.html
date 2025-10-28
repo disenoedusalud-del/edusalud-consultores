@@ -211,6 +211,7 @@
 
     // MAPA DE ACCESO (SHA-256 de los códigos permitidos)
     // Ejemplo: SHA-256("GASH3-2025") = 2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0
+    // SHA-256("MBF2-2025")    = 88f62dd4f34bc0c54550634cee859bb2178aa0e69041e1bee3be5a132e1c7456
     const ACCESS_HASH_MAP = {
       "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0": {
         title: "Diplomado en Gerencia y Administración de Servicios Hospitalarios (GASH) – 3ª Ed. 2025",
@@ -221,6 +222,18 @@
           { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
           { label: "Social Kit (ZIP)", url: "https://drive.google.com/drive/folders/1FbTQSAMZk84de7ykDs9YmMmp7z1Pyufr?usp=sharing" },
           { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" }
+        ]
+      },
+
+      /* ENTRADA MBF: reemplace las URL_REEMPLAZAR_* por sus enlaces reales (Drive/Dropbox/GitHub) */
+      "88f62dd4f34bc0c54550634cee859bb2178aa0e69041e1bee3be5a132e1c7456": {
+        title: "Curso Manejo Básico de Fracturas (MBF) – 2ª Ed. 2025",
+        meta: "Recursos oficiales para docentes/consultores (plantilla, protocolos, imágenes, formatos)",
+        files: [
+          { label: "Logos MBF (ZIP)", url: "https://drive.google.com/drive/folders/URL_REEMPLAZAR_LOGOS_MBF?usp=sharing" },
+          { label: "Plantilla PPT MBF (PPTX)", url: "https://drive.google.com/drive/folders/URL_REEMPLAZAR_PPT_MBF?usp=sharing" },
+          { label: "Protocolo MBF (PDF)", url: "https://drive.google.com/file/d/URL_REEMPLAZAR_PROTOCOLO_MBF/view?usp=sharing" },
+          { label: "Material de Apoyo (ZIP)", url: "https://drive.google.com/drive/folders/URL_REEMPLAZAR_MATERIAL_MBF?usp=sharing" }
         ]
       }
     };
@@ -304,13 +317,4 @@
         try {
           const decoded = atob(pre);
           if (decoded) {
-            $('#code').value = decoded;
-            await tryLoginByCode(decoded);
-          }
-        } catch {}
-      }
-    })();
-  </script>
-</body>
-</html>
-
+            $('#code'
