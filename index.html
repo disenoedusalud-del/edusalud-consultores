@@ -74,11 +74,12 @@
         </div>
       </div>
 
-      <!-- Ilustración a la derecha del header (se oculta en móviles) 
-        <!-- <div class="hero" aria-hidden="false">
-        <img src="assets/asset-selection-cuate.png" alt="Ilustración consultores EduSalud" />
+      <!-- Ilustración a la derecha del header (se oculta en móviles).
+           Si su archivo contiene un espacio en el nombre, use la ruta codificada (%20). -->
+      <div class="hero" aria-hidden="false">
+        <img src="assets/Asset%20selection-cuate.png" alt="Ilustración consultores EduSalud" />
       </div>
-    </header> -->
+    </header>
 
     <!-- BLOQUE DE ACCESO (con ilustración dentro de la tarjeta a la derecha) -->
     <section id="access" class="card">
@@ -94,7 +95,7 @@
 
         <!-- Ilustración dentro de la tarjeta (derecha) -->
         <div class="access-hero" aria-hidden="true">
-          <img src="assets/asset-selection-cuate.png" alt="Ilustración de consultoría" />
+          <img src="assets/Asset%20selection-cuate.png" alt="Ilustración de consultoría" />
         </div>
       </div>
     </section>
@@ -142,6 +143,7 @@
     function downloadFile(url){ window.open(url, '_blank', 'noopener'); }
 
     // MAPA DE ACCESO (edite hashes y URLs aquí)
+    // SHA-256("GASH3-2025") = 2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0
     const ACCESS_HASH_MAP = {
       "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0": {
         title: "Diplomado en Gerencia y Administración de Servicios Hospitalarios (GASH) – 3ª Ed. 2025",
@@ -207,31 +209,3 @@
     $('#btn-logout').addEventListener('click', ()=> { currentKeyHex = null; setQueryParam('code', null); showAccess(); });
 
     $('#btn-copy-code-link').addEventListener('click', async ()=>{
-      if(!currentKeyHex) return;
-      const url = new URL(location.href);
-      const codeField = $('#code');
-      const codeVal = atob(url.searchParams.get('code')||'') || codeField.value;
-      if(!codeVal) return;
-      url.searchParams.set('code', btoa(codeVal));
-      await navigator.clipboard.writeText(url.toString());
-      alert('Enlace copiado al portapapeles');
-    });
-
-    // init: precarga por ?code=BASE64
-    (async function init(){
-      $('#year').textContent = new Date().getFullYear();
-      const qp = new URLSearchParams(location.search);
-      const pre = qp.get('code');
-      if(pre){
-        try{
-          const decoded = atob(pre);
-          if(decoded){
-            $('#code').value = decoded;
-            await tryLoginByCode(decoded);
-          }
-        }catch{}
-      }
-    })();
-  </script>
-</body>
-</html>
