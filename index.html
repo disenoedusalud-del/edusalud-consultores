@@ -6,97 +6,96 @@
   <title>Portal de Recursos para Consultores – EduSalud</title>
   <meta name="description" content="Descarga de toolkits (PPT, logos, manuales, social kit) para consultores de cursos y diplomados, protegida por código de acceso." />
   <style>
-    :root {
-      --bg: #0b1020;
-      --card: #121a32;
-      --muted: #9fb1d1;
-      --text: #eaf1ff;
-      --accent: #5aa9ff;
-      --accent-2: #8be9fd;
-      --danger: #ff7a7a;
+    :root{
+      --bg:#0b1020; --muted:#9fb1d1; --text:#eaf1ff;
+      --accent:#5aa9ff; --accent-2:#8be9fd; --danger:#ff7a7a;
     }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; background: radial-gradient(1200px 800px at 80% -10%, rgba(90,169,255,.25), transparent), radial-gradient(900px 700px at -10% 120%, rgba(139,233,253,.12), transparent), var(--bg); color: var(--text); min-height: 100vh; }
-    .wrap { max-width: 1040px; margin: 0 auto; padding: 24px; }
-    header { display: flex; align-items: center; gap: 16px; padding: 12px 0 24px; }
-    .logo { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: grid; place-items: center; font-weight: 800; color: #0b1020; box-shadow: 0 6px 22px rgba(90,169,255,.35); }
-    h1 { margin: 0; font-size: clamp(20px, 3vw, 28px); line-height: 1.2; }
-    p.lead { color: var(--muted); margin: 8px 0 0; font-size: 14px; }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Inter,"Helvetica Neue",Arial;background:
+      radial-gradient(1200px 800px at 80% -10%, rgba(90,169,255,.12), transparent),
+      radial-gradient(900px 700px at -10% 120%, rgba(139,233,253,.06), transparent),
+      var(--bg); color:var(--text); min-height:100vh;}
+    .wrap{max-width:1100px;margin:0 auto;padding:28px 20px}
 
-    .card { background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.12)); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,.25); backdrop-filter: blur(6px); }
-    .grid { display: grid; gap: 16px; }
-    .grid.cols-2 { grid-template-columns: 1fr; }
-    @media (min-width: 900px) { .grid.cols-2 { grid-template-columns: 1fr 1fr; } }
+    /* Header split + hero (right) */
+    header{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:center;margin-bottom:18px}
+    @media (max-width:980px){header{grid-template-columns:1fr}.hero{display:none}}
 
-    input, button { font: inherit; }
-    label { display: block; font-weight: 600; margin-bottom: 8px; }
-    .row { display: flex; gap: 10px; align-items: stretch; }
-    .input { flex: 1 1 auto; border: 1px solid rgba(255,255,255,.12); background: #0e1630; color: var(--text); padding: 12px 14px; border-radius: 12px; outline: none; }
-    .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(90,169,255,.25); }
-    .btn { border: none; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #0b1020; font-weight: 800; padding: 12px 16px; border-radius: 12px; cursor: pointer; transition: transform .05s ease; }
-    .btn:hover { transform: translateY(-1px); }
-    .btn.secondary { background: #19213d; color: var(--text); border: 1px solid rgba(255,255,255,.12); }
-    .btn.link { background: transparent; color: var(--accent); padding: 8px; }
+    .logo{width:56px;height:56px;border-radius:12px;display:grid;place-items:center;
+      box-shadow:0 8px 30px rgba(90,169,255,.25);overflow:hidden;background:linear-gradient(135deg,var(--accent),var(--accent-2))}
+    .logo-img{width:42px;height:42px;object-fit:contain;display:block}
 
-    .msg { margin-top: 8px; font-size: 14px; color: var(--muted); }
-    .msg.error { color: var(--danger); }
+    h1{margin:0;font-size:clamp(20px,2.6vw,34px);line-height:1.05}
+    p.lead{color:var(--muted);margin:6px 0 0;font-size:14px;max-width:58ch}
 
-    .course { display: grid; gap: 12px; }
-    .course h3 { margin: 0; font-size: 18px; }
-    .meta { color: var(--muted); font-size: 13px; }
+    .hero img{max-width:100%;height:auto;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.45);display:inline-block}
 
-    .filelist { display: grid; gap: 10px; }
-    .file { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; background: #0e1630; }
-    .file strong { font-size: 14px; }
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.06));border:1px solid rgba(255,255,255,.04);
+      border-radius:14px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.25);backdrop-filter:blur(4px)}
+    .grid{display:grid;gap:16px}
+    .grid.cols-2{grid-template-columns:1fr}
+    @media(min-width:900px){.grid.cols-2{grid-template-columns:1fr 1fr}}
 
-    .footer { margin: 28px 0 8px; color: var(--muted); font-size: 12px; text-align: center; }
-    .hidden { display: none !important; }
+    label{display:block;font-weight:600;margin-bottom:8px}
+    .row{display:flex;gap:10px;align-items:stretch}
+    .input{flex:1 1 auto;border:1px solid rgba(255,255,255,.08);background:#0e1630;color:var(--text);padding:12px 14px;border-radius:12px;outline:none}
+    .input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(90,169,255,.12)}
+    .btn{border:none;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#062033;font-weight:800;padding:12px 16px;border-radius:12px;cursor:pointer;transition:transform .06s}
+    .btn:hover{transform:translateY(-1px)}
+    .btn.secondary{background:#19213d;color:var(--text);border:1px solid rgba(255,255,255,.06)}
 
-    .logo { 
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 6px 22px rgba(90,169,255,.35);
-  overflow: hidden;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2)); /* opcional: deja un degradado mientras carga */
-}
+    .msg{margin-top:8px;font-size:14px;color:var(--muted)}
+    .msg.error{color:var(--danger)}
 
-/* Ajuste del logo dentro del recuadro */
-.logo-img {
-  width: 36px;
-  height: 36px;
-  object-fit: contain;
-  display: block;
-}
+    .filelist{display:grid;gap:10px;margin-top:12px}
+    .file{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid rgba(255,255,255,.06);border-radius:12px;background:#0e1630}
+    .file strong{font-size:14px}
+    .meta{color:var(--muted);font-size:13px}
+
+    /* Illustration inside access card (right column) */
+    .access-hero{display:flex;align-items:center;justify-content:center;padding-left:10px}
+    .access-hero img{width:220px;max-width:100%;height:auto;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.45);transform:translateY(2px)}
+    @media(max-width:900px){.access-hero{display:none}}
+
+    .footer{margin:28px 0 8px;color:var(--muted);font-size:12px;text-align:center}
+    .hidden{display:none!important}
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <div class="logo" aria-hidden="false">
-  <img src="assets/logo-edusalud.png" alt="EduSalud" class="logo-img" />
-</div>
-      <div>
-        <h1>Portal de Recursos para Consultores · EduSalud</h1>
-        <p class="lead">Descargue materiales oficiales (PPT, logos, manuales de marca, social kit, formatos). Acceso mediante código otorgado por coordinación.</p>
+      <div style="display:flex;gap:16px;align-items:center">
+        <div class="logo" aria-hidden="false">
+          <img src="assets/logo-edusalud.png" alt="EduSalud" class="logo-img" />
+        </div>
+        <div>
+          <h1>Portal de Recursos para Consultores · EduSalud</h1>
+          <p class="lead">Descargue materiales oficiales (PPT, logos, manuales de marca, social kit, formatos). Acceso mediante código otorgado por coordinación.</p>
+        </div>
+      </div>
+
+      <!-- Ilustración a la derecha del header (se oculta en móviles) -->
+      <div class="hero" aria-hidden="false">
+        <img src="assets/illustration-consultores.png" alt="Ilustración consultores EduSalud" />
       </div>
     </header>
 
-    <!-- BLOQUE DE ACCESO (sin nota técnica ni párrafo explicativo) -->
+    <!-- BLOQUE DE ACCESO (con ilustración dentro de la tarjeta a la derecha) -->
     <section id="access" class="card">
-      <div class="grid cols-2">
+      <div class="grid cols-2" style="align-items:center">
         <div>
           <label for="code">Ingrese su código de acceso</label>
           <div class="row">
-            <input id="code" class="input" type="password" placeholder="Ej. GASH2025-EDU" autocomplete="one-time-code" />
+            <input id="code" class="input" type="password" placeholder="Ej. GASH3-2025" autocomplete="one-time-code" />
             <button id="btn-enter" class="btn" type="button">Entrar</button>
           </div>
           <div id="msg" class="msg">Si no tiene código, solicítelo a coordinación.</div>
         </div>
-        <!-- Segunda columna vacía para diseño responsivo -->
-        <div aria-hidden="true"></div>
+
+        <!-- Ilustración dentro de la tarjeta (derecha) -->
+        <div class="access-hero" aria-hidden="true">
+          <img src="assets/access-illustration.png" alt="Ilustración de consultoría" />
+        </div>
       </div>
     </section>
 
@@ -104,7 +103,7 @@
     <section id="content" class="hidden" style="margin-top:16px">
       <div class="card" id="courseCard">
         <div class="course">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
             <div>
               <h3 id="courseTitle">Curso / Diplomado</h3>
               <div class="meta" id="courseMeta">Material oficial para consultoría</div>
@@ -114,7 +113,8 @@
               <button id="btn-logout" class="btn secondary" type="button">Salir</button>
             </div>
           </div>
-          <hr style="border:0; border-top:1px solid rgba(255,255,255,.08)" />
+
+          <hr style="border:0;border-top:1px solid rgba(255,255,255,.06)" />
           <div class="filelist" id="filelist"></div>
         </div>
       </div>
@@ -123,77 +123,68 @@
   </div>
 
   <script>
-    // ========= UTILIDADES =========
-    const $ = (sel) => document.querySelector(sel);
-    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+    // utilidades
+    const $ = s => document.querySelector(s);
 
-    const toHex = (buffer) => Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-    async function sha256Hex(text) {
+    const toHex = buffer => Array.from(new Uint8Array(buffer)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    async function sha256Hex(text){
       const data = new TextEncoder().encode(text.trim());
       const hash = await crypto.subtle.digest('SHA-256', data);
       return toHex(hash);
     }
 
-    function setQueryParam(key, value) {
+    function setQueryParam(key, value){
       const url = new URL(window.location.href);
       if (value == null) url.searchParams.delete(key); else url.searchParams.set(key, value);
       history.replaceState({}, '', url);
     }
 
-    function downloadFile(url) { window.open(url, '_blank', 'noopener'); }
+    function downloadFile(url){ window.open(url, '_blank', 'noopener'); }
 
-    // ========= CONFIGURACIÓN (EDITE AQUÍ) =========
+    // MAPA DE ACCESO (edite hashes y URLs aquí)
     const ACCESS_HASH_MAP = {
       "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0": {
         title: "Diplomado en Gerencia y Administración de Servicios Hospitalarios (GASH) – 3ª Ed. 2025",
         meta: "Material oficial para consultoría (logos, PPT, manual de marca, social kit)",
         files: [
-          { label: "Logos (ZIP)",           url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
-          { label: "Plantilla PPT (PPTX)",  url: "https://drive.google.com/drive/folders/14E42MPlcjsIcc6OWNCYJ2J1HRzcdr21F?usp=sharing" },
+          { label: "Logos (ZIP)", url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
+          { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/drive/folders/14E42MPlcjsIcc6OWNCYJ2J1HRzcdr21F?usp=sharing" },
           { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
-          { label: "Social Kit (ZIP)",      url: "https://drive.google.com/your-socialzip" },
+          { label: "Social Kit (ZIP)", url: "https://drive.google.com/your-socialzip" },
           { label: "Formato de Informe (DOCX)", url: "https://drive.google.com/your-docx" }
         ]
       }
     };
 
-    // ========= ESTADO =========
-    let currentKeyHex = null; // hash hex del código válido
+    let currentKeyHex = null;
 
-    // ========= LÓGICA DE UI =========
-    function showAccess() { $('#access').classList.remove('hidden'); $('#content').classList.add('hidden'); $('#code').focus(); }
-    function showContent() { $('#access').classList.add('hidden'); $('#content').classList.remove('hidden'); }
+    function showAccess(){ $('#access').classList.remove('hidden'); $('#content').classList.add('hidden'); $('#code').focus(); }
+    function showContent(){ $('#access').classList.add('hidden'); $('#content').classList.remove('hidden'); }
 
-    function renderCourse(keyHex) {
+    function renderCourse(keyHex){
       const data = ACCESS_HASH_MAP[keyHex];
-      if (!data) return;
+      if(!data) return;
       $('#courseTitle').textContent = data.title;
       $('#courseMeta').textContent = data.meta || '';
-
-      const list = $('#filelist');
-      list.innerHTML = '';
-      (data.files || []).forEach(item => {
-        const row = document.createElement('div');
-        row.className = 'file';
-        row.innerHTML = `<div><strong>${item.label}</strong><div class="meta">${new URL(item.url, location.href).hostname || ''}</div></div>`;
-        const btn = document.createElement('button');
-        btn.className = 'btn';
-        btn.type = 'button';
-        btn.textContent = 'Descargar';
-        btn.addEventListener('click', () => downloadFile(item.url));
-        row.appendChild(btn);
-        list.appendChild(row);
+      const list = $('#filelist'); list.innerHTML = '';
+      (data.files||[]).forEach(item=>{
+        const row = document.createElement('div'); row.className='file';
+        const host = (function(){ try{ return new URL(item.url).hostname }catch{ return '' } })();
+        row.innerHTML = `<div><strong>${item.label}</strong><div class="meta">${host}</div></div>`;
+        const btn = document.createElement('button'); btn.className='btn'; btn.type='button'; btn.textContent='Descargar';
+        btn.addEventListener('click', ()=> downloadFile(item.url));
+        row.appendChild(btn); list.appendChild(row);
       });
     }
 
-    async function tryLoginByCode(code) {
+    async function tryLoginByCode(code){
       const msg = $('#msg');
       msg.textContent = 'Verificando…'; msg.classList.remove('error');
-      try {
+      try{
         const hex = await sha256Hex(code);
-        if (ACCESS_HASH_MAP[hex]) {
+        if(ACCESS_HASH_MAP[hex]){
           currentKeyHex = hex;
-          setQueryParam('code', btoa(code)); // guarda el código (codificado) en la URL para pre‑carga opcional
+          setQueryParam('code', btoa(code)); // guarda base64 en url (opcional)
           renderCourse(hex);
           showContent();
           return true;
@@ -202,7 +193,7 @@
           msg.classList.add('error');
           return false;
         }
-      } catch (e) {
+      }catch(e){
         console.error(e);
         msg.textContent = 'Ocurrió un error al verificar el código.';
         msg.classList.add('error');
@@ -210,36 +201,35 @@
       }
     }
 
-    // ========= EVENTOS =========
-    $('#btn-enter').addEventListener('click', () => tryLoginByCode($('#code').value));
-    $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#btn-enter').click(); } });
-    $('#btn-logout').addEventListener('click', () => { currentKeyHex = null; setQueryParam('code', null); showAccess(); });
+    // eventos
+    $('#btn-enter').addEventListener('click', ()=> tryLoginByCode($('#code').value));
+    $('#code').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); $('#btn-enter').click(); }});
+    $('#btn-logout').addEventListener('click', ()=> { currentKeyHex = null; setQueryParam('code', null); showAccess(); });
 
-    $('#btn-copy-code-link').addEventListener('click', async () => {
-      if (!currentKeyHex) return;
-      // Genera un enlace de invitación con el código en base64 para autocompletar
+    $('#btn-copy-code-link').addEventListener('click', async ()=>{
+      if(!currentKeyHex) return;
       const url = new URL(location.href);
       const codeField = $('#code');
-      const codeVal = atob(url.searchParams.get('code') || '') || codeField.value;
-      if (!codeVal) return;
+      const codeVal = atob(url.searchParams.get('code')||'') || codeField.value;
+      if(!codeVal) return;
       url.searchParams.set('code', btoa(codeVal));
       await navigator.clipboard.writeText(url.toString());
       alert('Enlace copiado al portapapeles');
     });
 
-    // Pre-carga por query param ?code=BASE64
-    (async function init() {
+    // init: precarga por ?code=BASE64
+    (async function init(){
       $('#year').textContent = new Date().getFullYear();
       const qp = new URLSearchParams(location.search);
       const pre = qp.get('code');
-      if (pre) {
-        try {
+      if(pre){
+        try{
           const decoded = atob(pre);
-          if (decoded) {
+          if(decoded){
             $('#code').value = decoded;
             await tryLoginByCode(decoded);
           }
-        } catch {}
+        }catch{}
       }
     })();
   </script>
