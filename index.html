@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portal de Recursos para Consultores – EduSalud</title>
+  <meta name="description" content="Descarga de toolkits (PPT, logos, manuales, social kit) para consultores de cursos y diplomados, protegida por código de acceso." />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: #121a32;
+      --muted: #9fb1d1;
+      --text: #eaf1ff;
+      --accent: #5aa9ff;
+      --accent-2: #8be9fd;
+      --danger: #ff7a7a;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; background: radial-gradient(1200px 800px at 80% -10%, rgba(90,169,255,.25), transparent), radial-gradient(900px 700px at -10% 120%, rgba(139,233,253,.12), transparent), var(--bg); color: var(--text); min-height: 100vh; }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 24px; }
+    header { display: flex; align-items: center; gap: 16px; padding: 12px 0 24px; }
+    .logo { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: grid; place-items: center; font-weight: 800; color: #0b1020; box-shadow: 0 6px 22px rgba(90,169,255,.35); }
+    h1 { margin: 0; font-size: clamp(20px, 3vw, 28px); line-height: 1.2; }
+    p.lead { color: var(--muted); margin: 8px 0 0; font-size: 14px; }
+
+    .card { background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.12)); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,.25); backdrop-filter: blur(6px); }
+    .grid { display: grid; gap: 16px; }
+    .grid.cols-2 { grid-template-columns: 1fr; }
+    @media (min-width: 900px) { .grid.cols-2 { grid-template-columns: 1fr 1fr; } }
+
+    input, button { font: inherit; }
+    label { display: block; font-weight: 600; margin-bottom: 8px; }
+    .row { display: flex; gap: 10px; align-items: stretch; }
+    .input { flex: 1 1 auto; border: 1px solid rgba(255,255,255,.12); background: #0e1630; color: var(--text); padding: 12px 14px; border-radius: 12px; outline: none; }
+    .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(90,169,255,.25); }
+    .btn { border: none; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #0b1020; font-weight: 800; padding: 12px 16px; border-radius: 12px; cursor: pointer; transition: transform .05s ease; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn.secondary { background: #19213d; color: var(--text); border: 1px solid rgba(255,255,255,.12); }
+    .btn.link { background: transparent; color: var(--accent); padding: 8px; }
+
+    .msg { margin-top: 8px; font-size: 14px; color: var(--muted); }
+    .msg.error { color: var(--danger); }
+
+    .course { display: grid; gap: 12px; }
+    .course h3 { margin: 0; font-size: 18px; }
+    .meta { color: var(--muted); font-size: 13px; }
+
+    .filelist { display: grid; gap: 10px; }
+    .file { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; background: #0e1630; }
+    .file strong { font-size: 14px; }
+
+    .footer { margin: 28px 0 8px; color: var(--muted); font-size: 12px; text-align: center; }
+    .tag { display: inline-flex; gap: 6px; align-items: center; padding: 2px 8px; border-radius: 999px; border: 1px solid rgba(255,255,255,.12); font-size: 12px; color: var(--muted); }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo" aria-hidden="true">ES</div>
+      <div>
+        <h1>Portal de Recursos para Consultores · EduSalud</h1>
+        <p class="lead">Descargue materiales oficiales (PPT, logos, manuales de marca, social kit, formatos). Acceso mediante código otorgado por coordinación.</p>
+      </div>
+    </header>
+
+    <!-- BLOQUE DE ACCESO -->
+    <section id="access" class="card">
+      <div class="grid cols-2">
+        <div>
+          <label for="code">Ingrese su código de acceso</label>
+          <div class="row">
+            <input id="code" class="input" type="password" placeholder="Ej. GASH2025-EDU" autocomplete="one-time-code" />
+            <button id="btn-enter" class="btn" type="button">Entrar</button>
+          </div>
+          <div id="msg" class="msg">Si no tiene código, solicítelo a coordinación.</div>
+        </div>
+        <div>
+          <div class="tag" style="margin-bottom:8px">Nota técnica</div>
+          <p class="meta">Este portal usa verificación por <em>hash</em> (SHA‑256) del código. No es un sistema de autenticación fuerte, pero es suficiente para compartir materiales de baja sensibilidad vía GitHub Pages o hosting estático.</p>
+          <button id="btn-how" class="btn secondary" type="button">¿Cómo agrego nuevos códigos?</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOQUE CONTENIDO RESTRINGIDO -->
+    <section id="content" class="hidden" style="margin-top:16px">
+      <div class="card" id="courseCard">
+        <div class="course">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px">
+            <div>
+              <h3 id="courseTitle">Curso / Diplomado</h3>
+              <div class="meta" id="courseMeta">Material oficial para consultoría</div>
+            </div>
+            <div class="row">
+              <button id="btn-copy-code-link" class="btn secondary" type="button" title="Comparte un link que precarga el código">Compartir enlace con código</button>
+              <button id="btn-logout" class="btn secondary" type="button">Salir</button>
+            </div>
+          </div>
+          <hr style="border:0; border-top:1px solid rgba(255,255,255,.08)" />
+          <div class="filelist" id="filelist"></div>
+        </div>
+      </div>
+      <p class="footer">© <span id="year"></span> EduSalud · Materiales oficiales para consultores.</p>
+    </section>
+
+    <!-- MODAL SIMPLE CON INSTRUCCIONES -->
+    <dialog id="dlgHow" style="max-width:720px; border:none; border-radius:16px; padding:0; background:#0f1732; color:var(--text)">
+      <div class="card" style="margin:0">
+        <h3 style="margin-top:0">Cómo agregar o cambiar códigos</h3>
+        <ol class="meta" style="line-height:1.7">
+          <li>Elija un código, por ejemplo: <strong>GASH2025-EDU</strong>.</li>
+          <li>Obtenga su SHA‑256: puede usar la consola del navegador con <code>await crypto.subtle.digest('SHA-256', new TextEncoder().encode('GASH2025-EDU'))</code> y convertir a hex, o cualquier generador en línea confiable.</li>
+          <li>Abra este archivo y agregue un nuevo objeto al mapa <code>ACCESS_HASH_MAP</code> con la <em>clave</em> igual al hash en hex.</li>
+          <li>Dentro del objeto, edite <code>title</code>, <code>meta</code> y la lista <code>files</code> con las URLs (Drive, Dropbox, GitHub Releases, etc.).</li>
+          <li>Publique los cambios en GitHub Pages o su hosting. Listo.</li>
+        </ol>
+        <p class="meta">Sugerencias: cambie los códigos cada edición; use zips por edición; si requiere controles más fuertes (correo autorizado, caducidad real, registros), considere Netlify Functions/Cloudflare Workers o un backend ligero.</p>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px">
+          <button class="btn secondary" onclick="document.getElementById('dlgHow').close()">Cerrar</button>
+        </div>
+      </div>
+    </dialog>
+  </div>
+
+  <script>
+    // ========= UTILIDADES =========
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+    const toHex = (buffer) => Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    async function sha256Hex(text) {
+      const data = new TextEncoder().encode(text.trim());
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      return toHex(hash);
+    }
+
+    function setQueryParam(key, value) {
+      const url = new URL(window.location.href);
+      if (value == null) url.searchParams.delete(key); else url.searchParams.set(key, value);
+      history.replaceState({}, '', url);
+    }
+
+    function downloadFile(url) { window.open(url, '_blank', 'noopener'); }
+
+    // ========= CONFIGURACIÓN (EDITE AQUÍ) =========
+    // Ejemplo: el hash para "GASH2025-EDU" es: 1fd3be... (reemplazar por el suyo)
+    // Use valores REALES. URLs pueden ser de Drive (compartidos con enlace), Dropbox, Box, GitHub, etc.
+
+    const ACCESS_HASH_MAP = {
+      // Hash de ejemplo (de una cadena demo). Reemplace los hashes y las URLs por las suyas.
+      // "<hash-en-hex>": { title: "Nombre del curso/diplomado", meta: "Edición/Módulos/Fechas", files: [ {label, url}, ... ] }
+
+      "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b": {
+        // hash de "1" (SOLO DEMO). NO usar en producción.
+        title: "Diplomado en Gerencia y Administración de Servicios Hospitalarios (GASH) – 3ª Ed. 2025",
+        meta: "Material oficial para consultoría (logos, PPT, manual de marca, social kit)",
+        files: [
+          { label: "Logos (ZIP)", url: "https://drive.google.com/your-logo-zip" },
+          { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/your-pptx" },
+          { label: "Manual de Marca (PDF)", url: "https://drive.google.com/your-brandpdf" },
+          { label: "Social Kit (ZIP)", url: "https://drive.google.com/your-socialzip" },
+          { label: "Formato de Informe (DOCX)", url: "https://drive.google.com/your-docx" }
+        ]
+      },
+
+      "4bf2b9...reemplazar_con_hash_real": {
+        title: "Curso de Salud Mental Perinatal – 2025",
+        meta: "Recursos oficiales para docente/consultor(a)",
+        files: [
+          { label: "Logos (ZIP)", url: "#" },
+          { label: "Plantilla PPT (PPTX)", url: "#" },
+          { label: "Guía de Estilo (PDF)", url: "#" }
+        ]
+      }
+    };
+
+    // ========= ESTADO =========
+    let currentKeyHex = null; // hash hex del código válido
+
+    // ========= LÓGICA DE UI =========
+    function showAccess() { $('#access').classList.remove('hidden'); $('#content').classList.add('hidden'); $('#code').focus(); }
+    function showContent() { $('#access').classList.add('hidden'); $('#content').classList.remove('hidden'); }
+
+    function renderCourse(keyHex) {
+      const data = ACCESS_HASH_MAP[keyHex];
+      if (!data) return;
+      $('#courseTitle').textContent = data.title;
+      $('#courseMeta').textContent = data.meta || '';
+
+      const list = $('#filelist');
+      list.innerHTML = '';
+      (data.files || []).forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'file';
+        row.innerHTML = `<div><strong>${item.label}</strong><div class="meta">${new URL(item.url, location.href).hostname || ''}</div></div>`;
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.type = 'button';
+        btn.textContent = 'Descargar';
+        btn.addEventListener('click', () => downloadFile(item.url));
+        row.appendChild(btn);
+        list.appendChild(row);
+      });
+    }
+
+    async function tryLoginByCode(code) {
+      const msg = $('#msg');
+      msg.textContent = 'Verificando…'; msg.classList.remove('error');
+      try {
+        const hex = await sha256Hex(code);
+        if (ACCESS_HASH_MAP[hex]) {
+          currentKeyHex = hex;
+          setQueryParam('code', btoa(code)); // guarda el código (codificado) en la URL para pre‑carga opcional
+          renderCourse(hex);
+          showContent();
+          return true;
+        } else {
+          msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
+          msg.classList.add('error');
+          return false;
+        }
+      } catch (e) {
+        console.error(e);
+        msg.textContent = 'Ocurrió un error al verificar el código.';
+        msg.classList.add('error');
+        return false;
+      }
+    }
+
+    // ========= EVENTOS =========
+    $('#btn-enter').addEventListener('click', () => tryLoginByCode($('#code').value));
+    $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#btn-enter').click(); } });
+    $('#btn-how').addEventListener('click', () => $('#dlgHow').showModal());
+    $('#btn-logout').addEventListener('click', () => { currentKeyHex = null; setQueryParam('code', null); showAccess(); });
+
+    $('#btn-copy-code-link').addEventListener('click', async () => {
+      if (!currentKeyHex) return;
+      // Genera un enlace de invitación con el código en base64 para autocompletar
+      const url = new URL(location.href);
+      const codeField = $('#code');
+      const codeVal = atob(url.searchParams.get('code') || '') || codeField.value;
+      if (!codeVal) return;
+      url.searchParams.set('code', btoa(codeVal));
+      await navigator.clipboard.writeText(url.toString());
+      alert('Enlace copiado al portapapeles');
+    });
+
+    // Pre-carga por query param ?code=BASE64
+    (async function init() {
+      $('#year').textContent = new Date().getFullYear();
+      const qp = new URLSearchParams(location.search);
+      const pre = qp.get('code');
+      if (pre) {
+        try {
+          const decoded = atob(pre);
+          if (decoded) {
+            $('#code').value = decoded;
+            await tryLoginByCode(decoded);
+          }
+        } catch {}
+      }
+    })();
+  </script>
+</body>
+</html>
