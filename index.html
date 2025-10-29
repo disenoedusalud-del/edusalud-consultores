@@ -115,7 +115,7 @@
     .hidden{ display:none !important; }
     .sr-only{ position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden }
 
-    /* ============ Loader (original, intacto) ============ */
+    /* Loader (original) */
     .edu-loader {
       position: fixed;
       inset: 0;
@@ -165,15 +165,14 @@
       transition: width .14s linear;
     }
     .loader-percent { font-size:13px; color:rgba(255,255,255,0.75); margin-top:6px; }
-    /* ================================================ */
 
-    /* ====== Layout por curso (tarjeta + lista) ====== */
+    /* Layout curso */
     .course-row { display:flex; gap:18px; align-items:flex-start; }
     .card-left-wrapper { flex: 0 0 360px; }
     .card-right { flex: 1 1 auto; }
     @media (max-width:900px) { .course-row { flex-direction:column } .card-left-wrapper { width:100%; } }
 
-    /* ====== VISTA MASTER (cada curso en su card) ===== */
+    /* Vista Master */
     #master { margin-top:16px; }
     .master-grid { display:grid; gap:16px; }
     .master-card{
@@ -193,6 +192,26 @@
       .master-card{ grid-template-columns: 1fr; }
       .master-card .left{ order: -1; }
     }
+    .master-search{
+      display:flex; gap:10px; align-items:center;
+      margin: 6px 0 14px;
+    }
+    .master-search input{
+      flex:1 1 auto;
+      border:1px solid rgba(255,255,255,.08);
+      background:#0e1630; color:var(--text);
+      padding:10px 12px; border-radius:12px; outline:none;
+    }
+    .master-search input:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 4px rgba(90,169,255,.12);
+    }
+    .master-search button{
+      border:none; background:#19213d; color:var(--text);
+      border:1px solid rgba(255,255,255,.06);
+      padding:10px 14px; border-radius:12px; cursor:pointer;
+    }
+    .master-search button:hover{ transform: translateY(-1px); }
   </style>
 </head>
 <body>
@@ -213,7 +232,7 @@
       </div>
     </header>
 
-    <!-- BLOQUE DE ACCESO -->
+    <!-- ACCESO -->
     <section id="access" class="card" aria-labelledby="access-title">
       <h2 id="access-title" class="sr-only">Acceso restringido</h2>
       <div class="grid cols-2" style="align-items:center;">
@@ -232,7 +251,7 @@
       </div>
     </section>
 
-    <!-- BLOQUE CONTENIDO POR CURSO -->
+    <!-- CONTENIDO (1 curso) -->
     <section id="content" class="hidden" style="margin-top:16px;">
       <div class="card" id="courseCard">
         <div class="course">
@@ -249,9 +268,8 @@
 
           <hr style="border:0; border-top:1px solid rgba(255,255,255,.06);" />
 
-          <!-- IZQUIERDA (TARJETA) y DERECHA (LISTA DE ARCHIVOS) -->
           <div class="course-row" style="margin-top:12px;">
-            <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() coloca aquí la tarjeta --></div>
+            <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() coloca la tarjeta aquí --></div>
             <div class="card-right">
               <div class="filelist" id="filelist" aria-live="polite"></div>
             </div>
@@ -263,7 +281,7 @@
       <p class="footer">© <span id="year"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
     </section>
 
-    <!-- ======= VISTA MASTER (EDUMASTER) ======= -->
+    <!-- VISTA MAESTRA -->
     <section id="master" class="hidden">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
         <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
@@ -272,13 +290,19 @@
           <button id="btn-master-exit" class="btn secondary" type="button">Salir</button>
         </div>
       </div>
+
+      <!-- Buscador -->
+      <div class="master-search">
+        <input id="masterSearch" type="text" placeholder="Buscar por nombre o tag (ej. GASH, MBF, AHGO2)..." />
+        <button id="masterSearchClear" type="button" title="Limpiar">Limpiar</button>
+      </div>
+
       <div class="master-grid" id="masterGrid"></div>
       <p class="footer">© <span id="year_master"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
     </section>
-    <!-- ======================================== -->
   </div>
 
-  <!-- Overlay / pantalla de carga (original) -->
+  <!-- Loader -->
   <div id="eduLoader" class="edu-loader hidden" aria-hidden="true" role="alert" aria-live="polite">
     <div class="loader-ring" aria-hidden="true"></div>
     <div class="loader-text">Cargando recursos...</div>
@@ -286,8 +310,8 @@
     <div id="loaderPercent" class="loader-percent">0%</div>
   </div>
 
-  <!-- Scripts (al final, con defer) -->
-  <script src="assets/js/electric-card.js?v=2" defer></script>
-  <script src="assets/js/app.js?v=5" defer></script>
+  <!-- Scripts -->
+  <script src="assets/js/electric-card.js?v=3" defer></script>
+  <script src="assets/js/app.js?v=7" defer></script>
 </body>
 </html>
