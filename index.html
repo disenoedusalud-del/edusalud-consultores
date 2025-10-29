@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Portal de Recursos para Consultores – EduSalud</title>
-  <meta name="description" content="Descarga de toolkits (PPT, logos, manuales de marca, social kit) para consultores de cursos y diplomados, protegida por código de acceso." />
+  <meta name="description" content="Descarga de toolkits (PPT, logos, manuales, social kit) para consultores de cursos y diplomados, protegida por código de acceso." />
   <style>
     :root{
       --bg:#0b1020;
@@ -115,24 +115,10 @@
     .hidden{ display:none !important; }
     .sr-only{ position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden }
 
-    /* ------------------- overlay animación ------------------- */
-    .anim-overlay{
-      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-      background:linear-gradient(180deg, rgba(2,6,23,0.75), rgba(3,8,20,0.85));
-      z-index:9999; pointer-events:auto; opacity:0; visibility:hidden; transition:opacity .28s ease, visibility .28s;
+    /* small tweak for responsive card reveal fallback */
+    @media (max-width:520px){
+      .card { padding:14px; }
     }
-    .anim-overlay.show{ opacity:1; visibility:visible; }
-    .anim-box{ width:820px; max-width:94%; height:320px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.05)); border-radius:12px; border:1px solid rgba(255,255,255,0.04); position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; gap:18px; padding:12px; box-shadow:0 20px 70px rgba(2,6,23,.7); }
-    .anim-canvas{ position:absolute; left:0; top:0; width:100%; height:100%; z-index:1; pointer-events:none; }
-    .anim-inner{ position:relative; z-index:2; display:flex; align-items:center; justify-content:center; width:100%; height:100%; pointer-events:none; }
-    .card-wrapper{ width:400px; height:250px; border-radius:12px; overflow:hidden; position:relative; box-shadow:0 10px 40px rgba(2,6,23,.6); pointer-events:none; }
-    .card-normal{ position:absolute; inset:0; z-index:4; display:flex; align-items:center; justify-content:center; background:#07102b; }
-    .card-normal img{ width:100%; height:100%; object-fit:cover; display:block; }
-    .card-ascii{ position:absolute; inset:0; z-index:3; background:#000; color:#8be9fd; font-family:monospace; padding:8px; overflow:hidden; white-space:pre; font-size:11px; line-height:13px; }
-    .scan-effect{ position:absolute; left:0; top:0; bottom:0; width:40px; background:linear-gradient(90deg, transparent, rgba(140,100,255,0.08), transparent); z-index:6; animation:scanMove .6s linear; pointer-events:none; }
-    @keyframes scanMove { from{ transform: translateX(-120%);} to{ transform: translateX(120%);} }
-    .anim-controls{ position:absolute; right:12px; bottom:12px; z-index:10; display:flex; gap:8px; pointer-events:auto }
-    .anim-skip{ background:rgba(0,0,0,0.45); color:#fff; border:1px solid rgba(255,255,255,0.04); padding:8px 10px; border-radius:10px; cursor:pointer }
   </style>
 </head>
 <body>
@@ -194,25 +180,6 @@
 
       <p class="footer">© <span id="year"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
     </section>
-  </div>
-
-  <!-- OVERLAY DE ANIMACIÓN (invisible hasta que se active) -->
-  <div id="animOverlay" class="anim-overlay" aria-hidden="true">
-    <div class="anim-box" role="dialog" aria-label="Animación de tarjeta">
-      <canvas id="scannerCanvas" class="anim-canvas"></canvas>
-      <canvas id="particleCanvas" class="anim-canvas"></canvas>
-
-      <div class="anim-inner">
-        <div id="cardStreamInner" class="card-wrapper" aria-hidden="true">
-          <div class="card-normal"><img id="cardImageAnim" src="assets/asset-card-sample.png" alt="Tarjeta" /></div>
-          <div id="asciiAnim" class="card-ascii"></div>
-        </div>
-      </div>
-
-      <div class="anim-controls">
-        <button id="skipAnimation" class="anim-skip" title="Saltar animación">Saltar</button>
-      </div>
-    </div>
   </div>
 
   <script>
@@ -287,7 +254,6 @@
       const msg = $('#msg');
       if (!msg) return;
       if (attempts === 0) {
-        // nada
         return;
       }
       if (attempts >= 8 && attempts < 15) {
@@ -325,160 +291,236 @@
       });
     }
 
-    /* ----------------------------------------------------------
-      Aquí comienza la integración de la animación (solo añadida)
-      - overlay con canvases
-      - ParticleScanner (2D) para glow/partículas
-      - pequeña rutina que muestra la tarjeta ASCII/imagen y ejecuta el "scan"
-      -----------------------------------------------------------*/
-    (function setupAnimation(){
-      const overlay = document.getElementById('animOverlay');
-      const skipBtn = document.getElementById('skipAnimation');
-      const scannerCanvas = document.getElementById('scannerCanvas');
-      const particleCanvas = document.getElementById('particleCanvas');
-      const asciiBox = document.getElementById('asciiAnim');
-      const imageCard = document.getElementById('cardImageAnim');
-      const cardWrapper = document.getElementById('cardStreamInner');
+    // ---------- Animación de tarjeta (reveal) ----------
+    async function showCardReveal(keyHex) {
+      return new Promise((resolve) => {
+        // Si el usuario está en móvil pequeño, acortar visual
+        const isNarrow = window.innerWidth < 540;
 
-      // small ascii generator
-      function generateAscii(widthChars = 60, heightChars = 18){
-        const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789(){}[]<>;:,._-+=!@#$%^&*|\\/\"'`~? ";
-        let out = '';
-        while(out.length < widthChars * heightChars){
-          const pick = chars[Math.floor(Math.random()*chars.length)];
-          out += pick;
+        // usar imagen representativa (puedes sustituir por assets/tu-tarjeta.png)
+        const cardImages = [
+          "https://cdn.prod.website-files.com/68789c86c8bc802d61932544/689f20b55e654d1341fb06f8_4.1.png"
+        ];
+        const cardImg = cardImages[0];
+
+        // Crear overlay
+        const overlay = document.createElement("div");
+        overlay.id = "card-reveal-overlay";
+        overlay.style.position = "fixed";
+        overlay.style.inset = "0";
+        overlay.style.zIndex = "2000";
+        overlay.style.display = "flex";
+        overlay.style.alignItems = "center";
+        overlay.style.justifyContent = "center";
+        overlay.style.background = "rgba(2,6,18,0.62)";
+        overlay.style.backdropFilter = "blur(6px)";
+        overlay.style.webkitBackdropFilter = "blur(6px)";
+
+        // contenedor tarjeta
+        const cardWrap = document.createElement("div");
+        cardWrap.style.width = isNarrow ? "320px" : "420px";
+        cardWrap.style.height = isNarrow ? "200px" : "260px";
+        cardWrap.style.borderRadius = "14px";
+        cardWrap.style.overflow = "hidden";
+        cardWrap.style.position = "relative";
+        cardWrap.style.display = "flex";
+        cardWrap.style.alignItems = "center";
+        cardWrap.style.justifyContent = "center";
+        cardWrap.style.boxShadow = "0 30px 80px rgba(0,0,0,0.7)";
+        cardWrap.style.background = "#071226";
+        cardWrap.style.padding = "0";
+        cardWrap.style.transform = "scale(.98)";
+        cardWrap.style.transition = "transform .25s ease";
+
+        // normal (derecha) - imagen de tarjeta
+        const normal = document.createElement("div");
+        normal.className = "reveal-normal";
+        normal.style.width = "50%";
+        normal.style.height = "100%";
+        normal.style.position = "relative";
+        normal.style.overflow = "hidden";
+        normal.style.display = "flex";
+        normal.style.alignItems = "center";
+        normal.style.justifyContent = "center";
+
+        const img = document.createElement("img");
+        img.src = cardImg;
+        img.alt = "Tarjeta";
+        img.style.width = "92%";
+        img.style.height = "auto";
+        img.style.borderRadius = "12px";
+        img.style.boxShadow = "0 8px 30px rgba(0,0,0,0.5)";
+        img.style.objectFit = "cover";
+
+        normal.appendChild(img);
+
+        // ascii (izquierda) - block de texto simulado
+        const ascii = document.createElement("div");
+        ascii.className = "reveal-ascii";
+        ascii.style.width = "50%";
+        ascii.style.height = "100%";
+        ascii.style.background = "#000";
+        ascii.style.color = "rgba(220,210,255,0.65)";
+        ascii.style.fontFamily = "monospace";
+        ascii.style.fontSize = "10px";
+        ascii.style.lineHeight = "12px";
+        ascii.style.padding = "10px";
+        ascii.style.overflow = "hidden";
+        ascii.style.whiteSpace = "pre";
+        ascii.style.display = "flex";
+        ascii.style.alignItems = "center";
+
+        const asciiContent = document.createElement("div");
+        asciiContent.textContent = [
+          "// compiled preview • scanner demo",
+          "const SCAN_WIDTH = 8;",
+          "const MAX_PARTICLES = 2500;",
+          "function clamp(n,a,b){return Math.max(a,Math.min(b,n));}",
+          "class Particle{ /* ... */ }",
+          "// visual only"
+        ].join("\n");
+        ascii.appendChild(asciiContent);
+
+        // barra scanner central
+        const scannerBar = document.createElement("div");
+        scannerBar.style.position = "absolute";
+        scannerBar.style.left = "50%";
+        scannerBar.style.top = "0";
+        scannerBar.style.transform = "translateX(-50%)";
+        scannerBar.style.width = isNarrow ? "6px" : "6px";
+        scannerBar.style.height = "100%";
+        scannerBar.style.borderRadius = "10px";
+        scannerBar.style.background = "linear-gradient(to bottom, rgba(180,160,255,0), rgba(100,255,255,0.95), rgba(180,160,255,0))";
+        scannerBar.style.boxShadow = "0 0 24px rgba(100,220,255,0.85)";
+        scannerBar.style.pointerEvents = "none";
+        scannerBar.style.opacity = "0";
+
+        // efecto de destello que viaja por la tarjeta (div encima)
+        const scanEffect = document.createElement("div");
+        scanEffect.style.position = "absolute";
+        scanEffect.style.left = "-40%";
+        scanEffect.style.top = "0";
+        scanEffect.style.width = "40%";
+        scanEffect.style.height = "100%";
+        scanEffect.style.pointerEvents = "none";
+        scanEffect.style.background = "linear-gradient(90deg, transparent, rgba(0,255,255,0.18), transparent)";
+        scanEffect.style.filter = "blur(8px)";
+        scanEffect.style.opacity = "0";
+
+        // pequeño canvas de partículas - detrás de la tarjeta
+        const particleCanvas = document.createElement("canvas");
+        particleCanvas.width = 900;
+        particleCanvas.height = 600;
+        particleCanvas.style.position = "absolute";
+        particleCanvas.style.left = "50%";
+        particleCanvas.style.top = "50%";
+        particleCanvas.style.transform = "translate(-50%,-50%)";
+        particleCanvas.style.width = "920px";
+        particleCanvas.style.height = "560px";
+        particleCanvas.style.zIndex = "100";
+        particleCanvas.style.pointerEvents = "none";
+        particleCanvas.style.opacity = "0.85";
+
+        // ensamblar
+        cardWrap.appendChild(ascii);
+        cardWrap.appendChild(normal);
+        cardWrap.appendChild(scannerBar);
+        cardWrap.appendChild(scanEffect);
+        overlay.appendChild(particleCanvas);
+        overlay.appendChild(cardWrap);
+        document.body.appendChild(overlay);
+
+        // función anim particles ligera (solo visual)
+        const ctx = particleCanvas.getContext("2d");
+        let particles = [];
+        function spawnParticles(n = 30) {
+          particles = [];
+          for (let i = 0; i < n; i++) {
+            particles.push({
+              x: Math.random() * particleCanvas.width,
+              y: Math.random() * particleCanvas.height,
+              r: Math.random() * 2 + 0.6,
+              vx: (Math.random() - 0.5) * 0.6,
+              vy: (Math.random() - 0.5) * 0.2,
+              a: Math.random() * 0.7 + 0.2
+            });
+          }
         }
-        let result = '';
-        let off = 0;
-        for(let r=0;r<heightChars;r++){
-          result += out.slice(off, off + widthChars) + (r < heightChars-1 ? '\n' : '');
-          off += widthChars;
+        spawnParticles(isNarrow ? 40 : 60);
+
+        let animRunning = true;
+        function particlesLoop() {
+          if (!animRunning) return;
+          ctx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+          for (let p of particles) {
+            p.x += p.vx;
+            p.y += p.vy;
+            if (p.x < -10) p.x = particleCanvas.width + 10;
+            if (p.x > particleCanvas.width + 10) p.x = -10;
+            if (p.y < -10) p.y = particleCanvas.height + 10;
+            if (p.y > particleCanvas.height + 10) p.y = -10;
+            ctx.beginPath();
+            ctx.globalAlpha = p.a * 0.9;
+            ctx.fillStyle = "rgba(185,210,255,0.9)";
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          requestAnimationFrame(particlesLoop);
         }
-        return result;
-      }
+        particlesLoop();
 
-      // ParticleScanner básico (2D canvas) - suave y ligero
-      function ParticleScanner2D(canvas){
-        this.canvas = canvas;
-        this.ctx = canvas.getContext('2d');
-        this.w = window.innerWidth * 0.9;
-        this.h = 320;
-        this.particles = [];
-        this.count = 0;
-        this.max = 250;
-        this.lightX = this.w/2;
-        this.active = false;
-        this._raf = null;
-        this._resize = ()=>{ this.w = Math.floor(window.innerWidth * 0.9); this.canvas.width = this.w; this.canvas.height = this.h; this.lightX = this.w/2; };
-        this._resize();
-        window.addEventListener('resize', this._resize);
-      }
-      ParticleScanner2D.prototype.start = function(){ this.active = true; this._loop(); };
-      ParticleScanner2D.prototype.stop = function(){ this.active = false; if(this._raf) cancelAnimationFrame(this._raf); this._raf = null; this.clear(); };
-      ParticleScanner2D.prototype.clear = function(){ if(this.ctx) this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height); };
-      ParticleScanner2D.prototype._loop = function(){
-        if(!this.active) return;
-        const ctx = this.ctx;
-        ctx.clearRect(0,0,this.w,this.h);
-        // draw glow bar
-        const g = ctx.createLinearGradient(this.lightX-60,0,this.lightX+60,0);
-        g.addColorStop(0, 'rgba(139,92,246,0)');
-        g.addColorStop(0.4, 'rgba(196,181,253,0.45)');
-        g.addColorStop(0.5, 'rgba(255,255,255,0.9)');
-        g.addColorStop(0.6, 'rgba(196,181,253,0.45)');
-        g.addColorStop(1, 'rgba(139,92,246,0)');
-        ctx.fillStyle = g; ctx.fillRect(this.lightX-120, 0, 240, this.h);
+        // Animación de scan: timeline en JS para tener control
+        const duration = isNarrow ? 850 : 1000; // ms
+        const start = performance.now();
 
-        // spawn particles
-        if(this.count < this.max && Math.random() < 0.5){
-          this.particles.push({
-            x: this.lightX + (Math.random()-0.5) * 12,
-            y: Math.random()*this.h,
-            r: (Math.random()*6)+2,
-            vx: (Math.random()*1.2)+0.4,
-            alpha: Math.random()*0.8 + 0.2
-          });
-          this.count = this.particles.length;
+        // aparecer suavemente la overlay
+        overlay.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, fill: "forwards" });
+        cardWrap.animate([{ transform: "scale(.95)" }, { transform: "scale(1)" }], { duration: 260, easing: "cubic-bezier(.2,.8,.2,1)" });
+
+        // poner barra visible
+        scannerBar.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, fill: "forwards" });
+
+        // anim loop: mover scanEffect de izquierda a centro a derecha y manejar clipping simulada
+        function frame(now) {
+          const t = Math.min(1, (now - start) / duration);
+          const scanPos = 0.08 + t * 0.84; // posición relativa en el wrap
+
+          const wrapRect = cardWrap.getBoundingClientRect();
+          const effectLeftPx = wrapRect.width * (scanPos - 0.2);
+          scanEffect.style.left = (effectLeftPx) + "px";
+          scanEffect.style.opacity = 0.95 * Math.sin(Math.PI * t);
+
+          // mover scannerBar centrado sobre cardWrap
+          const centerLeft = wrapRect.left + wrapRect.width * scanPos;
+          scannerBar.style.left = (wrapRect.width * scanPos) + "px";
+          scannerBar.style.transform = "translateX(-50%)";
+
+          // clip simulation: ajusta anchura de cada lado por percent
+          const leftPercent = Math.max(12, Math.min(88, Math.round(scanPos * 100)));
+          ascii.style.width = leftPercent + "%";
+          normal.style.width = (100 - leftPercent) + "%";
+
+          if (t < 1) {
+            requestAnimationFrame(frame);
+          } else {
+            // breve pulso final y cierre
+            scanEffect.animate([{ opacity: 0.95 }, { opacity: 0 }], { duration: 350, easing: "ease-out" });
+            scannerBar.animate([{ boxShadow: "0 0 24px rgba(100,220,255,0.85)" }, { boxShadow: "0 0 2px rgba(100,220,255,0.6)" }], { duration: 300 });
+            setTimeout(() => {
+              overlay.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: "forwards" });
+              animRunning = false;
+              setTimeout(() => {
+                try { document.body.removeChild(overlay); } catch(e) {}
+                resolve(true);
+              }, 270);
+            }, 600);
+          }
         }
+        requestAnimationFrame(frame);
+      });
+    }
 
-        // update/draw
-        for(let i=this.particles.length-1;i>=0;i--){
-          const p = this.particles[i];
-          p.x += p.vx;
-          p.y += Math.sin(Date.now()*0.001 + i)*0.2;
-          p.alpha *= 0.998;
-          ctx.globalAlpha = Math.max(0, Math.min(1, p.alpha));
-          const rad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r*3);
-          rad.addColorStop(0, 'rgba(255,255,255,1)');
-          rad.addColorStop(0.3, 'rgba(196,181,253,0.6)');
-          rad.addColorStop(1, 'rgba(139,92,246,0)');
-          ctx.fillStyle = rad; ctx.beginPath(); ctx.arc(p.x, p.y, p.r*2, 0, Math.PI*2); ctx.fill();
-          if(p.x > this.w + 20 || p.alpha < 0.02) this.particles.splice(i,1);
-        }
-
-        this._raf = requestAnimationFrame(this._loop.bind(this));
-      };
-
-      const scanner = new ParticleScanner2D(particleCanvas);
-
-      // anim control functions
-      let animTimeout = null;
-      function showAnimation(duration = 3500, cb){
-        // populate ascii
-        asciiBox.textContent = generateAscii(64, 16);
-        // ensure correct sizes
-        scanner.canvas.style.width = '100%';
-        scanner.canvas.style.height = '100%';
-        scanner._resize();
-        particleCanvas.style.zIndex = 2;
-        scannerCanvas.style.zIndex = 1;
-
-        overlay.classList.add('show');
-        overlay.setAttribute('aria-hidden','false');
-
-        // start particles
-        scanner.start();
-
-        // add scan effect element briefly to card
-        const scan = document.createElement('div'); scan.className='scan-effect';
-        cardWrapper.appendChild(scan);
-        // animate ascii changing slightly
-        const asciiInterval = setInterval(()=> {
-          if(Math.random() < 0.12) asciiBox.textContent = generateAscii(64,16);
-        }, 280);
-
-        animTimeout = setTimeout(()=> {
-          // stop
-          clearInterval(asciiInterval);
-          if(scan.parentNode) scan.parentNode.removeChild(scan);
-          scanner.stop();
-          overlay.classList.remove('show');
-          overlay.setAttribute('aria-hidden','true');
-          if (typeof cb === 'function') cb();
-        }, duration);
-      }
-
-      function skipAnimationNow(){
-        if(animTimeout) clearTimeout(animTimeout);
-        // immediate stop
-        scanner.stop();
-        // remove any scan effect
-        const scan = cardWrapper.querySelector('.scan-effect');
-        if(scan && scan.parentNode) scan.parentNode.removeChild(scan);
-        overlay.classList.remove('show');
-        overlay.setAttribute('aria-hidden','true');
-      }
-
-      skipBtn.addEventListener('click', ()=> skipAnimationNow());
-
-      // Expose a function global para que lo llame el flujo de login
-      window.playEntranceAnimationAndReveal = function(callback){
-        // show animation and then call callback
-        showAnimation(3500, callback);
-      };
-
-    })();
-    /* ------------------ fin animación ------------------ */
+    // ---------- Fin animación de tarjeta ----------
 
     async function tryLoginByCode(code) {
       const msg = $('#msg');
@@ -499,16 +541,13 @@
           // limpiar intentos tras login exitoso
           clearAttempts();
           setQueryParam('code', btoa(code));
+
+          // ---- espera la animación de la tarjeta antes de mostrar contenido ----
+          await showCardReveal(hex);
+
+          // luego renderiza y muestra la sección restringida
           renderCourse(hex);
-          // <-- Reemplazamos la llamada directa a showContent() por la animación
-          if (typeof window.playEntranceAnimationAndReveal === 'function') {
-            // mostramos animación y luego el contenido
-            window.playEntranceAnimationAndReveal(() => {
-              showContent();
-            });
-          } else {
-            showContent();
-          }
+          showContent();
           return true;
         } else {
           // registro del intento (solo en sessionStorage, no bloqueante)
