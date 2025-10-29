@@ -114,62 +114,9 @@
     .footer{ margin:28px 0 8px; color:var(--muted); font-size:12px; text-align:center; }
     .hidden{ display:none !important; }
     .sr-only{ position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden }
-  
-  /* ---------- Loading screen styles (insertado) ---------- */
-
-  /* import fuente monospace para el ASCII */
-  @import url("https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap");
-
-  /* Reset mínimo y estilos para overlay */
-  #loadingOverlay { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.72); }
-  #loadingOverlay.hidden { display:none !important; }
-
-  .speed-indicator { position: absolute; top: 20px; right: 20px; color: white; font-size: 16px; background: rgba(0, 0, 0, 0.3); padding: 8px 16px; border-radius: 20px; backdrop-filter: blur(5px); z-index: 10000; }
-
-  .container { position: relative; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-
-  .card-stream { position: absolute; width: 100vw; height: 180px; display: flex; align-items: center; overflow: visible; z-index: 3; }
-  .card-line { display: flex; align-items: center; gap: 60px; white-space: nowrap; user-select:none; }
-
-  .card-wrapper { position: relative; width: 400px; height: 250px; flex-shrink: 0; }
-  .card { position: absolute; top: 0; left: 0; width: 400px; height: 250px; border-radius: 15px; overflow: hidden; }
-
-  .card-normal { background: transparent; box-shadow: 0 15px 40px rgba(0,0,0,0.4); color: white; z-index: 2; position: relative; overflow: hidden; }
-  .card-image { width: 100%; height: 100%; object-fit: cover; border-radius: 15px; transition: all 0.3s ease; filter: brightness(1.1) contrast(1.1); }
-
-  .card-ascii { z-index:1; position:absolute; top:0; left:0; width:400px; height:250px; color: rgba(220,210,255,0.6); font-family: 'Roboto Mono', monospace; font-size:11px; line-height:13px; white-space: pre; overflow:hidden; }
-
-  /* Scanner light bar */
-  .scanner { display:none; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:4px; height:300px; border-radius:30px; background: linear-gradient(to bottom, transparent, rgba(0,255,255,0.8), rgba(0,255,255,1), rgba(0,255,255,0.8), transparent); box-shadow:0 0 20px rgba(0,255,255,0.8), 0 0 40px rgba(0,255,255,0.4); z-index:10; }
-
-  #particleCanvas { position:absolute; top:50%; left:0; transform:translateY(-50%); width:100vw; height:250px; z-index:0; pointer-events:none; }
-  #scannerCanvas { position:absolute; top:50%; left:-3px; transform:translateY(-50%); width:100vw; height:300px; z-index:15; pointer-events:none; }
-
-  .scan-effect { position:absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(90deg, transparent, rgba(0,255,255,0.4), transparent); animation: scanEffect 0.6s ease-out; pointer-events:none; z-index:5; }
-
-  @keyframes scanEffect { 0%{transform:translateX(-100%);opacity:0;}50%{opacity:1;}100%{transform:translateX(100%);opacity:0;} }
-
-  /* fin styles de carga */
-
-</style>
+  </style>
 </head>
-$1
-  <!-- Loading overlay: pantalla de carga con animación tipo scanner/card-stream -->
-  <div id="loadingOverlay" class="hidden" aria-hidden="true">
-    <div class="speed-indicator">Speed: <span id="speedValue">120</span> px/s</div>
-
-    <div class="container">
-      <canvas id="particleCanvas"></canvas>
-      <canvas id="scannerCanvas"></canvas>
-
-      <div class="scanner" aria-hidden="true"></div>
-
-      <div class="card-stream" id="cardStream">
-        <div class="card-line" id="cardLine"></div>
-      </div>
-    </div>
-  </div>
-  <!-- /Loading overlay -->
+<body>
   <div class="wrap">
     <header>
       <div style="display:flex; gap:16px; align-items:center;">
@@ -358,69 +305,6 @@ $1
           currentKeyHex = hex;
           // limpiar intentos tras login exitoso
           clearAttempts();
-
-          // Mostrar pantalla de carga y animación
-          const overlay = document.getElementById('loadingOverlay');
-          if (overlay) {
-            overlay.classList.remove('hidden');
-            overlay.setAttribute('aria-hidden', 'false');
-            try { document.querySelector('.scanner').style.display = 'block'; } catch(e) {}
-            try { document.body.style.overflow = 'hidden'; } catch(e) {}
-          }
-
-          // iniciar la animación de carga si está disponible
-          try {
-            if (window.initLoadingAnimation) {
-              // initLoadingAnimation devuelve una Promise que resuelve cuando termina la animación corta
-              await window.initLoadingAnimation();
-            } else {
-              // fallback: esperar un tiempo fijo si no hay animación
-              await new Promise(r => setTimeout(r, 1200));
-            }
-          } catch (e) {
-            console.warn('Error en animación de carga', e);
-            await new Promise(r => setTimeout(r, 900));
-          }
-
-          // proceder a mostrar el contenido protegido
-          setQueryParam('code', btoa(code));
-          renderCourse(hex);
-
-          // ocultar overlay
-          if (overlay) {
-            overlay.classList.add('hidden');
-            overlay.setAttribute('aria-hidden', 'true');
-            try { document.querySelector('.scanner').style.display = 'none'; } catch(e) {}
-            try { document.body.style.overflow = ''; } catch(e) {}
-          }
-
-          showContent();
-          return true;
-        } else {
-          // registro del intento (solo en sessionStorage, no bloqueante)
-          const attempts = recordAttempt();
-          // mostrar mensaje amigable
-          msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
-          msg.classList.add('error');
-          // advertencias si ya hay varios intentos
-          maybeShowAttemptsWarning();
-          return false;
-        }
-      } catch (e) {
-        console.error(e);
-        msg.textContent = 'Ocurrió un error al verificar el código.';
-        msg.classList.add('error');
-        return false;
-      }
-    }
-
-      try {
-        const hex = await sha256Hex(code);
-
-        if (ACCESS_HASH_MAP[hex]) {
-          currentKeyHex = hex;
-          // limpiar intentos tras login exitoso
-          clearAttempts();
           setQueryParam('code', btoa(code));
           renderCourse(hex);
           showContent();
@@ -494,83 +378,5 @@ $1
       maybeShowAttemptsWarning();
     })();
   </script>
-
-  <script>
-  // ---------- CARGA: inicializador para la animación de pantalla de carga ----------
-  (function(){
-    let _initialized = false;
-    // Exponer una función que inicie la animación de carga y la resuelva tras una breve secuencia
-    window.initLoadingAnimation = function() {
-      return new Promise((resolve) => {
-        // si ya inicializado, simplemente activar el modo 'scanning' y finalizar después
-        if (_initialized) {
-          try { if (window.setScannerScanning) window.setScannerScanning(true); } catch(e){}
-          try { document.getElementById('speedValue').textContent = 240; } catch(e){}
-          setTimeout(() => {
-            try { if (window.setScannerScanning) window.setScannerScanning(false); } catch(e){}
-            try { document.getElementById('speedValue').textContent = 120; } catch(e){}
-            resolve();
-          }, 1100);
-          return;
-        }
-
-        // cargar three.js dinámicamente si es necesario
-        function loadThree(done){
-          if (typeof THREE !== 'undefined') return done();
-          const s = document.createElement('script');
-          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-          s.onload = done; s.onerror = done; document.head.appendChild(s);
-        }
-
-        loadThree(() => {
-          // crear controladores ligeros (solo los necesarios para el efecto)
-          try {
-            // construir elementos de tarjeta si no existen
-            const cardLine = document.getElementById('cardLine');
-            if (cardLine && cardLine.children.length === 0) {
-              // crear una tarjeta simple para el efecto
-              const wrapper = document.createElement('div'); wrapper.className = 'card-wrapper';
-              const normal = document.createElement('div'); normal.className = 'card card-normal';
-              const img = document.createElement('img'); img.className = 'card-image'; img.alt = 'Preview'; img.width = 400; img.height = 250;
-              img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250"><rect width="100%" height="100%" fill="#334155"/><text x="50%" y="50%" fill="#fff" font-size="24" font-family="Arial" text-anchor="middle" dominant-baseline="middle">Cargando...</text></svg>');
-              normal.appendChild(img);
-              const ascii = document.createElement('div'); ascii.className = 'card card-ascii';
-              const asciiContent = document.createElement('div'); asciiContent.className = 'ascii-content'; asciiContent.textContent = 'Initializing...'; ascii.appendChild(asciiContent);
-              wrapper.appendChild(normal); wrapper.appendChild(ascii);
-              cardLine.appendChild(wrapper);
-            }
-
-            // inicializar sistema de partículas si no existe
-            if (!window._particleScannerInstance) {
-              try {
-                window._particleScannerInstance = new (window.ParticleScanner || (function(){
-                  // Si la clase no fue incluida (por tamaño), crear un stub ligero que solo dibuje un bar simple
-                  function Stub(){ this.scanningActive = false; this.setScanningActive = function(a){ this.scanningActive = !!a; }; this.startScanning = this.setScanningActive; this.stopScanning = () => this.setScanningActive(false); this.getStats = () => ({scanningActive:this.scanningActive}); }
-                  return Stub;
-                })())();
-              } catch(e) { console.warn('No se pudo inicializar particleScanner', e); }
-            }
-
-            // activar efecto de escaneo
-            if (window.setScannerScanning) window.setScannerScanning(true);
-            const speedEl = document.getElementById('speedValue'); if (speedEl) speedEl.textContent = '260';
-
-            _initialized = true;
-
-            setTimeout(() => {
-              if (window.setScannerScanning) window.setScannerScanning(false);
-              if (speedEl) speedEl.textContent = '120';
-              resolve();
-            }, 1200);
-          } catch (err) {
-            console.warn('initLoadingAnimation fail', err);
-            resolve();
-          }
-        });
-      });
-    };
-  })();
-  </script>
-
 </body>
 </html>
