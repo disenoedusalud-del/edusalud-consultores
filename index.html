@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Portal de Recursos para Consultores – EduSalud</title>
-  <meta name="description" content="Descarga de toolkits (PPT, logos, manuales, social kit) para consultores de cursos y diplomados, protegida por código de acceso." />
+  <meta name="description" content="Descarga de toolkits (PPT, logos, manuales de marca, social kit, formatos). Acceso mediante código otorgado por coordinación." />
   <style>
     :root{
       --bg:#0b1020;
@@ -114,6 +114,59 @@
     .footer{ margin:28px 0 8px; color:var(--muted); font-size:12px; text-align:center; }
     .hidden{ display:none !important; }
     .sr-only{ position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden }
+
+    /* =================== Loader styles añadidos =================== */
+    /* Overlay full-screen para la pantalla de carga (no afecta el resto) */
+    .edu-loader {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: linear-gradient(180deg, rgba(2,6,12,0.94), rgba(0,0,0,0.96));
+      color: #fff;
+      z-index: 99999;
+      padding: 18px;
+      text-align: center;
+      font-family: "Roboto Mono", monospace;
+    }
+    .edu-loader.hidden { display: none !important; }
+    .loader-ring {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      display:grid;
+      place-items:center;
+      box-shadow: 0 8px 40px rgba(90,169,255,0.08), inset 0 0 16px rgba(63,176,255,0.04);
+    }
+    .loader-ring:after{
+      content: "";
+      width: 62px;
+      height: 62px;
+      border-radius:50%;
+      border: 4px solid rgba(255,255,255,0.06);
+      border-top-color: #6ee7ff;
+      animation: spin 900ms linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-text { font-weight:700; font-size:15px; letter-spacing:0.6px; color:#dff7ff; }
+    .loader-progress {
+      width: 380px;
+      max-width: calc(100% - 48px);
+      height: 10px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 999px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+    }
+    .loader-progress > i {
+      display:block; height:100%; width:0%; background: linear-gradient(90deg,#6ee7ff,#7c5cff); border-radius:999px;
+      transition: width .14s linear;
+    }
+    .loader-percent { font-size:13px; color:rgba(255,255,255,0.75); margin-top:6px; }
+    /* ============================================================ */
   </style>
 </head>
 <body>
@@ -125,7 +178,7 @@
         </div>
         <div>
           <h1>Portal de Recursos para Consultores · EduSalud</h1>
-          <p class="lead">Descargue materiales oficiales (PPT, logos, manuales de marca, social kit, formatos). Acceso mediante código otorgado por coordinación.</p>
+          <p class="lead">Descargue materiales oficiales (PPT, logos, manual de marca, social kit, formatos). Acceso mediante código otorgado por coordinación.</p>
         </div>
       </div>
 
@@ -176,6 +229,15 @@
       <p class="footer">© <span id="year"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
     </section>
   </div>
+
+  <!-- ========== Overlay / pantalla de carga añadida ========= -->
+  <div id="eduLoader" class="edu-loader hidden" aria-hidden="true" role="alert" aria-live="polite">
+    <div class="loader-ring" aria-hidden="true"></div>
+    <div class="loader-text">Cargando recursos...</div>
+    <div class="loader-progress" aria-hidden="true"><i id="loaderBar"></i></div>
+    <div id="loaderPercent" class="loader-percent">0%</div>
+  </div>
+  <!-- ======================================================== -->
 
   <script>
     // Utilitarios DOM
@@ -287,6 +349,63 @@
       });
     }
 
+    // ---------- Funciones para la pantalla de carga ----------
+    const loaderEl = document.getElementById('eduLoader');
+    const loaderBar = document.getElementById('loaderBar');
+    const loaderPercent = document.getElementById('loaderPercent');
+
+    function showLoader() {
+      if (!loaderEl) return;
+      loaderEl.classList.remove('hidden');
+      loaderEl.setAttribute('aria-hidden', 'false');
+    }
+    function hideLoader() {
+      if (!loaderEl) return;
+      loaderEl.classList.add('hidden');
+      loaderEl.setAttribute('aria-hidden', 'true');
+    }
+
+    // Duración simulada (ms) — puede ajustar
+    const LOAD_DURATION_MS = 1600;
+
+    function runLoader(durationMs = LOAD_DURATION_MS) {
+      return new Promise((resolve) => {
+        if (!loaderBar || !loaderPercent) {
+          resolve();
+          return;
+        }
+        showLoader();
+        loaderBar.style.width = '0%';
+        loaderPercent.textContent = '0%';
+        const start = performance.now();
+        function frame(now) {
+          const t = Math.min(1, (now - start) / durationMs);
+          // easing (suave)
+          const ease = t < 0.5 ? (2*t*t) : (-1 + (4-2*t)*t);
+          const percent = Math.round(ease * 100);
+          loaderBar.style.width = percent + '%';
+          loaderPercent.textContent = percent + '%';
+          if (t < 1) {
+            requestAnimationFrame(frame);
+          } else {
+            loaderBar.style.width = '100%';
+            loaderPercent.textContent = '100%';
+            setTimeout(() => {
+              hideLoader();
+              resolve();
+            }, 200);
+          }
+        }
+        requestAnimationFrame(frame);
+      });
+    }
+    // ---------------------------------------------------------
+
+    /**
+     * tryLoginByCode: verifica el código y —si es válido— muestra la pantalla de carga
+     * antes de renderizar el contenido. Devuelve promise<boolean> que se resuelve true
+     * cuando todo el flujo (incluido el loader) ha terminado con éxito.
+     */
     async function tryLoginByCode(code) {
       const msg = $('#msg');
       msg.textContent = 'Verificando…';
@@ -302,6 +421,13 @@
         const hex = await sha256Hex(code);
 
         if (ACCESS_HASH_MAP[hex]) {
+          // Código válido — mostramos loader antes de revelar contenido
+          try {
+            await runLoader(); // espera la pantalla de carga (simulada)
+          } catch (e) {
+            // si algo falla con el loader, continuamos anyway
+          }
+
           currentKeyHex = hex;
           // limpiar intentos tras login exitoso
           clearAttempts();
@@ -312,10 +438,8 @@
         } else {
           // registro del intento (solo en sessionStorage, no bloqueante)
           const attempts = recordAttempt();
-          // mostrar mensaje amigable
           msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
           msg.classList.add('error');
-          // advertencias si ya hay varios intentos
           maybeShowAttemptsWarning();
           return false;
         }
