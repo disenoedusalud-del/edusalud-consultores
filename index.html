@@ -115,62 +115,14 @@
     .hidden{ display:none !important; }
     .sr-only{ position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden }
 
-    /* Loader */
-    .edu-loader {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-      background: linear-gradient(180deg, rgba(2,6,12,0.94), rgba(0,0,0,0.96));
-      color: #fff;
-      z-index: 99999;
-      padding: 18px;
-      text-align: center;
-      font-family: "Roboto Mono", monospace;
-    }
-    .edu-loader.hidden { display: none !important; }
-    .loader-ring {
-      width: 88px;
-      height: 88px;
-      border-radius: 50%;
-      display:grid;
-      place-items:center;
-      box-shadow: 0 8px 40px rgba(90,169,255,0.08), inset 0 0 16px rgba(63,176,255,0.04);
-    }
-    .loader-ring:after{
-      content: "";
-      width: 62px;
-      height: 62px;
-      border-radius:50%;
-      border: 4px solid rgba(255,255,255,0.06);
-      border-top-color: #6ee7ff;
-      animation: spin 900ms linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loader-text { font-weight:700; font-size:15px; letter-spacing:0.6px; color:#dff7ff; }
-    .loader-progress {
-      width: 380px;
-      max-width: calc(100% - 48px);
-      height: 10px;
-      background: rgba(255,255,255,0.04);
-      border-radius: 999px;
-      overflow: hidden;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
-    }
-    .loader-progress > i {
-      display:block; height:100%; width:0%; background: linear-gradient(90deg,#6ee7ff,#7c5cff); border-radius:999px;
-      transition: width .14s linear;
-    }
-    .loader-percent { font-size:13px; color:rgba(255,255,255,0.75); margin-top:6px; }
-
     /* layout */
     .course-row { display:flex; gap:18px; align-items:flex-start; }
     .card-left-wrapper { flex: 0 0 360px; }
     .card-right { flex: 1 1 auto; }
     @media (max-width:900px) { .course-row { flex-direction:column } .card-left-wrapper { width:100%; } }
+
+    /* mini-card (solo para vista master) */
+    .mini-cap { margin:8px 0 16px; }
   </style>
 </head>
 <body>
@@ -227,9 +179,8 @@
 
           <hr style="border:0; border-top:1px solid rgba(255,255,255,.06);" />
 
-          <!-- IZQUIERDA (TARJETA) / DERECHA (LISTA) -->
           <div class="course-row" style="margin-top:12px;">
-            <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() colocará la tarjeta aquí --></div>
+            <div class="card-left-wrapper" aria-hidden="false"><!-- las tarjetas se insertan aquí --></div>
             <div class="card-right">
               <div class="filelist" id="filelist" aria-live="polite"></div>
             </div>
@@ -254,7 +205,7 @@
   <script src="assets/js/electric-card.js?v=2" defer></script>
 
   <script defer>
-    // ===== Fallback sin WebCrypto / contexto no seguro =====
+    /* ===== Fallback sin WebCrypto / contexto no seguro ===== */
     const PLAINTEXT_FALLBACK = {
       "GASH3-2025": "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0",
       "MBF2-2025":  "88f62dd4f34bc0c54550634cee859bb2178aa0e69041e1bee3be5a132e1c7456",
@@ -264,23 +215,16 @@
 
     const $ = sel => document.querySelector(sel);
     const toHex = (buf) => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-
     async function sha256Hex(text) {
       const s = String(text).trim();
-
-      // si está en fallback, devolver de una
       if (PLAINTEXT_FALLBACK[s]) return PLAINTEXT_FALLBACK[s];
-
-      // intentar WebCrypto si hay contexto seguro
       try {
-        if (window.isSecureContext && window.crypto && window.crypto.subtle) {
+        if (window.isSecureContext && window.crypto?.subtle) {
           const data = new TextEncoder().encode(s);
           const hash = await crypto.subtle.digest('SHA-256', data);
           return toHex(hash);
         }
-      } catch (_) {}
-
-      // si no hay WebCrypto y tampoco está en fallback:
+      } catch(_) {}
       throw new Error('No se pudo calcular SHA-256 (no HTTPS) y el código no está en PLAINTEXT_FALLBACK.');
     }
 
@@ -291,7 +235,7 @@
     }
     function downloadFile(url) { window.open(url, '_blank', 'noopener'); }
 
-    // ===== Cursos =====
+    /* ===== Config ===== */
     const MASTER_HASH = "7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8";
 
     const ACCESS_HASH_MAP = {
@@ -308,7 +252,6 @@
         ],
         card: { img: "assets/IMG/D_GASH_B1.jpg", tag: "GASH", variant: "dramatic", seed: 7, accent: "#5aa9ff" }
       },
-
       "88f62dd4f34bc0c54550634cee859bb2178aa0e69041e1bee3be5a132e1c7456": {
         title: "Curso Manejo Básico de Fracturas (MBF) – 2ª Ed. 2025",
         meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
@@ -322,9 +265,8 @@
         ],
         card: { img: "assets/IMG/C_MBF_2026_B1.jpg", tag: "MBF", variant: "neon", seed: 11, accent: "#8be9fd" }
       },
-
       "4544b187690fbe2b84c7b20f7d9fe3d9330419f6f8fc42998fa7348dc3ae2907": {
-        title: "Curso Abordaje de Hemorragias Gineo-Obstétricas – 2025",
+        title: "Curso Abordaje de Hemorragias Gineco-Obstétricas – 2025",
         meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
         files: [
           { label: "Logos (PNG)",             url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
@@ -339,7 +281,7 @@
 
     let currentKeyHex = null;
 
-    // ===== Render =====
+    /* ===== Vistas ===== */
     function showAccess() { $('#access').classList.remove('hidden'); $('#content').classList.add('hidden'); $('#code').focus(); }
     function showContent() { $('#access').classList.add('hidden'); $('#content').classList.remove('hidden'); }
 
@@ -347,30 +289,46 @@
       const list = $('#filelist');
       list.innerHTML = '';
 
-      // Master: listar TODOS (menos el master)
+      // === VISTA MAESTRA ===
       if (keyHex === MASTER_HASH) {
         $('#courseTitle').textContent = 'Vista Maestra · Todos los cursos';
         $('#courseMeta').textContent = 'Acceso a los recursos de todos los cursos habilitados.';
 
-        // Tarjeta genérica
+        // Tarjetas de TODOS los cursos en la columna izquierda
         try {
           const left = document.querySelector('#courseCard .card-left-wrapper');
           if (left) {
             left.innerHTML = '';
-            const wrapper = window.insertElectricCard ? window.insertElectricCard(left, { tag: 'MASTER', variant:'dramatic' }) : null;
-            if (wrapper && window.setCardImage) {
-              window.setCardImage(wrapper, 'assets/IMG/D_GASH_B1.jpg?v=2');
-            }
+            Object.values(ACCESS_HASH_MAP).forEach((data) => {
+              const opts = {
+                tag: data.card?.tag || 'EDUSALUD',
+                variant: data.card?.variant,
+                seed: data.card?.seed,
+                accent: data.card?.accent
+              };
+              const w = window.insertElectricCard ? window.insertElectricCard(left, opts) : null;
+              if (w && data.card?.img && window.setCardImage) {
+                // tamaño cómodo para stack
+                w.style.maxWidth = '340px';
+                w.style.margin = '0 0 8px 0';
+                window.setCardImage(w, `${data.card.img}?v=2`);
+              }
+              const cap = document.createElement('div');
+              cap.className = 'meta mini-cap';
+              cap.textContent = data.title;
+              left.appendChild(cap);
+            });
           }
-        } catch (e) {}
+        } catch (e) { console.warn('No se pudieron insertar tarjetas del master:', e); }
 
+        // Lista de archivos de todos los cursos a la derecha
         Object.entries(ACCESS_HASH_MAP).forEach(([hex, data]) => {
-          if (hex === MASTER_HASH) return;
-          const h = document.createElement('div');
-          h.style.marginTop = '6px';
-          h.innerHTML = `<div class="meta" style="margin:6px 0 4px; opacity:.85;">${data.title}</div>`;
+          const header = document.createElement('div');
+          header.className = 'meta';
+          header.style.margin = '10px 0 6px';
+          header.textContent = data.title;
+          list.appendChild(header);
 
-          // archivos de ese curso
           (data.files || []).forEach(item => {
             const row = document.createElement('div');
             row.className = 'file';
@@ -383,14 +341,13 @@
             btn.textContent = 'Descargar';
             btn.addEventListener('click', () => downloadFile(item.url));
             row.appendChild(btn);
-            list.appendChild(h);
             list.appendChild(row);
           });
         });
         return;
       }
 
-      // Curso individual
+      // === VISTA POR CURSO ===
       const data = ACCESS_HASH_MAP[keyHex];
       if (!data) return;
 
@@ -412,7 +369,7 @@
         list.appendChild(row);
       });
 
-      // Insertar la tarjeta
+      // Tarjeta del curso
       try {
         const left = document.querySelector('#courseCard .card-left-wrapper');
         if (left) {
@@ -433,7 +390,7 @@
       } catch (e) { console.warn('No se pudo insertar la tarjeta:', e); }
     }
 
-    // ===== Loader =====
+    /* ===== Loader ===== */
     const loaderEl = document.getElementById('eduLoader');
     const loaderBar = document.getElementById('loaderBar');
     const loaderPercent = document.getElementById('loaderPercent');
@@ -464,7 +421,7 @@
       });
     }
 
-    // ===== Intentos y login =====
+    /* ===== Intentos & Login ===== */
     const ATTEMPT_KEY = 'edusalud_attempts_session';
     function recordAttempt() {
       try { const n = Number(sessionStorage.getItem(ATTEMPT_KEY) || 0) + 1; sessionStorage.setItem(ATTEMPT_KEY, String(n)); return n; } catch { return 0; }
@@ -498,7 +455,6 @@
       try {
         const hex = await sha256Hex(code);
 
-        // Master
         if (hex === MASTER_HASH) {
           try { await runLoader(); } catch {}
           currentKeyHex = hex;
