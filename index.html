@@ -116,7 +116,6 @@
     .sr-only{ position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden }
 
     /* =================== Loader styles añadidos =================== */
-    /* Overlay full-screen para la pantalla de carga (no afecta el resto) */
     .edu-loader {
       position: fixed;
       inset: 0;
@@ -167,6 +166,18 @@
     }
     .loader-percent { font-size:13px; color:rgba(255,255,255,0.75); margin-top:6px; }
     /* ============================================================ */
+
+    /* small helper for course layout */
+    .course-row { display:flex; gap:18px; align-items:flex-start; margin-top:12px; }
+    .card-left-wrapper { flex: 0 0 360px; min-height: 420px; }
+    .card-right { flex: 1 1 auto; }
+    @media (max-width:900px) { .course-row { flex-direction:column } .card-left-wrapper { width:100%; } }
+
+    /* minimal styling so the injected card fits nicely */
+    .ec-card-container { width:100%; height:100%; display:block; }
+    .ec-card-container .card-container { height: 100%; min-height: 360px; }
+    .ec-card-container .main-card { width:100%; height:100%; border-radius:18px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.04)); }
+    .ec-card-image { border-radius:14px; display:block; }
   </style>
 </head>
 <body>
@@ -222,7 +233,15 @@
           </div>
 
           <hr style="border:0; border-top:1px solid rgba(255,255,255,.06);" />
-          <div class="filelist" id="filelist" aria-live="polite"></div>
+
+          <!-- NUEVA FILA: IZQUIERDA (TARJETA) Y DERECHA (LISTA DE ARCHIVOS) -->
+          <div class="course-row">
+            <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() colocará la tarjeta aquí --></div>
+            <div class="card-right">
+              <div class="filelist" id="filelist" aria-live="polite"></div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -239,27 +258,25 @@
   </div>
   <!-- ======================================================== -->
 
-  <script>
-    // Utilitarios DOM
-    const $ = sel => document.querySelector(sel);
+  <!-- electric-card.js (debe existir en la misma carpeta o ajustar la ruta) -->
+  <script src="electric-card.js"></script>
 
-    // Convierte ArrayBuffer -> hex
+  <script>
+    // === su script original (sin cambios funcionales) ===
+    const $ = sel => document.querySelector(sel);
     const toHex = buffer => Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2,'0')).join('');
     async function sha256Hex(text) {
       const data = new TextEncoder().encode(String(text).trim());
       const hash = await crypto.subtle.digest('SHA-256', data);
       return toHex(hash);
     }
-
     function setQueryParam(key, value) {
       const url = new URL(window.location.href);
       if (value == null) url.searchParams.delete(key); else url.searchParams.set(key, value);
       history.replaceState({}, '', url);
     }
-
     function downloadFile(url) { window.open(url, '_blank', 'noopener'); }
 
-    // MAPA DE ACCESO (SHA-256 de los códigos permitidos)
     const ACCESS_HASH_MAP = {
       "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0": {
         title: "Diplomado en Gerencia y Administración de Servicios Hospitalarios (GASH) – 3ª Ed. 2025",
@@ -288,7 +305,6 @@
     let currentKeyHex = null;
     const ATTEMPT_KEY = 'edusalud_attempts_session';
 
-    // --- manejo de intentos (no bloqueante, usa sessionStorage) ---
     function recordAttempt() {
       try {
         const raw = sessionStorage.getItem(ATTEMPT_KEY);
@@ -304,14 +320,11 @@
     function getAttemptsCount() {
       try { return Number(sessionStorage.getItem(ATTEMPT_KEY) || 0); } catch(e) { return 0; }
     }
-
-    // mensajes de ayuda según número de intentos
     function maybeShowAttemptsWarning() {
       const attempts = getAttemptsCount();
       const msg = $('#msg');
       if (!msg) return;
       if (attempts === 0) {
-        // nada
         return;
       }
       if (attempts >= 8 && attempts < 15) {
@@ -347,6 +360,20 @@
         row.appendChild(btn);
         list.appendChild(row);
       });
+
+      // Insertar la tarjeta electrificada en la columna izquierda (si existiera)
+      try {
+        const left = document.querySelector('#courseCard .card-left-wrapper');
+        if (left) {
+          left.innerHTML = ''; // limpiar
+          // insertar la tarjeta usando la función del archivo externo (electric-card.js)
+          if (window.insertElectricCard) {
+            const cardWrapper = window.insertElectricCard(left, { image: null }); // por defecto sin imagen
+            // si desea, puede asignar imagen aquí con:
+            // window.setCardImage(cardWrapper, 'assets/mi-imagen.jpg');
+          }
+        }
+      } catch (e) { console.warn('No se pudo insertar la tarjeta:', e); }
     }
 
     // ---------- Funciones para la pantalla de carga ----------
@@ -365,7 +392,6 @@
       loaderEl.setAttribute('aria-hidden', 'true');
     }
 
-    // Duración simulada (ms) — puede ajustar
     const LOAD_DURATION_MS = 1600;
 
     function runLoader(durationMs = LOAD_DURATION_MS) {
@@ -380,7 +406,6 @@
         const start = performance.now();
         function frame(now) {
           const t = Math.min(1, (now - start) / durationMs);
-          // easing (suave)
           const ease = t < 0.5 ? (2*t*t) : (-1 + (4-2*t)*t);
           const percent = Math.round(ease * 100);
           loaderBar.style.width = percent + '%';
@@ -401,11 +426,6 @@
     }
     // ---------------------------------------------------------
 
-    /**
-     * tryLoginByCode: verifica el código y —si es válido— muestra la pantalla de carga
-     * antes de renderizar el contenido. Devuelve promise<boolean> que se resuelve true
-     * cuando todo el flujo (incluido el loader) ha terminado con éxito.
-     */
     async function tryLoginByCode(code) {
       const msg = $('#msg');
       msg.textContent = 'Verificando…';
@@ -421,22 +441,17 @@
         const hex = await sha256Hex(code);
 
         if (ACCESS_HASH_MAP[hex]) {
-          // Código válido — mostramos loader antes de revelar contenido
           try {
-            await runLoader(); // espera la pantalla de carga (simulada)
-          } catch (e) {
-            // si algo falla con el loader, continuamos anyway
-          }
+            await runLoader();
+          } catch (e) { /* continuar en caso de fallo */ }
 
           currentKeyHex = hex;
-          // limpiar intentos tras login exitoso
           clearAttempts();
           setQueryParam('code', btoa(code));
           renderCourse(hex);
           showContent();
           return true;
         } else {
-          // registro del intento (solo en sessionStorage, no bloqueante)
           const attempts = recordAttempt();
           msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
           msg.classList.add('error');
@@ -497,7 +512,6 @@
           console.warn('Parámetro code inválido', e);
         }
       }
-      // mostrar accesos y advertir si ya hay intentos previos en la sesión
       showAccess();
       maybeShowAttemptsWarning();
     })();
