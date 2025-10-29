@@ -256,7 +256,7 @@
   <script src="assets/js/electric-card.js?v=2" defer></script>
 
   <script defer>
-    // === Script con cursos (incluye AHGO2) ===
+    // === Utilidades base ===
     const $ = sel => document.querySelector(sel);
     const toHex = buffer => Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2,'0')).join('');
     async function sha256Hex(text) {
@@ -271,6 +271,7 @@
     }
     function downloadFile(url) { window.open(url, '_blank', 'noopener'); }
 
+    // === Cursos / recursos (mapa de acceso) ===
     const ACCESS_HASH_MAP = {
       "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0": {
         title: "Diplomado en Gerencia y Administración de Servicios Hospitalarios (GASH) – 3ª Ed. 2025",
@@ -332,36 +333,10 @@
       }
     };
 
-    let currentKeyHex = null;
-    const ATTEMPT_KEY = 'edusalud_attempts_session';
-    function recordAttempt() {
-      try {
-        const raw = sessionStorage.getItem(ATTEMPT_KEY);
-        const n = raw ? Number(raw) : 0;
-        const next = n + 1;
-        sessionStorage.setItem(ATTEMPT_KEY, String(next));
-        return next;
-      } catch (e) { return 0; }
-    }
-    function clearAttempts() {
-      try { sessionStorage.removeItem(ATTEMPT_KEY); } catch(e) {}
-    }
-    function getAttemptsCount() {
-      try { return Number(sessionStorage.getItem(ATTEMPT_KEY) || 0); } catch(e) { return 0; }
-    }
-    function maybeShowAttemptsWarning() {
-      const attempts = getAttemptsCount();
-      const msg = $('#msg');
-      if (!msg) return;
-      if (attempts === 0) return;
-      if (attempts >= 8 && attempts < 15) {
-        msg.textContent = `Ha intentado ${attempts} veces. Verifique que el código esté correcto antes de seguir intentando.`;
-        msg.classList.add('error');
-      } else if (attempts >= 15) {
-        msg.textContent = `Ha realizado muchos intentos (${attempts}). Si el problema persiste, solicite el código a coordinación.`;
-        msg.classList.add('error');
-      }
-    }
+    // === Códigos MASTER (usa SHA-256 del código master) ===
+    const MASTER_HASHES = new Set([
+      "7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8" // EDUMASTER123456987
+    ]);
 
     function showAccess() { $('#access').classList.remove('hidden'); $('#content').classList.add('hidden'); $('#code').focus(); }
     function showContent() { $('#access').classList.add('hidden'); $('#content').classList.remove('hidden'); }
@@ -389,7 +364,7 @@
         list.appendChild(row);
       });
 
-      // Insertar la tarjeta de imagen en la columna izquierda
+      // Tarjeta de imagen en la izquierda
       try {
         const left = document.querySelector('#courseCard .card-left-wrapper');
         if (left) {
@@ -411,6 +386,108 @@
           }
         }
       } catch (e) { console.warn('No se pudo insertar la tarjeta:', e); }
+    }
+
+    // === Vista MASTER: todos los cursos ===
+    function renderAllCourses() {
+      $('#courseTitle').textContent = 'Todos los cursos';
+      $('#courseMeta').textContent = 'Vista general (acceso master)';
+
+      const courseCard = document.getElementById('courseCard');
+      const row = courseCard.querySelector('.course-row');
+
+      const grid = document.createElement('div');
+      grid.style.display = 'grid';
+      grid.style.gap = '16px';
+      grid.style.gridTemplateColumns = '1fr';
+      grid.style.marginTop = '12px';
+
+      const mq = window.matchMedia('(min-width: 900px)');
+      const applyCols = () => {
+        grid.style.gridTemplateColumns = mq.matches ? '1fr 1fr' : '1fr';
+      };
+      applyCols();
+      mq.addEventListener?.('change', applyCols);
+
+      row.innerHTML = '';
+      row.appendChild(grid);
+
+      Object.entries(ACCESS_HASH_MAP).forEach(([keyHex, data]) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.display = 'grid';
+        card.style.gridTemplateColumns = '360px 1fr';
+        card.style.gap = '16px';
+        card.style.alignItems = 'start';
+
+        // Izquierda: tarjeta visual
+        const left = document.createElement('div');
+        left.className = 'card-left-wrapper';
+        card.appendChild(left);
+
+        try {
+          const opts = {
+            title: data.title,
+            desc: data.meta,
+            tag: data.card?.tag || 'EDUSALUD',
+            variant: data.card?.variant,
+            seed: data.card?.seed,
+            accent: data.card?.accent
+          };
+          let wrapper = null;
+          if (window.insertElectricCard) {
+            wrapper = window.insertElectricCard(left, opts);
+          }
+          if (wrapper && data.card?.img && window.setCardImage) {
+            window.setCardImage(wrapper, `${data.card.img}?v=master`);
+          }
+        } catch (e) { console.warn('No se pudo insertar la tarjeta master:', e); }
+
+        // Derecha: título, meta y botón Abrir recursos
+        const right = document.createElement('div');
+        const title = document.createElement('h4');
+        title.textContent = data.title;
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent = data.meta || '';
+
+        const btnOpen = document.createElement('button');
+        btnOpen.type = 'button';
+        btnOpen.className = 'btn';
+        btnOpen.textContent = 'Abrir recursos';
+        btnOpen.style.marginTop = '10px';
+        btnOpen.addEventListener('click', async () => {
+          try { await runLoader(); } catch(e) {}
+          renderCourse(keyHex);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        // (Opcional) Botón secundario informativo
+        const btnCopyLink = document.createElement('button');
+        btnCopyLink.type = 'button';
+        btnCopyLink.className = 'btn secondary';
+        btnCopyLink.textContent = 'Copiar enlace con código';
+        btnCopyLink.style.marginTop = '10px';
+        btnCopyLink.style.marginLeft = '8px';
+        btnCopyLink.addEventListener('click', () => {
+          alert('Este botón funciona en vista por curso con un código real. En modo master no hay un único código por curso.');
+        });
+
+        right.appendChild(title);
+        right.appendChild(meta);
+        right.appendChild(btnOpen);
+        right.appendChild(btnCopyLink);
+        card.appendChild(right);
+
+        const subMq = window.matchMedia('(max-width: 900px)');
+        const applySubCols = () => {
+          card.style.gridTemplateColumns = subMq.matches ? '1fr' : '360px 1fr';
+        };
+        applySubCols();
+        subMq.addEventListener?.('change', applySubCols);
+
+        grid.appendChild(card);
+      });
     }
 
     // ---------- Loader ----------
@@ -458,6 +535,19 @@
 
       try {
         const hex = await sha256Hex(code);
+
+        // --- MODO MASTER ---
+        if (MASTER_HASHES.has(hex)) {
+          try { await runLoader(); } catch (e) {}
+          currentKeyHex = null;
+          clearAttempts();
+          setQueryParam('code', btoa(code));
+          renderAllCourses();
+          showContent();
+          return true;
+        }
+
+        // --- MODO NORMAL (un curso) ---
         if (ACCESS_HASH_MAP[hex]) {
           try { await runLoader(); } catch (e) {}
           currentKeyHex = hex;
