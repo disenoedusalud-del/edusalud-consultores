@@ -119,7 +119,8 @@ ${SCOPE} .background-glow{position:absolute;width:100%;height:100%;top:0;left:0;
             <div class="border-outer">
               <div class="main-card">
                 <!-- zona de imagen (vacía al inicio) -->
-                <img class="ec-card-img" alt="Tarjeta EduSalud - imagen" src="" />
+                <img class="ec-card-img" alt="Tarjeta EduSalud - imagen" src="assets/IMG
+/D_GASH_B1.jpg" />
               </div>
             </div>
             <div class="glow-layer-1" aria-hidden="true"></div>
@@ -196,3 +197,4 @@ ${SCOPE} .background-glow{position:absolute;width:100%;height:100%;top:0;left:0;
     });
   });
 })();
+
