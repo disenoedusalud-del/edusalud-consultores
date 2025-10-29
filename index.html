@@ -253,10 +253,10 @@
   <!-- ======================================================== -->
 
   <!-- electric-card.js debe estar antes de usar insertElectricCard -->
-  <script src="assets/js/electric-card.js"></script>
+  <script src="assets/js/electric-card.js?v=1" defer></script>
 
-  <script>
-    // === su script original (sin cambios funcionales) ===
+  <script defer>
+    // === su script original (con añadidos de 'card' y uso de setCardImage) ===
     const $ = sel => document.querySelector(sel);
     const toHex = buffer => Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2,'0')).join('');
     async function sha256Hex(text) {
@@ -281,7 +281,14 @@
           { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
           { label: "Social Kit (JPG)", url: "https://drive.google.com/drive/folders/1FbTQSAMZk84de7ykDs9YmMmp7z1Pyufr?usp=sharing" },
           { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" }
-        ]
+        ],
+        card: {
+          img: "assets/IMG/D_GASH_B1.jpg",
+          tag: "GASH",
+          variant: "dramatic",
+          seed: 7,
+          accent: "#5aa9ff"
+        }
       },
       "88f62dd4f34bc0c54550634cee859bb2178aa0e69041e1bee3be5a132e1c7456": {
         title: "Curso Manejo Básico de Fracturas (MBF) – 2ª Ed. 2025",
@@ -292,7 +299,14 @@
           { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
           { label: "Social Kit (JPG)", url: "https://drive.google.com/drive/folders/1msdy6xita4RcTesyg7qV3Q51WGu97qPZ?usp=sharing" },
           { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" }
-        ]
+        ],
+        card: {
+          img: "assets/IMG/C_MBF_2026_B1.jpg",
+          tag: "MBF",
+          variant: "neon",
+          seed: 11,
+          accent: "#8be9fd"
+        }
       }
     };
 
@@ -317,9 +331,7 @@
       const attempts = getAttemptsCount();
       const msg = $('#msg');
       if (!msg) return;
-      if (attempts === 0) {
-        return;
-      }
+      if (attempts === 0) return;
       if (attempts >= 8 && attempts < 15) {
         msg.textContent = `Ha intentado ${attempts} veces. Verifique que el código esté correcto antes de seguir intentando.`;
         msg.classList.add('error');
@@ -337,6 +349,7 @@
       if (!data) return;
       $('#courseTitle').textContent = data.title;
       $('#courseMeta').textContent = data.meta || '';
+
       const list = $('#filelist');
       list.innerHTML = '';
       (data.files || []).forEach(item => {
@@ -359,38 +372,39 @@
         const left = document.querySelector('#courseCard .card-left-wrapper');
         if (left) {
           left.innerHTML = ''; // limpiar
-          // insertar la tarjeta usando la función del archivo externo
+
+          const opts = {
+            title: data.title,
+            desc: data.meta,
+            tag: data.card?.tag || 'EDUSALUD',
+            variant: data.card?.variant,
+            seed: data.card?.seed,
+            accent: data.card?.accent
+          };
+
+          let wrapper = null;
           if (window.insertElectricCard) {
-            window.insertElectricCard(left, { title: data.title, tag: 'DRAMATIC', desc: data.meta });
+            wrapper = window.insertElectricCard(left, opts);
+          }
+
+          // aplicar imagen específica del curso
+          if (wrapper && data.card?.img && window.setCardImage) {
+            window.setCardImage(wrapper, `${data.card.img}?v=1`);
           }
         }
       } catch (e) { console.warn('No se pudo insertar la tarjeta:', e); }
     }
 
-    // ---------- Funciones para la pantalla de carga ----------
+    // ---------- Loader ----------
     const loaderEl = document.getElementById('eduLoader');
     const loaderBar = document.getElementById('loaderBar');
     const loaderPercent = document.getElementById('loaderPercent');
-
-    function showLoader() {
-      if (!loaderEl) return;
-      loaderEl.classList.remove('hidden');
-      loaderEl.setAttribute('aria-hidden', 'false');
-    }
-    function hideLoader() {
-      if (!loaderEl) return;
-      loaderEl.classList.add('hidden');
-      loaderEl.setAttribute('aria-hidden', 'true');
-    }
-
+    function showLoader() { if (!loaderEl) return; loaderEl.classList.remove('hidden'); loaderEl.setAttribute('aria-hidden', 'false'); }
+    function hideLoader() { if (!loaderEl) return; loaderEl.classList.add('hidden'); loaderEl.setAttribute('aria-hidden', 'true'); }
     const LOAD_DURATION_MS = 1600;
-
     function runLoader(durationMs = LOAD_DURATION_MS) {
       return new Promise((resolve) => {
-        if (!loaderBar || !loaderPercent) {
-          resolve();
-          return;
-        }
+        if (!loaderBar || !loaderPercent) { resolve(); return; }
         showLoader();
         loaderBar.style.width = '0%';
         loaderPercent.textContent = '0%';
@@ -401,21 +415,17 @@
           const percent = Math.round(ease * 100);
           loaderBar.style.width = percent + '%';
           loaderPercent.textContent = percent + '%';
-          if (t < 1) {
-            requestAnimationFrame(frame);
-          } else {
+          if (t < 1) { requestAnimationFrame(frame); }
+          else {
             loaderBar.style.width = '100%';
             loaderPercent.textContent = '100%';
-            setTimeout(() => {
-              hideLoader();
-              resolve();
-            }, 200);
+            setTimeout(() => { hideLoader(); resolve(); }, 200);
           }
         }
         requestAnimationFrame(frame);
       });
     }
-    // ---------------------------------------------------------
+    // ----------------------------
 
     async function tryLoginByCode(code) {
       const msg = $('#msg');
@@ -432,10 +442,7 @@
         const hex = await sha256Hex(code);
 
         if (ACCESS_HASH_MAP[hex]) {
-          try {
-            await runLoader();
-          } catch (e) { /* continuar en caso de fallo */ }
-
+          try { await runLoader(); } catch (e) {}
           currentKeyHex = hex;
           clearAttempts();
           setQueryParam('code', btoa(code));
@@ -499,9 +506,7 @@
               return;
             }
           }
-        } catch (e) {
-          console.warn('Parámetro code inválido', e);
-        }
+        } catch (e) { console.warn('Parámetro code inválido', e); }
       }
       showAccess();
       maybeShowAttemptsWarning();
