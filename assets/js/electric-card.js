@@ -8,11 +8,11 @@
   function ensureSVGFilter() {
     // Hook reservado (sin SVG activo)
     if (document.getElementById(SVG_ID + '-filter')) return;
-    const ns = '/*http://www.w3.org/2000/svg*/';
+    const ns = '/*http://www.w3.org/2000/svg*/'; // <- lo dejaste comentado a propósito
   }
 
   function createCardDOM(opts = {}) {
-    const imageOnly = !!opts.imageOnly; // << NUEVO
+    const imageOnly = !!opts.imageOnly; // MODO SOLO IMAGEN
     const tag   = opts.tag || 'EDUSALUD';
     const title = opts.title || 'Curso / Diplomado';
     const desc  = opts.desc  || '';
@@ -54,7 +54,7 @@
     img.style.cssText = `
       width: 100%; 
       height: 100%; 
-      object-fit: cover;              /* encaja: llena el marco */
+      object-fit: cover;              /* llena el marco */
       display:block;
       filter: none;
     `;
