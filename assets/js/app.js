@@ -1,7 +1,8 @@
-// ===== Utilidades básicas =====
-const $ = sel => document.querySelector(sel);
-const $$ = sel => Array.from(document.querySelectorAll(sel));
-const toHex = buffer => Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2,'0')).join('');
+/* ===================== util ===================== */
+const $ = (s) => document.querySelector(s);
+const toHex = (buffer) =>
+  Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2,'0')).join('');
+
 async function sha256Hex(text) {
   const data = new TextEncoder().encode(String(text).trim());
   const hash = await crypto.subtle.digest('SHA-256', data);
@@ -14,7 +15,9 @@ function setQueryParam(key, value) {
 }
 function downloadFile(url) { window.open(url, '_blank', 'noopener'); }
 
-// ===== Mapa de acceso (cursos) =====
+/* ============ base de cursos (hash -> data) ============ */
+const MASTER_HASH = "7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8"; // EDUMASTER123456987
+
 const ACCESS_HASH_MAP = {
   "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0": {
     title: "Diplomado en Gerencia y Administración de Servicios Hospitalarios (GASH) – 3ª Ed. 2025",
@@ -24,8 +27,7 @@ const ACCESS_HASH_MAP = {
       { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/drive/folders/14E42MPlcjsIcc6OWNCYJ2J1HRzcdr21F?usp=sharing" },
       { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
       { label: "Social Kit (JPG)", url: "https://drive.google.com/drive/folders/1FbTQSAMZk84de7ykDs9YmMmp7z1Pyufr?usp=sharing" },
-      { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" },
-      { label: "Platform toolkit (WEB)", url: "https://www.notion.so/Plataformas-para-Docentes-estudiantes-29b7e88eb31a8029a710dc4ec95809f3?source=copy_link" }
+      { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" }
     ],
     card: { img: "assets/IMG/D_GASH_B1.jpg", tag: "GASH", variant: "dramatic", seed: 7, accent: "#5aa9ff" }
   },
@@ -38,8 +40,7 @@ const ACCESS_HASH_MAP = {
       { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/drive/folders/1qJqRPO2akiosdJ9BMBXp49gYgrRExcD2?usp=sharing" },
       { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
       { label: "Social Kit (JPG)", url: "https://drive.google.com/drive/folders/1msdy6xita4RcTesyg7qV3Q51WGu97qPZ?usp=sharing" },
-      { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" },
-      { label: "Platform toolkit (WEB)", url: "https://www.notion.so/Plataformas-para-Docentes-estudiantes-29b7e88eb31a8029a710dc4ec95809f3?source=copy_link" }
+      { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" }
     ],
     card: { img: "assets/IMG/C_MBF_2026_B1.jpg", tag: "MBF", variant: "neon", seed: 11, accent: "#8be9fd" }
   },
@@ -52,18 +53,17 @@ const ACCESS_HASH_MAP = {
       { label: "Manual de Marca (PDF)",   url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
       { label: "Social Kit (JPG)",        url: "https://drive.google.com/drive/folders/1KJkd0InpGNF-iTFObDc4CuC4A8DCGpuF?usp=sharing" },
       { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" },
-      { label: "Platform toolkit (WEB)", url: "https://www.notion.so/Plataformas-para-Docentes-estudiantes-29b7e88eb31a8029a710dc4ec95809f3?source=copy_link" }
+      /* ejemplo de link extra: */
+      { label: "Plataformas (WEB)",       url: "https://www.notion.so/Plataformas-para-Docentes-estudiantes-29b7e88eb31a8029a710dc4ec95809f3?source=copy_link" }
     ],
     card: { img: "assets/IMG/C_CAHGO_2025_B1.jpg", tag: "AHGO2", variant: "neon", seed: 3, accent: "#8be9fd" }
   }
 };
 
-// ===== Código MASTER =====
-const MASTER_HASH = "7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8"; // EDUMASTER123456987
-
-// ===== Intentos =====
+/* ============ estado & helpers ============ */
 let currentKeyHex = null;
 const ATTEMPT_KEY = 'edusalud_attempts_session';
+
 function recordAttempt() {
   try {
     const raw = sessionStorage.getItem(ATTEMPT_KEY);
@@ -73,15 +73,12 @@ function recordAttempt() {
     return next;
   } catch (e) { return 0; }
 }
-function clearAttempts() {
-  try { sessionStorage.removeItem(ATTEMPT_KEY); } catch(e) {}
-}
-function getAttemptsCount() {
-  try { return Number(sessionStorage.getItem(ATTEMPT_KEY) || 0); } catch(e) { return 0; }
-}
+function clearAttempts() { try { sessionStorage.removeItem(ATTEMPT_KEY); } catch(e) {} }
+function getAttemptsCount() { try { return Number(sessionStorage.getItem(ATTEMPT_KEY) || 0); } catch(e) { return 0; } }
 function maybeShowAttemptsWarning() {
   const attempts = getAttemptsCount();
-  const msg = $('#msg'); if (!msg) return;
+  const msg = $('#msg');
+  if (!msg) return;
   if (attempts === 0) return;
   if (attempts >= 8 && attempts < 15) {
     msg.textContent = `Ha intentado ${attempts} veces. Verifique que el código esté correcto antes de seguir intentando.`;
@@ -92,7 +89,25 @@ function maybeShowAttemptsWarning() {
   }
 }
 
-// ===== Loader =====
+/* ============ vistas ============ */
+function showAccess() {
+  $('#access').classList.remove('hidden');
+  $('#content').classList.add('hidden');
+  $('#master').classList.add('hidden');
+  $('#code').focus();
+}
+function showContent() {
+  $('#access').classList.add('hidden');
+  $('#content').classList.remove('hidden');
+  $('#master').classList.add('hidden');
+}
+function showMaster() {
+  $('#access').classList.add('hidden');
+  $('#content').classList.add('hidden');
+  $('#master').classList.remove('hidden');
+}
+
+/* ============ loader ============ */
 const loaderEl = document.getElementById('eduLoader');
 const loaderBar = document.getElementById('loaderBar');
 const loaderPercent = document.getElementById('loaderPercent');
@@ -123,15 +138,11 @@ function runLoader(durationMs = LOAD_DURATION_MS) {
   });
 }
 
-// ===== Vistas =====
-function showAccess() { $('#access').classList.remove('hidden'); $('#content').classList.add('hidden'); $('#master').classList.add('hidden'); $('#code').focus(); }
-function showContent() { $('#access').classList.add('hidden'); $('#content').classList.remove('hidden'); $('#master').classList.add('hidden'); }
-function showMaster() { $('#access').classList.add('hidden'); $('#content').classList.add('hidden'); $('#master').classList.remove('hidden'); }
-
-// ===== Render por curso =====
+/* ============ render curso (1) ============ */
 function renderCourse(keyHex) {
   const data = ACCESS_HASH_MAP[keyHex];
   if (!data) return;
+
   $('#courseTitle').textContent = data.title;
   $('#courseMeta').textContent = data.meta || '';
 
@@ -152,17 +163,15 @@ function renderCourse(keyHex) {
     list.appendChild(row);
   });
 
-  // Tarjeta (solo imagen)
+  // Tarjeta imagen
   try {
     const left = document.querySelector('#courseCard .card-left-wrapper');
     if (left) {
       left.innerHTML = '';
-      const opts = {
-        title: data.title, desc: data.meta, tag: data.card?.tag || 'EDUSALUD',
-        variant: data.card?.variant, seed: data.card?.seed, accent: data.card?.accent
-      };
       let wrapper = null;
-      if (window.insertElectricCard) wrapper = window.insertElectricCard(left, opts);
+      if (window.insertElectricCard) {
+        wrapper = window.insertElectricCard(left);
+      }
       if (wrapper && data.card?.img && window.setCardImage) {
         window.setCardImage(wrapper, `${data.card.img}?v=2`);
       }
@@ -170,74 +179,46 @@ function renderCourse(keyHex) {
   } catch (e) { console.warn('No se pudo insertar la tarjeta:', e); }
 }
 
-// ===== Render MASTER con filtro =====
-function renderMaster(filterText = '') {
+/* ============ render master ============ */
+function buildMasterGrid() {
   const grid = $('#masterGrid');
-  const countEl = $('#matchCount');
   grid.innerHTML = '';
 
-  const norm = s => (s || '').toString().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'').trim();
-  const q = norm(filterText);
-
-  let matches = 0;
-
   Object.entries(ACCESS_HASH_MAP).forEach(([hex, data]) => {
-    const title = data.title || '';
-    const tag = data.card?.tag || '';
-    const fileLabels = (data.files || []).map(f => f.label || '').join(' ');
-    const fileHosts = (data.files || []).map(f => {
-      try { return new URL(f.url).hostname; } catch { return ''; }
-    }).join(' ');
+    // excluir el master si algún día lo metes en el mismo objeto
+    if (hex === MASTER_HASH) return;
 
-    const haystack = norm(`${title} ${tag} ${fileLabels} ${fileHosts}`);
-    if (q && !haystack.includes(q)) return;
-
-    matches++;
-
-    const card = document.createElement('div');
-    card.className = 'master-card';
+    const cardEl = document.createElement('div');
+    cardEl.className = 'master-card';
+    cardEl.dataset.title = (data.title || '').toLowerCase();
+    cardEl.dataset.tag = (data.card?.tag || '').toLowerCase();
 
     const left = document.createElement('div');
     left.className = 'left';
     const right = document.createElement('div');
     right.className = 'right';
 
-    // Tarjeta imagen
-    let wrapper = null;
-    if (window.insertElectricCard) {
-      wrapper = window.insertElectricCard(left, {
-        title: data.title, desc: data.meta, tag: data.card?.tag || 'EDUSALUD',
-        variant: data.card?.variant, seed: data.card?.seed, accent: data.card?.accent
-      });
-    }
-    if (wrapper && data.card?.img && window.setCardImage) {
-      window.setCardImage(wrapper, `${data.card.img}?v=2`);
-    }
-
-    // Encabezado + enlaces
-    const head = document.createElement('div');
-    head.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;';
-    head.innerHTML = `
-      <div>
-        <div style="font-weight:700;">${data.title}</div>
-        <div class="meta">${data.meta || ''}</div>
-      </div>
-    `;
-    const openBtn = document.createElement('button');
-    openBtn.className = 'btn secondary';
-    openBtn.type = 'button';
-    openBtn.textContent = 'Abrir curso';
-    openBtn.addEventListener('click', () => {
-      // Precargar código en URL y mostrar vista de curso
-      setQueryParam('code', btoa(hex)); // no es el código original, pero dejamos el hash como marcador
+    // cabecera derecha (título + meta + botón abrir curso)
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;';
+    const t = document.createElement('div');
+    t.innerHTML = `<div style="font-weight:700">${data.title}</div><div class="meta">${data.meta || ''}</div>`;
+    const open = document.createElement('button');
+    open.className = 'btn secondary';
+    open.type = 'button';
+    open.textContent = 'Abrir curso';
+    open.addEventListener('click', async () => {
+      await runLoader();
+      currentKeyHex = hex;
       renderCourse(hex);
       showContent();
     });
-    head.appendChild(openBtn);
+    header.appendChild(t); header.appendChild(open);
+    right.appendChild(header);
 
-    // Lista de archivos
-    const fl = document.createElement('div');
-    fl.className = 'filelist';
+    // lista de archivos
+    const list = document.createElement('div');
+    list.className = 'filelist';
     (data.files || []).forEach(item => {
       const row = document.createElement('div');
       row.className = 'file';
@@ -250,23 +231,50 @@ function renderMaster(filterText = '') {
       btn.textContent = 'Descargar';
       btn.addEventListener('click', () => downloadFile(item.url));
       row.appendChild(btn);
-      fl.appendChild(row);
+      list.appendChild(row);
     });
+    right.appendChild(list);
 
-    right.appendChild(head);
-    right.appendChild(fl);
+    // tarjeta izquierda (solo imagen)
+    let wrapper = null;
+    if (window.insertElectricCard) {
+      wrapper = window.insertElectricCard(left);
+    }
+    if (wrapper && data.card?.img && window.setCardImage) {
+      window.setCardImage(wrapper, `${data.card.img}?v=2`);
+    }
 
-    card.appendChild(left);
-    card.appendChild(right);
-    grid.appendChild(card);
+    cardEl.appendChild(left);
+    cardEl.appendChild(right);
+    grid.appendChild(cardEl);
   });
-
-  if (countEl) {
-    countEl.textContent = matches ? `${matches} resultado(s)` : `Sin coincidencias`;
-  }
 }
 
-// ===== Eventos y login =====
+function setupMasterSearch(){
+  const input = $('#masterSearch');
+  const clear = $('#masterSearchClear');
+  const grid  = $('#masterGrid');
+  if (!input || !grid) return;
+
+  function applyFilter(){
+    const q = (input.value || '').trim().toLowerCase();
+    const cards = grid.querySelectorAll('.master-card');
+    if (!q){
+      cards.forEach(c => c.style.display = '');
+      return;
+    }
+    cards.forEach(c => {
+      const t = c.dataset.title || '';
+      const tg = c.dataset.tag || '';
+      c.style.display = (t.includes(q) || tg.includes(q)) ? '' : 'none';
+    });
+  }
+
+  input.addEventListener('input', applyFilter);
+  clear?.addEventListener('click', () => { input.value=''; applyFilter(); });
+}
+
+/* ============ login ============ */
 async function tryLoginByCode(code) {
   const msg = $('#msg');
   msg.textContent = 'Verificando…';
@@ -281,37 +289,19 @@ async function tryLoginByCode(code) {
   try {
     const hex = await sha256Hex(code);
 
-    // MASTER
+    // master
     if (hex === MASTER_HASH) {
       try { await runLoader(); } catch (e) {}
-      currentKeyHex = hex;
       clearAttempts();
       setQueryParam('code', btoa(code));
+      buildMasterGrid();
+      setupMasterSearch();
       $('#year_master').textContent = new Date().getFullYear();
       showMaster();
-      renderMaster('');
-      // Botones master
-      $('#btn-master-exit').onclick = () => { currentKeyHex = null; setQueryParam('code', null); showAccess(); };
-      $('#btn-master-copy').onclick = async () => {
-        const url = new URL(location.href);
-        url.searchParams.set('code', btoa(code));
-        try { await navigator.clipboard.writeText(url.toString()); alert('Enlace copiado al portapapeles'); }
-        catch { prompt('Copie este enlace:', url.toString()); }
-      };
-      // Buscador con debounce
-      const input = $('#masterSearch');
-      if (input) {
-        let t = null;
-        input.oninput = (e) => {
-          const val = e.target.value || '';
-          clearTimeout(t);
-          t = setTimeout(() => renderMaster(val), 180);
-        };
-      }
       return true;
     }
 
-    // Por-curso
+    // normal
     if (ACCESS_HASH_MAP[hex]) {
       try { await runLoader(); } catch (e) {}
       currentKeyHex = hex;
@@ -335,7 +325,7 @@ async function tryLoginByCode(code) {
   }
 }
 
-// ===== Listeners base =====
+/* ============ eventos ============ */
 $('#btn-enter').addEventListener('click', () => tryLoginByCode($('#code').value));
 $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#btn-enter').click(); } });
 $('#btn-logout').addEventListener('click', () => { currentKeyHex = null; setQueryParam('code', null); showAccess(); });
@@ -348,11 +338,27 @@ $('#btn-copy-code-link').addEventListener('click', async () => {
   const codeVal = (encoded ? atob(encoded) : codeField.value) || '';
   if (!codeVal) return;
   url.searchParams.set('code', btoa(codeVal));
-  try { await navigator.clipboard.writeText(url.toString()); alert('Enlace copiado al portapapeles'); }
-  catch (e) { prompt('Copie este enlace:', url.toString()); }
+  try {
+    await navigator.clipboard.writeText(url.toString());
+    alert('Enlace copiado al portapapeles');
+  } catch (e) {
+    prompt('Copie este enlace:', url.toString());
+  }
 });
 
-// ===== Init con ?code= =====
+$('#btn-master-exit').addEventListener('click', () => { setQueryParam('code', null); showAccess(); });
+$('#btn-master-copy').addEventListener('click', async () => {
+  const url = new URL(location.href);
+  url.searchParams.set('code', btoa('EDUMASTER123456987'));
+  try {
+    await navigator.clipboard.writeText(url.toString());
+    alert('Enlace de vista maestra copiado');
+  } catch (e) {
+    prompt('Copie este enlace:', url.toString());
+  }
+});
+
+/* ============ init ============ */
 (async function init(){
   $('#year').textContent = new Date().getFullYear();
   $('#year_master').textContent = new Date().getFullYear();
@@ -364,10 +370,8 @@ $('#btn-copy-code-link').addEventListener('click', async () => {
       const decoded = atob(pre);
       if (decoded) {
         const ok = await tryLoginByCode(decoded);
-        if (ok) {
-          try { $('#code').value = decoded; } catch(e) {}
-          return;
-        } else {
+        if (ok) { try { $('#code').value = decoded; } catch(e) {} return; }
+        else {
           setQueryParam('code', null);
           showAccess();
           $('#msg').textContent = 'El enlace contiene código inválido o expirado.';
@@ -380,6 +384,3 @@ $('#btn-copy-code-link').addEventListener('click', async () => {
   showAccess();
   maybeShowAttemptsWarning();
 })();
-
-
-
