@@ -49,7 +49,7 @@ ${SCOPE} .background-glow{position:absolute;width:100%;height:100%;top:0;left:0;
 
   function ensureSVGFilter() {
     if (document.getElementById(SVG_ID + '-filter')) return;
-    const ns = 'http://www.w3.org/2000/svg';
+    const ns = '/*http://www.w3.org/2000/svg*/';
     const svg = document.createElementNS(ns, 'svg');
     svg.setAttribute('aria-hidden', 'true');
     svg.setAttribute('style', 'position:absolute;width:0;height:0;overflow:visible;pointer-events:none;');
@@ -197,4 +197,5 @@ ${SCOPE} .background-glow{position:absolute;width:100%;height:100%;top:0;left:0;
     });
   });
 })();
+
 
