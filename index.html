@@ -32,7 +32,20 @@
     header{ display:grid; grid-template-columns: 1fr 360px; gap:20px; align-items:center; margin-bottom:18px; }
     @media (max-width:980px){ header{ grid-template-columns:1fr } .hero{ display:none } }
 
-    .logo { width:56px; height:56px; padding:8px; border-radius:12px; display:flex; align-items:center; justify-content:center; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 8px 30px rgba(90,169,255,.25); overflow:hidden; box-sizing:border-box; flex:0 0 auto; }
+    .logo {
+      width:56px;
+      height:56px;
+      padding:8px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 8px 30px rgba(90,169,255,.25);
+      overflow:hidden;
+      box-sizing:border-box;
+      flex:0 0 auto;
+    }
     .logo-img { max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; display:block; }
 
     h1{ margin:0; font-size:clamp(20px, 2.6vw, 34px); line-height:1.05; }
@@ -40,7 +53,14 @@
 
     .hero img{ max-width:50%; height:auto; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.45); display:inline-block }
 
-    .card{ background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.06)); border: 1px solid rgba(255,255,255,.04); border-radius:14px; padding:18px; box-shadow:0 8px 24px rgba(0,0,0,.25); backdrop-filter: blur(4px); }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.06));
+      border: 1px solid rgba(255,255,255,.04);
+      border-radius:14px;
+      padding:18px;
+      box-shadow:0 8px 24px rgba(0,0,0,.25);
+      backdrop-filter: blur(4px);
+    }
 
     .grid{ display:grid; gap:16px; }
     .grid.cols-2{ grid-template-columns: 1fr; }
@@ -48,10 +68,27 @@
 
     label{ display:block; font-weight:600; margin-bottom:8px; }
     .row{ display:flex; gap:10px; align-items:stretch; }
-    .input{ flex:1 1 auto; border:1px solid rgba(255,255,255,.08); background:#0e1630; color:var(--text); padding:12px 14px; border-radius:12px; outline:none; }
+    .input{
+      flex:1 1 auto;
+      border:1px solid rgba(255,255,255,.08);
+      background:#0e1630;
+      color:var(--text);
+      padding:12px 14px;
+      border-radius:12px;
+      outline:none;
+    }
     .input:focus{ border-color:var(--accent); box-shadow:0 0 0 4px rgba(90,169,255,.12); }
 
-    .btn{ border:none; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color:#062033; font-weight:800; padding:12px 16px; border-radius:12px; cursor:pointer; transition: transform .06s; }
+    .btn{
+      border:none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color:#062033;
+      font-weight:800;
+      padding:12px 16px;
+      border-radius:12px;
+      cursor:pointer;
+      transition: transform .06s;
+    }
     .btn:hover{ transform: translateY(-1px); }
     .btn.secondary{ background:#19213d; color:var(--text); border:1px solid rgba(255,255,255,.06); }
 
@@ -64,7 +101,14 @@
     .meta{ color:var(--muted); font-size:13px; }
 
     .access-hero{ display:flex; align-items:center; justify-content:center; padding-left:10px; }
-    .access-hero img{ width:220px; max-width:100%; height:auto; border-radius:10px; box-shadow:0 8px 28px rgba(0,0,0,.45); transform: translateY(2px); }
+    .access-hero img{
+      width:220px;
+      max-width:100%;
+      height:auto;
+      border-radius:10px;
+      box-shadow:0 8px 28px rgba(0,0,0,.45);
+      transform: translateY(2px);
+    }
     @media (max-width:900px){ .access-hero{ display:none } }
 
     .footer{ margin:28px 0 8px; color:var(--muted); font-size:12px; text-align:center; }
@@ -72,22 +116,68 @@
     .sr-only{ position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden }
 
     /* =================== Loader styles añadidos =================== */
-    .edu-loader { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: linear-gradient(180deg, rgba(2,6,12,0.94), rgba(0,0,0,0.96)); color: #fff; z-index: 99999; padding: 18px; text-align: center; font-family: "Roboto Mono", monospace; }
+    .edu-loader {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: linear-gradient(180deg, rgba(2,6,12,0.94), rgba(0,0,0,0.96));
+      color: #fff;
+      z-index: 99999;
+      padding: 18px;
+      text-align: center;
+      font-family: "Roboto Mono", monospace;
+    }
     .edu-loader.hidden { display: none !important; }
-    .loader-ring { width: 88px; height: 88px; border-radius: 50%; display:grid; place-items:center; box-shadow: 0 8px 40px rgba(90,169,255,0.08), inset 0 0 16px rgba(63,176,255,0.04); }
-    .loader-ring:after{ content: ""; width: 62px; height: 62px; border-radius:50%; border: 4px solid rgba(255,255,255,0.06); border-top-color: #6ee7ff; animation: spin 900ms linear infinite; }
+    .loader-ring {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      display:grid;
+      place-items:center;
+      box-shadow: 0 8px 40px rgba(90,169,255,0.08), inset 0 0 16px rgba(63,176,255,0.04);
+    }
+    .loader-ring:after{
+      content: "";
+      width: 62px;
+      height: 62px;
+      border-radius:50%;
+      border: 4px solid rgba(255,255,255,0.06);
+      border-top-color: #6ee7ff;
+      animation: spin 900ms linear infinite;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loader-text { font-weight:700; font-size:15px; letter-spacing:0.6px; color:#dff7ff; }
-    .loader-progress { width: 380px; max-width: calc(100% - 48px); height: 10px; background: rgba(255,255,255,0.04); border-radius: 999px; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,0.02); }
-    .loader-progress > i { display:block; height:100%; width:0%; background: linear-gradient(90deg,#6ee7ff,#7c5cff); border-radius:999px; transition: width .14s linear; }
+    .loader-progress {
+      width: 380px;
+      max-width: calc(100% - 48px);
+      height: 10px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 999px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+    }
+    .loader-progress > i {
+      display:block; height:100%; width:0%; background: linear-gradient(90deg,#6ee7ff,#7c5cff); border-radius:999px;
+      transition: width .14s linear;
+    }
     .loader-percent { font-size:13px; color:rgba(255,255,255,0.75); margin-top:6px; }
     /* ============================================================ */
 
     /* small helper for course layout */
-    .course-row { display:flex; gap:18px; align-items:flex-start; }
-    .card-left-wrapper { flex: 0 0 360px; }
+    .course-row { display:flex; gap:18px; align-items:flex-start; margin-top:12px; }
+    .card-left-wrapper { flex: 0 0 360px; min-height: 420px; }
     .card-right { flex: 1 1 auto; }
     @media (max-width:900px) { .course-row { flex-direction:column } .card-left-wrapper { width:100%; } }
+
+    /* minimal styling so the injected card fits nicely */
+    .ec-card-container { width:100%; height:100%; display:block; }
+    .ec-card-container .card-container { height: 100%; min-height: 360px; }
+    .ec-card-container .main-card { width:100%; height:100%; border-radius:18px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.04)); }
+    .ec-card-image { border-radius:14px; display:block; }
   </style>
 </head>
 <body>
@@ -145,8 +235,8 @@
           <hr style="border:0; border-top:1px solid rgba(255,255,255,.06);" />
 
           <!-- NUEVA FILA: IZQUIERDA (TARJETA) Y DERECHA (LISTA DE ARCHIVOS) -->
-          <div class="course-row" style="margin-top:12px;">
-            <div class="card-left-wrapper" aria-hidden="false"><!-- electric-card.js insertará la tarjeta aquí --></div>
+          <div class="course-row">
+            <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() colocará la tarjeta aquí --></div>
             <div class="card-right">
               <div class="filelist" id="filelist" aria-live="polite"></div>
             </div>
@@ -168,8 +258,263 @@
   </div>
   <!-- ======================================================== -->
 
-  <!-- SCRIPTS: electric-card primero, luego main -->
+  <!-- electric-card.js (debe existir en la misma carpeta o ajustar la ruta) -->
   <script src="assets/js/electric-card.js"></script>
-  <script src="assets/js/main.js"></script>
+
+  <script>
+    // === su script original (sin cambios funcionales) ===
+    const $ = sel => document.querySelector(sel);
+    const toHex = buffer => Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2,'0')).join('');
+    async function sha256Hex(text) {
+      const data = new TextEncoder().encode(String(text).trim());
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      return toHex(hash);
+    }
+    function setQueryParam(key, value) {
+      const url = new URL(window.location.href);
+      if (value == null) url.searchParams.delete(key); else url.searchParams.set(key, value);
+      history.replaceState({}, '', url);
+    }
+    function downloadFile(url) { window.open(url, '_blank', 'noopener'); }
+
+    const ACCESS_HASH_MAP = {
+      "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0": {
+        title: "Diplomado en Gerencia y Administración de Servicios Hospitalarios (GASH) – 3ª Ed. 2025",
+        meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
+        files: [
+          { label: "Logos (PNG)", url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
+          { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/drive/folders/14E42MPlcjsIcc6OWNCYJ2J1HRzcdr21F?usp=sharing" },
+          { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
+          { label: "Social Kit (JPG)", url: "https://drive.google.com/drive/folders/1FbTQSAMZk84de7ykDs9YmMmp7z1Pyufr?usp=sharing" },
+          { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" }
+        ]
+      },
+      "88f62dd4f34bc0c54550634cee859bb2178aa0e69041e1bee3be5a132e1c7456": {
+        title: "Curso Manejo Básico de Fracturas (MBF) – 2ª Ed. 2025",
+        meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
+        files: [
+          { label: "Logos (PNG)", url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
+          { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/drive/folders/1qJqRPO2akiosdJ9BMBXp49gYgrRExcD2?usp=sharing" },
+          { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
+          { label: "Social Kit (JPG)", url: "https://drive.google.com/drive/folders/1msdy6xita4RcTesyg7qV3Q51WGu97qPZ?usp=sharing" },
+          { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" }
+        ]
+      }
+    };
+
+    let currentKeyHex = null;
+    const ATTEMPT_KEY = 'edusalud_attempts_session';
+
+    function recordAttempt() {
+      try {
+        const raw = sessionStorage.getItem(ATTEMPT_KEY);
+        const n = raw ? Number(raw) : 0;
+        const next = n + 1;
+        sessionStorage.setItem(ATTEMPT_KEY, String(next));
+        return next;
+      } catch (e) { return 0; }
+    }
+    function clearAttempts() {
+      try { sessionStorage.removeItem(ATTEMPT_KEY); } catch(e) {}
+    }
+    function getAttemptsCount() {
+      try { return Number(sessionStorage.getItem(ATTEMPT_KEY) || 0); } catch(e) { return 0; }
+    }
+    function maybeShowAttemptsWarning() {
+      const attempts = getAttemptsCount();
+      const msg = $('#msg');
+      if (!msg) return;
+      if (attempts === 0) {
+        return;
+      }
+      if (attempts >= 8 && attempts < 15) {
+        msg.textContent = `Ha intentado ${attempts} veces. Verifique que el código esté correcto antes de seguir intentando.`;
+        msg.classList.add('error');
+      } else if (attempts >= 15) {
+        msg.textContent = `Ha realizado muchos intentos (${attempts}). Si el problema persiste, solicite el código a coordinación.`;
+        msg.classList.add('error');
+      }
+    }
+
+    function showAccess() { $('#access').classList.remove('hidden'); $('#content').classList.add('hidden'); $('#code').focus(); }
+    function showContent() { $('#access').classList.add('hidden'); $('#content').classList.remove('hidden'); }
+
+    function renderCourse(keyHex) {
+      const data = ACCESS_HASH_MAP[keyHex];
+      if (!data) return;
+      $('#courseTitle').textContent = data.title;
+      $('#courseMeta').textContent = data.meta || '';
+      const list = $('#filelist');
+      list.innerHTML = '';
+      (data.files || []).forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'file';
+        let host = '';
+        try { host = new URL(item.url).hostname; } catch { host = ''; }
+        row.innerHTML = `<div><strong>${item.label}</strong><div class="meta">${host}</div></div>`;
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.type = 'button';
+        btn.textContent = 'Descargar';
+        btn.addEventListener('click', () => downloadFile(item.url));
+        row.appendChild(btn);
+        list.appendChild(row);
+      });
+
+      // Insertar la tarjeta electrificada en la columna izquierda (si existiera)
+      try {
+        const left = document.querySelector('#courseCard .card-left-wrapper');
+        if (left) {
+          left.innerHTML = ''; // limpiar
+          // insertar la tarjeta usando la función del archivo externo (electric-card.js)
+          if (window.insertElectricCard) {
+            const cardWrapper = window.insertElectricCard(left, { image: null }); // por defecto sin imagen
+            // si desea, puede asignar imagen aquí con:
+            // window.setCardImage(cardWrapper, 'assets/mi-imagen.jpg');
+          }
+        }
+      } catch (e) { console.warn('No se pudo insertar la tarjeta:', e); }
+    }
+
+    // ---------- Funciones para la pantalla de carga ----------
+    const loaderEl = document.getElementById('eduLoader');
+    const loaderBar = document.getElementById('loaderBar');
+    const loaderPercent = document.getElementById('loaderPercent');
+
+    function showLoader() {
+      if (!loaderEl) return;
+      loaderEl.classList.remove('hidden');
+      loaderEl.setAttribute('aria-hidden', 'false');
+    }
+    function hideLoader() {
+      if (!loaderEl) return;
+      loaderEl.classList.add('hidden');
+      loaderEl.setAttribute('aria-hidden', 'true');
+    }
+
+    const LOAD_DURATION_MS = 1600;
+
+    function runLoader(durationMs = LOAD_DURATION_MS) {
+      return new Promise((resolve) => {
+        if (!loaderBar || !loaderPercent) {
+          resolve();
+          return;
+        }
+        showLoader();
+        loaderBar.style.width = '0%';
+        loaderPercent.textContent = '0%';
+        const start = performance.now();
+        function frame(now) {
+          const t = Math.min(1, (now - start) / durationMs);
+          const ease = t < 0.5 ? (2*t*t) : (-1 + (4-2*t)*t);
+          const percent = Math.round(ease * 100);
+          loaderBar.style.width = percent + '%';
+          loaderPercent.textContent = percent + '%';
+          if (t < 1) {
+            requestAnimationFrame(frame);
+          } else {
+            loaderBar.style.width = '100%';
+            loaderPercent.textContent = '100%';
+            setTimeout(() => {
+              hideLoader();
+              resolve();
+            }, 200);
+          }
+        }
+        requestAnimationFrame(frame);
+      });
+    }
+    // ---------------------------------------------------------
+
+    async function tryLoginByCode(code) {
+      const msg = $('#msg');
+      msg.textContent = 'Verificando…';
+      msg.classList.remove('error');
+
+      if (!code || String(code).trim().length === 0) {
+        msg.textContent = 'Ingrese un código válido.';
+        msg.classList.add('error');
+        return false;
+      }
+
+      try {
+        const hex = await sha256Hex(code);
+
+        if (ACCESS_HASH_MAP[hex]) {
+          try {
+            await runLoader();
+          } catch (e) { /* continuar en caso de fallo */ }
+
+          currentKeyHex = hex;
+          clearAttempts();
+          setQueryParam('code', btoa(code));
+          renderCourse(hex);
+          showContent();
+          return true;
+        } else {
+          const attempts = recordAttempt();
+          msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
+          msg.classList.add('error');
+          maybeShowAttemptsWarning();
+          return false;
+        }
+      } catch (e) {
+        console.error(e);
+        msg.textContent = 'Ocurrió un error al verificar el código.';
+        msg.classList.add('error');
+        return false;
+      }
+    }
+
+    // Eventos UI
+    $('#btn-enter').addEventListener('click', () => tryLoginByCode($('#code').value));
+    $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#btn-enter').click(); } });
+    $('#btn-logout').addEventListener('click', () => { currentKeyHex = null; setQueryParam('code', null); showAccess(); });
+
+    $('#btn-copy-code-link').addEventListener('click', async () => {
+      if (!currentKeyHex) return;
+      const url = new URL(location.href);
+      const codeField = $('#code');
+      const encoded = url.searchParams.get('code');
+      const codeVal = (encoded ? atob(encoded) : codeField.value) || '';
+      if (!codeVal) return;
+      url.searchParams.set('code', btoa(codeVal));
+      try {
+        await navigator.clipboard.writeText(url.toString());
+        alert('Enlace copiado al portapapeles');
+      } catch (e) {
+        prompt('Copie este enlace:', url.toString());
+      }
+    });
+
+    // Init: precarga por ?code=BASE64
+    (async function init(){
+      $('#year').textContent = new Date().getFullYear();
+      const qp = new URLSearchParams(location.search);
+      const pre = qp.get('code');
+      if (pre) {
+        try {
+          const decoded = atob(pre);
+          if (decoded) {
+            const ok = await tryLoginByCode(decoded);
+            if (ok) {
+              try { $('#code').value = decoded; } catch(e) {}
+              return;
+            } else {
+              setQueryParam('code', null);
+              showAccess();
+              $('#msg').textContent = 'El enlace contiene código inválido o expirado.';
+              $('#msg').classList.add('error');
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('Parámetro code inválido', e);
+        }
+      }
+      showAccess();
+      maybeShowAttemptsWarning();
+    })();
+  </script>
 </body>
 </html>
