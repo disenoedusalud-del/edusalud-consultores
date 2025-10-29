@@ -115,7 +115,7 @@
     .hidden{ display:none !important; }
     .sr-only{ position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden }
 
-    /* =================== Loader styles añadidos (original) =================== */
+    /* Loader (original, sin cambios) */
     .edu-loader {
       position: fixed;
       inset: 0;
@@ -165,9 +165,14 @@
       transition: width .14s linear;
     }
     .loader-percent { font-size:13px; color:rgba(255,255,255,0.75); margin-top:6px; }
-    /* ============================================================ */
 
-    /* ====== VISTA MASTER (cada curso en su card separada) ====== */
+    /* Layout curso */
+    .course-row { display:flex; gap:18px; align-items:flex-start; }
+    .card-left-wrapper { flex: 0 0 360px; }
+    .card-right { flex: 1 1 auto; }
+    @media (max-width:900px) { .course-row { flex-direction:column } .card-left-wrapper { width:100%; } }
+
+    /* Vista Master */
     #master { margin-top:16px; }
     .master-grid { display:grid; gap:16px; }
     .master-card{
@@ -187,7 +192,6 @@
       .master-card{ grid-template-columns: 1fr; }
       .master-card .left{ order: -1; }
     }
-    /* =========================================================== */
   </style>
 </head>
 <body>
@@ -208,7 +212,7 @@
       </div>
     </header>
 
-    <!-- BLOQUE DE ACCESO -->
+    <!-- ACCESO -->
     <section id="access" class="card" aria-labelledby="access-title">
       <h2 id="access-title" class="sr-only">Acceso restringido</h2>
       <div class="grid cols-2" style="align-items:center;">
@@ -227,7 +231,7 @@
       </div>
     </section>
 
-    <!-- BLOQUE CONTENIDO POR CURSO -->
+    <!-- CONTENIDO POR CURSO -->
     <section id="content" class="hidden" style="margin-top:16px;">
       <div class="card" id="courseCard">
         <div class="course">
@@ -244,9 +248,9 @@
 
           <hr style="border:0; border-top:1px solid rgba(255,255,255,.06);" />
 
-          <div class="course-row" style="margin-top:12px; display:flex; gap:18px; align-items:flex-start;">
-            <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() colocará la tarjeta aquí --></div>
-            <div class="card-right" style="flex:1 1 auto;">
+          <div class="course-row" style="margin-top:12px;">
+            <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() aquí --></div>
+            <div class="card-right">
               <div class="filelist" id="filelist" aria-live="polite"></div>
             </div>
           </div>
@@ -257,7 +261,7 @@
       <p class="footer">© <span id="year"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
     </section>
 
-    <!-- =========== VISTA MASTER (EDUMASTER) =========== -->
+    <!-- VISTA MASTER -->
     <section id="master" class="hidden">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
         <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
@@ -269,10 +273,9 @@
       <div class="master-grid" id="masterGrid"></div>
       <p class="footer">© <span id="year_master"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
     </section>
-    <!-- =============================================== -->
   </div>
 
-  <!-- Overlay / pantalla de carga (original) -->
+  <!-- Loader (original) -->
   <div id="eduLoader" class="edu-loader hidden" aria-hidden="true" role="alert" aria-live="polite">
     <div class="loader-ring" aria-hidden="true"></div>
     <div class="loader-text">Cargando recursos...</div>
@@ -280,9 +283,9 @@
     <div id="loaderPercent" class="loader-percent">0%</div>
   </div>
 
-  <!-- electric-card.js debe estar antes de usar insertElectricCard -->
+  <!-- Dependencia tarjeta -->
   <script src="assets/js/electric-card.js?v=2" defer></script>
-  <!-- Lógica de la página -->
-  <script src="assets/js/app.js?v=5" defer></script>
+  <!-- Lógica principal -->
+  <script src="assets/js/app.js?v=7" defer></script>
 </body>
 </html>
