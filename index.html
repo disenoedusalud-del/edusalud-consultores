@@ -115,7 +115,7 @@
     .hidden{ display:none !important; }
     .sr-only{ position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden }
 
-    /* =================== Loader styles (original) =================== */
+    /* =================== Loader styles añadidos (original) =================== */
     .edu-loader {
       position: fixed;
       inset: 0;
@@ -167,7 +167,7 @@
     .loader-percent { font-size:13px; color:rgba(255,255,255,0.75); margin-top:6px; }
     /* ============================================================ */
 
-    /* ====== Preparación de VISTA MASTER (cada curso en su card) ====== */
+    /* ====== VISTA MASTER (cada curso en su card separada) ====== */
     #master { margin-top:16px; }
     .master-grid { display:grid; gap:16px; }
     .master-card{
@@ -187,7 +187,7 @@
       .master-card{ grid-template-columns: 1fr; }
       .master-card .left{ order: -1; }
     }
-    /* ================================================================ */
+    /* =========================================================== */
   </style>
 </head>
 <body>
@@ -244,9 +244,9 @@
 
           <hr style="border:0; border-top:1px solid rgba(255,255,255,.06);" />
 
-          <div class="course-row" style="margin-top:12px;">
+          <div class="course-row" style="margin-top:12px; display:flex; gap:18px; align-items:flex-start;">
             <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() colocará la tarjeta aquí --></div>
-            <div class="card-right">
+            <div class="card-right" style="flex:1 1 auto;">
               <div class="filelist" id="filelist" aria-live="polite"></div>
             </div>
           </div>
@@ -258,7 +258,6 @@
     </section>
 
     <!-- =========== VISTA MASTER (EDUMASTER) =========== -->
-    <!-- Tu JS podrá alternar a esta sección y crear una .master-card por curso -->
     <section id="master" class="hidden">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
         <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
@@ -267,19 +266,7 @@
           <button id="btn-master-exit" class="btn secondary" type="button">Salir</button>
         </div>
       </div>
-      <div class="master-grid" id="masterGrid">
-        <!-- EJEMPLO de estructura que el JS debería inyectar por curso:
-        <div class="master-card">
-          <div class="left"><!-- aquí insertElectricCard(...) --></div>
-          <div class="right">
-            <div class="filelist">
-              <div class="file">...</div>
-              <div class="file">...</div>
-            </div>
-          </div>
-        </div>
-        -->
-      </div>
+      <div class="master-grid" id="masterGrid"></div>
       <p class="footer">© <span id="year_master"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
     </section>
     <!-- =============================================== -->
@@ -295,17 +282,7 @@
 
   <!-- electric-card.js debe estar antes de usar insertElectricCard -->
   <script src="assets/js/electric-card.js?v=2" defer></script>
-
-  <!-- Tu JS existente va aquí; no lo toqué -->
-  <script defer src="assets/js/app.js?v=1"></script>
-  <script>
-    // Si no separas tu JS en app.js, deja tu <script> original aquí como lo tenías.
-    // Este bloque solo actualiza los años del footer en ambas vistas sin tocar tu lógica.
-    document.addEventListener('DOMContentLoaded', () => {
-      const y = String(new Date().getFullYear());
-      const a = document.getElementById('year'); if (a) a.textContent = y;
-      const b = document.getElementById('year_master'); if (b) b.textContent = y;
-    });
-  </script>
+  <!-- Lógica de la página -->
+  <script src="assets/js/app.js?v=5" defer></script>
 </body>
 </html>
