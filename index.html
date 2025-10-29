@@ -168,16 +168,10 @@
     /* ============================================================ */
 
     /* small helper for course layout */
-    .course-row { display:flex; gap:18px; align-items:flex-start; margin-top:12px; }
-    .card-left-wrapper { flex: 0 0 360px; min-height: 420px; }
+    .course-row { display:flex; gap:18px; align-items:flex-start; }
+    .card-left-wrapper { flex: 0 0 360px; }
     .card-right { flex: 1 1 auto; }
     @media (max-width:900px) { .course-row { flex-direction:column } .card-left-wrapper { width:100%; } }
-
-    /* minimal styling so the injected card fits nicely */
-    .ec-card-container { width:100%; height:100%; display:block; }
-    .ec-card-container .card-container { height: 100%; min-height: 360px; }
-    .ec-card-container .main-card { width:100%; height:100%; border-radius:18px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.04)); }
-    .ec-card-image { border-radius:14px; display:block; }
   </style>
 </head>
 <body>
@@ -235,7 +229,7 @@
           <hr style="border:0; border-top:1px solid rgba(255,255,255,.06);" />
 
           <!-- NUEVA FILA: IZQUIERDA (TARJETA) Y DERECHA (LISTA DE ARCHIVOS) -->
-          <div class="course-row">
+          <div class="course-row" style="margin-top:12px;">
             <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() colocará la tarjeta aquí --></div>
             <div class="card-right">
               <div class="filelist" id="filelist" aria-live="polite"></div>
@@ -258,8 +252,8 @@
   </div>
   <!-- ======================================================== -->
 
-  <!-- electric-card.js (debe existir en la misma carpeta o ajustar la ruta) -->
-  <script src="assets/js/electric-card.js"></script>
+  <!-- electric-card.js debe estar antes de usar insertElectricCard -->
+  <script src="electric-card.js"></script>
 
   <script>
     // === su script original (sin cambios funcionales) ===
@@ -304,7 +298,6 @@
 
     let currentKeyHex = null;
     const ATTEMPT_KEY = 'edusalud_attempts_session';
-
     function recordAttempt() {
       try {
         const raw = sessionStorage.getItem(ATTEMPT_KEY);
@@ -366,11 +359,9 @@
         const left = document.querySelector('#courseCard .card-left-wrapper');
         if (left) {
           left.innerHTML = ''; // limpiar
-          // insertar la tarjeta usando la función del archivo externo (electric-card.js)
+          // insertar la tarjeta usando la función del archivo externo
           if (window.insertElectricCard) {
-            const cardWrapper = window.insertElectricCard(left, { image: null }); // por defecto sin imagen
-            // si desea, puede asignar imagen aquí con:
-            // window.setCardImage(cardWrapper, 'assets/mi-imagen.jpg');
+            window.insertElectricCard(left, { title: data.title, tag: 'DRAMATIC', desc: data.meta });
           }
         }
       } catch (e) { console.warn('No se pudo insertar la tarjeta:', e); }
