@@ -114,14 +114,62 @@
     .footer{ margin:28px 0 8px; color:var(--muted); font-size:12px; text-align:center; }
     .hidden{ display:none !important; }
     .sr-only{ position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden }
+  
+  /* ---------- Loading screen styles (insertado) ---------- */
 
-    /* small tweak for responsive card reveal fallback */
-    @media (max-width:520px){
-      .card { padding:14px; }
-    }
-  </style>
+  /* import fuente monospace para el ASCII */
+  @import url("https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap");
+
+  /* Reset mínimo y estilos para overlay */
+  #loadingOverlay { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.72); }
+  #loadingOverlay.hidden { display:none !important; }
+
+  .speed-indicator { position: absolute; top: 20px; right: 20px; color: white; font-size: 16px; background: rgba(0, 0, 0, 0.3); padding: 8px 16px; border-radius: 20px; backdrop-filter: blur(5px); z-index: 10000; }
+
+  .container { position: relative; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+
+  .card-stream { position: absolute; width: 100vw; height: 180px; display: flex; align-items: center; overflow: visible; z-index: 3; }
+  .card-line { display: flex; align-items: center; gap: 60px; white-space: nowrap; user-select:none; }
+
+  .card-wrapper { position: relative; width: 400px; height: 250px; flex-shrink: 0; }
+  .card { position: absolute; top: 0; left: 0; width: 400px; height: 250px; border-radius: 15px; overflow: hidden; }
+
+  .card-normal { background: transparent; box-shadow: 0 15px 40px rgba(0,0,0,0.4); color: white; z-index: 2; position: relative; overflow: hidden; }
+  .card-image { width: 100%; height: 100%; object-fit: cover; border-radius: 15px; transition: all 0.3s ease; filter: brightness(1.1) contrast(1.1); }
+
+  .card-ascii { z-index:1; position:absolute; top:0; left:0; width:400px; height:250px; color: rgba(220,210,255,0.6); font-family: 'Roboto Mono', monospace; font-size:11px; line-height:13px; white-space: pre; overflow:hidden; }
+
+  /* Scanner light bar */
+  .scanner { display:none; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:4px; height:300px; border-radius:30px; background: linear-gradient(to bottom, transparent, rgba(0,255,255,0.8), rgba(0,255,255,1), rgba(0,255,255,0.8), transparent); box-shadow:0 0 20px rgba(0,255,255,0.8), 0 0 40px rgba(0,255,255,0.4); z-index:10; }
+
+  #particleCanvas { position:absolute; top:50%; left:0; transform:translateY(-50%); width:100vw; height:250px; z-index:0; pointer-events:none; }
+  #scannerCanvas { position:absolute; top:50%; left:-3px; transform:translateY(-50%); width:100vw; height:300px; z-index:15; pointer-events:none; }
+
+  .scan-effect { position:absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(90deg, transparent, rgba(0,255,255,0.4), transparent); animation: scanEffect 0.6s ease-out; pointer-events:none; z-index:5; }
+
+  @keyframes scanEffect { 0%{transform:translateX(-100%);opacity:0;}50%{opacity:1;}100%{transform:translateX(100%);opacity:0;} }
+
+  /* fin styles de carga */
+
+</style>
 </head>
-<body>
+$1
+  <!-- Loading overlay: pantalla de carga con animación tipo scanner/card-stream -->
+  <div id="loadingOverlay" class="hidden" aria-hidden="true">
+    <div class="speed-indicator">Speed: <span id="speedValue">120</span> px/s</div>
+
+    <div class="container">
+      <canvas id="particleCanvas"></canvas>
+      <canvas id="scannerCanvas"></canvas>
+
+      <div class="scanner" aria-hidden="true"></div>
+
+      <div class="card-stream" id="cardStream">
+        <div class="card-line" id="cardLine"></div>
+      </div>
+    </div>
+  </div>
+  <!-- /Loading overlay -->
   <div class="wrap">
     <header>
       <div style="display:flex; gap:16px; align-items:center;">
@@ -254,6 +302,7 @@
       const msg = $('#msg');
       if (!msg) return;
       if (attempts === 0) {
+        // nada
         return;
       }
       if (attempts >= 8 && attempts < 15) {
@@ -291,237 +340,6 @@
       });
     }
 
-    // ---------- Animación de tarjeta (reveal) ----------
-    async function showCardReveal(keyHex) {
-      return new Promise((resolve) => {
-        // Si el usuario está en móvil pequeño, acortar visual
-        const isNarrow = window.innerWidth < 540;
-
-        // usar imagen representativa (puedes sustituir por assets/tu-tarjeta.png)
-        const cardImages = [
-          "https://cdn.prod.website-files.com/68789c86c8bc802d61932544/689f20b55e654d1341fb06f8_4.1.png"
-        ];
-        const cardImg = cardImages[0];
-
-        // Crear overlay
-        const overlay = document.createElement("div");
-        overlay.id = "card-reveal-overlay";
-        overlay.style.position = "fixed";
-        overlay.style.inset = "0";
-        overlay.style.zIndex = "2000";
-        overlay.style.display = "flex";
-        overlay.style.alignItems = "center";
-        overlay.style.justifyContent = "center";
-        overlay.style.background = "rgba(2,6,18,0.62)";
-        overlay.style.backdropFilter = "blur(6px)";
-        overlay.style.webkitBackdropFilter = "blur(6px)";
-
-        // contenedor tarjeta
-        const cardWrap = document.createElement("div");
-        cardWrap.style.width = isNarrow ? "320px" : "420px";
-        cardWrap.style.height = isNarrow ? "200px" : "260px";
-        cardWrap.style.borderRadius = "14px";
-        cardWrap.style.overflow = "hidden";
-        cardWrap.style.position = "relative";
-        cardWrap.style.display = "flex";
-        cardWrap.style.alignItems = "center";
-        cardWrap.style.justifyContent = "center";
-        cardWrap.style.boxShadow = "0 30px 80px rgba(0,0,0,0.7)";
-        cardWrap.style.background = "#071226";
-        cardWrap.style.padding = "0";
-        cardWrap.style.transform = "scale(.98)";
-        cardWrap.style.transition = "transform .25s ease";
-
-        // normal (derecha) - imagen de tarjeta
-        const normal = document.createElement("div");
-        normal.className = "reveal-normal";
-        normal.style.width = "50%";
-        normal.style.height = "100%";
-        normal.style.position = "relative";
-        normal.style.overflow = "hidden";
-        normal.style.display = "flex";
-        normal.style.alignItems = "center";
-        normal.style.justifyContent = "center";
-
-        const img = document.createElement("img");
-        img.src = cardImg;
-        img.alt = "Tarjeta";
-        img.style.width = "92%";
-        img.style.height = "auto";
-        img.style.borderRadius = "12px";
-        img.style.boxShadow = "0 8px 30px rgba(0,0,0,0.5)";
-        img.style.objectFit = "cover";
-
-        normal.appendChild(img);
-
-        // ascii (izquierda) - block de texto simulado
-        const ascii = document.createElement("div");
-        ascii.className = "reveal-ascii";
-        ascii.style.width = "50%";
-        ascii.style.height = "100%";
-        ascii.style.background = "#000";
-        ascii.style.color = "rgba(220,210,255,0.65)";
-        ascii.style.fontFamily = "monospace";
-        ascii.style.fontSize = "10px";
-        ascii.style.lineHeight = "12px";
-        ascii.style.padding = "10px";
-        ascii.style.overflow = "hidden";
-        ascii.style.whiteSpace = "pre";
-        ascii.style.display = "flex";
-        ascii.style.alignItems = "center";
-
-        const asciiContent = document.createElement("div");
-        asciiContent.textContent = [
-          "// compiled preview • scanner demo",
-          "const SCAN_WIDTH = 8;",
-          "const MAX_PARTICLES = 2500;",
-          "function clamp(n,a,b){return Math.max(a,Math.min(b,n));}",
-          "class Particle{ /* ... */ }",
-          "// visual only"
-        ].join("\n");
-        ascii.appendChild(asciiContent);
-
-        // barra scanner central
-        const scannerBar = document.createElement("div");
-        scannerBar.style.position = "absolute";
-        scannerBar.style.left = "50%";
-        scannerBar.style.top = "0";
-        scannerBar.style.transform = "translateX(-50%)";
-        scannerBar.style.width = isNarrow ? "6px" : "6px";
-        scannerBar.style.height = "100%";
-        scannerBar.style.borderRadius = "10px";
-        scannerBar.style.background = "linear-gradient(to bottom, rgba(180,160,255,0), rgba(100,255,255,0.95), rgba(180,160,255,0))";
-        scannerBar.style.boxShadow = "0 0 24px rgba(100,220,255,0.85)";
-        scannerBar.style.pointerEvents = "none";
-        scannerBar.style.opacity = "0";
-
-        // efecto de destello que viaja por la tarjeta (div encima)
-        const scanEffect = document.createElement("div");
-        scanEffect.style.position = "absolute";
-        scanEffect.style.left = "-40%";
-        scanEffect.style.top = "0";
-        scanEffect.style.width = "40%";
-        scanEffect.style.height = "100%";
-        scanEffect.style.pointerEvents = "none";
-        scanEffect.style.background = "linear-gradient(90deg, transparent, rgba(0,255,255,0.18), transparent)";
-        scanEffect.style.filter = "blur(8px)";
-        scanEffect.style.opacity = "0";
-
-        // pequeño canvas de partículas - detrás de la tarjeta
-        const particleCanvas = document.createElement("canvas");
-        particleCanvas.width = 900;
-        particleCanvas.height = 600;
-        particleCanvas.style.position = "absolute";
-        particleCanvas.style.left = "50%";
-        particleCanvas.style.top = "50%";
-        particleCanvas.style.transform = "translate(-50%,-50%)";
-        particleCanvas.style.width = "920px";
-        particleCanvas.style.height = "560px";
-        particleCanvas.style.zIndex = "100";
-        particleCanvas.style.pointerEvents = "none";
-        particleCanvas.style.opacity = "0.85";
-
-        // ensamblar
-        cardWrap.appendChild(ascii);
-        cardWrap.appendChild(normal);
-        cardWrap.appendChild(scannerBar);
-        cardWrap.appendChild(scanEffect);
-        overlay.appendChild(particleCanvas);
-        overlay.appendChild(cardWrap);
-        document.body.appendChild(overlay);
-
-        // función anim particles ligera (solo visual)
-        const ctx = particleCanvas.getContext("2d");
-        let particles = [];
-        function spawnParticles(n = 30) {
-          particles = [];
-          for (let i = 0; i < n; i++) {
-            particles.push({
-              x: Math.random() * particleCanvas.width,
-              y: Math.random() * particleCanvas.height,
-              r: Math.random() * 2 + 0.6,
-              vx: (Math.random() - 0.5) * 0.6,
-              vy: (Math.random() - 0.5) * 0.2,
-              a: Math.random() * 0.7 + 0.2
-            });
-          }
-        }
-        spawnParticles(isNarrow ? 40 : 60);
-
-        let animRunning = true;
-        function particlesLoop() {
-          if (!animRunning) return;
-          ctx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
-          for (let p of particles) {
-            p.x += p.vx;
-            p.y += p.vy;
-            if (p.x < -10) p.x = particleCanvas.width + 10;
-            if (p.x > particleCanvas.width + 10) p.x = -10;
-            if (p.y < -10) p.y = particleCanvas.height + 10;
-            if (p.y > particleCanvas.height + 10) p.y = -10;
-            ctx.beginPath();
-            ctx.globalAlpha = p.a * 0.9;
-            ctx.fillStyle = "rgba(185,210,255,0.9)";
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-            ctx.fill();
-          }
-          requestAnimationFrame(particlesLoop);
-        }
-        particlesLoop();
-
-        // Animación de scan: timeline en JS para tener control
-        const duration = isNarrow ? 850 : 1000; // ms
-        const start = performance.now();
-
-        // aparecer suavemente la overlay
-        overlay.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, fill: "forwards" });
-        cardWrap.animate([{ transform: "scale(.95)" }, { transform: "scale(1)" }], { duration: 260, easing: "cubic-bezier(.2,.8,.2,1)" });
-
-        // poner barra visible
-        scannerBar.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, fill: "forwards" });
-
-        // anim loop: mover scanEffect de izquierda a centro a derecha y manejar clipping simulada
-        function frame(now) {
-          const t = Math.min(1, (now - start) / duration);
-          const scanPos = 0.08 + t * 0.84; // posición relativa en el wrap
-
-          const wrapRect = cardWrap.getBoundingClientRect();
-          const effectLeftPx = wrapRect.width * (scanPos - 0.2);
-          scanEffect.style.left = (effectLeftPx) + "px";
-          scanEffect.style.opacity = 0.95 * Math.sin(Math.PI * t);
-
-          // mover scannerBar centrado sobre cardWrap
-          const centerLeft = wrapRect.left + wrapRect.width * scanPos;
-          scannerBar.style.left = (wrapRect.width * scanPos) + "px";
-          scannerBar.style.transform = "translateX(-50%)";
-
-          // clip simulation: ajusta anchura de cada lado por percent
-          const leftPercent = Math.max(12, Math.min(88, Math.round(scanPos * 100)));
-          ascii.style.width = leftPercent + "%";
-          normal.style.width = (100 - leftPercent) + "%";
-
-          if (t < 1) {
-            requestAnimationFrame(frame);
-          } else {
-            // breve pulso final y cierre
-            scanEffect.animate([{ opacity: 0.95 }, { opacity: 0 }], { duration: 350, easing: "ease-out" });
-            scannerBar.animate([{ boxShadow: "0 0 24px rgba(100,220,255,0.85)" }, { boxShadow: "0 0 2px rgba(100,220,255,0.6)" }], { duration: 300 });
-            setTimeout(() => {
-              overlay.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: "forwards" });
-              animRunning = false;
-              setTimeout(() => {
-                try { document.body.removeChild(overlay); } catch(e) {}
-                resolve(true);
-              }, 270);
-            }, 600);
-          }
-        }
-        requestAnimationFrame(frame);
-      });
-    }
-
-    // ---------- Fin animación de tarjeta ----------
-
     async function tryLoginByCode(code) {
       const msg = $('#msg');
       msg.textContent = 'Verificando…';
@@ -540,12 +358,70 @@
           currentKeyHex = hex;
           // limpiar intentos tras login exitoso
           clearAttempts();
+
+          // Mostrar pantalla de carga y animación
+          const overlay = document.getElementById('loadingOverlay');
+          if (overlay) {
+            overlay.classList.remove('hidden');
+            overlay.setAttribute('aria-hidden', 'false');
+            try { document.querySelector('.scanner').style.display = 'block'; } catch(e) {}
+            try { document.body.style.overflow = 'hidden'; } catch(e) {}
+          }
+
+          // iniciar la animación de carga si está disponible
+          try {
+            if (window.initLoadingAnimation) {
+              // initLoadingAnimation devuelve una Promise que resuelve cuando termina la animación corta
+              await window.initLoadingAnimation();
+            } else {
+              // fallback: esperar un tiempo fijo si no hay animación
+              await new Promise(r => setTimeout(r, 1200));
+            }
+          } catch (e) {
+            console.warn('Error en animación de carga', e);
+            await new Promise(r => setTimeout(r, 900));
+          }
+
+          // proceder a mostrar el contenido protegido
           setQueryParam('code', btoa(code));
+          renderCourse(hex);
 
-          // ---- espera la animación de la tarjeta antes de mostrar contenido ----
-          await showCardReveal(hex);
+          // ocultar overlay
+          if (overlay) {
+            overlay.classList.add('hidden');
+            overlay.setAttribute('aria-hidden', 'true');
+            try { document.querySelector('.scanner').style.display = 'none'; } catch(e) {}
+            try { document.body.style.overflow = ''; } catch(e) {}
+          }
 
-          // luego renderiza y muestra la sección restringida
+          showContent();
+          return true;
+        } else {
+          // registro del intento (solo en sessionStorage, no bloqueante)
+          const attempts = recordAttempt();
+          // mostrar mensaje amigable
+          msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
+          msg.classList.add('error');
+          // advertencias si ya hay varios intentos
+          maybeShowAttemptsWarning();
+          return false;
+        }
+      } catch (e) {
+        console.error(e);
+        msg.textContent = 'Ocurrió un error al verificar el código.';
+        msg.classList.add('error');
+        return false;
+      }
+    }
+
+      try {
+        const hex = await sha256Hex(code);
+
+        if (ACCESS_HASH_MAP[hex]) {
+          currentKeyHex = hex;
+          // limpiar intentos tras login exitoso
+          clearAttempts();
+          setQueryParam('code', btoa(code));
           renderCourse(hex);
           showContent();
           return true;
@@ -618,5 +494,83 @@
       maybeShowAttemptsWarning();
     })();
   </script>
+
+  <script>
+  // ---------- CARGA: inicializador para la animación de pantalla de carga ----------
+  (function(){
+    let _initialized = false;
+    // Exponer una función que inicie la animación de carga y la resuelva tras una breve secuencia
+    window.initLoadingAnimation = function() {
+      return new Promise((resolve) => {
+        // si ya inicializado, simplemente activar el modo 'scanning' y finalizar después
+        if (_initialized) {
+          try { if (window.setScannerScanning) window.setScannerScanning(true); } catch(e){}
+          try { document.getElementById('speedValue').textContent = 240; } catch(e){}
+          setTimeout(() => {
+            try { if (window.setScannerScanning) window.setScannerScanning(false); } catch(e){}
+            try { document.getElementById('speedValue').textContent = 120; } catch(e){}
+            resolve();
+          }, 1100);
+          return;
+        }
+
+        // cargar three.js dinámicamente si es necesario
+        function loadThree(done){
+          if (typeof THREE !== 'undefined') return done();
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+          s.onload = done; s.onerror = done; document.head.appendChild(s);
+        }
+
+        loadThree(() => {
+          // crear controladores ligeros (solo los necesarios para el efecto)
+          try {
+            // construir elementos de tarjeta si no existen
+            const cardLine = document.getElementById('cardLine');
+            if (cardLine && cardLine.children.length === 0) {
+              // crear una tarjeta simple para el efecto
+              const wrapper = document.createElement('div'); wrapper.className = 'card-wrapper';
+              const normal = document.createElement('div'); normal.className = 'card card-normal';
+              const img = document.createElement('img'); img.className = 'card-image'; img.alt = 'Preview'; img.width = 400; img.height = 250;
+              img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250"><rect width="100%" height="100%" fill="#334155"/><text x="50%" y="50%" fill="#fff" font-size="24" font-family="Arial" text-anchor="middle" dominant-baseline="middle">Cargando...</text></svg>');
+              normal.appendChild(img);
+              const ascii = document.createElement('div'); ascii.className = 'card card-ascii';
+              const asciiContent = document.createElement('div'); asciiContent.className = 'ascii-content'; asciiContent.textContent = 'Initializing...'; ascii.appendChild(asciiContent);
+              wrapper.appendChild(normal); wrapper.appendChild(ascii);
+              cardLine.appendChild(wrapper);
+            }
+
+            // inicializar sistema de partículas si no existe
+            if (!window._particleScannerInstance) {
+              try {
+                window._particleScannerInstance = new (window.ParticleScanner || (function(){
+                  // Si la clase no fue incluida (por tamaño), crear un stub ligero que solo dibuje un bar simple
+                  function Stub(){ this.scanningActive = false; this.setScanningActive = function(a){ this.scanningActive = !!a; }; this.startScanning = this.setScanningActive; this.stopScanning = () => this.setScanningActive(false); this.getStats = () => ({scanningActive:this.scanningActive}); }
+                  return Stub;
+                })())();
+              } catch(e) { console.warn('No se pudo inicializar particleScanner', e); }
+            }
+
+            // activar efecto de escaneo
+            if (window.setScannerScanning) window.setScannerScanning(true);
+            const speedEl = document.getElementById('speedValue'); if (speedEl) speedEl.textContent = '260';
+
+            _initialized = true;
+
+            setTimeout(() => {
+              if (window.setScannerScanning) window.setScannerScanning(false);
+              if (speedEl) speedEl.textContent = '120';
+              resolve();
+            }, 1200);
+          } catch (err) {
+            console.warn('initLoadingAnimation fail', err);
+            resolve();
+          }
+        });
+      });
+    };
+  })();
+  </script>
+
 </body>
 </html>
