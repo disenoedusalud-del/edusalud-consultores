@@ -12,9 +12,11 @@
       --text:#eaf1ff;
       --accent:#5aa9ff;
       --accent-2:#8be9fd;
+      --card:#0e1630;
+      --glass: rgba(255,255,255,.03);
       --danger:#ff7a7a;
+      --radius:14px;
     }
-
     *{box-sizing:border-box}
     body{
       margin:0;
@@ -25,13 +27,14 @@
         var(--bg);
       color:var(--text);
       min-height:100vh;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:28px 18px;
     }
 
-    .wrap{ max-width:1100px; margin:0 auto; padding:28px 20px; }
+    .wrap{ max-width:1100px; margin:0 auto; }
 
-    header{ display:grid; grid-template-columns: 1fr 360px; gap:20px; align-items:center; margin-bottom:18px; }
-    @media (max-width:980px){ header{ grid-template-columns:1fr } .hero{ display:none } }
-
+    header{ display:flex; align-items:center; gap:16px; margin-bottom:18px; }
     .logo {
       width:56px;
       height:56px;
@@ -41,147 +44,193 @@
       align-items:center;
       justify-content:center;
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      box-shadow: 0 8px 30px rgba(90,169,255,.25);
+      box-shadow: 0 8px 30px rgba(90,169,255,.15);
       overflow:hidden;
       box-sizing:border-box;
       flex:0 0 auto;
     }
-    .logo-img { max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; display:block; }
+    .logo-img { max-width:100%; max-height:100%; object-fit:contain; display:block; }
+    h1{ margin:0; font-size:clamp(18px,2.6vw,28px) }
+    p.lead{ margin:4px 0 0; color:var(--muted); font-size:13px }
 
-    h1{ margin:0; font-size:clamp(20px, 2.6vw, 34px); line-height:1.05; }
-    p.lead{ color:var(--muted); margin:6px 0 0; font-size:14px; max-width:58ch; }
-
-    .hero img{ max-width:50%; height:auto; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.45); display:inline-block }
-
-    .card{
+    /* Access card (top) */
+    .card {
       background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.06));
-      border: 1px solid rgba(255,255,255,.04);
-      border-radius:14px;
-      padding:18px;
+      border:1px solid rgba(255,255,255,.04);
+      border-radius:var(--radius);
+      padding:16px;
       box-shadow:0 8px 24px rgba(0,0,0,.25);
       backdrop-filter: blur(4px);
+      margin-bottom:18px;
     }
-
-    .grid{ display:grid; gap:16px; }
-    .grid.cols-2{ grid-template-columns: 1fr; }
-    @media (min-width:900px){ .grid.cols-2 { grid-template-columns: 1fr 1fr; } }
-
-    label{ display:block; font-weight:600; margin-bottom:8px; }
-    .row{ display:flex; gap:10px; align-items:stretch; }
+    .row{ display:flex; gap:10px; align-items:center; }
     .input{
-      flex:1 1 auto;
-      border:1px solid rgba(255,255,255,.08);
-      background:#0e1630;
+      flex:1;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.06);
+      background:var(--card);
       color:var(--text);
-      padding:12px 14px;
-      border-radius:12px;
       outline:none;
     }
-    .input:focus{ border-color:var(--accent); box-shadow:0 0 0 4px rgba(90,169,255,.12); }
-
-    .btn{
+    .input:focus { box-shadow:0 0 0 4px rgba(90,169,255,.08); border-color:var(--accent) }
+    .btn {
       border:none;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      color:#062033;
-      font-weight:800;
-      padding:12px 16px;
-      border-radius:12px;
-      cursor:pointer;
-      transition: transform .06s;
-    }
-    .btn:hover{ transform: translateY(-1px); }
-    .btn.secondary{ background:#19213d; color:var(--text); border:1px solid rgba(255,255,255,.06); }
-
-    .msg{ margin-top:8px; font-size:14px; color:var(--muted); }
-    .msg.error{ color:var(--danger); }
-
-    .filelist{ display:grid; gap:10px; margin-top:12px; }
-    .file{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid rgba(255,255,255,.06); border-radius:12px; background:#0e1630; }
-    .file strong{ font-size:14px; }
-    .meta{ color:var(--muted); font-size:13px; }
-
-    .access-hero{ display:flex; align-items:center; justify-content:center; padding-left:10px; }
-    .access-hero img{
-      width:220px;
-      max-width:100%;
-      height:auto;
+      padding:10px 14px;
       border-radius:10px;
-      box-shadow:0 8px 28px rgba(0,0,0,.45);
-      transform: translateY(2px);
+      background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      color:#041825;
+      font-weight:700;
+      cursor:pointer;
     }
-    @media (max-width:900px){ .access-hero{ display:none } }
+    .btn.secondary {
+      background:transparent;
+      color:var(--accent-2);
+      border:1px solid rgba(255,255,255,.06);
+    }
+    .msg { margin-top:8px; color:var(--muted); font-size:13px }
+    .msg.error { color:var(--danger) }
 
-    .footer{ margin:28px 0 8px; color:var(--muted); font-size:12px; text-align:center; }
-    .hidden{ display:none !important; }
-    .sr-only{ position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden }
+    /* Animated course card container (centered) */
+    .stage { display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start; justify-content:center; margin-top:10px; }
+
+    /* Card visual (inspired in CodePen) */
+    .course-card {
+      width: min(760px, 100%);
+      max-width: 760px;
+      border-radius:16px;
+      overflow:hidden;
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.06));
+      border:1px solid rgba(255,255,255,.04);
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:0;
+      transform-origin: center;
+      animation: cardIn .45s cubic-bezier(.2,.9,.2,1);
+      box-shadow: 0 18px 40px rgba(5,10,20,.6);
+    }
+    @media (max-width:900px){ .course-card { grid-template-columns: 1fr; } .course-cover { height:220px } }
+
+    @keyframes cardIn {
+      from { opacity:0; transform: translateY(16px) scale(.985); filter: blur(6px); }
+      to   { opacity:1; transform: translateY(0) scale(1); filter: none; }
+    }
+
+    .course-cover {
+      position:relative;
+      min-height:280px;
+      background:linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.16));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .course-cover img {
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+      transition: transform .45s cubic-bezier(.2,.9,.2,1);
+    }
+    .course-card:hover .course-cover img { transform: scale(1.03) rotate(-.2deg); }
+
+    .course-info {
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .course-title { font-size:20px; font-weight:800; margin:0; }
+    .course-meta { color:var(--muted); font-size:13px; margin-top:0; }
+    .course-actions { display:flex; gap:10px; margin-top:8px; }
+    .chip { padding:6px 10px; border-radius:999px; background: rgba(255,255,255,.02); color:var(--muted); font-size:13px; border:1px solid rgba(255,255,255,.03); }
+
+    /* Files list inside card */
+    .files {
+      margin-top:8px;
+      display:grid;
+      gap:8px;
+      align-content:start;
+    }
+    .file-row {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      padding:8px 10px;
+      background:rgba(255,255,255,.01);
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.03);
+    }
+    .file-row .meta { color:var(--muted); font-size:12px; margin-top:2px; }
+    .file-row button { padding:8px 10px; border-radius:8px; font-weight:700; cursor:pointer; border:none; background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#041825; }
+
+    /* small helper: empty state */
+    .empty {
+      padding:18px; text-align:center; color:var(--muted);
+    }
+
+    .footer { margin:18px 0 60px; color:var(--muted); font-size:12px; text-align:center; }
+
+    /* subtle float decoration (like the CodePen sample) */
+    .float-deco {
+      position:absolute;
+      right:12px;
+      top:12px;
+      width:60px;
+      height:60px;
+      border-radius:12px;
+      background: linear-gradient(135deg, rgba(90,169,255,.12), rgba(139,233,253,.06));
+      display:grid;
+      place-items:center;
+      font-weight:800;
+      color:var(--text);
+      box-shadow:0 8px 24px rgba(5,10,20,.6);
+      transform: translateZ(0);
+    }
+
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <div style="display:flex; gap:16px; align-items:center;">
-        <div class="logo" aria-hidden="false">
-          <img src="assets/logo-edusalud.png" alt="EduSalud" class="logo-img" />
-        </div>
-        <div>
-          <h1>Portal de Recursos para Consultores · EduSalud</h1>
-          <p class="lead">Descargue materiales oficiales (PPT, logos, manuales de marca, social kit, formatos). Acceso mediante código otorgado por coordinación.</p>
-        </div>
-      </div>
-
-      <div class="hero" aria-hidden="true">
-        <img src="assets/static-assets-amico.png" alt="Ilustración consultores EduSalud" />
+      <div class="logo" aria-hidden="false"><img src="assets/logo-edusalud.png" alt="EduSalud" class="logo-img" /></div>
+      <div>
+        <h1>Portal de Recursos para Consultores · EduSalud</h1>
+        <p class="lead">Ingrese el código que coordinación le proporcionó. Se mostrará la tarjeta del curso con los recursos disponibles.</p>
       </div>
     </header>
 
-    <!-- BLOQUE DE ACCESO -->
-    <section id="access" class="card" aria-labelledby="access-title">
-      <h2 id="access-title" class="sr-only">Acceso restringido</h2>
-      <div class="grid cols-2" style="align-items:center;">
-        <div>
-          <label for="code">Ingrese su código de acceso</label>
+    <!-- ACCESS -->
+    <section class="card" id="access">
+      <div style="display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
+        <div style="flex:1; min-width:260px;">
+          <label for="code" style="font-weight:700; display:block; margin-bottom:6px">Código de acceso</label>
           <div class="row">
-            <input id="code" class="input" type="text" placeholder="Ej. ABC0-0000" autocomplete="one-time-code" aria-label="Código de acceso" />
-            <button id="btn-enter" class="btn" type="button">Entrar</button>
+            <input id="code" class="input" type="text" placeholder="Ej. GASH3-2025" autocomplete="one-time-code" aria-label="Código de acceso" />
+            <button id="btn-enter" class="btn">Entrar</button>
+            <button id="btn-copy-code-link" class="btn secondary" title="Copiar enlace público (sin código)">Compartir</button>
           </div>
           <div id="msg" class="msg">Si no tiene código, solicítelo a coordinación.</div>
         </div>
 
-        <div class="access-hero" aria-hidden="true">
-          <img src="assets/asset-selection-cuate.png" alt="Ilustración de consultoría" />
+        <div style="width:180px; display:flex; align-items:center; justify-content:center;">
+          <img src="assets/asset-selection-cuate.png" alt="Ilustración" style="width:160px; height:auto; border-radius:10px; box-shadow:0 12px 30px rgba(0,0,0,.45)" />
         </div>
       </div>
     </section>
 
-    <!-- BLOQUE CONTENIDO RESTRINGIDO -->
-    <section id="content" class="hidden" style="margin-top:16px;">
-      <div class="card" id="courseCard">
-        <div class="course">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-            <div>
-              <h3 id="courseTitle">Curso / Diplomado</h3>
-              <div class="meta" id="courseMeta">Material oficial para consultoría</div>
-            </div>
-            <div class="row">
-              <button id="btn-copy-code-link" class="btn secondary" type="button" title="Comparte un link que precarga el código">Compartir enlace con código</button>
-              <button id="btn-logout" class="btn secondary" type="button">Salir</button>
-            </div>
-          </div>
+    <!-- STAGE: where the animated course-card will appear -->
+    <div class="stage" id="stage" aria-live="polite">
+      <!-- inserted dynamically -->
+    </div>
 
-          <hr style="border:0; border-top:1px solid rgba(255,255,255,.06);" />
-          <div class="filelist" id="filelist" aria-live="polite"></div>
-        </div>
-      </div>
-
-      <p class="footer">© <span id="year"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
-    </section>
+    <p class="footer">© <span id="year"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala.</p>
   </div>
 
   <script>
-    // Utilitarios DOM
+    /* ----------------- Utilities ----------------- */
     const $ = sel => document.querySelector(sel);
 
-    // Convierte ArrayBuffer -> hex
     const toHex = buffer => Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2,'0')).join('');
     async function sha256Hex(text) {
       const data = new TextEncoder().encode(String(text).trim());
@@ -189,44 +238,44 @@
       return toHex(hash);
     }
 
-    function setQueryParam(key, value) {
-      const url = new URL(window.location.href);
-      if (value == null) url.searchParams.delete(key); else url.searchParams.set(key, value);
-      history.replaceState({}, '', url);
+    function downloadFile(url) {
+      // safe open in new tab
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.click();
     }
 
-    function downloadFile(url) { window.open(url, '_blank', 'noopener'); }
-
-    // MAPA DE ACCESO (SHA-256 de los códigos permitidos)
+    /* ----------------- Access map (edit / extend here) ----------------- */
     const ACCESS_HASH_MAP = {
+      // SHA-256("GASH3-2025") => example hash (use the real hash you computed)
       "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0": {
+        id: "gash3-2025",
         title: "Diplomado en Gerencia y Administración de Servicios Hospitalarios (GASH) – 3ª Ed. 2025",
-        meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
+        meta: "Material oficial para docentes/consultores",
+        cover: "assets/course-gash.png",
         files: [
           { label: "Logos (PNG)", url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
           { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/drive/folders/14E42MPlcjsIcc6OWNCYJ2J1HRzcdr21F?usp=sharing" },
-          { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
-          { label: "Social Kit (JPG)", url: "https://drive.google.com/drive/folders/1FbTQSAMZk84de7ykDs9YmMmp7z1Pyufr?usp=sharing" },
-          { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" }
+          { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" }
         ]
       },
       "88f62dd4f34bc0c54550634cee859bb2178aa0e69041e1bee3be5a132e1c7456": {
+        id: "mbf2-2025",
         title: "Curso Manejo Básico de Fracturas (MBF) – 2ª Ed. 2025",
-        meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
+        meta: "Recursos oficiales para docentes/consultores",
+        cover: "assets/course-mbf.png",
         files: [
           { label: "Logos (PNG)", url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
           { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/drive/folders/1qJqRPO2akiosdJ9BMBXp49gYgrRExcD2?usp=sharing" },
-          { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
-          { label: "Social Kit (JPG)", url: "https://drive.google.com/drive/folders/1msdy6xita4RcTesyg7qV3Q51WGu97qPZ?usp=sharing" },
-          { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" }
+          { label: "Guía Rápida (PDF)", url: "https://drive.google.com/file/d/EXAMPLE/view?usp=sharing" }
         ]
       }
     };
 
-    let currentKeyHex = null;
+    /* ----------------- UI state ----------------- */
     const ATTEMPT_KEY = 'edusalud_attempts_session';
-
-    // --- manejo de intentos (no bloqueante, usa sessionStorage) ---
     function recordAttempt() {
       try {
         const raw = sessionStorage.getItem(ATTEMPT_KEY);
@@ -236,147 +285,201 @@
         return next;
       } catch (e) { return 0; }
     }
-    function clearAttempts() {
-      try { sessionStorage.removeItem(ATTEMPT_KEY); } catch(e) {}
-    }
-    function getAttemptsCount() {
-      try { return Number(sessionStorage.getItem(ATTEMPT_KEY) || 0); } catch(e) { return 0; }
-    }
+    function clearAttempts() { try { sessionStorage.removeItem(ATTEMPT_KEY); } catch(e) {} }
+    function getAttemptsCount(){ try { return Number(sessionStorage.getItem(ATTEMPT_KEY) || 0); } catch(e){ return 0; } }
 
-    // mensajes de ayuda según número de intentos
-    function maybeShowAttemptsWarning() {
-      const attempts = getAttemptsCount();
+    function showMessage(text, isError = false) {
       const msg = $('#msg');
       if (!msg) return;
-      if (attempts === 0) {
-        // nada
-        return;
-      }
-      if (attempts >= 8 && attempts < 15) {
-        msg.textContent = `Ha intentado ${attempts} veces. Verifique que el código esté correcto antes de seguir intentando.`;
-        msg.classList.add('error');
-      } else if (attempts >= 15) {
-        msg.textContent = `Ha realizado muchos intentos (${attempts}). Si el problema persiste, solicite el código a coordinación.`;
-        msg.classList.add('error');
-      }
+      msg.textContent = text;
+      msg.classList.toggle('error', isError);
     }
 
-    function showAccess() { $('#access').classList.remove('hidden'); $('#content').classList.add('hidden'); $('#code').focus(); }
-    function showContent() { $('#access').classList.add('hidden'); $('#content').classList.remove('hidden'); }
+    function renderCourseCard(data) {
+      const stage = $('#stage');
+      stage.innerHTML = ''; // clear old
+      if (!data) {
+        stage.innerHTML = '<div class="card empty">No hay recursos para este código.</div>';
+        return;
+      }
 
-    function renderCourse(keyHex) {
-      const data = ACCESS_HASH_MAP[keyHex];
-      if (!data) return;
-      $('#courseTitle').textContent = data.title;
-      $('#courseMeta').textContent = data.meta || '';
-      const list = $('#filelist');
-      list.innerHTML = '';
-      (data.files || []).forEach(item => {
-        const row = document.createElement('div');
-        row.className = 'file';
-        let host = '';
-        try { host = new URL(item.url).hostname; } catch { host = ''; }
-        row.innerHTML = `<div><strong>${item.label}</strong><div class="meta">${host}</div></div>`;
-        const btn = document.createElement('button');
-        btn.className = 'btn';
-        btn.type = 'button';
-        btn.textContent = 'Descargar';
-        btn.addEventListener('click', () => downloadFile(item.url));
-        row.appendChild(btn);
-        list.appendChild(row);
-      });
+      // card element
+      const card = document.createElement('article');
+      card.className = 'course-card card';
+      card.setAttribute('role','region');
+      card.setAttribute('aria-labelledby','course-title');
+
+      // cover
+      const cover = document.createElement('div');
+      cover.className = 'course-cover';
+      const img = document.createElement('img');
+      img.alt = data.title;
+      img.src = data.cover || 'assets/asset-selection-cuate.png';
+      img.onerror = () => { img.src = 'assets/asset-selection-cuate.png'; };
+      cover.appendChild(img);
+
+      // info
+      const info = document.createElement('div');
+      info.className = 'course-info';
+
+      const title = document.createElement('h3');
+      title.className = 'course-title';
+      title.id = 'course-title';
+      title.textContent = data.title;
+
+      const meta = document.createElement('div');
+      meta.className = 'course-meta';
+      meta.textContent = data.meta || '';
+
+      const metaRow = document.createElement('div');
+      metaRow.style.display='flex';
+      metaRow.style.justifyContent='space-between';
+      metaRow.style.alignItems='center';
+      metaRow.style.gap='10px';
+
+      const chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.textContent = 'Recursos oficiales';
+
+      const actions = document.createElement('div');
+      actions.className = 'course-actions';
+      const btnOpenAll = document.createElement('button');
+      btnOpenAll.className = 'btn secondary';
+      btnOpenAll.textContent = 'Abrir folder';
+      btnOpenAll.onclick = () => {
+        // abrir primer recurso como folder principal (fallback)
+        const first = (data.files && data.files[0] && data.files[0].url) || location.href;
+        window.open(first, '_blank', 'noopener,noreferrer');
+      };
+      const btnLogout = document.createElement('button');
+      btnLogout.className = 'btn secondary';
+      btnLogout.textContent = 'Salir';
+      btnLogout.onclick = () => {
+        stage.innerHTML = '';
+        showAccess();
+        clearAttempts();
+        showMessage('Sesión cerrada.'); 
+      };
+      actions.appendChild(btnOpenAll);
+      actions.appendChild(btnLogout);
+
+      metaRow.appendChild(chip);
+      metaRow.appendChild(actions);
+
+      // files list
+      const filesWrap = document.createElement('div');
+      filesWrap.className = 'files';
+      if (data.files && data.files.length) {
+        data.files.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'file-row';
+          const left = document.createElement('div');
+          const strong = document.createElement('strong');
+          strong.textContent = item.label;
+          const host = document.createElement('div');
+          host.className = 'meta';
+          try {
+            host.textContent = new URL(item.url).hostname;
+          } catch (e) {
+            host.textContent = '';
+          }
+          left.appendChild(strong);
+          left.appendChild(host);
+
+          const btn = document.createElement('button');
+          btn.textContent = 'Descargar';
+          btn.onclick = () => downloadFile(item.url);
+
+          row.appendChild(left);
+          row.appendChild(btn);
+          filesWrap.appendChild(row);
+        });
+      } else {
+        filesWrap.innerHTML = '<div class="empty">No hay archivos cargados.</div>';
+      }
+
+      // assemble
+      info.appendChild(title);
+      info.appendChild(meta);
+      info.appendChild(metaRow);
+      info.appendChild(filesWrap);
+
+      // Optional floating deco
+      const deco = document.createElement('div');
+      deco.className = 'float-deco';
+      deco.textContent = 'ES';
+
+      // append to card (cover | info)
+      card.appendChild(cover);
+      card.appendChild(info);
+      card.appendChild(deco);
+
+      stage.appendChild(card);
+      // scroll into view smoothly
+      card.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+
+    function showAccess() {
+      document.getElementById('access').classList.remove('hidden');
+      document.getElementById('stage').classList.add('hidden'); // we'll toggle stage visibility via content
+      // but for this layout we keep stage present; we may clear it
+    }
+    function showContent() {
+      document.getElementById('access').classList.add('hidden');
+      document.getElementById('stage').classList.remove('hidden');
     }
 
     async function tryLoginByCode(code) {
-      const msg = $('#msg');
-      msg.textContent = 'Verificando…';
-      msg.classList.remove('error');
-
+      showMessage('Verificando…');
       if (!code || String(code).trim().length === 0) {
-        msg.textContent = 'Ingrese un código válido.';
-        msg.classList.add('error');
+        showMessage('Ingrese un código válido.', true);
         return false;
       }
-
       try {
         const hex = await sha256Hex(code);
-
         if (ACCESS_HASH_MAP[hex]) {
-          currentKeyHex = hex;
-          // limpiar intentos tras login exitoso
+          const data = ACCESS_HASH_MAP[hex];
           clearAttempts();
-          setQueryParam('code', btoa(code));
-          renderCourse(hex);
+          renderCourseCard(data);
           showContent();
+          showMessage('Acceso concedido.'); // breve confirmación
           return true;
         } else {
-          // registro del intento (solo en sessionStorage, no bloqueante)
           const attempts = recordAttempt();
-          // mostrar mensaje amigable
-          msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
-          msg.classList.add('error');
-          // advertencias si ya hay varios intentos
-          maybeShowAttemptsWarning();
+          showMessage('Código inválido. Verifique y vuelva a intentar.', true);
+          if (attempts >= 8) showMessage(`Ha intentado ${attempts} veces. Solicite el código si persiste.`, true);
           return false;
         }
       } catch (e) {
         console.error(e);
-        msg.textContent = 'Ocurrió un error al verificar el código.';
-        msg.classList.add('error');
+        showMessage('Ocurrió un error al verificar el código.', true);
         return false;
       }
     }
 
-    // Eventos UI
-    $('#btn-enter').addEventListener('click', () => tryLoginByCode($('#code').value));
-    $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#btn-enter').click(); } });
-    $('#btn-logout').addEventListener('click', () => { currentKeyHex = null; setQueryParam('code', null); showAccess(); });
-
+    // copy clean URL (without code) — keeps link "limpio"
     $('#btn-copy-code-link').addEventListener('click', async () => {
-      if (!currentKeyHex) return;
-      const url = new URL(location.href);
-      const codeField = $('#code');
-      const encoded = url.searchParams.get('code');
-      const codeVal = (encoded ? atob(encoded) : codeField.value) || '';
-      if (!codeVal) return;
-      url.searchParams.set('code', btoa(codeVal));
+      const url = location.origin + location.pathname; // limpio, sin params
       try {
-        await navigator.clipboard.writeText(url.toString());
-        alert('Enlace copiado al portapapeles');
+        await navigator.clipboard.writeText(url);
+        alert('Enlace limpio copiado al portapapeles');
       } catch (e) {
-        prompt('Copie este enlace:', url.toString());
+        prompt('Copie este enlace:', url);
       }
     });
 
-    // Init: precarga por ?code=BASE64
-    (async function init(){
-      $('#year').textContent = new Date().getFullYear();
-      const qp = new URLSearchParams(location.search);
-      const pre = qp.get('code');
-      if (pre) {
-        try {
-          const decoded = atob(pre);
-          if (decoded) {
-            const ok = await tryLoginByCode(decoded);
-            if (ok) {
-              try { $('#code').value = decoded; } catch(e) {}
-              return;
-            } else {
-              setQueryParam('code', null);
-              showAccess();
-              $('#msg').textContent = 'El enlace contiene código inválido o expirado.';
-              $('#msg').classList.add('error');
-              return;
-            }
-          }
-        } catch (e) {
-          console.warn('Parámetro code inválido', e);
-        }
-      }
-      // mostrar accesos y advertir si ya hay intentos previos en la sesión
-      showAccess();
-      maybeShowAttemptsWarning();
+    // Event wiring
+    $('#btn-enter').addEventListener('click', () => tryLoginByCode($('#code').value));
+    $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#btn-enter').click(); } });
+
+    // init
+    (function init(){
+      document.getElementById('year').textContent = new Date().getFullYear();
+      // show access by default
+      document.getElementById('stage').classList.add('hidden'); // hidden until login
+      showMessage('Si no tiene código, solicítelo a coordinación.');
     })();
+
   </script>
 </body>
 </html>
