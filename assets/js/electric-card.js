@@ -1,6 +1,7 @@
 // electric-card.js — versión con imagen dentro de la tarjeta (sin textos)
 // Uso:
-//   const card = insertElectricCard('#leftColumn'); // inserta tarjeta vacía (imagen por defecto)
+//   const card = insertElectricCard('#leftColumn'); // inserta tarjeta vacía
+//   const card = insertElectricCard('#leftColumn', 'assets/IMG/D_GASH_B1.jpg'); // inserta y pone imagen por defecto
 //   setCardImage(card, 'https://.../mi-imagen.jpg');
 //   // o con File:
 //   setCardImage(card, someFileObject);
@@ -136,7 +137,8 @@ ${SCOPE} .background-glow{position:absolute;width:100%;height:100%;top:0;left:0;
   }
 
   // Inserta la tarjeta en un contenedor. Devuelve el nodo wrapper insertado.
-  function insertElectricCard(target) {
+  // ahora acepta `defaultImg` (string ruta o File). Si se pasa, la imagen se aplica inmediatamente.
+  function insertElectricCard(target, defaultImg) {
     let container = (typeof target === 'string') ? document.querySelector(target) : target;
     if (!container) {
       console.warn('insertElectricCard: target no encontrado', target);
@@ -147,6 +149,15 @@ ${SCOPE} .background-glow{position:absolute;width:100%;height:100%;top:0;left:0;
     const card = createCardDOM();
     // append al final del container (no borra contenido previo)
     container.appendChild(card);
+
+    // Si se pasó imagen por defecto, aplicarla ahora
+    if (defaultImg) {
+      try {
+        setCardImage(card, defaultImg);
+      } catch (err) {
+        console.warn('insertElectricCard: fallo al aplicar defaultImg', err);
+      }
+    }
     return card;
   }
 
@@ -159,7 +170,7 @@ ${SCOPE} .background-glow{position:absolute;width:100%;height:100%;top:0;left:0;
 
     // limpiar previos objectURLs si existen
     if (img._objectURL) {
-      URL.revokeObjectURL(img._objectURL);
+      try { URL.revokeObjectURL(img._objectURL); } catch (e) { /* ignore */ }
       img._objectURL = null;
     }
 
@@ -171,7 +182,7 @@ ${SCOPE} .background-glow{position:absolute;width:100%;height:100%;top:0;left:0;
       return;
     }
 
-    // si es string (URL)
+    // si es string (URL o ruta relativa)
     if (typeof urlOrFile === 'string') {
       img.src = urlOrFile;
       return;
@@ -189,9 +200,10 @@ ${SCOPE} .background-glow{position:absolute;width:100%;height:100%;top:0;left:0;
     const autoEls = document.querySelectorAll('[data-ec-auto="true"]');
     autoEls.forEach(el => {
       if (!el.querySelector('.ec-card-img')) {
-        const wrapper = insertElectricCard(el);
+        // obtener src desde el atributo (si existe) y pasarlo directo a insertElectricCard
         const src = el.getAttribute('data-ec-img') || '';
-        if (src) setCardImage(wrapper, src);
+        const wrapper = insertElectricCard(el, src || undefined);
+        // Nota: si `src` está vacío, no se aplica imagen por defecto — se queda vacío hasta que llame setCardImage.
       }
     });
   });
