@@ -85,7 +85,7 @@ function maybeShowAttemptsWarning() {
     msg.textContent = `Ha intentado ${attempts} veces. Verifique que el código esté correcto antes de seguir intentando.`;
     msg.classList.add('error');
   } else if (attempts >= 15) {
-    msg.textContent = `Ha realizado muchos intentos (${attempts}). Si el problema persiste, solicite el código a coordinación.`;
+    msg.textContent = `Ha realizado muchos intentos (${attempts}). Si el problema persiste, solicite el código a comunicaciones.`;
     msg.classList.add('error');
   }
 }
@@ -385,5 +385,6 @@ $('#btn-master-copy').addEventListener('click', async () => {
   showAccess();
   maybeShowAttemptsWarning();
 })();
+
 
 
