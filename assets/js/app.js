@@ -158,7 +158,7 @@ function renderCourse(keyHex) {
     const btn = document.createElement('button');
     btn.className = 'btn';
     btn.type = 'button';
-    btn.textContent = 'Descargar';
+    btn.textContent = 'Ver más';
     btn.addEventListener('click', () => downloadFile(item.url));
     row.appendChild(btn);
     list.appendChild(row);
@@ -385,4 +385,5 @@ $('#btn-master-copy').addEventListener('click', async () => {
   showAccess();
   maybeShowAttemptsWarning();
 })();
+
 
