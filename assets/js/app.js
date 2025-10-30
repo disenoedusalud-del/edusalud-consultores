@@ -240,13 +240,15 @@ function buildMasterGrid() {
     header.appendChild(t); header.appendChild(open);
     right.appendChild(header);
 
-    // lista de archivos
+    // lista de archivos (editable con DnD)
     const list = document.createElement('div');
     list.className = 'filelist';
     const files = getFilesForHex(hex);
     (files || []).forEach((item, idx) => {
       const row = document.createElement('div');
       row.className = 'file';
+      row.draggable = true;
+      row.dataset.index = String(idx);
       let host = '';
       try { host = new URL(item.url).hostname; } catch { host = ''; }
       const leftInfo = document.createElement('div');
@@ -281,6 +283,29 @@ function buildMasterGrid() {
       list.appendChild(row);
     });
     right.appendChild(list);
+
+    // drag & drop reorder
+    list.addEventListener('dragstart', (e) => {
+      const el = e.target instanceof HTMLElement ? e.target.closest('.file') : null;
+      if (!el) return;
+      const idx = el.dataset.index;
+      if (idx != null) { e.dataTransfer?.setData('text/plain', idx); }
+    });
+    list.addEventListener('dragover', (e) => { e.preventDefault(); });
+    list.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const fromStr = e.dataTransfer?.getData('text/plain');
+      const toEl = e.target instanceof HTMLElement ? e.target.closest('.file') : null;
+      if (!fromStr || !toEl) return;
+      const from = Number(fromStr);
+      const to = Number(toEl.dataset.index || 0);
+      if (Number.isNaN(from) || Number.isNaN(to) || from === to) return;
+      const next = files.slice();
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      saveFilesOverride(hex, next);
+      buildMasterGrid();
+    });
 
     // formulario para agregar nuevo link
     const addWrap = document.createElement('div');
@@ -324,6 +349,19 @@ function buildMasterGrid() {
     addWrap.appendChild(addLabel);
     addWrap.appendChild(addRow);
     right.appendChild(addWrap);
+
+    // restaurar originales
+    const btnRestore = document.createElement('button');
+    btnRestore.className = 'btn secondary';
+    btnRestore.type = 'button';
+    btnRestore.textContent = 'Restaurar enlaces originales';
+    btnRestore.style.marginTop = '10px';
+    btnRestore.addEventListener('click', () => {
+      if (!confirm('¿Restaurar la lista original de enlaces? Se perderán los cambios locales.')) return;
+      clearFilesOverride(hex);
+      buildMasterGrid();
+    });
+    right.appendChild(btnRestore);
 
     // tarjeta izquierda (solo imagen)
     let wrapper = null;
@@ -474,5 +512,4 @@ $('#btn-master-copy').addEventListener('click', async () => {
   showAccess();
   maybeShowAttemptsWarning();
 })();
-
 
