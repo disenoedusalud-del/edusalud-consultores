@@ -76,11 +76,66 @@ function saveFilesOverride(hex, files){
     localStorage.setItem(storageKeyFor(hex), JSON.stringify(files || []));
   } catch (e) {}
 }
+function clearFilesOverride(hex){
+  try { localStorage.removeItem(storageKeyFor(hex)); } catch(e) {}
+}
 function getFilesForHex(hex){
   const override = loadFilesOverride(hex);
   if (override) return override;
   const base = ACCESS_HASH_MAP[hex]?.files;
   return Array.isArray(base) ? base.slice() : [];
+}
+
+// ===== Exportar / Importar overrides (todas los cursos) =====
+function exportOverrides(){
+  const payload = { version: 1, exportedAt: new Date().toISOString(), overrides: {} };
+  Object.keys(ACCESS_HASH_MAP).forEach(hex => {
+    const arr = loadFilesOverride(hex);
+    if (Array.isArray(arr)) payload.overrides[hex] = arr;
+  });
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'edusalud_overrides.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+async function importOverridesFromFile(file){
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!data || typeof data !== 'object' || typeof data.overrides !== 'object') {
+      alert('Archivo inválido'); return;
+    }
+    let count = 0;
+    Object.entries(data.overrides).forEach(([hex, arr]) => {
+      if (ACCESS_HASH_MAP[hex] && Array.isArray(arr)) { saveFilesOverride(hex, arr); count++; }
+    });
+    buildMasterGrid();
+    alert(`Importado correctamente (${count} cursos)`);
+  } catch (e) {
+    alert('No se pudo importar el archivo');
+  }
+}
+function ensureMasterTools(){
+  const grid = document.getElementById('masterGrid');
+  if (!grid) return;
+  let tools = document.getElementById('masterTools');
+  if (tools) return;
+  tools = document.createElement('div');
+  tools.id = 'masterTools';
+  tools.style.cssText = 'display:flex; gap:10px; align-items:center; margin:10px 0;';
+  const btnExp = document.createElement('button');
+  btnExp.className = 'btn secondary'; btnExp.type = 'button'; btnExp.textContent = 'Exportar cambios';
+  btnExp.addEventListener('click', exportOverrides);
+  const btnImp = document.createElement('button');
+  btnImp.className = 'btn secondary'; btnImp.type = 'button'; btnImp.textContent = 'Importar cambios';
+  const file = document.createElement('input');
+  file.type = 'file'; file.accept = 'application/json'; file.style.display = 'none';
+  btnImp.addEventListener('click', () => file.click());
+  file.addEventListener('change', () => { if (file.files && file.files[0]) importOverridesFromFile(file.files[0]); });
+  tools.appendChild(btnExp); tools.appendChild(btnImp); tools.appendChild(file);
+  grid.parentNode.insertBefore(tools, grid);
 }
 
 /* ============ estado & helpers ============ */
@@ -376,6 +431,8 @@ function buildMasterGrid() {
     cardEl.appendChild(right);
     grid.appendChild(cardEl);
   });
+  // asegurar herramientas de exportar/importar presentes
+  try { ensureMasterTools(); } catch(e) {}
 }
 
 function setupMasterSearch(){
