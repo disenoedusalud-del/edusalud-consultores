@@ -311,6 +311,323 @@
   </div>
 
   <!-- Scripts -->
+  <script src="electric-card.js?v=9" defer></script>
+  <script src="app.js?v=9" defer></script>
+</body>
+</html>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portal de Recursos para Consultores – EduSalud</title>
+  <meta name="description" content="Descarga de toolkits (PPT, logos, manuales de marca, social kit, formatos). Acceso mediante código otorgado por coordinación." />
+  <style>
+    :root{
+      --bg:#0b1020;
+      --muted:#9fb1d1;
+      --text:#eaf1ff;
+      --accent:#5aa9ff;
+      --accent-2:#8be9fd;
+      --danger:#ff7a7a;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial;
+      background:
+        radial-gradient(1200px 800px at 80% -10%, rgba(90,169,255,.12), transparent),
+        radial-gradient(900px 700px at -10% 120%, rgba(139,233,253,.06), transparent),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+
+    .wrap{ max-width:1100px; margin:0 auto; padding:28px 20px; }
+
+    header{ display:grid; grid-template-columns: 1fr 360px; gap:20px; align-items:center; margin-bottom:18px; }
+    @media (max-width:980px){ header{ grid-template-columns:1fr } .hero{ display:none } }
+
+    .logo {
+      width:56px;
+      height:56px;
+      padding:8px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 8px 30px rgba(90,169,255,.25);
+      overflow:hidden;
+      box-sizing:border-box;
+      flex:0 0 auto;
+    }
+    .logo-img { max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; display:block; }
+
+    h1{ margin:0; font-size:clamp(20px, 2.6vw, 34px); line-height:1.05; }
+    p.lead{ color:var(--muted); margin:6px 0 0; font-size:14px; max-width:58ch; }
+
+    .hero img{ max-width:50%; height:auto; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.45); display:inline-block }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.06));
+      border: 1px solid rgba(255,255,255,.04);
+      border-radius:14px;
+      padding:18px;
+      box-shadow:0 8px 24px rgba(0,0,0,.25);
+      backdrop-filter: blur(4px);
+    }
+
+    .grid{ display:grid; gap:16px; }
+    .grid.cols-2{ grid-template-columns: 1fr; }
+    @media (min-width:900px){ .grid.cols-2 { grid-template-columns: 1fr 1fr; } }
+
+    label{ display:block; font-weight:600; margin-bottom:8px; }
+    .row{ display:flex; gap:10px; align-items:stretch; }
+    .input{
+      flex:1 1 auto;
+      border:1px solid rgba(255,255,255,.08);
+      background:#0e1630;
+      color:var(--text);
+      padding:12px 14px;
+      border-radius:12px;
+      outline:none;
+    }
+    .input:focus{ border-color:var(--accent); box-shadow:0 0 0 4px rgba(90,169,255,.12); }
+
+    .btn{
+      border:none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color:#062033;
+      font-weight:800;
+      padding:12px 16px;
+      border-radius:12px;
+      cursor:pointer;
+      transition: transform .06s;
+    }
+    .btn:hover{ transform: translateY(-1px); }
+    .btn.secondary{ background:#19213d; color:var(--text); border:1px solid rgba(255,255,255,.06); }
+
+    .msg{ margin-top:8px; font-size:14px; color:var(--muted); }
+    .msg.error{ color:var(--danger); }
+
+    .filelist{ display:grid; gap:10px; margin-top:12px; }
+    .file{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid rgba(255,255,255,.06); border-radius:12px; background:#0e1630; }
+    .file strong{ font-size:14px; }
+    .meta{ color:var(--muted); font-size:13px; }
+
+    .access-hero{ display:flex; align-items:center; justify-content:center; padding-left:10px; }
+    .access-hero img{
+      width:220px;
+      max-width:100%;
+      height:auto;
+      border-radius:10px;
+      box-shadow:0 8px 28px rgba(0,0,0,.45);
+      transform: translateY(2px);
+    }
+    @media (max-width:900px){ .access-hero{ display:none } }
+
+    .footer{ margin:28px 0 8px; color:var(--muted); font-size:12px; text-align:center; }
+    .hidden{ display:none !important; }
+    .sr-only{ position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden }
+
+    /* Loader (original) */
+    .edu-loader {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: linear-gradient(180deg, rgba(2,6,12,0.94), rgba(0,0,0,0.96));
+      color: #fff;
+      z-index: 99999;
+      padding: 18px;
+      text-align: center;
+      font-family: "Roboto Mono", monospace;
+    }
+    .edu-loader.hidden { display: none !important; }
+    .loader-ring {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      display:grid;
+      place-items:center;
+      box-shadow: 0 8px 40px rgba(90,169,255,0.08), inset 0 0 16px rgba(63,176,255,0.04);
+    }
+    .loader-ring:after{
+      content: "";
+      width: 62px;
+      height: 62px;
+      border-radius:50%;
+      border: 4px solid rgba(255,255,255,0.06);
+      border-top-color: #6ee7ff;
+      animation: spin 900ms linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-text { font-weight:700; font-size:15px; letter-spacing:0.6px; color:#dff7ff; }
+    .loader-progress {
+      width: 380px;
+      max-width: calc(100% - 48px);
+      height: 10px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 999px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+    }
+    .loader-progress > i {
+      display:block; height:100%; width:0%; background: linear-gradient(90deg,#6ee7ff,#7c5cff); border-radius:999px;
+      transition: width .14s linear;
+    }
+    .loader-percent { font-size:13px; color:rgba(255,255,255,0.75); margin-top:6px; }
+
+    /* Layout curso */
+    .course-row { display:flex; gap:18px; align-items:flex-start; }
+    .card-left-wrapper { flex: 0 0 360px; }
+    .card-right { flex: 1 1 auto; }
+    @media (max-width:900px) { .course-row { flex-direction:column } .card-left-wrapper { width:100%; } }
+
+    /* Vista Master */
+    #master { margin-top:16px; }
+    .master-grid { display:grid; gap:16px; }
+    .master-card{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.06));
+      border: 1px solid rgba(255,255,255,.04);
+      border-radius:14px;
+      padding:18px;
+      box-shadow:0 8px 24px rgba(0,0,0,.25);
+      backdrop-filter: blur(4px);
+    }
+    .master-card .left{ min-height:220px; }
+    .master-card .right .filelist{ margin-top:0; }
+    @media (max-width:900px){
+      .master-card{ grid-template-columns: 1fr; }
+      .master-card .left{ order: -1; }
+    }
+    .master-search{
+      display:flex; gap:10px; align-items:center;
+      margin: 6px 0 14px;
+    }
+    .master-search input{
+      flex:1 1 auto;
+      border:1px solid rgba(255,255,255,.08);
+      background:#0e1630; color:var(--text);
+      padding:10px 12px; border-radius:12px; outline:none;
+    }
+    .master-search input:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 4px rgba(90,169,255,.12);
+    }
+    .master-search button{
+      border:none; background:#19213d; color:var(--text);
+      border:1px solid rgba(255,255,255,.06);
+      padding:10px 14px; border-radius:12px; cursor:pointer;
+    }
+    .master-search button:hover{ transform: translateY(-1px); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div style="display:flex; gap:16px; align-items:center;">
+        <div class="logo" aria-hidden="false">
+          <img src="assets/logo-edusalud.png" alt="EduSalud" class="logo-img" />
+        </div>
+        <div>
+          <h1>Portal de Recursos para Consultores · EduSalud</h1>
+          <p class="lead">Descargue materiales oficiales (PPT, logos, manual de marca, social kit, formatos). Acceso mediante código otorgado por el depaetamento de comunicaciones.</p>
+        </div>
+      </div>
+
+      <div class="hero" aria-hidden="true">
+        <img src="assets/static-assets-amico.png" alt="Ilustración consultores EduSalud" />
+      </div>
+    </header>
+
+    <!-- ACCESO -->
+    <section id="access" class="card" aria-labelledby="access-title">
+      <h2 id="access-title" class="sr-only">Acceso restringido</h2>
+      <div class="grid cols-2" style="align-items:center;">
+        <div>
+          <label for="code">Ingrese su código de acceso</label>
+          <div class="row">
+            <input id="code" class="input" type="text" placeholder="Ej. ABC0-0000" autocomplete="one-time-code" aria-label="Código de acceso" />
+            <button id="btn-enter" class="btn" type="button">Entrar</button>
+          </div>
+          <div id="msg" class="msg">Si no tiene código, solicítelo a comunicaciones.</div>
+        </div>
+
+        <div class="access-hero" aria-hidden="true">
+          <img src="assets/asset-selection-cuate.png" alt="Ilustración de consultoría" />
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTENIDO (1 curso) -->
+    <section id="content" class="hidden" style="margin-top:16px;">
+      <div class="card" id="courseCard">
+        <div class="course">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <div>
+              <h3 id="courseTitle">Curso / Diplomado</h3>
+              <div class="meta" id="courseMeta">Material oficial para consultoría</div>
+            </div>
+            <div class="row">
+              <button id="btn-copy-code-link" class="btn secondary" type="button" title="Comparte un link que precarga el código">Compartir enlace con código</button>
+              <button id="btn-logout" class="btn secondary" type="button">Salir</button>
+            </div>
+          </div>
+
+          <hr style="border:0; border-top:1px solid rgba(255,255,255,.06);" />
+
+          <div class="course-row" style="margin-top:12px;">
+            <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() coloca la tarjeta aquí --></div>
+            <div class="card-right">
+              <div class="filelist" id="filelist" aria-live="polite"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <p class="footer">© <span id="year"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
+    </section>
+
+    <!-- VISTA MAESTRA -->
+    <section id="master" class="hidden">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+        <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
+        <div class="row">
+          <button id="btn-master-copy" class="btn secondary" type="button">Compartir enlace con código</button>
+          <button id="btn-master-exit" class="btn secondary" type="button">Salir</button>
+        </div>
+      </div>
+
+      <!-- Buscador -->
+      <div class="master-search">
+        <input id="masterSearch" type="text" placeholder="Buscar por nombre o tag (ej. GASH, MBF, AHGO2)..." />
+        <button id="masterSearchClear" type="button" title="Limpiar">Limpiar</button>
+      </div>
+
+      <div class="master-grid" id="masterGrid"></div>
+      <p class="footer">© <span id="year_master"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
+    </section>
+  </div>
+
+  <!-- Loader -->
+  <div id="eduLoader" class="edu-loader hidden" aria-hidden="true" role="alert" aria-live="polite">
+    <div class="loader-ring" aria-hidden="true"></div>
+    <div class="loader-text">Cargando recursos...</div>
+    <div class="loader-progress" aria-hidden="true"><i id="loaderBar"></i></div>
+    <div id="loaderPercent" class="loader-percent">0%</div>
+  </div>
+  
+  <!-- Scripts -->
   <script src="assets/js/electric-card.js?v=3" defer></script>
   <script src="assets/js/app.js?v=7" defer></script>
 </body>
