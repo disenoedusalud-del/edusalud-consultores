@@ -61,6 +61,28 @@ const ACCESS_HASH_MAP = {
   }
 };
 
+/* ============ persistencia de enlaces por curso ============ */
+const FILES_STORAGE_PREFIX = 'edusalud_files_';
+function storageKeyFor(hex){ return FILES_STORAGE_PREFIX + hex; }
+function loadFilesOverride(hex){
+  try {
+    const raw = localStorage.getItem(storageKeyFor(hex));
+    const arr = raw ? JSON.parse(raw) : null;
+    return Array.isArray(arr) ? arr : null;
+  } catch (e) { return null; }
+}
+function saveFilesOverride(hex, files){
+  try {
+    localStorage.setItem(storageKeyFor(hex), JSON.stringify(files || []));
+  } catch (e) {}
+}
+function getFilesForHex(hex){
+  const override = loadFilesOverride(hex);
+  if (override) return override;
+  const base = ACCESS_HASH_MAP[hex]?.files;
+  return Array.isArray(base) ? base.slice() : [];
+}
+
 /* ============ estado & helpers ============ */
 let currentKeyHex = null;
 const ATTEMPT_KEY = 'edusalud_attempts_session';
@@ -149,7 +171,8 @@ function renderCourse(keyHex) {
 
   const list = $('#filelist');
   list.innerHTML = '';
-  (data.files || []).forEach(item => {
+  const files = getFilesForHex(keyHex);
+  (files || []).forEach(item => {
     const row = document.createElement('div');
     row.className = 'file';
     let host = '';
@@ -220,21 +243,87 @@ function buildMasterGrid() {
     // lista de archivos
     const list = document.createElement('div');
     list.className = 'filelist';
-    (data.files || []).forEach(item => {
+    const files = getFilesForHex(hex);
+    (files || []).forEach((item, idx) => {
       const row = document.createElement('div');
       row.className = 'file';
       let host = '';
       try { host = new URL(item.url).hostname; } catch { host = ''; }
-      row.innerHTML = `<div><strong>${item.label}</strong><div class="meta">${host}</div></div>`;
-      const btn = document.createElement('button');
-      btn.className = 'btn';
-      btn.type = 'button';
-      btn.textContent = 'Descargar';
-      btn.addEventListener('click', () => downloadFile(item.url));
-      row.appendChild(btn);
+      const leftInfo = document.createElement('div');
+      leftInfo.innerHTML = `<strong>${item.label}</strong><div class="meta">${host}</div>`;
+
+      const actions = document.createElement('div');
+      actions.style.display = 'flex';
+      actions.style.gap = '8px';
+
+      const btnOpen = document.createElement('button');
+      btnOpen.className = 'btn';
+      btnOpen.type = 'button';
+      btnOpen.textContent = 'Descargar';
+      btnOpen.addEventListener('click', () => downloadFile(item.url));
+
+      const btnRemove = document.createElement('button');
+      btnRemove.className = 'btn secondary';
+      btnRemove.type = 'button';
+      btnRemove.textContent = 'Quitar';
+      btnRemove.addEventListener('click', () => {
+        const next = files.slice();
+        next.splice(idx, 1);
+        saveFilesOverride(hex, next);
+        buildMasterGrid();
+      });
+
+      actions.appendChild(btnOpen);
+      actions.appendChild(btnRemove);
+
+      row.appendChild(leftInfo);
+      row.appendChild(actions);
       list.appendChild(row);
     });
     right.appendChild(list);
+
+    // formulario para agregar nuevo link
+    const addWrap = document.createElement('div');
+    addWrap.style.marginTop = '12px';
+    const addLabel = document.createElement('label');
+    addLabel.textContent = 'Agregar nuevo enlace';
+    addLabel.style.display = 'block';
+    addLabel.style.fontWeight = '600';
+    addLabel.style.marginBottom = '8px';
+
+    const addRow = document.createElement('div');
+    addRow.className = 'row';
+
+    const inputLabel = document.createElement('input');
+    inputLabel.className = 'input';
+    inputLabel.type = 'text';
+    inputLabel.placeholder = 'Etiqueta (ej. Manual de Marca)';
+
+    const inputUrl = document.createElement('input');
+    inputUrl.className = 'input';
+    inputUrl.type = 'url';
+    inputUrl.placeholder = 'URL (https://...)';
+
+    const btnAdd = document.createElement('button');
+    btnAdd.className = 'btn';
+    btnAdd.type = 'button';
+    btnAdd.textContent = 'Agregar link';
+    btnAdd.addEventListener('click', () => {
+      const labelVal = (inputLabel.value || '').trim();
+      const urlVal = (inputUrl.value || '').trim();
+      if (!labelVal || !urlVal) { alert('Complete etiqueta y URL'); return; }
+      try { new URL(urlVal); } catch { alert('URL inválida'); return; }
+      const next = getFilesForHex(hex).concat({ label: labelVal, url: urlVal });
+      saveFilesOverride(hex, next);
+      buildMasterGrid();
+    });
+
+    addRow.appendChild(inputLabel);
+    addRow.appendChild(inputUrl);
+    addRow.appendChild(btnAdd);
+    addWrap.appendChild(addLabel);
+    addWrap.appendChild(addRow);
+    right.appendChild(addWrap);
 
     // tarjeta izquierda (solo imagen)
     let wrapper = null;
@@ -385,6 +474,5 @@ $('#btn-master-copy').addEventListener('click', async () => {
   showAccess();
   maybeShowAttemptsWarning();
 })();
-
 
 
