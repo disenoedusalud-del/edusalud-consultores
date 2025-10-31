@@ -249,6 +249,10 @@ function remoteGetFilesJSONP(hex){
 async function remoteSaveFiles(hex, files){
   if (!hasRemote()) return false;
   try {
+    const filesJson = JSON.stringify(Array.isArray(files) ? files : []);
+    console.log('[SAVE] Enviando a remoto - hex:', hex.substring(0,8), 'archivos:', files.length);
+    console.log('[SAVE] Datos a guardar:', filesJson.substring(0, 100) + '...');
+    
     // Google Apps Script funciona mejor con formularios HTML que con fetch
     const iframe = document.createElement('iframe');
     iframe.name = 'hiddenFrame';
@@ -268,13 +272,14 @@ async function remoteSaveFiles(hex, files){
     const filesInput = document.createElement('input');
     filesInput.type = 'hidden';
     filesInput.name = 'files';
-    filesInput.value = JSON.stringify(Array.isArray(files) ? files : []);
+    filesInput.value = filesJson;
     
     form.appendChild(hexInput);
     form.appendChild(filesInput);
     document.body.appendChild(form);
     
     form.submit();
+    console.log('[SAVE] ✅ Formulario enviado a:', REMOTE_BASE_URL);
     
     // Limpiar después de enviar y forzar refresh múltiples veces (para asegurar sincronización)
     setTimeout(() => {
@@ -710,9 +715,25 @@ async function refreshFromRemoteSilent(hex){
     console.log('[REFRESH] Datos remotos obtenidos:', remote.length, 'archivos');
     
     const current = getFilesForHex(hex);
+    const hasLocalOverride = !!loadFilesOverride(hex); // Verificar si hay datos en localStorage
     const currentStr = stableStringify(current);
     const remoteStr = stableStringify(remote);
     
+    // Si remoto está vacío:
+    // - Si hay datos en localStorage, no sobrescribir (remoto puede no estar sincronizado aún)
+    // - Si NO hay localStorage (modo incógnito), usar datos originales del código como fallback
+    if (remote.length === 0) {
+      if (hasLocalOverride && current.length > 0) {
+        console.log('[REFRESH] ⚠️ Remoto vacío pero hay datos en localStorage, manteniendo locales');
+        return false;
+      }
+      // En modo incógnito sin localStorage, remoto vacío significa que no hay datos guardados aún
+      // No sobrescribir, dejar que use los datos originales del código
+      console.log('[REFRESH] ⚠️ Remoto vacío y sin localStorage, usando datos originales del código');
+      return false;
+    }
+    
+    // Si hay datos remotos y son diferentes, actualizar
     if (remoteStr !== currentStr) {
       console.log('[REFRESH] ✅ Cambios detectados! Guardando...');
       console.log('[REFRESH] Antes:', current.length, 'archivos');
