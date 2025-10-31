@@ -537,17 +537,26 @@ function buildMasterGrid() {
       renderCourse(hex);
       showContent();
       
-      // Refresh diferido desde remoto (JSONP ahora funciona ✅)
+      // Refresh inmediato desde remoto para mostrar links rápido
       if (hasRemote()) {
+        // Primero intentar refresh inmediato (para usuarios con datos remotos)
+        refreshFromRemoteSilent(hex).then(updated => {
+          if (updated && currentKeyHex === hex) {
+            console.log('[SYNC] ✅ Curso actualizado desde remoto, re-renderizando...');
+            renderCourse(hex);
+          }
+        }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
+        
+        // Luego hacer un refresh diferido por si acaso (por si el primero falla)
         setTimeout(() => {
-          console.log('[SYNC] Refrescando curso desde master...');
+          console.log('[SYNC] Refrescando curso desde remoto (intento 2)...');
           refreshFromRemoteSilent(hex).then(updated => {
             if (updated && currentKeyHex === hex) {
               console.log('[SYNC] ✅ Curso actualizado desde remoto, re-renderizando...');
               renderCourse(hex);
             }
           }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
-        }, 1500);
+        }, 1000);
       }
     });
     header.appendChild(t); header.appendChild(open);
@@ -809,35 +818,31 @@ async function tryLoginByCode(code) {
       $('#year_master').textContent = new Date().getFullYear();
       showMaster();
       
-      // Refresh diferido desde remoto (solo si hay datos guardados)
-      // En modo incógnito, si remoto está vacío, no refrescar para no perder datos originales
+      // Refresh inmediato desde remoto para mostrar links rápido
       if (hasRemote()) {
-        setTimeout(async () => {
-          console.log('[SYNC] Verificando datos remotos...');
-          // Probar primero con un curso para ver si hay datos guardados
-          const testHex = Object.keys(ACCESS_HASH_MAP).find(h => h !== MASTER_HASH);
-          if (testHex) {
-            const testRemote = await remoteGetFiles(testHex);
-            if (testRemote && testRemote.length > 0) {
-              console.log('[SYNC] Hay datos remotos, refrescando todos los cursos...');
-              Promise.all(
-                Object.keys(ACCESS_HASH_MAP)
-                  .filter(h => h !== MASTER_HASH)
-                  .map(h => refreshFromRemoteSilent(h))
-              ).then(results => {
-                const anyUpdated = results.some(r => r === true);
-                if (anyUpdated) {
-                  console.log('[SYNC] ✅ Cambios detectados, reconstruyendo grid...');
-                  buildMasterGrid();
-                } else {
-                  console.log('[SYNC] Sin cambios remotos');
-                }
-              }).catch(e => console.warn('[SYNC] Error:', e));
-            } else {
-              console.log('[SYNC] ⚠️ No hay datos remotos guardados aún, manteniendo datos originales');
-            }
+        // Primero intentar refresh inmediato de todos los cursos
+        (async () => {
+          console.log('[SYNC] Refrescando todos los cursos desde remoto...');
+          const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
+          const results = await Promise.all(hexes.map(h => refreshFromRemoteSilent(h)));
+          const anyUpdated = results.some(r => r === true);
+          if (anyUpdated) {
+            console.log('[SYNC] ✅ Cambios detectados, reconstruyendo grid...');
+            buildMasterGrid();
           }
-        }, 2000);
+        })().catch(e => console.warn('[SYNC] Error:', e));
+        
+        // Luego hacer un refresh diferido por si acaso (por si el primero falla)
+        setTimeout(async () => {
+          console.log('[SYNC] Verificando datos remotos (intento 2)...');
+          const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
+          const results = await Promise.all(hexes.map(h => refreshFromRemoteSilent(h)));
+          const anyUpdated = results.some(r => r === true);
+          if (anyUpdated) {
+            console.log('[SYNC] ✅ Cambios detectados en intento 2, reconstruyendo grid...');
+            buildMasterGrid();
+          }
+        }, 1500);
       }
       
       return true;
@@ -852,17 +857,26 @@ async function tryLoginByCode(code) {
       renderCourse(hex);
       showContent();
       
-      // Refresh diferido desde remoto (JSONP ahora funciona ✅)
+      // Refresh inmediato desde remoto para mostrar links rápido
       if (hasRemote()) {
+        // Primero intentar refresh inmediato
+        refreshFromRemoteSilent(hex).then(updated => {
+          if (updated && currentKeyHex === hex) {
+            console.log('[SYNC] ✅ Curso actualizado desde remoto, re-renderizando...');
+            renderCourse(hex);
+          }
+        }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
+        
+        // Luego hacer un refresh diferido por si acaso
         setTimeout(() => {
-          console.log('[SYNC] Refrescando curso desde remoto...');
+          console.log('[SYNC] Refrescando curso desde remoto (intento 2)...');
           refreshFromRemoteSilent(hex).then(updated => {
             if (updated && currentKeyHex === hex) {
               console.log('[SYNC] ✅ Curso actualizado desde remoto, re-renderizando...');
               renderCourse(hex);
             }
           }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
-        }, 1500);
+        }, 1000);
       }
       
       return true;
