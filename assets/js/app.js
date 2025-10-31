@@ -87,7 +87,7 @@ function getFilesForHex(hex){
 }
 
 /* ============ sincronización remota (opcional) ============ */
-const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbwa5A7h4bb6jMKD5uBp5nA2orFI6o-noTpl8wLSWqS1v-F2A1EoAwU64onG9OsbkKz3/exec';
+const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbygghxJpp5AntpRCxYHEuPhh6BXkRnmB9_L6D4LnwMhCwekhW0mg4HFT20rCB-4ACV5/exec';
 function hasRemote(){ return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE_URL.startsWith('http'); }
 function stableStringify(obj){ try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 async function remoteGetFiles(hex){
@@ -104,11 +104,15 @@ async function remoteGetFiles(hex){
 async function remoteSaveFiles(hex, files){
   if (!hasRemote()) return false;
   try {
+    // Google Apps Script requiere mode: 'no-cors' para evitar problemas de CORS
     await fetch(REMOTE_BASE_URL, {
       method:'POST',
+      mode: 'no-cors',
       headers:{ 'Content-Type':'application/json' },
       body: JSON.stringify({ hex, files: Array.isArray(files) ? files : [] })
     });
+    // Esperar un momento para que se procese
+    await new Promise(resolve => setTimeout(resolve, 500));
     return true;
   } catch (e) { return false; }
 }
