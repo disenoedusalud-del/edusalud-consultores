@@ -87,7 +87,7 @@ function getFilesForHex(hex){
 }
 
 /* ============ sincronización remota (opcional) ============ */
-const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbygghxJpp5AntpRCxYHEuPhh6BXkRnmB9_L6D4LnwMhCwekhW0mg4HFT20rCB-4ACV5/exec';
+const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbyC9JrG9516DPiUEtNhtgDRvGy7pUMorQEQOXt2b0sIuZahiyXkrdIzsOP-df_4qPYh/exec';
 function hasRemote(){ return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE_URL.startsWith('http'); }
 function stableStringify(obj){ try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 async function remoteGetFiles(hex){
@@ -104,18 +104,39 @@ async function remoteGetFiles(hex){
 async function remoteSaveFiles(hex, files){
   if (!hasRemote()) return false;
   try {
-    // Usar FormData para evitar problemas de CORS con Google Apps Script
-    const formData = new URLSearchParams();
-    formData.append('hex', hex);
-    formData.append('files', JSON.stringify(Array.isArray(files) ? files : []));
+    // Google Apps Script funciona mejor con formularios HTML que con fetch
+    const iframe = document.createElement('iframe');
+    iframe.name = 'hiddenFrame';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
     
-    await fetch(REMOTE_BASE_URL, {
-      method:'POST',
-      mode: 'no-cors',
-      body: formData.toString()
-    });
-    // Esperar un momento para que se procese
-    await new Promise(resolve => setTimeout(resolve, 800));
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = REMOTE_BASE_URL;
+    form.target = 'hiddenFrame';
+    
+    const hexInput = document.createElement('input');
+    hexInput.type = 'hidden';
+    hexInput.name = 'hex';
+    hexInput.value = hex;
+    
+    const filesInput = document.createElement('input');
+    filesInput.type = 'hidden';
+    filesInput.name = 'files';
+    filesInput.value = JSON.stringify(Array.isArray(files) ? files : []);
+    
+    form.appendChild(hexInput);
+    form.appendChild(filesInput);
+    document.body.appendChild(form);
+    
+    form.submit();
+    
+    // Limpiar después de enviar
+    setTimeout(() => {
+      if (form.parentNode) document.body.removeChild(form);
+      if (iframe.parentNode) document.body.removeChild(iframe);
+    }, 1500);
+    
     return true;
   } catch (e) { 
     console.error('Error en remoteSaveFiles:', e);
