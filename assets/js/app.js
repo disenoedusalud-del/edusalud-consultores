@@ -492,6 +492,27 @@ function showMaster() {
   $('#master').classList.remove('hidden');
   // Iniciar refresh periódico para vista maestra
   startPeriodicRefresh(MASTER_HASH);
+  
+  // Refresh inmediato adicional para limpiar datos obsoletos al abrir
+  if (hasRemote()) {
+    setTimeout(async () => {
+      console.log('[SYNC] Refresh inmediato adicional al mostrar master...');
+      const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
+      const results = await Promise.allSettled(
+        hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
+          console.warn('[SYNC] Error en refresh inmediato:', e);
+          return false;
+        }))
+      );
+      const anyUpdated = results.some(r => 
+        r.status === 'fulfilled' && r.value === true
+      );
+      if (anyUpdated) {
+        console.log('[SYNC] ✅ Cambios detectados en refresh inmediato, actualizando...');
+        buildMasterGrid();
+      }
+    }, 500); // Esperar 500ms después de mostrar para no bloquear
+  }
 }
 
 /* ============ loader ============ */
@@ -818,39 +839,56 @@ async function refreshFromRemoteSilent(hex){
     const remoteStr = stableStringify(remote);
     const baseStr = stableStringify(base);
     
-    // Comparar directamente: si remoto es diferente a local, actualizar SIEMPRE
-    // Esto asegura que los cambios remotos (incluido borrar) siempre se sincronicen
-    if (remoteStr !== currentStr) {
-      console.log('[REFRESH] ✅ Cambios detectados! Guardando...');
-      console.log('[REFRESH] Remoto:', remote.length, 'archivos');
-      console.log('[REFRESH] Local:', current.length, 'archivos');
-      console.log('[REFRESH] Base:', base.length, 'archivos');
+    console.log('[REFRESH] Estado actual:');
+    console.log('[REFRESH] - Remoto:', remote.length, 'archivos');
+    console.log('[REFRESH] - Local:', current.length, 'archivos');
+    console.log('[REFRESH] - Base:', base.length, 'archivos');
+    
+    // CRÍTICO: Si remoto es diferente a local, actualizar SIEMPRE (sin excepciones)
+    // Esto asegura que los cambios remotos siempre prevalezcan
+    const stringsMatch = remoteStr === currentStr;
+    
+    if (!stringsMatch) {
+      console.log('[REFRESH] ✅ CAMBIOS DETECTADOS - Remoto diferente a Local');
+      console.log('[REFRESH] Remoto JSON:', remoteStr.substring(0, 200));
+      console.log('[REFRESH] Local JSON:', currentStr.substring(0, 200));
       
-      // Guardar en localStorage (esto sincroniza con remoto)
+      // SIEMPRE sincronizar con remoto (remoto es la fuente de verdad)
       saveFilesOverride(hex, remote);
       
-      // Si remoto está vacío y base tiene enlaces, significa que se restauraron los enlaces base
-      // En ese caso, limpiar el override para que use los datos base
+      // Si remoto está vacío pero base tiene enlaces, limpiar override para usar base
       if (remote.length === 0 && base.length > 0) {
-        console.log('[REFRESH] Remoto vacío pero base tiene enlaces, limpiando override para usar base');
-        clearFilesOverride(hex);
-      }
-      
-      return true;
-    } else {
-      console.log('[REFRESH] Sin cambios, datos iguales');
-      
-      // Caso especial: si remoto está vacío y local tiene más que base,
-      // significa que local tiene overrides pero remoto dice que no hay
-      // Esto puede pasar si el usuario borró enlaces y remoto se sincronizó
-      if (remote.length === 0 && current.length > base.length) {
-        console.log('[REFRESH] ⚠️ Remoto vacío pero local tiene overrides, limpiando...');
+        console.log('[REFRESH] Remoto vacío, limpiando override para usar datos base');
         clearFilesOverride(hex);
         return true;
       }
       
-      return false;
+      // Si remoto tiene datos, guardarlos (incluso si es un array vacío)
+      return true;
     }
+    
+    // Si las strings coinciden pero hay inconsistencias visuales, verificar
+    // Caso: remoto vacío pero local tiene más que base (overrides obsoletos)
+    if (remote.length === 0 && current.length > base.length) {
+      console.log('[REFRESH] ⚠️ INCONSISTENCIA: Remoto vacío pero local tiene overrides obsoletos');
+      console.log('[REFRESH] Limpiando localStorage para sincronizar con remoto...');
+      clearFilesOverride(hex);
+      return true;
+    }
+    
+    // Caso: remoto tiene menos elementos que local (se borraron enlaces)
+    if (remote.length < current.length) {
+      console.log('[REFRESH] ⚠️ Remoto tiene MENOS elementos que local');
+      console.log('[REFRESH] Forzando sincronización con remoto...');
+      saveFilesOverride(hex, remote);
+      if (remote.length === 0 && base.length > 0) {
+        clearFilesOverride(hex);
+      }
+      return true;
+    }
+    
+    console.log('[REFRESH] ✅ Sin cambios, datos sincronizados');
+    return false;
   } catch (e) { 
     console.error('[REFRESH] Error en refresh silencioso:', e);
     return false; 
