@@ -87,49 +87,96 @@ function getFilesForHex(hex){
 }
 
 /* ============ sincronización remota (opcional) ============ */
-const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbxs6NVR5VkCT2YPYjgWfxOQv2U3LoAq2LSzVt3s4lKo-RSazzBQFR8zMjTrG6VvX1Oy/exec';
+const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbxtXD8-i_mg4EUJLbCTPsNJORiCRsEuyVErP156UXsz9h6N6ALB_1QmKofDZAcCaNLR/exec';
 function hasRemote(){ return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE_URL.startsWith('http'); }
 function stableStringify(obj){ try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 async function remoteGetFiles(hex){
   if (!hasRemote()) return null;
   console.log('[GET] Iniciando para hex:', hex.substring(0,8));
+  
+  // Intentar JSONP primero (más rápido si funciona)
   try {
-    // Intentar con fetch normal primero
-    const url = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex);
-    const res = await fetch(url, { 
-      method:'GET',
-      cache: 'no-store',
-      headers: { 'Accept': 'application/json' }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data?.files)) {
-        console.log('[GET] Éxito - hex:', hex.substring(0,8), 'files:', data.files.length);
-        return data.files;
-      } else {
-        console.warn('[GET] Respuesta inválida, no es array:', data);
-      }
-    } else {
-      console.warn('[GET] Status error:', res.status, res.statusText);
+    const jsonpResult = await remoteGetFilesJSONP(hex);
+    if (jsonpResult && Array.isArray(jsonpResult)) {
+      console.log('[GET] JSONP éxito - hex:', hex.substring(0,8), 'files:', jsonpResult.length);
+      return jsonpResult;
     }
   } catch (e) {
-    console.warn('[GET] Fetch falló por CORS, intentando JSONP:', e.message);
-    // Si falla por CORS, intentar con script tag (JSONP)
-    try {
-      const jsonpResult = await remoteGetFilesJSONP(hex);
-      if (jsonpResult) {
-        console.log('[GET] JSONP éxito - hex:', hex.substring(0,8), 'files:', jsonpResult.length);
-      } else {
-        console.warn('[GET] JSONP retornó null/undefined');
-      }
-      return jsonpResult;
-    } catch (e2) {
-      console.error('[GET] JSONP también falló:', e2);
-      return null;
-    }
+    console.warn('[GET] JSONP falló, intentando iframe:', e.message);
   }
-  console.warn('[GET] No se pudo obtener datos para hex:', hex.substring(0,8));
-  return null;
+  
+  // Fallback: usar iframe con postMessage
+  return await remoteGetFilesIframe(hex);
+}
+
+function remoteGetFilesIframe(hex){
+  return new Promise((resolve) => {
+    const uniqueId = 'get_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.style.width = '1px';
+    iframe.style.height = '1px';
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-9999px';
+    
+    // Escuchar mensajes del iframe
+    const messageHandler = (event) => {
+      // Verificar que sea de nuestro iframe y tenga el ID correcto
+      if (event.data && event.data.type === 'gas_response' && event.data.id === uniqueId) {
+        window.removeEventListener('message', messageHandler);
+        if (iframe.parentNode) document.body.removeChild(iframe);
+        
+        if (Array.isArray(event.data.files)) {
+          console.log('[GET] Iframe éxito - hex:', hex.substring(0,8), 'files:', event.data.files.length);
+          resolve(event.data.files);
+        } else {
+          console.warn('[GET] Iframe: respuesta inválida');
+          resolve(null);
+        }
+      }
+    };
+    
+    window.addEventListener('message', messageHandler);
+    
+    // Timeout
+    const timeout = setTimeout(() => {
+      window.removeEventListener('message', messageHandler);
+      if (iframe.parentNode) document.body.removeChild(iframe);
+      console.warn('[GET] Iframe timeout para hex:', hex.substring(0,8));
+      resolve(null);
+    }, 8000);
+    
+    // El iframe carga una URL que espera el callback
+    const url = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex) + '&callback=parent.postMessage&id=' + uniqueId;
+    iframe.src = url;
+    iframe.onload = () => {
+      // Intentar leer contenido después de un delay
+      setTimeout(() => {
+        try {
+          // Si el iframe tiene acceso, intentar leerlo
+          const doc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (doc) {
+            const text = doc.body?.textContent || doc.body?.innerText || '';
+            try {
+              const data = JSON.parse(text);
+              if (Array.isArray(data?.files)) {
+                clearTimeout(timeout);
+                window.removeEventListener('message', messageHandler);
+                if (iframe.parentNode) document.body.removeChild(iframe);
+                console.log('[GET] Iframe leído directamente - hex:', hex.substring(0,8));
+                resolve(data.files);
+                return;
+              }
+            } catch (e) {}
+          }
+        } catch (e) {
+          // CORS: no podemos leer el iframe, esperar mensaje
+        }
+      }, 2000);
+    };
+    
+    document.body.appendChild(iframe);
+  });
 }
 
 function remoteGetFilesJSONP(hex){
@@ -208,16 +255,24 @@ async function remoteSaveFiles(hex, files){
     
     form.submit();
     
-    // Limpiar después de enviar y forzar refresh
+    // Limpiar después de enviar y forzar refresh múltiples veces (para asegurar sincronización)
     setTimeout(() => {
       if (form.parentNode) document.body.removeChild(form);
       if (iframe.parentNode) document.body.removeChild(iframe);
-      // Forzar refresh desde remoto después de guardar y reconstruir
-      setTimeout(() => {
-        refreshFromRemoteSilent(hex).then(() => {
-          buildMasterGrid();
-        });
-      }, 1500);
+      
+      // Múltiples intentos de refresh para asegurar sincronización
+      const refreshAttempts = [500, 1500, 3000, 5000];
+      refreshAttempts.forEach(delay => {
+        setTimeout(() => {
+          console.log('[SAVE] Refrescando después de guardar (intento ' + delay + 'ms)...');
+          refreshFromRemoteSilent(hex).then(updated => {
+            if (updated) {
+              console.log('[SAVE] Cambios detectados, reconstruyendo grid...');
+              buildMasterGrid();
+            }
+          }).catch(e => console.warn('[SAVE] Error en refresh:', e));
+        }, delay);
+      });
     }, 2000);
     
     return true;
