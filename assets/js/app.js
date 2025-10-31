@@ -826,16 +826,54 @@ async function tryLoginByCode(code) {
       if (hasRemote()) {
         console.log('[SYNC] Iniciando refresh de todos los cursos ANTES del loader...');
         const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
-        refreshPromise = Promise.all(hexes.map(h => refreshFromRemoteSilent(h)))
+        console.log('[SYNC] Total de cursos a refrescar:', hexes.length);
+        
+        // Usar allSettled para que continúe aunque algunos cursos fallen
+        refreshPromise = Promise.allSettled(hexes.map((h, index) => {
+          const isLast = index === hexes.length - 1;
+          const label = isLast ? `[ÚLTIMO CURSO]` : '';
+          console.log(`${label} [SYNC] Refrescando curso ${index + 1}/${hexes.length}: ${h.substring(0, 8)}...`);
+          return refreshFromRemoteSilent(h)
+            .then(result => {
+              if (isLast) {
+                console.log(`[ÚLTIMO CURSO] ✅ Refresh completado para ${h.substring(0, 8)}, resultado:`, result);
+                // Verificar datos después del refresh
+                const files = getFilesForHex(h);
+                console.log(`[ÚLTIMO CURSO] Archivos actuales después del refresh:`, files.length);
+              }
+              return result;
+            })
+            .catch(e => {
+              console.error(`[SYNC] ❌ Error refrescando curso ${h.substring(0, 8)}:`, e);
+              if (isLast) {
+                console.error(`[ÚLTIMO CURSO] ❌ FALLO CRÍTICO en último curso:`, e);
+              }
+              return false;
+            });
+        }))
           .then(results => {
-            const anyUpdated = results.some(r => r === true);
+            const successful = results.filter(r => r.status === 'fulfilled').length;
+            const failed = results.filter(r => r.status === 'rejected').length;
+            console.log(`[SYNC] Refresh completado: ${successful} exitosos, ${failed} fallidos`);
+            
+            if (failed > 0) {
+              results.forEach((r, i) => {
+                if (r.status === 'rejected') {
+                  console.warn(`[SYNC] ❌ Curso ${i + 1} falló:`, hexes[i].substring(0, 8), r.reason);
+                }
+              });
+            }
+            
+            const anyUpdated = results.some(r => 
+              r.status === 'fulfilled' && r.value === true
+            );
             if (anyUpdated) {
               console.log('[SYNC] ✅ Cambios detectados durante loader');
             }
             return anyUpdated;
           })
           .catch(e => {
-            console.warn('[SYNC] Error en refresh:', e);
+            console.warn('[SYNC] Error general en refresh:', e);
             return false;
           });
       }
@@ -866,8 +904,27 @@ async function tryLoginByCode(code) {
           setTimeout(async () => {
             console.log(`[SYNC] Verificando datos remotos (intento ${index + 2})...`);
             const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
-            const results = await Promise.all(hexes.map(h => refreshFromRemoteSilent(h)));
-            const anyUpdated = results.some(r => r === true);
+            
+            // Usar allSettled para que continúe aunque algunos cursos fallen
+            const results = await Promise.allSettled(
+              hexes.map((h, i) => {
+                console.log(`[SYNC] Intento ${index + 2} - Curso ${i + 1}/${hexes.length}: ${h.substring(0, 8)}...`);
+                return refreshFromRemoteSilent(h).catch(e => {
+                  console.warn(`[SYNC] Error en intento ${index + 2} curso ${h.substring(0, 8)}:`, e);
+                  return false;
+                });
+              })
+            );
+            
+            const successful = results.filter(r => r.status === 'fulfilled').length;
+            const failed = results.filter(r => r.status === 'rejected').length;
+            if (failed > 0) {
+              console.warn(`[SYNC] Intento ${index + 2}: ${successful} exitosos, ${failed} fallidos`);
+            }
+            
+            const anyUpdated = results.some(r => 
+              r.status === 'fulfilled' && r.value === true
+            );
             if (anyUpdated) {
               console.log(`[SYNC] ✅ Cambios detectados en intento ${index + 2}, reconstruyendo grid...`);
               buildMasterGrid();
