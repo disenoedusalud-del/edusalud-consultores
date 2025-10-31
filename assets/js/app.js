@@ -181,48 +181,93 @@ function remoteGetFilesIframe(hex){
 
 function remoteGetFilesJSONP(hex){
   return new Promise((resolve) => {
-    const callbackName = '_gas_' + Date.now();
+    const callbackName = '_gas_jsonp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     const script = document.createElement('script');
     const url = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex) + '&callback=' + callbackName;
     script.src = url;
+    script.async = true;
     
     console.log('[JSONP] Intentando GET para hex:', hex.substring(0,8));
+    console.log('[JSONP] URL:', url);
+    console.log('[JSONP] Callback name:', callbackName);
     
     let resolved = false;
     const cleanup = () => {
-      if (script.parentNode) document.body.removeChild(script);
-      if (window[callbackName]) delete window[callbackName];
+      try {
+        if (script.parentNode) document.body.removeChild(script);
+      } catch(e) {}
+      try {
+        if (window[callbackName]) delete window[callbackName];
+      } catch(e) {}
     };
     
+    // Crear callback global ANTES de agregar el script
     window[callbackName] = function(data) {
-      if (resolved) return;
+      if (resolved) {
+        console.warn('[JSONP] Callback llamado pero ya resuelto');
+        return;
+      }
       resolved = true;
       clearTimeout(timeout);
-      console.log('[JSONP] Callback recibido:', data);
-      const files = Array.isArray(data?.files) ? data.files : null;
+      console.log('[JSONP] ✅ Callback recibido!', data);
+      
+      let files = null;
+      if (data && Array.isArray(data.files)) {
+        files = data.files;
+        console.log('[JSONP] ✅ Archivos encontrados:', files.length);
+      } else {
+        console.warn('[JSONP] ⚠️ Respuesta inválida - no hay files array:', data);
+      }
+      
       cleanup();
       resolve(files);
     };
+    
+    // Verificar que el callback esté registrado
+    if (typeof window[callbackName] !== 'function') {
+      console.error('[JSONP] ❌ Error: callback no se registró correctamente');
+      resolve(null);
+      return;
+    }
     
     script.onerror = (err) => {
       if (resolved) return;
       resolved = true;
       clearTimeout(timeout);
-      console.error('[JSONP] Error cargando script:', err);
+      console.error('[JSONP] ❌ Error cargando script:', err);
+      console.error('[JSONP] URL que falló:', url);
       cleanup();
       resolve(null);
     };
     
-    // Timeout
+    script.onload = () => {
+      console.log('[JSONP] Script cargado, esperando callback...');
+      // Si después de 2 segundos no se llamó el callback, algo está mal
+      setTimeout(() => {
+        if (!resolved) {
+          console.warn('[JSONP] ⚠️ Script cargó pero callback no se ejecutó después de 2s');
+        }
+      }, 2000);
+    };
+    
+    // Timeout aumentado a 8 segundos
     const timeout = setTimeout(() => {
       if (resolved) return;
       resolved = true;
-      console.warn('[JSONP] Timeout después de 5s para hex:', hex.substring(0,8));
+      console.warn('[JSONP] ⚠️ Timeout después de 8s para hex:', hex.substring(0,8));
+      console.warn('[JSONP] El script puede haberse cargado pero el callback no se ejecutó');
       cleanup();
       resolve(null);
-    }, 5000);
+    }, 8000);
     
-    document.body.appendChild(script);
+    try {
+      document.body.appendChild(script);
+      console.log('[JSONP] Script agregado al DOM');
+    } catch(e) {
+      console.error('[JSONP] Error agregando script:', e);
+      cleanup();
+      resolve(null);
+    }
   });
 }
 async function remoteSaveFiles(hex, files){
@@ -673,15 +718,39 @@ function buildMasterGrid() {
 
 async function refreshFromRemoteSilent(hex){
   try {
+    console.log('[REFRESH] Iniciando refresh silencioso para hex:', hex.substring(0,8));
     const remote = await remoteGetFiles(hex);
-    if (!remote || !Array.isArray(remote)) return false;
+    
+    if (!remote) {
+      console.warn('[REFRESH] No se obtuvieron datos remotos para hex:', hex.substring(0,8));
+      return false;
+    }
+    
+    if (!Array.isArray(remote)) {
+      console.warn('[REFRESH] Datos remotos no son un array:', remote);
+      return false;
+    }
+    
+    console.log('[REFRESH] Datos remotos obtenidos:', remote.length, 'archivos');
+    
     const current = getFilesForHex(hex);
-    if (stableStringify(remote) !== stableStringify(current)) {
+    const currentStr = stableStringify(current);
+    const remoteStr = stableStringify(remote);
+    
+    if (remoteStr !== currentStr) {
+      console.log('[REFRESH] ✅ Cambios detectados! Guardando...');
+      console.log('[REFRESH] Antes:', current.length, 'archivos');
+      console.log('[REFRESH] Después:', remote.length, 'archivos');
       saveFilesOverride(hex, remote);
       return true;
+    } else {
+      console.log('[REFRESH] Sin cambios, datos iguales');
+      return false;
     }
-    return false;
-  } catch (e) { return false; }
+  } catch (e) { 
+    console.error('[REFRESH] Error en refresh silencioso:', e);
+    return false; 
+  }
 }
 
 function setupMasterSearch(){
@@ -734,23 +803,27 @@ async function tryLoginByCode(code) {
       showMaster();
       
       // Refresh diferido desde remoto (sin bloquear carga inicial)
+      // Múltiples intentos para asegurar sincronización
       if (hasRemote()) {
-        setTimeout(() => {
-          console.log('[SYNC] Iniciando refresh diferido de todos los cursos...');
-          Promise.all(
-            Object.keys(ACCESS_HASH_MAP)
-              .filter(h => h !== MASTER_HASH)
-              .map(h => refreshFromRemoteSilent(h))
-          ).then(results => {
-            const anyUpdated = results.some(r => r === true);
-            if (anyUpdated) {
-              console.log('[SYNC] Cambios detectados, reconstruyendo grid...');
-              buildMasterGrid(); // Reconstruir solo si hubo cambios
-            } else {
-              console.log('[SYNC] No hay cambios remotos');
-            }
-          }).catch(e => console.warn('[SYNC] Error en refresh diferido:', e));
-        }, 2000); // Esperar 2 segundos después de mostrar la página
+        const refreshDelays = [1000, 2500, 5000, 10000];
+        refreshDelays.forEach((delay, index) => {
+          setTimeout(() => {
+            console.log(`[SYNC] Intento ${index + 1}/${refreshDelays.length} - Refrescando todos los cursos...`);
+            Promise.all(
+              Object.keys(ACCESS_HASH_MAP)
+                .filter(h => h !== MASTER_HASH)
+                .map(h => refreshFromRemoteSilent(h))
+            ).then(results => {
+              const anyUpdated = results.some(r => r === true);
+              if (anyUpdated) {
+                console.log('[SYNC] ✅ Cambios detectados, reconstruyendo grid...');
+                buildMasterGrid(); // Reconstruir solo si hubo cambios
+              } else {
+                console.log('[SYNC] Sin cambios remotos en intento', index + 1);
+              }
+            }).catch(e => console.warn('[SYNC] Error en refresh diferido:', e));
+          }, delay);
+        });
       }
       
       return true;
@@ -853,4 +926,58 @@ $('#btn-master-copy').addEventListener('click', async () => {
   showAccess();
   maybeShowAttemptsWarning();
 })();
+
+/* ============ FUNCIONES DE PRUEBA GLOBALES ============ */
+// Ejecutar en la consola para probar:
+// testJSONP('88f62dd...') <- reemplazar con un hex real de algún curso
+window.testJSONP = async function(hex) {
+  console.log('🧪 TEST JSONP para hex:', hex);
+  console.log('URL:', REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex) + '&callback=test_callback');
+  
+  return new Promise((resolve) => {
+    const callbackName = 'test_callback_' + Date.now();
+    const script = document.createElement('script');
+    const url = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex) + '&callback=' + callbackName;
+    script.src = url;
+    
+    window[callbackName] = function(data) {
+      console.log('✅ CALLBACK EJECUTADO!', data);
+      document.body.removeChild(script);
+      delete window[callbackName];
+      resolve(data);
+    };
+    
+    script.onerror = (err) => {
+      console.error('❌ ERROR cargando script:', err);
+      if (script.parentNode) document.body.removeChild(script);
+      if (window[callbackName]) delete window[callbackName];
+      resolve(null);
+    };
+    
+    setTimeout(() => {
+      if (window[callbackName]) {
+        console.warn('⏱️ TIMEOUT - callback no se ejecutó después de 10s');
+        if (script.parentNode) document.body.removeChild(script);
+        delete window[callbackName];
+        resolve(null);
+      }
+    }, 10000);
+    
+    document.body.appendChild(script);
+    console.log('📡 Script agregado, esperando respuesta...');
+  });
+};
+
+// Probar GET directo desde la consola
+window.testGET = async function(hex) {
+  console.log('🧪 TEST GET para hex:', hex);
+  try {
+    const result = await remoteGetFiles(hex);
+    console.log('✅ Resultado:', result);
+    return result;
+  } catch(e) {
+    console.error('❌ Error:', e);
+    return null;
+  }
+};
 
