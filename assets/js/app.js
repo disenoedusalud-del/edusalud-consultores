@@ -94,7 +94,23 @@ async function remoteGetFiles(hex){
   if (!hasRemote()) return null;
   console.log('[GET] Iniciando para hex:', hex.substring(0,8));
   
-  // Usar solo JSONP (iframe causa errores 403 por autenticación)
+  // Intentar primero con fetch (puede funcionar si el servidor tiene CORS habilitado)
+  try {
+    const url = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex);
+    console.log('[GET] Intentando fetch directo...');
+    const response = await fetch(url, {
+      method: 'GET',
+      mode: 'no-cors', // Intentar con no-cors primero
+      cache: 'no-store'
+    });
+    
+    // Con no-cors no podemos leer la respuesta, así que seguimos con JSONP
+    console.log('[GET] Fetch no-cors enviado, pero no podemos leer respuesta. Intentando JSONP...');
+  } catch (e) {
+    console.log('[GET] Fetch falló, intentando JSONP...');
+  }
+  
+  // Usar JSONP como método principal
   try {
     const jsonpResult = await remoteGetFilesJSONP(hex);
     if (jsonpResult && Array.isArray(jsonpResult)) {
@@ -102,12 +118,32 @@ async function remoteGetFiles(hex){
       return jsonpResult;
     } else {
       console.warn('[GET] ⚠️ JSONP retornó null o no es array');
+      // Intentar verificar qué está devolviendo el servidor
+      await testWebAppResponse(hex);
       return null;
     }
   } catch (e) {
     console.error('[GET] ❌ JSONP falló:', e.message);
+    await testWebAppResponse(hex);
     return null;
   }
+}
+
+// Función de diagnóstico para ver qué devuelve el WebApp
+async function testWebAppResponse(hex) {
+  console.log('[DIAG] Probando respuesta del WebApp...');
+  const testUrl = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex) + '&callback=test_callback';
+  
+  // Intentar cargar como imagen para ver si hay redirección
+  const img = new Image();
+  img.onerror = () => {
+    console.log('[DIAG] La URL no se puede cargar como imagen (esperado para script)');
+  };
+  img.src = testUrl;
+  
+  // También mostrar la URL completa para copiar y probar manualmente
+  console.log('[DIAG] URL completa para probar manualmente:', testUrl);
+  console.log('[DIAG] Abre esta URL en tu navegador para ver qué devuelve:', testUrl);
 }
 
 function remoteGetFilesJSONP(hex){
@@ -167,6 +203,12 @@ function remoteGetFilesJSONP(hex){
       clearTimeout(timeout);
       console.error('[JSONP] ❌ Error cargando script:', err);
       console.error('[JSONP] URL que falló:', url);
+      console.error('[JSONP] ⚠️ DIAGNÓSTICO:');
+      console.error('[JSONP] 1. Abre esta URL en tu navegador para ver qué devuelve:', url);
+      console.error('[JSONP] 2. Debe devolver JavaScript como: ' + callbackName + '({"files":[...]});');
+      console.error('[JSONP] 3. Si devuelve JSON {"files":[]}, el WebApp no está configurado para JSONP');
+      console.error('[JSONP] 4. Si devuelve error 403, revisa permisos del WebApp');
+      console.error('[JSONP] 5. Si no carga nada, verifica que el WebApp esté desplegado');
       cleanup();
       resolve(null);
     };
