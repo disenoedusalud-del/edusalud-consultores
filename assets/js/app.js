@@ -104,17 +104,23 @@ async function remoteGetFiles(hex){
 async function remoteSaveFiles(hex, files){
   if (!hasRemote()) return false;
   try {
-    // Google Apps Script requiere mode: 'no-cors' para evitar problemas de CORS
+    // Usar FormData para evitar problemas de CORS con Google Apps Script
+    const formData = new URLSearchParams();
+    formData.append('hex', hex);
+    formData.append('files', JSON.stringify(Array.isArray(files) ? files : []));
+    
     await fetch(REMOTE_BASE_URL, {
       method:'POST',
       mode: 'no-cors',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ hex, files: Array.isArray(files) ? files : [] })
+      body: formData.toString()
     });
     // Esperar un momento para que se procese
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 800));
     return true;
-  } catch (e) { return false; }
+  } catch (e) { 
+    console.error('Error en remoteSaveFiles:', e);
+    return false; 
+  }
 }
 async function refreshFromRemote(hex, context){
   const remote = await remoteGetFiles(hex);
