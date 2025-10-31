@@ -653,7 +653,17 @@ function buildMasterGrid() {
       const urlVal = (inputUrl.value || '').trim();
       if (!labelVal || !urlVal) { alert('Complete etiqueta y URL'); return; }
       try { new URL(urlVal); } catch { alert('URL inválida'); return; }
-      const next = getFilesForHex(hex).concat({ label: labelVal, url: urlVal });
+      
+      const current = getFilesForHex(hex);
+      console.log('[ADD] Links actuales:', current.length);
+      const next = current.concat({ label: labelVal, url: urlVal });
+      console.log('[ADD] Links después de agregar:', next.length);
+      console.log('[ADD] Array completo a guardar:', JSON.stringify(next));
+      
+      // Limpiar inputs
+      inputLabel.value = '';
+      inputUrl.value = '';
+      
       saveFilesOverride(hex, next);
       remoteSaveFiles(hex, next);
       buildMasterGrid();
@@ -799,23 +809,34 @@ async function tryLoginByCode(code) {
       $('#year_master').textContent = new Date().getFullYear();
       showMaster();
       
-      // Refresh diferido desde remoto (JSONP ahora funciona ✅)
+      // Refresh diferido desde remoto (solo si hay datos guardados)
+      // En modo incógnito, si remoto está vacío, no refrescar para no perder datos originales
       if (hasRemote()) {
-        setTimeout(() => {
-          console.log('[SYNC] Refrescando todos los cursos desde remoto...');
-          Promise.all(
-            Object.keys(ACCESS_HASH_MAP)
-              .filter(h => h !== MASTER_HASH)
-              .map(h => refreshFromRemoteSilent(h))
-          ).then(results => {
-            const anyUpdated = results.some(r => r === true);
-            if (anyUpdated) {
-              console.log('[SYNC] ✅ Cambios detectados, reconstruyendo grid...');
-              buildMasterGrid();
+        setTimeout(async () => {
+          console.log('[SYNC] Verificando datos remotos...');
+          // Probar primero con un curso para ver si hay datos guardados
+          const testHex = Object.keys(ACCESS_HASH_MAP).find(h => h !== MASTER_HASH);
+          if (testHex) {
+            const testRemote = await remoteGetFiles(testHex);
+            if (testRemote && testRemote.length > 0) {
+              console.log('[SYNC] Hay datos remotos, refrescando todos los cursos...');
+              Promise.all(
+                Object.keys(ACCESS_HASH_MAP)
+                  .filter(h => h !== MASTER_HASH)
+                  .map(h => refreshFromRemoteSilent(h))
+              ).then(results => {
+                const anyUpdated = results.some(r => r === true);
+                if (anyUpdated) {
+                  console.log('[SYNC] ✅ Cambios detectados, reconstruyendo grid...');
+                  buildMasterGrid();
+                } else {
+                  console.log('[SYNC] Sin cambios remotos');
+                }
+              }).catch(e => console.warn('[SYNC] Error:', e));
             } else {
-              console.log('[SYNC] Sin cambios remotos');
+              console.log('[SYNC] ⚠️ No hay datos remotos guardados aún, manteniendo datos originales');
             }
-          }).catch(e => console.warn('[SYNC] Error:', e));
+          }
         }, 2000);
       }
       
