@@ -92,6 +92,7 @@ function hasRemote(){ return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE_
 function stableStringify(obj){ try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 async function remoteGetFiles(hex){
   if (!hasRemote()) return null;
+  console.log('[GET] Iniciando para hex:', hex.substring(0,8));
   try {
     // Intentar con fetch normal primero
     const url = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex);
@@ -103,17 +104,31 @@ async function remoteGetFiles(hex){
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data?.files)) {
-        console.log('GET exitoso para hex:', hex.substring(0,8), 'files:', data.files.length);
+        console.log('[GET] Éxito - hex:', hex.substring(0,8), 'files:', data.files.length);
         return data.files;
+      } else {
+        console.warn('[GET] Respuesta inválida, no es array:', data);
       }
     } else {
-      console.warn('GET falló con status:', res.status);
+      console.warn('[GET] Status error:', res.status, res.statusText);
     }
   } catch (e) {
-    console.warn('Fetch falló, intentando JSONP:', e.message);
+    console.warn('[GET] Fetch falló por CORS, intentando JSONP:', e.message);
     // Si falla por CORS, intentar con script tag (JSONP)
-    return await remoteGetFilesJSONP(hex);
+    try {
+      const jsonpResult = await remoteGetFilesJSONP(hex);
+      if (jsonpResult) {
+        console.log('[GET] JSONP éxito - hex:', hex.substring(0,8), 'files:', jsonpResult.length);
+      } else {
+        console.warn('[GET] JSONP retornó null/undefined');
+      }
+      return jsonpResult;
+    } catch (e2) {
+      console.error('[GET] JSONP también falló:', e2);
+      return null;
+    }
   }
+  console.warn('[GET] No se pudo obtener datos para hex:', hex.substring(0,8));
   return null;
 }
 
@@ -121,28 +136,43 @@ function remoteGetFilesJSONP(hex){
   return new Promise((resolve) => {
     const callbackName = '_gas_' + Date.now();
     const script = document.createElement('script');
-    script.src = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex) + '&callback=' + callbackName;
+    const url = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex) + '&callback=' + callbackName;
+    script.src = url;
+    
+    console.log('[JSONP] Intentando GET para hex:', hex.substring(0,8));
+    
+    let resolved = false;
+    const cleanup = () => {
+      if (script.parentNode) document.body.removeChild(script);
+      if (window[callbackName]) delete window[callbackName];
+    };
     
     window[callbackName] = function(data) {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timeout);
+      console.log('[JSONP] Callback recibido:', data);
       const files = Array.isArray(data?.files) ? data.files : null;
-      document.body.removeChild(script);
-      delete window[callbackName];
+      cleanup();
       resolve(files);
     };
     
-    script.onerror = () => {
-      document.body.removeChild(script);
-      delete window[callbackName];
+    script.onerror = (err) => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timeout);
+      console.error('[JSONP] Error cargando script:', err);
+      cleanup();
       resolve(null);
     };
     
     // Timeout
-    setTimeout(() => {
-      if (script.parentNode) {
-        document.body.removeChild(script);
-        delete window[callbackName];
-        resolve(null);
-      }
+    const timeout = setTimeout(() => {
+      if (resolved) return;
+      resolved = true;
+      console.warn('[JSONP] Timeout después de 5s para hex:', hex.substring(0,8));
+      cleanup();
+      resolve(null);
     }, 5000);
     
     document.body.appendChild(script);
@@ -183,10 +213,11 @@ async function remoteSaveFiles(hex, files){
       if (form.parentNode) document.body.removeChild(form);
       if (iframe.parentNode) document.body.removeChild(iframe);
       // Forzar refresh desde remoto después de guardar y reconstruir
-      setTimeout(async () => {
-        await refreshFromRemoteSilent(hex);
-        await buildMasterGrid();
-      }, 1000);
+      setTimeout(() => {
+        refreshFromRemoteSilent(hex).then(() => {
+          buildMasterGrid();
+        });
+      }, 1500);
     }, 2000);
     
     return true;
@@ -204,11 +235,11 @@ async function refreshFromRemote(hex, context){
       saveFilesOverride(hex, remote);
       if (context === 'course') {
         if (currentKeyHex === hex) {
-          await renderCourse(hex);
+          renderCourse(hex);
         }
       } else {
         // En master, reconstruir todo el grid
-        await buildMasterGrid();
+        buildMasterGrid();
       }
       return true;
     }
@@ -244,7 +275,7 @@ async function importOverridesFromFile(file){
     Object.entries(data.overrides).forEach(([hex, arr]) => {
       if (ACCESS_HASH_MAP[hex] && Array.isArray(arr)) { saveFilesOverride(hex, arr); count++; }
     });
-    await buildMasterGrid();
+    buildMasterGrid();
     alert(`Importado correctamente (${count} cursos)`);
   } catch (e) {
     alert('No se pudo importar el archivo');
@@ -350,18 +381,18 @@ function runLoader(durationMs = LOAD_DURATION_MS) {
 }
 
 /* ============ render curso (1) ============ */
-async function renderCourse(keyHex) {
+function renderCourse(keyHex) {
   const data = ACCESS_HASH_MAP[keyHex];
   if (!data) return;
 
-  // Primero refrescar desde remoto ANTES de renderizar
+  // Refrescar desde remoto en background (sin bloquear)
   if (hasRemote()) {
-    try {
-      await refreshFromRemoteSilent(keyHex);
-      console.log('Curso refrescado desde remoto:', keyHex.substring(0,8));
-    } catch (e) {
-      console.warn('Error refrescando curso:', e);
-    }
+    refreshFromRemoteSilent(keyHex).then(updated => {
+      if (updated) {
+        console.log('Curso actualizado desde remoto, re-renderizando...');
+        renderCourse(keyHex); // Re-renderizar solo si hubo cambios
+      }
+    }).catch(e => console.warn('Error refrescando curso:', e));
   }
 
   $('#courseTitle').textContent = data.title;
@@ -402,23 +433,25 @@ async function renderCourse(keyHex) {
 }
 
 /* ============ render master ============ */
-async function buildMasterGrid() {
+function buildMasterGrid() {
   const grid = $('#masterGrid');
-  
-  // Primero refrescar desde remoto ANTES de construir
-  if (hasRemote()) {
-    try {
-      const refreshPromises = Object.keys(ACCESS_HASH_MAP)
-        .filter(hex => hex !== MASTER_HASH)
-        .map(hex => refreshFromRemoteSilent(hex));
-      await Promise.all(refreshPromises);
-      console.log('Refresh desde remoto completado');
-    } catch (e) {
-      console.warn('Error en refresh inicial:', e);
-    }
-  }
-  
   grid.innerHTML = '';
+  
+  // Refrescar desde remoto EN PARALELO (sin bloquear la construcción inicial)
+  if (hasRemote()) {
+    // Construir primero con datos locales, luego refrescar en background
+    Promise.all(
+      Object.keys(ACCESS_HASH_MAP)
+        .filter(hex => hex !== MASTER_HASH)
+        .map(hex => refreshFromRemoteSilent(hex))
+    ).then(results => {
+      const anyUpdated = results.some(r => r === true);
+      if (anyUpdated) {
+        console.log('Cambios detectados desde remoto, reconstruyendo...');
+        buildMasterGrid(); // Reconstruir solo si hubo cambios
+      }
+    }).catch(e => console.warn('Error en refresh background:', e));
+  }
 
   Object.entries(ACCESS_HASH_MAP).forEach(([hex, data]) => {
     // excluir el master si algún día lo metes en el mismo objeto
@@ -446,7 +479,7 @@ async function buildMasterGrid() {
     open.addEventListener('click', async () => {
       await runLoader();
       currentKeyHex = hex;
-      await renderCourse(hex);
+      renderCourse(hex);
       showContent();
     });
     header.appendChild(t); header.appendChild(open);
@@ -480,12 +513,12 @@ async function buildMasterGrid() {
       btnRemove.className = 'btn secondary';
       btnRemove.type = 'button';
       btnRemove.textContent = 'Quitar';
-      btnRemove.addEventListener('click', async () => {
+      btnRemove.addEventListener('click', () => {
         const next = files.slice();
         next.splice(idx, 1);
         saveFilesOverride(hex, next);
         remoteSaveFiles(hex, next);
-        await buildMasterGrid();
+        buildMasterGrid();
       });
 
       actions.appendChild(btnOpen);
@@ -518,7 +551,7 @@ async function buildMasterGrid() {
       next.splice(to, 0, moved);
       saveFilesOverride(hex, next);
       remoteSaveFiles(hex, next);
-      await buildMasterGrid();
+      buildMasterGrid();
     });
 
     // formulario para agregar nuevo link
@@ -555,7 +588,7 @@ async function buildMasterGrid() {
       const next = getFilesForHex(hex).concat({ label: labelVal, url: urlVal });
       saveFilesOverride(hex, next);
       remoteSaveFiles(hex, next);
-      await buildMasterGrid();
+      buildMasterGrid();
     });
 
     addRow.appendChild(inputLabel);
@@ -571,11 +604,11 @@ async function buildMasterGrid() {
     btnRestore.type = 'button';
     btnRestore.textContent = 'Restaurar enlaces originales';
     btnRestore.style.marginTop = '10px';
-    btnRestore.addEventListener('click', async () => {
+    btnRestore.addEventListener('click', () => {
       if (!confirm('¿Restaurar la lista original de enlaces? Se perderán los cambios locales.')) return;
       clearFilesOverride(hex);
       remoteSaveFiles(hex, getFilesForHex(hex));
-      await buildMasterGrid();
+      buildMasterGrid();
     });
     right.appendChild(btnRestore);
 
@@ -653,7 +686,7 @@ async function tryLoginByCode(code) {
       try { await runLoader(); } catch (e) {}
       clearAttempts();
       setQueryParam('code', btoa(code));
-      await buildMasterGrid();
+      buildMasterGrid();
       setupMasterSearch();
       $('#year_master').textContent = new Date().getFullYear();
       showMaster();
@@ -666,7 +699,7 @@ async function tryLoginByCode(code) {
       currentKeyHex = hex;
       clearAttempts();
       setQueryParam('code', btoa(code));
-      await renderCourse(hex);
+      renderCourse(hex);
       showContent();
       return true;
     } else {
