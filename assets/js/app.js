@@ -436,7 +436,7 @@ const loaderBar = document.getElementById('loaderBar');
 const loaderPercent = document.getElementById('loaderPercent');
 function showLoader() { if (!loaderEl) return; loaderEl.classList.remove('hidden'); loaderEl.setAttribute('aria-hidden', 'false'); }
 function hideLoader() { if (!loaderEl) return; loaderEl.classList.add('hidden'); loaderEl.setAttribute('aria-hidden', 'true'); }
-const LOAD_DURATION_MS = 1600;
+const LOAD_DURATION_MS = 3500; // Aumentado a 3.5s para cubrir el tiempo de sincronización
 function runLoader(durationMs = LOAD_DURATION_MS) {
   return new Promise((resolve) => {
     if (!loaderBar || !loaderPercent) { resolve(); return; }
@@ -532,31 +532,42 @@ function buildMasterGrid() {
     open.type = 'button';
     open.textContent = 'Abrir curso';
     open.addEventListener('click', async () => {
-      await runLoader();
+      // Iniciar refresh ANTES del loader para que se ejecuten en paralelo
+      let refreshPromise = Promise.resolve(false);
+      if (hasRemote()) {
+        console.log('[SYNC] Iniciando refresh durante loader...');
+        refreshPromise = refreshFromRemoteSilent(hex).catch(e => {
+          console.warn('[SYNC] Error en refresh:', e);
+          return false;
+        });
+      }
+      
+      // Ejecutar loader y refresh en paralelo
+      const [refreshUpdated] = await Promise.all([
+        refreshPromise,
+        runLoader()
+      ]);
+      
       currentKeyHex = hex;
+      
+      // Si el refresh actualizó datos durante el loader, ya los tenemos
+      if (refreshUpdated) {
+        console.log('[SYNC] ✅ Datos actualizados durante loader');
+      }
+      
       renderCourse(hex);
       showContent();
       
-      // Refresh inmediato desde remoto para mostrar links rápido
-      if (hasRemote()) {
-        // Primero intentar refresh inmediato (para usuarios con datos remotos)
-        refreshFromRemoteSilent(hex).then(updated => {
-          if (updated && currentKeyHex === hex) {
-            console.log('[SYNC] ✅ Curso actualizado desde remoto, re-renderizando...');
-            renderCourse(hex);
-          }
-        }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
-        
-        // Luego hacer un refresh diferido por si acaso (por si el primero falla)
+      // Si el refresh no actualizó durante el loader, intentar una vez más
+      if (hasRemote() && !refreshUpdated) {
         setTimeout(() => {
-          console.log('[SYNC] Refrescando curso desde remoto (intento 2)...');
           refreshFromRemoteSilent(hex).then(updated => {
             if (updated && currentKeyHex === hex) {
-              console.log('[SYNC] ✅ Curso actualizado desde remoto, re-renderizando...');
+              console.log('[SYNC] ✅ Curso actualizado desde remoto (intento 2), re-renderizando...');
               renderCourse(hex);
             }
           }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
-        }, 1000);
+        }, 500);
       }
     });
     header.appendChild(t); header.appendChild(open);
@@ -810,39 +821,60 @@ async function tryLoginByCode(code) {
 
     // master
     if (hex === MASTER_HASH) {
-      try { await runLoader(); } catch (e) {}
-      clearAttempts();
-      setQueryParam('code', btoa(code));
-      buildMasterGrid();
-      setupMasterSearch();
-      $('#year_master').textContent = new Date().getFullYear();
-      showMaster();
-      
-      // Refresh inmediato desde remoto para mostrar links rápido
+      // Iniciar refresh de todos los cursos ANTES del loader para que se ejecuten en paralelo
+      let refreshPromise = Promise.resolve(false);
       if (hasRemote()) {
-        // Primero intentar refresh inmediato de todos los cursos
-        (async () => {
-          console.log('[SYNC] Refrescando todos los cursos desde remoto...');
-          const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
-          const results = await Promise.all(hexes.map(h => refreshFromRemoteSilent(h)));
-          const anyUpdated = results.some(r => r === true);
-          if (anyUpdated) {
-            console.log('[SYNC] ✅ Cambios detectados, reconstruyendo grid...');
-            buildMasterGrid();
-          }
-        })().catch(e => console.warn('[SYNC] Error:', e));
+        console.log('[SYNC] Iniciando refresh de todos los cursos durante loader...');
+        const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
+        refreshPromise = Promise.all(hexes.map(h => refreshFromRemoteSilent(h)))
+          .then(results => {
+            const anyUpdated = results.some(r => r === true);
+            if (anyUpdated) {
+              console.log('[SYNC] ✅ Cambios detectados durante loader');
+            }
+            return anyUpdated;
+          })
+          .catch(e => {
+            console.warn('[SYNC] Error en refresh:', e);
+            return false;
+          });
+      }
+      
+      // Ejecutar loader y refresh en paralelo
+      try {
+        const [refreshUpdated] = await Promise.all([
+          refreshPromise,
+          runLoader()
+        ]);
         
-        // Luego hacer un refresh diferido por si acaso (por si el primero falla)
-        setTimeout(async () => {
-          console.log('[SYNC] Verificando datos remotos (intento 2)...');
-          const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
-          const results = await Promise.all(hexes.map(h => refreshFromRemoteSilent(h)));
-          const anyUpdated = results.some(r => r === true);
-          if (anyUpdated) {
-            console.log('[SYNC] ✅ Cambios detectados en intento 2, reconstruyendo grid...');
-            buildMasterGrid();
-          }
-        }, 1500);
+        clearAttempts();
+        setQueryParam('code', btoa(code));
+        buildMasterGrid();
+        setupMasterSearch();
+        $('#year_master').textContent = new Date().getFullYear();
+        showMaster();
+        
+        // Si el refresh no actualizó durante el loader, intentar una vez más
+        if (hasRemote() && !refreshUpdated) {
+          setTimeout(async () => {
+            console.log('[SYNC] Verificando datos remotos (intento 2)...');
+            const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
+            const results = await Promise.all(hexes.map(h => refreshFromRemoteSilent(h)));
+            const anyUpdated = results.some(r => r === true);
+            if (anyUpdated) {
+              console.log('[SYNC] ✅ Cambios detectados en intento 2, reconstruyendo grid...');
+              buildMasterGrid();
+            }
+          }, 500);
+        }
+      } catch (e) {
+        // Si falla el loader, continuar de todas formas
+        clearAttempts();
+        setQueryParam('code', btoa(code));
+        buildMasterGrid();
+        setupMasterSearch();
+        $('#year_master').textContent = new Date().getFullYear();
+        showMaster();
       }
       
       return true;
@@ -850,33 +882,53 @@ async function tryLoginByCode(code) {
 
     // normal
     if (ACCESS_HASH_MAP[hex]) {
-      try { await runLoader(); } catch (e) {}
-      currentKeyHex = hex;
-      clearAttempts();
-      setQueryParam('code', btoa(code));
-      renderCourse(hex);
-      showContent();
-      
-      // Refresh inmediato desde remoto para mostrar links rápido
+      // Iniciar refresh ANTES del loader para que se ejecuten en paralelo
+      let refreshPromise = Promise.resolve(false);
       if (hasRemote()) {
-        // Primero intentar refresh inmediato
-        refreshFromRemoteSilent(hex).then(updated => {
-          if (updated && currentKeyHex === hex) {
-            console.log('[SYNC] ✅ Curso actualizado desde remoto, re-renderizando...');
-            renderCourse(hex);
-          }
-        }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
+        console.log('[SYNC] Iniciando refresh durante loader...');
+        refreshPromise = refreshFromRemoteSilent(hex).catch(e => {
+          console.warn('[SYNC] Error en refresh:', e);
+          return false;
+        });
+      }
+      
+      // Ejecutar loader y refresh en paralelo
+      try {
+        const [refreshUpdated] = await Promise.all([
+          refreshPromise,
+          runLoader()
+        ]);
         
-        // Luego hacer un refresh diferido por si acaso
-        setTimeout(() => {
-          console.log('[SYNC] Refrescando curso desde remoto (intento 2)...');
-          refreshFromRemoteSilent(hex).then(updated => {
-            if (updated && currentKeyHex === hex) {
-              console.log('[SYNC] ✅ Curso actualizado desde remoto, re-renderizando...');
-              renderCourse(hex);
-            }
-          }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
-        }, 1000);
+        currentKeyHex = hex;
+        clearAttempts();
+        setQueryParam('code', btoa(code));
+        
+        // Si el refresh actualizó datos durante el loader, ya los tenemos
+        if (refreshUpdated) {
+          console.log('[SYNC] ✅ Datos actualizados durante loader');
+        }
+        
+        renderCourse(hex);
+        showContent();
+        
+        // Si el refresh no actualizó durante el loader, intentar una vez más
+        if (hasRemote() && !refreshUpdated) {
+          setTimeout(() => {
+            refreshFromRemoteSilent(hex).then(updated => {
+              if (updated && currentKeyHex === hex) {
+                console.log('[SYNC] ✅ Curso actualizado desde remoto (intento 2), re-renderizando...');
+                renderCourse(hex);
+              }
+            }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
+          }, 500);
+        }
+      } catch (e) {
+        // Si falla el loader, continuar de todas formas
+        currentKeyHex = hex;
+        clearAttempts();
+        setQueryParam('code', btoa(code));
+        renderCourse(hex);
+        showContent();
       }
       
       return true;
