@@ -532,8 +532,18 @@ function buildMasterGrid() {
       renderCourse(hex);
       showContent();
       
-      // Refresh diferido DESHABILITADO temporalmente hasta que JSONP funcione
-      // TODO: Habilitar cuando el WebApp devuelva JSONP correctamente
+      // Refresh diferido desde remoto (JSONP ahora funciona ✅)
+      if (hasRemote()) {
+        setTimeout(() => {
+          console.log('[SYNC] Refrescando curso desde master...');
+          refreshFromRemoteSilent(hex).then(updated => {
+            if (updated && currentKeyHex === hex) {
+              console.log('[SYNC] ✅ Curso actualizado desde remoto, re-renderizando...');
+              renderCourse(hex);
+            }
+          }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
+        }, 1500);
+      }
     });
     header.appendChild(t); header.appendChild(open);
     right.appendChild(header);
@@ -768,24 +778,25 @@ async function tryLoginByCode(code) {
       $('#year_master').textContent = new Date().getFullYear();
       showMaster();
       
-      // Refresh diferido desde remoto DESHABILITADO temporalmente hasta que JSONP funcione
-      // TODO: Habilitar cuando el WebApp devuelva JSONP correctamente
-      // if (hasRemote()) {
-      //   setTimeout(() => {
-      //     console.log('[SYNC] Refrescando desde remoto...');
-      //     Promise.all(
-      //       Object.keys(ACCESS_HASH_MAP)
-      //         .filter(h => h !== MASTER_HASH)
-      //         .map(h => refreshFromRemoteSilent(h))
-      //     ).then(results => {
-      //       const anyUpdated = results.some(r => r === true);
-      //       if (anyUpdated) {
-      //         console.log('[SYNC] ✅ Cambios detectados, reconstruyendo grid...');
-      //         buildMasterGrid();
-      //       }
-      //     }).catch(e => console.warn('[SYNC] Error:', e));
-      //   }, 2000);
-      // }
+      // Refresh diferido desde remoto (JSONP ahora funciona ✅)
+      if (hasRemote()) {
+        setTimeout(() => {
+          console.log('[SYNC] Refrescando todos los cursos desde remoto...');
+          Promise.all(
+            Object.keys(ACCESS_HASH_MAP)
+              .filter(h => h !== MASTER_HASH)
+              .map(h => refreshFromRemoteSilent(h))
+          ).then(results => {
+            const anyUpdated = results.some(r => r === true);
+            if (anyUpdated) {
+              console.log('[SYNC] ✅ Cambios detectados, reconstruyendo grid...');
+              buildMasterGrid();
+            } else {
+              console.log('[SYNC] Sin cambios remotos');
+            }
+          }).catch(e => console.warn('[SYNC] Error:', e));
+        }, 2000);
+      }
       
       return true;
     }
@@ -799,8 +810,18 @@ async function tryLoginByCode(code) {
       renderCourse(hex);
       showContent();
       
-      // Refresh diferido DESHABILITADO temporalmente hasta que JSONP funcione
-      // TODO: Habilitar cuando el WebApp devuelva JSONP correctamente
+      // Refresh diferido desde remoto (JSONP ahora funciona ✅)
+      if (hasRemote()) {
+        setTimeout(() => {
+          console.log('[SYNC] Refrescando curso desde remoto...');
+          refreshFromRemoteSilent(hex).then(updated => {
+            if (updated && currentKeyHex === hex) {
+              console.log('[SYNC] ✅ Curso actualizado desde remoto, re-renderizando...');
+              renderCourse(hex);
+            }
+          }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
+        }, 1500);
+      }
       
       return true;
     } else {
