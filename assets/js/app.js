@@ -226,15 +226,14 @@ function remoteGetFilesJSONP(hex){
       }, 2000);
     };
     
-    // Timeout aumentado a 8 segundos
+    // Timeout reducido a 3 segundos para respuesta más rápida
     const timeout = setTimeout(() => {
       if (resolved) return;
       resolved = true;
-      console.warn('[JSONP] ⚠️ Timeout después de 8s para hex:', hex.substring(0,8));
-      console.warn('[JSONP] El script puede haberse cargado pero el callback no se ejecutó');
+      console.warn('[JSONP] ⚠️ Timeout después de 3s para hex:', hex.substring(0,8));
       cleanup();
       resolve(null);
-    }, 8000);
+    }, 3000);
     
     try {
       document.body.appendChild(script);
@@ -436,7 +435,7 @@ const loaderBar = document.getElementById('loaderBar');
 const loaderPercent = document.getElementById('loaderPercent');
 function showLoader() { if (!loaderEl) return; loaderEl.classList.remove('hidden'); loaderEl.setAttribute('aria-hidden', 'false'); }
 function hideLoader() { if (!loaderEl) return; loaderEl.classList.add('hidden'); loaderEl.setAttribute('aria-hidden', 'true'); }
-const LOAD_DURATION_MS = 3500; // Aumentado a 3.5s para cubrir el tiempo de sincronización
+const LOAD_DURATION_MS = 1600;
 function runLoader(durationMs = LOAD_DURATION_MS) {
   return new Promise((resolve) => {
     if (!loaderBar || !loaderPercent) { resolve(); return; }
@@ -558,16 +557,19 @@ function buildMasterGrid() {
       renderCourse(hex);
       showContent();
       
-      // Si el refresh no actualizó durante el loader, intentar una vez más
+      // Si el refresh no actualizó durante el loader, hacer múltiples intentos rápidos
       if (hasRemote() && !refreshUpdated) {
-        setTimeout(() => {
-          refreshFromRemoteSilent(hex).then(updated => {
-            if (updated && currentKeyHex === hex) {
-              console.log('[SYNC] ✅ Curso actualizado desde remoto (intento 2), re-renderizando...');
-              renderCourse(hex);
-            }
-          }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
-        }, 500);
+        // Intentos rápidos: 200ms, 600ms, 1200ms
+        [200, 600, 1200].forEach((delay, index) => {
+          setTimeout(() => {
+            refreshFromRemoteSilent(hex).then(updated => {
+              if (updated && currentKeyHex === hex) {
+                console.log(`[SYNC] ✅ Curso actualizado desde remoto (intento ${index + 2}), re-renderizando...`);
+                renderCourse(hex);
+              }
+            }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
+          }, delay);
+        });
       }
     });
     header.appendChild(t); header.appendChild(open);
@@ -854,18 +856,21 @@ async function tryLoginByCode(code) {
         $('#year_master').textContent = new Date().getFullYear();
         showMaster();
         
-        // Si el refresh no actualizó durante el loader, intentar una vez más
+        // Si el refresh no actualizó durante el loader, hacer múltiples intentos rápidos
         if (hasRemote() && !refreshUpdated) {
-          setTimeout(async () => {
-            console.log('[SYNC] Verificando datos remotos (intento 2)...');
-            const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
-            const results = await Promise.all(hexes.map(h => refreshFromRemoteSilent(h)));
-            const anyUpdated = results.some(r => r === true);
-            if (anyUpdated) {
-              console.log('[SYNC] ✅ Cambios detectados en intento 2, reconstruyendo grid...');
-              buildMasterGrid();
-            }
-          }, 500);
+          // Intentos rápidos: 200ms, 600ms, 1200ms
+          [200, 600, 1200].forEach((delay, index) => {
+            setTimeout(async () => {
+              console.log(`[SYNC] Verificando datos remotos (intento ${index + 2})...`);
+              const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
+              const results = await Promise.all(hexes.map(h => refreshFromRemoteSilent(h)));
+              const anyUpdated = results.some(r => r === true);
+              if (anyUpdated) {
+                console.log(`[SYNC] ✅ Cambios detectados en intento ${index + 2}, reconstruyendo grid...`);
+                buildMasterGrid();
+              }
+            }, delay);
+          });
         }
       } catch (e) {
         // Si falla el loader, continuar de todas formas
@@ -911,16 +916,19 @@ async function tryLoginByCode(code) {
         renderCourse(hex);
         showContent();
         
-        // Si el refresh no actualizó durante el loader, intentar una vez más
+        // Si el refresh no actualizó durante el loader, hacer múltiples intentos rápidos
         if (hasRemote() && !refreshUpdated) {
-          setTimeout(() => {
-            refreshFromRemoteSilent(hex).then(updated => {
-              if (updated && currentKeyHex === hex) {
-                console.log('[SYNC] ✅ Curso actualizado desde remoto (intento 2), re-renderizando...');
-                renderCourse(hex);
-              }
-            }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
-          }, 500);
+          // Intentos rápidos: 200ms, 600ms, 1200ms
+          [200, 600, 1200].forEach((delay, index) => {
+            setTimeout(() => {
+              refreshFromRemoteSilent(hex).then(updated => {
+                if (updated && currentKeyHex === hex) {
+                  console.log(`[SYNC] ✅ Curso actualizado desde remoto (intento ${index + 2}), re-renderizando...`);
+                  renderCourse(hex);
+                }
+              }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
+            }, delay);
+          });
         }
       } catch (e) {
         // Si falla el loader, continuar de todas formas
