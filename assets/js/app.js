@@ -182,10 +182,11 @@ async function remoteSaveFiles(hex, files){
     setTimeout(() => {
       if (form.parentNode) document.body.removeChild(form);
       if (iframe.parentNode) document.body.removeChild(iframe);
-      // Forzar refresh desde remoto después de guardar
-      refreshFromRemote(hex, 'master').then(() => {
-        buildMasterGrid();
-      });
+      // Forzar refresh desde remoto después de guardar y reconstruir
+      setTimeout(async () => {
+        await refreshFromRemoteSilent(hex);
+        await buildMasterGrid();
+      }, 1000);
     }, 2000);
     
     return true;
@@ -203,11 +204,11 @@ async function refreshFromRemote(hex, context){
       saveFilesOverride(hex, remote);
       if (context === 'course') {
         if (currentKeyHex === hex) {
-          renderCourse(hex);
+          await renderCourse(hex);
         }
       } else {
         // En master, reconstruir todo el grid
-        buildMasterGrid();
+        await buildMasterGrid();
       }
       return true;
     }
@@ -243,7 +244,7 @@ async function importOverridesFromFile(file){
     Object.entries(data.overrides).forEach(([hex, arr]) => {
       if (ACCESS_HASH_MAP[hex] && Array.isArray(arr)) { saveFilesOverride(hex, arr); count++; }
     });
-    buildMasterGrid();
+    await buildMasterGrid();
     alert(`Importado correctamente (${count} cursos)`);
   } catch (e) {
     alert('No se pudo importar el archivo');
@@ -349,9 +350,19 @@ function runLoader(durationMs = LOAD_DURATION_MS) {
 }
 
 /* ============ render curso (1) ============ */
-function renderCourse(keyHex) {
+async function renderCourse(keyHex) {
   const data = ACCESS_HASH_MAP[keyHex];
   if (!data) return;
+
+  // Primero refrescar desde remoto ANTES de renderizar
+  if (hasRemote()) {
+    try {
+      await refreshFromRemoteSilent(keyHex);
+      console.log('Curso refrescado desde remoto:', keyHex.substring(0,8));
+    } catch (e) {
+      console.warn('Error refrescando curso:', e);
+    }
+  }
 
   $('#courseTitle').textContent = data.title;
   $('#courseMeta').textContent = data.meta || '';
@@ -373,8 +384,6 @@ function renderCourse(keyHex) {
     row.appendChild(btn);
     list.appendChild(row);
   });
-  // refrescar desde remoto (si procede)
-  try { refreshFromRemote(keyHex, 'course'); } catch(e) {}
 
   // Tarjeta imagen
   try {
@@ -393,8 +402,22 @@ function renderCourse(keyHex) {
 }
 
 /* ============ render master ============ */
-function buildMasterGrid() {
+async function buildMasterGrid() {
   const grid = $('#masterGrid');
+  
+  // Primero refrescar desde remoto ANTES de construir
+  if (hasRemote()) {
+    try {
+      const refreshPromises = Object.keys(ACCESS_HASH_MAP)
+        .filter(hex => hex !== MASTER_HASH)
+        .map(hex => refreshFromRemoteSilent(hex));
+      await Promise.all(refreshPromises);
+      console.log('Refresh desde remoto completado');
+    } catch (e) {
+      console.warn('Error en refresh inicial:', e);
+    }
+  }
+  
   grid.innerHTML = '';
 
   Object.entries(ACCESS_HASH_MAP).forEach(([hex, data]) => {
@@ -423,7 +446,7 @@ function buildMasterGrid() {
     open.addEventListener('click', async () => {
       await runLoader();
       currentKeyHex = hex;
-      renderCourse(hex);
+      await renderCourse(hex);
       showContent();
     });
     header.appendChild(t); header.appendChild(open);
@@ -457,12 +480,12 @@ function buildMasterGrid() {
       btnRemove.className = 'btn secondary';
       btnRemove.type = 'button';
       btnRemove.textContent = 'Quitar';
-      btnRemove.addEventListener('click', () => {
+      btnRemove.addEventListener('click', async () => {
         const next = files.slice();
         next.splice(idx, 1);
         saveFilesOverride(hex, next);
         remoteSaveFiles(hex, next);
-        buildMasterGrid();
+        await buildMasterGrid();
       });
 
       actions.appendChild(btnOpen);
@@ -482,7 +505,7 @@ function buildMasterGrid() {
       if (idx != null) { e.dataTransfer?.setData('text/plain', idx); }
     });
     list.addEventListener('dragover', (e) => { e.preventDefault(); });
-    list.addEventListener('drop', (e) => {
+    list.addEventListener('drop', async (e) => {
       e.preventDefault();
       const fromStr = e.dataTransfer?.getData('text/plain');
       const toEl = e.target instanceof HTMLElement ? e.target.closest('.file') : null;
@@ -495,7 +518,7 @@ function buildMasterGrid() {
       next.splice(to, 0, moved);
       saveFilesOverride(hex, next);
       remoteSaveFiles(hex, next);
-      buildMasterGrid();
+      await buildMasterGrid();
     });
 
     // formulario para agregar nuevo link
@@ -524,7 +547,7 @@ function buildMasterGrid() {
     btnAdd.className = 'btn';
     btnAdd.type = 'button';
     btnAdd.textContent = 'Agregar link';
-    btnAdd.addEventListener('click', () => {
+    btnAdd.addEventListener('click', async () => {
       const labelVal = (inputLabel.value || '').trim();
       const urlVal = (inputUrl.value || '').trim();
       if (!labelVal || !urlVal) { alert('Complete etiqueta y URL'); return; }
@@ -532,7 +555,7 @@ function buildMasterGrid() {
       const next = getFilesForHex(hex).concat({ label: labelVal, url: urlVal });
       saveFilesOverride(hex, next);
       remoteSaveFiles(hex, next);
-      buildMasterGrid();
+      await buildMasterGrid();
     });
 
     addRow.appendChild(inputLabel);
@@ -548,11 +571,11 @@ function buildMasterGrid() {
     btnRestore.type = 'button';
     btnRestore.textContent = 'Restaurar enlaces originales';
     btnRestore.style.marginTop = '10px';
-    btnRestore.addEventListener('click', () => {
+    btnRestore.addEventListener('click', async () => {
       if (!confirm('¿Restaurar la lista original de enlaces? Se perderán los cambios locales.')) return;
       clearFilesOverride(hex);
       remoteSaveFiles(hex, getFilesForHex(hex));
-      buildMasterGrid();
+      await buildMasterGrid();
     });
     right.appendChild(btnRestore);
 
@@ -571,22 +594,6 @@ function buildMasterGrid() {
   });
   // herramientas exportar/importar
   try { ensureMasterTools(); } catch(e) {}
-  
-  // Refrescar desde remoto después de construir (para que otros usuarios vean cambios)
-  let rebuildScheduled = false;
-  setTimeout(() => {
-    Promise.all(
-      Object.keys(ACCESS_HASH_MAP)
-        .filter(hex => hex !== MASTER_HASH)
-        .map(hex => refreshFromRemoteSilent(hex))
-    ).then(results => {
-      const anyUpdated = results.some(r => r === true);
-      if (anyUpdated && !rebuildScheduled) {
-        rebuildScheduled = true;
-        buildMasterGrid();
-      }
-    });
-  }, 1000);
 }
 
 async function refreshFromRemoteSilent(hex){
@@ -646,7 +653,7 @@ async function tryLoginByCode(code) {
       try { await runLoader(); } catch (e) {}
       clearAttempts();
       setQueryParam('code', btoa(code));
-      buildMasterGrid();
+      await buildMasterGrid();
       setupMasterSearch();
       $('#year_master').textContent = new Date().getFullYear();
       showMaster();
@@ -659,7 +666,7 @@ async function tryLoginByCode(code) {
       currentKeyHex = hex;
       clearAttempts();
       setQueryParam('code', btoa(code));
-      renderCourse(hex);
+      await renderCourse(hex);
       showContent();
       return true;
     } else {
