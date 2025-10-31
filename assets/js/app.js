@@ -87,7 +87,7 @@ function getFilesForHex(hex){
 }
 
 /* ============ sincronización remota (opcional) ============ */
-const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbxJsFUaeYHwBYjPUOx423GbZyHCTYfrSjCG5_CazsvUaGBAPh4zWOZtKcldbEOesJnk/exec';
+const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbyh0W83ajfJ9Oy-zPImVn_9P3Jmri4DJ60u4d8Rhlhz2HtqRfGqXYk7L41T5p6cunnA/exec';
 function hasRemote(){ return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE_URL.startsWith('http'); }
 function stableStringify(obj){ try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 async function remoteGetFiles(hex){
