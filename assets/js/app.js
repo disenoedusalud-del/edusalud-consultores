@@ -385,16 +385,6 @@ function renderCourse(keyHex) {
   const data = ACCESS_HASH_MAP[keyHex];
   if (!data) return;
 
-  // Refrescar desde remoto en background (sin bloquear)
-  if (hasRemote()) {
-    refreshFromRemoteSilent(keyHex).then(updated => {
-      if (updated) {
-        console.log('Curso actualizado desde remoto, re-renderizando...');
-        renderCourse(keyHex); // Re-renderizar solo si hubo cambios
-      }
-    }).catch(e => console.warn('Error refrescando curso:', e));
-  }
-
   $('#courseTitle').textContent = data.title;
   $('#courseMeta').textContent = data.meta || '';
 
@@ -436,22 +426,6 @@ function renderCourse(keyHex) {
 function buildMasterGrid() {
   const grid = $('#masterGrid');
   grid.innerHTML = '';
-  
-  // Refrescar desde remoto EN PARALELO (sin bloquear la construcción inicial)
-  if (hasRemote()) {
-    // Construir primero con datos locales, luego refrescar en background
-    Promise.all(
-      Object.keys(ACCESS_HASH_MAP)
-        .filter(hex => hex !== MASTER_HASH)
-        .map(hex => refreshFromRemoteSilent(hex))
-    ).then(results => {
-      const anyUpdated = results.some(r => r === true);
-      if (anyUpdated) {
-        console.log('Cambios detectados desde remoto, reconstruyendo...');
-        buildMasterGrid(); // Reconstruir solo si hubo cambios
-      }
-    }).catch(e => console.warn('Error en refresh background:', e));
-  }
 
   Object.entries(ACCESS_HASH_MAP).forEach(([hex, data]) => {
     // excluir el master si algún día lo metes en el mismo objeto
@@ -481,6 +455,19 @@ function buildMasterGrid() {
       currentKeyHex = hex;
       renderCourse(hex);
       showContent();
+      
+      // Refresh diferido desde remoto (sin bloquear carga inicial)
+      if (hasRemote()) {
+        setTimeout(() => {
+          console.log('[SYNC] Iniciando refresh diferido para curso (desde master):', hex.substring(0,8));
+          refreshFromRemoteSilent(hex).then(updated => {
+            if (updated && currentKeyHex === hex) {
+              console.log('[SYNC] Curso actualizado desde remoto, re-renderizando...');
+              renderCourse(hex);
+            }
+          }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
+        }, 1500);
+      }
     });
     header.appendChild(t); header.appendChild(open);
     right.appendChild(header);
@@ -690,6 +677,27 @@ async function tryLoginByCode(code) {
       setupMasterSearch();
       $('#year_master').textContent = new Date().getFullYear();
       showMaster();
+      
+      // Refresh diferido desde remoto (sin bloquear carga inicial)
+      if (hasRemote()) {
+        setTimeout(() => {
+          console.log('[SYNC] Iniciando refresh diferido de todos los cursos...');
+          Promise.all(
+            Object.keys(ACCESS_HASH_MAP)
+              .filter(h => h !== MASTER_HASH)
+              .map(h => refreshFromRemoteSilent(h))
+          ).then(results => {
+            const anyUpdated = results.some(r => r === true);
+            if (anyUpdated) {
+              console.log('[SYNC] Cambios detectados, reconstruyendo grid...');
+              buildMasterGrid(); // Reconstruir solo si hubo cambios
+            } else {
+              console.log('[SYNC] No hay cambios remotos');
+            }
+          }).catch(e => console.warn('[SYNC] Error en refresh diferido:', e));
+        }, 2000); // Esperar 2 segundos después de mostrar la página
+      }
+      
       return true;
     }
 
@@ -701,6 +709,20 @@ async function tryLoginByCode(code) {
       setQueryParam('code', btoa(code));
       renderCourse(hex);
       showContent();
+      
+      // Refresh diferido desde remoto (sin bloquear carga inicial)
+      if (hasRemote()) {
+        setTimeout(() => {
+          console.log('[SYNC] Iniciando refresh diferido para curso:', hex.substring(0,8));
+          refreshFromRemoteSilent(hex).then(updated => {
+            if (updated && currentKeyHex === hex) {
+              console.log('[SYNC] Curso actualizado desde remoto, re-renderizando...');
+              renderCourse(hex);
+            }
+          }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
+        }, 1500); // Esperar 1.5 segundos después de mostrar el curso
+      }
+      
       return true;
     } else {
       const attempts = recordAttempt();
