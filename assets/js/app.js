@@ -90,7 +90,7 @@ function getFilesForHex(hex){
 }
 
 /* ============ sincronización remota (opcional) ============ */
-const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbyJXUjdNbfHGLrkO12vG29iKJ6pnnghic3h738HOp79rW7zUbMx9MrA6uaueChv919H/exec';
+const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbyx0l1-H93a0wfML47fHrMVKA-P-huaBI3npJUepD0UgwxNZZfJEi4EX2B2IaN5Tk4D/exec';
 function hasRemote(){ return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE_URL.startsWith('http'); }
 function stableStringify(obj){ try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 async function remoteGetFiles(hex){
@@ -288,17 +288,43 @@ async function remoteSaveFiles(hex, files){
       if (form.parentNode) document.body.removeChild(form);
       if (iframe.parentNode) document.body.removeChild(iframe);
       
-      // Múltiples intentos de refresh para asegurar sincronización
-      const refreshAttempts = [500, 1500, 3000, 5000];
-      refreshAttempts.forEach(delay => {
-        setTimeout(() => {
-          console.log('[SAVE] Refrescando después de guardar (intento ' + delay + 'ms)...');
-          refreshFromRemoteSilent(hex).then(updated => {
-            if (updated) {
-              console.log('[SAVE] Cambios detectados, reconstruyendo grid...');
+      // Forzar refresh inmediato y múltiples intentos para asegurar sincronización
+      // El refresh inmediato es crítico para que otros navegadores vean los cambios
+      const refreshAttempts = [500, 1000, 2000, 4000];
+      refreshAttempts.forEach((delay, index) => {
+        setTimeout(async () => {
+          console.log(`[SAVE] Refrescando después de guardar (intento ${index + 1}/${refreshAttempts.length} - ${delay}ms)...`);
+          
+          // Forzar lectura desde remoto sin usar caché
+          const remote = await remoteGetFiles(hex).catch(e => {
+            console.warn('[SAVE] Error obteniendo datos remotos:', e);
+            return null;
+          });
+          
+          if (remote && Array.isArray(remote)) {
+            const current = getFilesForHex(hex);
+            const remoteStr = stableStringify(remote);
+            const currentStr = stableStringify(current);
+            
+            console.log('[SAVE] Comparación - Remoto:', remote.length, 'vs Local:', current.length);
+            
+            // SIEMPRE sincronizar con remoto (remoto es la fuente de verdad después de guardar)
+            if (remoteStr !== currentStr) {
+              console.log('[SAVE] ✅ Desincronización detectada, forzando sincronización...');
+              saveFilesOverride(hex, remote);
+              
+              // Si remoto está vacío y hay base, limpiar override
+              const base = getBaseFilesForHex(hex);
+              if (remote.length === 0 && base.length > 0) {
+                clearFilesOverride(hex);
+              }
+              
+              console.log('[SAVE] ✅ Sincronizado, reconstruyendo grid...');
               buildMasterGrid();
+            } else {
+              console.log('[SAVE] ✅ Ya sincronizado');
             }
-          }).catch(e => console.warn('[SAVE] Error en refresh:', e));
+          }
         }, delay);
       });
     }, 2000);
