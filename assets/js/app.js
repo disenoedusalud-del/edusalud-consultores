@@ -531,25 +531,34 @@ function buildMasterGrid() {
     open.type = 'button';
     open.textContent = 'Abrir curso';
     open.addEventListener('click', async () => {
-      // Ejecutar solo el loader (sin esperar refresh)
+      // Iniciar refresh ANTES del loader para que se ejecuten en paralelo
+      let refreshPromise = Promise.resolve(false);
+      if (hasRemote()) {
+        console.log('[SYNC] Iniciando refresh ANTES del loader...');
+        refreshPromise = refreshFromRemoteSilent(hex).catch(e => {
+          console.warn('[SYNC] Error en refresh:', e);
+          return false;
+        });
+      }
+      
+      // Ejecutar loader (y refresh en paralelo, pero no esperamos el refresh)
       await runLoader();
       
       currentKeyHex = hex;
       renderCourse(hex);
       showContent();
       
-      // Refresh en segundo plano (sin bloquear la visualización)
+      // Si el refresh terminó durante el loader, actualizar ahora
+      refreshPromise.then(refreshUpdated => {
+        if (refreshUpdated && currentKeyHex === hex) {
+          console.log('[SYNC] ✅ Actualizando curso con datos remotos obtenidos durante loader...');
+          renderCourse(hex);
+        }
+      }).catch(e => console.warn('[SYNC] Error:', e));
+      
+      // Intentos adicionales rápidos por si el refresh aún no terminó
       if (hasRemote()) {
-        // Iniciar refresh inmediatamente pero sin await
-        refreshFromRemoteSilent(hex).then(updated => {
-          if (updated && currentKeyHex === hex) {
-            console.log('[SYNC] ✅ Curso actualizado desde remoto, re-renderizando...');
-            renderCourse(hex);
-          }
-        }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
-        
-        // Intentos adicionales rápidos por si acaso
-        [300, 800, 1500].forEach((delay, index) => {
+        [200, 500, 1000].forEach((delay, index) => {
           setTimeout(() => {
             refreshFromRemoteSilent(hex).then(updated => {
               if (updated && currentKeyHex === hex) {
@@ -812,7 +821,26 @@ async function tryLoginByCode(code) {
 
     // master
     if (hex === MASTER_HASH) {
-      // Ejecutar solo el loader (sin esperar refresh)
+      // Iniciar refresh ANTES del loader para que se ejecuten en paralelo
+      let refreshPromise = Promise.resolve(false);
+      if (hasRemote()) {
+        console.log('[SYNC] Iniciando refresh de todos los cursos ANTES del loader...');
+        const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
+        refreshPromise = Promise.all(hexes.map(h => refreshFromRemoteSilent(h)))
+          .then(results => {
+            const anyUpdated = results.some(r => r === true);
+            if (anyUpdated) {
+              console.log('[SYNC] ✅ Cambios detectados durante loader');
+            }
+            return anyUpdated;
+          })
+          .catch(e => {
+            console.warn('[SYNC] Error en refresh:', e);
+            return false;
+          });
+      }
+      
+      // Ejecutar loader (y refresh en paralelo, pero no esperamos el refresh)
       try { 
         await runLoader(); 
       } catch (e) {}
@@ -824,22 +852,17 @@ async function tryLoginByCode(code) {
       $('#year_master').textContent = new Date().getFullYear();
       showMaster();
       
-      // Refresh en segundo plano (sin bloquear la visualización)
+      // Si el refresh terminó durante el loader, actualizar ahora
+      refreshPromise.then(refreshUpdated => {
+        if (refreshUpdated) {
+          console.log('[SYNC] ✅ Actualizando grid con datos remotos obtenidos durante loader...');
+          buildMasterGrid();
+        }
+      }).catch(e => console.warn('[SYNC] Error:', e));
+      
+      // Intentos adicionales rápidos por si el refresh aún no terminó
       if (hasRemote()) {
-        // Iniciar refresh inmediatamente pero sin await
-        (async () => {
-          console.log('[SYNC] Refrescando todos los cursos en background...');
-          const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
-          const results = await Promise.all(hexes.map(h => refreshFromRemoteSilent(h)));
-          const anyUpdated = results.some(r => r === true);
-          if (anyUpdated) {
-            console.log('[SYNC] ✅ Cambios detectados, reconstruyendo grid...');
-            buildMasterGrid();
-          }
-        })().catch(e => console.warn('[SYNC] Error:', e));
-        
-        // Intentos adicionales rápidos por si acaso
-        [300, 800, 1500].forEach((delay, index) => {
+        [200, 500, 1000].forEach((delay, index) => {
           setTimeout(async () => {
             console.log(`[SYNC] Verificando datos remotos (intento ${index + 2})...`);
             const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
@@ -858,7 +881,17 @@ async function tryLoginByCode(code) {
 
     // normal
     if (ACCESS_HASH_MAP[hex]) {
-      // Ejecutar solo el loader (sin esperar refresh)
+      // Iniciar refresh ANTES del loader para que se ejecuten en paralelo
+      let refreshPromise = Promise.resolve(false);
+      if (hasRemote()) {
+        console.log('[SYNC] Iniciando refresh ANTES del loader...');
+        refreshPromise = refreshFromRemoteSilent(hex).catch(e => {
+          console.warn('[SYNC] Error en refresh:', e);
+          return false;
+        });
+      }
+      
+      // Ejecutar loader (y refresh en paralelo, pero no esperamos el refresh)
       try { 
         await runLoader(); 
       } catch (e) {}
@@ -869,18 +902,17 @@ async function tryLoginByCode(code) {
       renderCourse(hex);
       showContent();
       
-      // Refresh en segundo plano (sin bloquear la visualización)
+      // Si el refresh terminó durante el loader, actualizar ahora
+      refreshPromise.then(refreshUpdated => {
+        if (refreshUpdated && currentKeyHex === hex) {
+          console.log('[SYNC] ✅ Actualizando curso con datos remotos obtenidos durante loader...');
+          renderCourse(hex);
+        }
+      }).catch(e => console.warn('[SYNC] Error:', e));
+      
+      // Intentos adicionales rápidos por si el refresh aún no terminó
       if (hasRemote()) {
-        // Iniciar refresh inmediatamente pero sin await
-        refreshFromRemoteSilent(hex).then(updated => {
-          if (updated && currentKeyHex === hex) {
-            console.log('[SYNC] ✅ Curso actualizado desde remoto, re-renderizando...');
-            renderCourse(hex);
-          }
-        }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
-        
-        // Intentos adicionales rápidos por si acaso
-        [300, 800, 1500].forEach((delay, index) => {
+        [200, 500, 1000].forEach((delay, index) => {
           setTimeout(() => {
             refreshFromRemoteSilent(hex).then(updated => {
               if (updated && currentKeyHex === hex) {
