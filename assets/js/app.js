@@ -87,19 +87,66 @@ function getFilesForHex(hex){
 }
 
 /* ============ sincronización remota (opcional) ============ */
-const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbyC9JrG9516DPiUEtNhtgDRvGy7pUMorQEQOXt2b0sIuZahiyXkrdIzsOP-df_4qPYh/exec';
+const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbxs6NVR5VkCT2YPYjgWfxOQv2U3LoAq2LSzVt3s4lKo-RSazzBQFR8zMjTrG6VvX1Oy/exec';
 function hasRemote(){ return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE_URL.startsWith('http'); }
 function stableStringify(obj){ try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 async function remoteGetFiles(hex){
   if (!hasRemote()) return null;
   try {
-    const url = new URL(REMOTE_BASE_URL);
-    url.searchParams.set('hex', hex);
-    const res = await fetch(url.toString(), { method:'GET', headers:{ 'Accept':'application/json' } });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return Array.isArray(data?.files) ? data.files : null;
-  } catch (e) { return null; }
+    // Intentar con fetch normal primero
+    const url = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex);
+    const res = await fetch(url, { 
+      method:'GET',
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data?.files)) {
+        console.log('GET exitoso para hex:', hex.substring(0,8), 'files:', data.files.length);
+        return data.files;
+      }
+    } else {
+      console.warn('GET falló con status:', res.status);
+    }
+  } catch (e) {
+    console.warn('Fetch falló, intentando JSONP:', e.message);
+    // Si falla por CORS, intentar con script tag (JSONP)
+    return await remoteGetFilesJSONP(hex);
+  }
+  return null;
+}
+
+function remoteGetFilesJSONP(hex){
+  return new Promise((resolve) => {
+    const callbackName = '_gas_' + Date.now();
+    const script = document.createElement('script');
+    script.src = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex) + '&callback=' + callbackName;
+    
+    window[callbackName] = function(data) {
+      const files = Array.isArray(data?.files) ? data.files : null;
+      document.body.removeChild(script);
+      delete window[callbackName];
+      resolve(files);
+    };
+    
+    script.onerror = () => {
+      document.body.removeChild(script);
+      delete window[callbackName];
+      resolve(null);
+    };
+    
+    // Timeout
+    setTimeout(() => {
+      if (script.parentNode) {
+        document.body.removeChild(script);
+        delete window[callbackName];
+        resolve(null);
+      }
+    }, 5000);
+    
+    document.body.appendChild(script);
+  });
 }
 async function remoteSaveFiles(hex, files){
   if (!hasRemote()) return false;
@@ -131,11 +178,15 @@ async function remoteSaveFiles(hex, files){
     
     form.submit();
     
-    // Limpiar después de enviar
+    // Limpiar después de enviar y forzar refresh
     setTimeout(() => {
       if (form.parentNode) document.body.removeChild(form);
       if (iframe.parentNode) document.body.removeChild(iframe);
-    }, 1500);
+      // Forzar refresh desde remoto después de guardar
+      refreshFromRemote(hex, 'master').then(() => {
+        buildMasterGrid();
+      });
+    }, 2000);
     
     return true;
   } catch (e) { 
@@ -144,19 +195,27 @@ async function remoteSaveFiles(hex, files){
   }
 }
 async function refreshFromRemote(hex, context){
-  const remote = await remoteGetFiles(hex);
-  if (!remote) return false;
-  const current = getFilesForHex(hex);
-  if (stableStringify(remote) !== stableStringify(current)) {
-    saveFilesOverride(hex, remote);
-    if (context === 'course') {
-      if (currentKeyHex === hex) renderCourse(hex);
-    } else {
-      buildMasterGrid();
+  try {
+    const remote = await remoteGetFiles(hex);
+    if (!remote || !Array.isArray(remote)) return false;
+    const current = getFilesForHex(hex);
+    if (stableStringify(remote) !== stableStringify(current)) {
+      saveFilesOverride(hex, remote);
+      if (context === 'course') {
+        if (currentKeyHex === hex) {
+          renderCourse(hex);
+        }
+      } else {
+        // En master, reconstruir todo el grid
+        buildMasterGrid();
+      }
+      return true;
     }
-    return true;
+    return false;
+  } catch (e) {
+    console.warn('Error en refreshFromRemote:', e);
+    return false;
   }
-  return false;
 }
 
 // ===== Exportar / Importar overrides (todas los cursos) =====
@@ -510,9 +569,37 @@ function buildMasterGrid() {
     cardEl.appendChild(right);
     grid.appendChild(cardEl);
   });
-  // herramientas exportar/importar + refresco remoto
+  // herramientas exportar/importar
   try { ensureMasterTools(); } catch(e) {}
-  try { Object.keys(ACCESS_HASH_MAP).forEach(hex => { if (hex !== MASTER_HASH) refreshFromRemote(hex, 'master'); }); } catch(e) {}
+  
+  // Refrescar desde remoto después de construir (para que otros usuarios vean cambios)
+  let rebuildScheduled = false;
+  setTimeout(() => {
+    Promise.all(
+      Object.keys(ACCESS_HASH_MAP)
+        .filter(hex => hex !== MASTER_HASH)
+        .map(hex => refreshFromRemoteSilent(hex))
+    ).then(results => {
+      const anyUpdated = results.some(r => r === true);
+      if (anyUpdated && !rebuildScheduled) {
+        rebuildScheduled = true;
+        buildMasterGrid();
+      }
+    });
+  }, 1000);
+}
+
+async function refreshFromRemoteSilent(hex){
+  try {
+    const remote = await remoteGetFiles(hex);
+    if (!remote || !Array.isArray(remote)) return false;
+    const current = getFilesForHex(hex);
+    if (stableStringify(remote) !== stableStringify(current)) {
+      saveFilesOverride(hex, remote);
+      return true;
+    }
+    return false;
+  } catch (e) { return false; }
 }
 
 function setupMasterSearch(){
