@@ -79,11 +79,14 @@ function saveFilesOverride(hex, files){
 function clearFilesOverride(hex){
   try { localStorage.removeItem(storageKeyFor(hex)); } catch(e) {}
 }
+function getBaseFilesForHex(hex){
+  const base = ACCESS_HASH_MAP[hex]?.files;
+  return Array.isArray(base) ? base.slice() : [];
+}
 function getFilesForHex(hex){
   const override = loadFilesOverride(hex);
   if (override) return override;
-  const base = ACCESS_HASH_MAP[hex]?.files;
-  return Array.isArray(base) ? base.slice() : [];
+  return getBaseFilesForHex(hex);
 }
 
 /* ============ sincronización remota (opcional) ============ */
@@ -745,33 +748,42 @@ async function refreshFromRemoteSilent(hex){
     console.log('[REFRESH] Datos remotos obtenidos:', remote.length, 'archivos');
     
     const current = getFilesForHex(hex);
-    const hasLocalOverride = !!loadFilesOverride(hex); // Verificar si hay datos en localStorage
+    const base = getBaseFilesForHex(hex); // Datos originales del código
     const currentStr = stableStringify(current);
     const remoteStr = stableStringify(remote);
+    const baseStr = stableStringify(base);
     
-    // Si remoto está vacío:
-    // - Si hay datos en localStorage, no sobrescribir (remoto puede no estar sincronizado aún)
-    // - Si NO hay localStorage (modo incógnito), usar datos originales del código como fallback
-    if (remote.length === 0) {
-      if (hasLocalOverride && current.length > 0) {
-        console.log('[REFRESH] ⚠️ Remoto vacío pero hay datos en localStorage, manteniendo locales');
-        return false;
-      }
-      // En modo incógnito sin localStorage, remoto vacío significa que no hay datos guardados aún
-      // No sobrescribir, dejar que use los datos originales del código
-      console.log('[REFRESH] ⚠️ Remoto vacío y sin localStorage, usando datos originales del código');
-      return false;
-    }
-    
-    // Si hay datos remotos y son diferentes, actualizar
+    // Comparar directamente: si remoto es diferente a local, actualizar SIEMPRE
+    // Esto asegura que los cambios remotos (incluido borrar) siempre se sincronicen
     if (remoteStr !== currentStr) {
       console.log('[REFRESH] ✅ Cambios detectados! Guardando...');
-      console.log('[REFRESH] Antes:', current.length, 'archivos');
-      console.log('[REFRESH] Después:', remote.length, 'archivos');
+      console.log('[REFRESH] Remoto:', remote.length, 'archivos');
+      console.log('[REFRESH] Local:', current.length, 'archivos');
+      console.log('[REFRESH] Base:', base.length, 'archivos');
+      
+      // Guardar en localStorage (esto sincroniza con remoto)
       saveFilesOverride(hex, remote);
+      
+      // Si remoto está vacío y base tiene enlaces, significa que se restauraron los enlaces base
+      // En ese caso, limpiar el override para que use los datos base
+      if (remote.length === 0 && base.length > 0) {
+        console.log('[REFRESH] Remoto vacío pero base tiene enlaces, limpiando override para usar base');
+        clearFilesOverride(hex);
+      }
+      
       return true;
     } else {
       console.log('[REFRESH] Sin cambios, datos iguales');
+      
+      // Caso especial: si remoto está vacío y local tiene más que base,
+      // significa que local tiene overrides pero remoto dice que no hay
+      // Esto puede pasar si el usuario borró enlaces y remoto se sincronizó
+      if (remote.length === 0 && current.length > base.length) {
+        console.log('[REFRESH] ⚠️ Remoto vacío pero local tiene overrides, limpiando...');
+        clearFilesOverride(hex);
+        return true;
+      }
+      
       return false;
     }
   } catch (e) { 
