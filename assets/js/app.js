@@ -420,16 +420,78 @@ function showAccess() {
   $('#content').classList.add('hidden');
   $('#master').classList.add('hidden');
   $('#code').focus();
+  // Detener refresh periódico cuando vuelves al acceso
+  stopPeriodicRefresh();
 }
+// Sistema de refresh periódico para sincronización en tiempo real
+let periodicRefreshInterval = null;
+const PERIODIC_REFRESH_INTERVAL_MS = 10000; // 10 segundos
+
+function startPeriodicRefresh(currentHex = null) {
+  // Detener cualquier refresh periódico existente
+  stopPeriodicRefresh();
+  
+  if (!hasRemote()) return;
+  
+  console.log('[PERIODIC] Iniciando refresh periódico cada', PERIODIC_REFRESH_INTERVAL_MS / 1000, 'segundos');
+  
+  periodicRefreshInterval = setInterval(async () => {
+    try {
+      if (currentHex === MASTER_HASH) {
+        // Refresh de todos los cursos para vista maestra
+        console.log('[PERIODIC] Refrescando todos los cursos...');
+        const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
+        const results = await Promise.allSettled(
+          hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
+            console.warn('[PERIODIC] Error refrescando', h.substring(0, 8), ':', e);
+            return false;
+          }))
+        );
+        const anyUpdated = results.some(r => 
+          r.status === 'fulfilled' && r.value === true
+        );
+        if (anyUpdated) {
+          console.log('[PERIODIC] ✅ Cambios detectados, actualizando vista...');
+          buildMasterGrid();
+        }
+      } else if (currentHex && ACCESS_HASH_MAP[currentHex]) {
+        // Refresh del curso actual
+        console.log('[PERIODIC] Refrescando curso actual...');
+        const updated = await refreshFromRemoteSilent(currentHex).catch(e => {
+          console.warn('[PERIODIC] Error:', e);
+          return false;
+        });
+        if (updated) {
+          console.log('[PERIODIC] ✅ Cambios detectados, actualizando vista...');
+          renderCourse(currentHex);
+        }
+      }
+    } catch (e) {
+      console.warn('[PERIODIC] Error en refresh periódico:', e);
+    }
+  }, PERIODIC_REFRESH_INTERVAL_MS);
+}
+
+function stopPeriodicRefresh() {
+  if (periodicRefreshInterval) {
+    console.log('[PERIODIC] Deteniendo refresh periódico');
+    clearInterval(periodicRefreshInterval);
+    periodicRefreshInterval = null;
+  }
+}
+
 function showContent() {
   $('#access').classList.add('hidden');
   $('#content').classList.remove('hidden');
   $('#master').classList.add('hidden');
+  // No iniciar refresh periódico aquí, se inicia cuando se renderiza el curso
 }
 function showMaster() {
   $('#access').classList.add('hidden');
   $('#content').classList.add('hidden');
   $('#master').classList.remove('hidden');
+  // Iniciar refresh periódico para vista maestra
+  startPeriodicRefresh(MASTER_HASH);
 }
 
 /* ============ loader ============ */
@@ -503,6 +565,9 @@ function renderCourse(keyHex) {
       }
     }
   } catch (e) { console.warn('No se pudo insertar la tarjeta:', e); }
+  
+  // Iniciar refresh periódico para este curso
+  startPeriodicRefresh(keyHex);
 }
 
 /* ============ render master ============ */
