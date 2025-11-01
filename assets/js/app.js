@@ -531,6 +531,15 @@ function showMaster() {
   // Refresh inmediato adicional para limpiar datos obsoletos al abrir
   if (hasRemote()) {
     setTimeout(async () => {
+      // ✅ Verificar si hay un input enfocado (usuario escribiendo)
+      const activeElement = document.activeElement;
+      const isInputFocused = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
+      
+      if (isInputFocused) {
+        console.log('[SYNC] ⏭️ Saltando refresh inmediato: usuario escribiendo');
+        return;
+      }
+      
       console.log('[SYNC] Refresh inmediato adicional al mostrar master...');
       const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
       const results = await Promise.allSettled(
