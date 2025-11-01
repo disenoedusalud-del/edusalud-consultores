@@ -716,8 +716,15 @@ function buildMasterGrid() {
       btnEdit.type = 'button';
       btnEdit.textContent = 'Editar';
       btnEdit.addEventListener('click', () => {
+        // ✅ Verificar si ya hay un formulario de edición abierto
+        if (row.querySelector('[data-edit-form]')) {
+          console.log('Formulario de edición ya abierto, ignorando...');
+          return;
+        }
+        
         // Crear inputs temporales para editar
         const editWrap = document.createElement('div');
+        editWrap.dataset.editForm = 'true'; // Marcar para evitar duplicados
         editWrap.style.cssText = 'display:flex; flex-direction:column; gap:8px; margin-top:8px; padding:12px; background:#0e1630; border:1px solid rgba(255,255,255,.1); border-radius:8px;';
         
         const editLabel = document.createElement('input');
