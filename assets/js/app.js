@@ -463,6 +463,15 @@ function startPeriodicRefresh(currentHex = null) {
   
   periodicRefreshInterval = setInterval(async () => {
     try {
+      // ✅ Verificar si hay un input enfocado (usuario escribiendo)
+      const activeElement = document.activeElement;
+      const isInputFocused = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
+      
+      if (isInputFocused) {
+        console.log('[PERIODIC] ⏭️ Saltando refresh: usuario escribiendo');
+        return;
+      }
+      
       if (currentHex === MASTER_HASH) {
         // Refresh de todos los cursos para vista maestra
         console.log('[PERIODIC] Refrescando todos los cursos...');
