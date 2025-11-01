@@ -711,6 +711,72 @@ function buildMasterGrid() {
       btnOpen.textContent = 'Descargar';
       btnOpen.addEventListener('click', () => downloadFile(item.url));
 
+      const btnEdit = document.createElement('button');
+      btnEdit.className = 'btn secondary';
+      btnEdit.type = 'button';
+      btnEdit.textContent = 'Editar';
+      btnEdit.addEventListener('click', () => {
+        // Crear inputs temporales para editar
+        const editWrap = document.createElement('div');
+        editWrap.style.cssText = 'display:flex; flex-direction:column; gap:8px; margin-top:8px; padding:12px; background:#0e1630; border:1px solid rgba(255,255,255,.1); border-radius:8px;';
+        
+        const editLabel = document.createElement('input');
+        editLabel.type = 'text';
+        editLabel.value = item.label;
+        editLabel.className = 'input';
+        editLabel.placeholder = 'Etiqueta';
+        
+        const editUrl = document.createElement('input');
+        editUrl.type = 'url';
+        editUrl.value = item.url;
+        editUrl.className = 'input';
+        editUrl.placeholder = 'URL';
+        
+        const editActions = document.createElement('div');
+        editActions.style.cssText = 'display:flex; gap:8px;';
+        
+        const btnSave = document.createElement('button');
+        btnSave.className = 'btn';
+        btnSave.textContent = 'Guardar';
+        btnSave.addEventListener('click', async () => {
+          const newLabel = editLabel.value.trim();
+          const newUrl = editUrl.value.trim();
+          if (!newLabel || !newUrl) {
+            alert('Complete etiqueta y URL');
+            return;
+          }
+          try {
+            new URL(newUrl);
+          } catch {
+            alert('URL inválida');
+            return;
+          }
+          
+          const next = files.slice();
+          next[idx] = { label: newLabel, url: newUrl };
+          saveFilesOverride(hex, next);
+          remoteSaveFiles(hex, next);
+          buildMasterGrid();
+        });
+        
+        const btnCancel = document.createElement('button');
+        btnCancel.className = 'btn secondary';
+        btnCancel.textContent = 'Cancelar';
+        btnCancel.addEventListener('click', () => {
+          row.removeChild(editWrap);
+        });
+        
+        editActions.appendChild(btnSave);
+        editActions.appendChild(btnCancel);
+        editWrap.appendChild(editLabel);
+        editWrap.appendChild(editUrl);
+        editWrap.appendChild(editActions);
+        row.appendChild(editWrap);
+        
+        // Enfocar el primer input
+        setTimeout(() => editLabel.focus(), 100);
+      });
+
       const btnRemove = document.createElement('button');
       btnRemove.className = 'btn secondary';
       btnRemove.type = 'button';
@@ -724,6 +790,7 @@ function buildMasterGrid() {
       });
 
       actions.appendChild(btnOpen);
+      actions.appendChild(btnEdit);
       actions.appendChild(btnRemove);
 
       row.appendChild(leftInfo);
