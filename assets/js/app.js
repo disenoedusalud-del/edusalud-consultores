@@ -716,15 +716,19 @@ function buildMasterGrid() {
       btnEdit.type = 'button';
       btnEdit.textContent = 'Editar';
       btnEdit.addEventListener('click', () => {
-        // ✅ Verificar si ya hay un formulario de edición abierto
-        if (row.querySelector('[data-edit-form]')) {
-          console.log('Formulario de edición ya abierto, ignorando...');
-          return;
-        }
+        // ✅ Deshabilitar los 3 botones principales
+        btnOpen.disabled = true;
+        btnEdit.disabled = true;
+        btnRemove.disabled = true;
+        btnOpen.style.opacity = '0.5';
+        btnEdit.style.opacity = '0.5';
+        btnRemove.style.opacity = '0.5';
+        btnOpen.style.cursor = 'not-allowed';
+        btnEdit.style.cursor = 'not-allowed';
+        btnRemove.style.cursor = 'not-allowed';
         
         // Crear inputs temporales para editar
         const editWrap = document.createElement('div');
-        editWrap.dataset.editForm = 'true'; // Marcar para evitar duplicados
         editWrap.style.cssText = 'display:flex; flex-direction:column; gap:8px; margin-top:8px; padding:12px; background:#0e1630; border:1px solid rgba(255,255,255,.1); border-radius:8px;';
         
         const editLabel = document.createElement('input');
@@ -770,6 +774,17 @@ function buildMasterGrid() {
         btnCancel.className = 'btn secondary';
         btnCancel.textContent = 'Cancelar';
         btnCancel.addEventListener('click', () => {
+          // ✅ Restaurar los 3 botones principales
+          btnOpen.disabled = false;
+          btnEdit.disabled = false;
+          btnRemove.disabled = false;
+          btnOpen.style.opacity = '';
+          btnEdit.style.opacity = '';
+          btnRemove.style.opacity = '';
+          btnOpen.style.cursor = '';
+          btnEdit.style.cursor = '';
+          btnRemove.style.cursor = '';
+          
           row.removeChild(editWrap);
         });
         
@@ -1243,4 +1258,5 @@ window.testGET = async function(hex) {
     return null;
   }
 };
+
 
