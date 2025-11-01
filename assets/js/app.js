@@ -463,12 +463,13 @@ function startPeriodicRefresh(currentHex = null) {
   
   periodicRefreshInterval = setInterval(async () => {
     try {
-      // ✅ Verificar si hay un input enfocado (usuario escribiendo)
+      // ✅ Verificar si hay un input enfocado O un formulario de edición abierto
       const activeElement = document.activeElement;
       const isInputFocused = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
+      const hasEditFormOpen = document.querySelector('[data-edit-form]') !== null;
       
-      if (isInputFocused) {
-        console.log('[PERIODIC] ⏭️ Saltando refresh: usuario escribiendo');
+      if (isInputFocused || hasEditFormOpen) {
+        console.log('[PERIODIC] ⏭️ Saltando refresh: usuario escribiendo o editando');
         return;
       }
       
@@ -531,12 +532,13 @@ function showMaster() {
   // Refresh inmediato adicional para limpiar datos obsoletos al abrir
   if (hasRemote()) {
     setTimeout(async () => {
-      // ✅ Verificar si hay un input enfocado (usuario escribiendo)
+      // ✅ Verificar si hay un input enfocado O un formulario de edición abierto
       const activeElement = document.activeElement;
       const isInputFocused = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
+      const hasEditFormOpen = document.querySelector('[data-edit-form]') !== null;
       
-      if (isInputFocused) {
-        console.log('[SYNC] ⏭️ Saltando refresh inmediato: usuario escribiendo');
+      if (isInputFocused || hasEditFormOpen) {
+        console.log('[SYNC] ⏭️ Saltando refresh inmediato: usuario escribiendo o editando');
         return;
       }
       
@@ -729,6 +731,7 @@ function buildMasterGrid() {
         
         // Crear inputs temporales para editar
         const editWrap = document.createElement('div');
+        editWrap.dataset.editForm = 'true'; // Marcar para evitar refreshes
         editWrap.style.cssText = 'display:flex; flex-direction:column; gap:8px; margin-top:8px; padding:12px; background:#0e1630; border:1px solid rgba(255,255,255,.1); border-radius:8px;';
         
         const editLabel = document.createElement('input');
