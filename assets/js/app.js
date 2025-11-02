@@ -704,6 +704,31 @@ async function refreshCustomCourses(){
       console.warn('[REFRESH] ⚠️ No se pudieron guardar cursos (modo incógnito?), continuando...', e);
     }
     
+    // ✅ IMPORTANTE: Refrescar también los archivos de los cursos personalizados
+    // Esto asegura que los URLs agregados se vean en otros dispositivos
+    const customHexes = Object.keys(remoteCourses || {});
+    if (customHexes.length > 0) {
+      console.log('[REFRESH] Refrescando archivos de', customHexes.length, 'cursos personalizados...');
+      // Refrescar archivos en background (no bloquear)
+      Promise.allSettled(
+        customHexes.map(hex => 
+          refreshFromRemoteSilent(hex).catch(e => {
+            console.warn('[REFRESH] Error refrescando archivos de curso', hex.substring(0, 8) + '...', e);
+            return false;
+          })
+        )
+      ).then(results => {
+        const successful = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+        console.log('[REFRESH] ✅ Archivos refrescados:', successful, 'de', customHexes.length, 'cursos personalizados');
+        
+        // Si estamos viendo un curso personalizado, actualizar la vista
+        if (currentKeyHex && customHexes.includes(currentKeyHex)) {
+          console.log('[REFRESH] Actualizando vista del curso personalizado actual...');
+          renderCourse(currentKeyHex);
+        }
+      });
+    }
+    
     // Si estamos en vista master, reconstruir SOLO si hubo cambios
     if (hadChanges && document.getElementById('master') && !document.getElementById('master').classList.contains('hidden')) {
       console.log('[REFRESH] ✅ Cambios detectados, reconstruyendo Vista Maestra...');
@@ -1016,6 +1041,21 @@ function renderCourse(keyHex) {
   
   // Iniciar refresh periódico para este curso
   startPeriodicRefresh(keyHex);
+  
+  // ✅ Si es un curso personalizado, refrescar archivos inmediatamente al abrir
+  if (isCustomCourse(keyHex) && hasRemote()) {
+    console.log('[RENDER] Curso personalizado detectado, refrescando archivos...');
+    refreshFromRemoteSilent(keyHex).then(updated => {
+      if (updated) {
+        console.log('[RENDER] ✅ Archivos actualizados, re-renderizando...');
+        renderCourse(keyHex); // Re-renderizar con los archivos actualizados
+      } else {
+        console.log('[RENDER] Archivos ya están actualizados');
+      }
+    }).catch(e => {
+      console.warn('[RENDER] Error refrescando archivos:', e);
+    });
+  }
 }
 
 /* ============ render master ============ */
