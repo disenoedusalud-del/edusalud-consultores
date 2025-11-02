@@ -330,8 +330,8 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // GitHub Pages con subdirectorio
-        const swPath = '/edusalud-consultores/assets/js/sw.js';
-        navigator.serviceWorker.register(swPath, { scope: '/edusalud-consultores/' })
+        const swPath = '/edusalud-consultores/sw.js';
+        navigator.serviceWorker.register(swPath)
           .then((registration) => {
             console.log('[SW] ✅ Registrado correctamente:', registration.scope);
           })
