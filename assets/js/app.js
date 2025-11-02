@@ -582,12 +582,15 @@ async function refreshCustomCourses(){
   try {
     console.log('[REFRESH] Obteniendo cursos personalizados remotos...');
     const remoteCourses = await remoteGetCourses();
-    if (Object.keys(remoteCourses).length > 0) {
-      // Mezclar con cursos locales
-      const localCourses = loadCustomCourses();
-      const merged = Object.assign({}, localCourses, remoteCourses);
-      saveCustomCourses(merged);
-      console.log('[REFRESH] ✅ Cursos sincronizados');
+    
+    // ✅ Remoto es la fuente de verdad - sobrescribir completamente
+    const localCourses = loadCustomCourses();
+    const remoteKeys = Object.keys(remoteCourses);
+    
+    if (remoteKeys.length > 0 || Object.keys(localCourses).length > 0) {
+      // Guardar solo los cursos remotos (remoto es la fuente de verdad)
+      saveCustomCourses(remoteCourses);
+      console.log('[REFRESH] ✅ Cursos sincronizados, remoto:', remoteKeys.length, 'locales:', Object.keys(localCourses).length);
       
       // Si estamos en vista master, reconstruir
       if (document.getElementById('master') && !document.getElementById('master').classList.contains('hidden')) {
@@ -726,6 +729,10 @@ function startPeriodicRefresh(currentHex = null) {
         const anyUpdated = results.some(r => 
           r.status === 'fulfilled' && r.value === true
         );
+        
+        // ✅ NUEVO: También refrescar cursos personalizados
+        await refreshCustomCourses();
+        
         if (anyUpdated) {
           console.log('[PERIODIC] ✅ Cambios detectados, actualizando vista...');
           buildMasterGrid();
@@ -793,6 +800,10 @@ function showMaster() {
       const anyUpdated = results.some(r => 
         r.status === 'fulfilled' && r.value === true
       );
+      
+      // ✅ NUEVO: También refrescar cursos personalizados
+      await refreshCustomCourses();
+      
       if (anyUpdated) {
         console.log('[SYNC] ✅ Cambios detectados en refresh inmediato, actualizando...');
         buildMasterGrid();
