@@ -796,9 +796,12 @@ function startPeriodicRefresh(currentHex = null) {
       }
       
       if (currentHex === MASTER_HASH) {
-        // Refresh de todos los cursos para vista maestra
+        // Refresh de todos los cursos para vista maestra (incluye personalizados)
         console.log('[PERIODIC] Refrescando todos los cursos...');
-        const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
+        const mergedMap = getMergedAccessHashMap();
+        const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
+        console.log('[PERIODIC] Total cursos a refrescar (base + personalizados):', hexes.length);
+        
         const results = await Promise.allSettled(
           hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
             console.warn('[PERIODIC] Error refrescando', h.substring(0, 8), ':', e);
@@ -809,23 +812,27 @@ function startPeriodicRefresh(currentHex = null) {
           r.status === 'fulfilled' && r.value === true
         );
         
-        // ✅ NUEVO: También refrescar cursos personalizados
+        // ✅ También refrescar cursos personalizados (para nuevos cursos, no solo archivos)
         await refreshCustomCourses();
         
         if (anyUpdated) {
           console.log('[PERIODIC] ✅ Cambios detectados, actualizando vista...');
           buildMasterGrid();
         }
-      } else if (currentHex && ACCESS_HASH_MAP[currentHex]) {
-        // Refresh del curso actual
-        console.log('[PERIODIC] Refrescando curso actual...');
-        const updated = await refreshFromRemoteSilent(currentHex).catch(e => {
-          console.warn('[PERIODIC] Error:', e);
-          return false;
-        });
-        if (updated) {
-          console.log('[PERIODIC] ✅ Cambios detectados, actualizando vista...');
-          renderCourse(currentHex);
+      } else if (currentHex) {
+        // ✅ Refresh del curso actual (incluye cursos personalizados)
+        // Verificar si es curso base o personalizado usando mergedMap
+        const mergedMap = getMergedAccessHashMap();
+        if (mergedMap[currentHex]) {
+          console.log('[PERIODIC] Refrescando curso actual (hex:', currentHex.substring(0, 8) + ')...');
+          const updated = await refreshFromRemoteSilent(currentHex).catch(e => {
+            console.warn('[PERIODIC] Error:', e);
+            return false;
+          });
+          if (updated) {
+            console.log('[PERIODIC] ✅ Cambios detectados en archivos, actualizando vista...');
+            renderCourse(currentHex);
+          }
         }
       }
     } catch (e) {
@@ -1256,6 +1263,10 @@ function buildMasterGrid() {
       
       saveFilesOverride(hex, next);
       remoteSaveFiles(hex, next);
+      
+      // ✅ Log informativo: El refresh periódico (cada 3 seg) detectará los cambios automáticamente
+      console.log('[ADD] ✅ Archivo guardado localmente y en remoto. Otros dispositivos lo verán en el próximo refresh (máx 3 segundos)');
+      
       buildMasterGrid();
     });
 
