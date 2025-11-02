@@ -9,8 +9,8 @@ const BASE_PATH = '/edusalud-consultores';
 const STATIC_ASSETS = [
   BASE_PATH + '/',
   BASE_PATH + '/index.html',
-  BASE_PATH + '/assets/js/app.js?v=7',
-  BASE_PATH + '/assets/js/electric-card.js?v=3',
+  BASE_PATH + '/assets/js/electric-card.js',
+  BASE_PATH + '/assets/js/app.js',
   BASE_PATH + '/assets/logo-edusalud.png',
   BASE_PATH + '/assets/static-assets-amico.png',
   BASE_PATH + '/assets/asset-selection-cuate.png',
@@ -176,5 +176,4 @@ self.addEventListener('message', (event) => {
 });
 
 console.log('[SW] Service Worker cargado');
-
 
