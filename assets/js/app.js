@@ -80,6 +80,32 @@ const ACCESS_HASH_MAP = {
   }
 };
 
+/* ============ persistencia de cursos personalizados ============ */
+const CUSTOM_COURSES_KEY = 'edusalud_custom_courses';
+function loadCustomCourses(){
+  try {
+    const raw = localStorage.getItem(CUSTOM_COURSES_KEY);
+    const obj = raw ? JSON.parse(raw) : null;
+    return typeof obj === 'object' && obj !== null ? obj : {};
+  } catch (e) { return {}; }
+}
+function saveCustomCourses(courses){
+  try {
+    localStorage.setItem(CUSTOM_COURSES_KEY, JSON.stringify(courses || {}));
+  } catch (e) {}
+}
+function getMergedAccessHashMap(){
+  const base = ACCESS_HASH_MAP;
+  const custom = loadCustomCourses();
+  // Combinar base con custom
+  return Object.assign({}, base, custom);
+}
+function addCustomCourse(hex, courseData){
+  const custom = loadCustomCourses();
+  custom[hex] = courseData;
+  saveCustomCourses(custom);
+}
+
 /* ============ persistencia de enlaces por curso ============ */
 const FILES_STORAGE_PREFIX = 'edusalud_files_';
 function storageKeyFor(hex){ return FILES_STORAGE_PREFIX + hex; }
@@ -613,7 +639,8 @@ function runLoader(durationMs = LOAD_DURATION_MS) {
 
 /* ============ render curso (1) ============ */
 function renderCourse(keyHex) {
-  const data = ACCESS_HASH_MAP[keyHex];
+  const mergedMap = getMergedAccessHashMap();
+  const data = mergedMap[keyHex];
   if (!data) return;
 
   $('#courseTitle').textContent = data.title;
@@ -661,7 +688,8 @@ function buildMasterGrid() {
   const grid = $('#masterGrid');
   grid.innerHTML = '';
 
-  Object.entries(ACCESS_HASH_MAP).forEach(([hex, data]) => {
+  const mergedMap = getMergedAccessHashMap();
+  Object.entries(mergedMap).forEach(([hex, data]) => {
     // excluir el master si algún día lo metes en el mismo objeto
     if (hex === MASTER_HASH) return;
 
@@ -1086,7 +1114,8 @@ async function tryLoginByCode(code) {
       // ✅ NUEVO: Esperar a que termine el refresh ANTES de cerrar el loader
       if (hasRemote()) {
         console.log('[SYNC] Iniciando refresh de todos los cursos...');
-        const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
+        const mergedMap = getMergedAccessHashMap();
+        const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
         console.log('[SYNC] Total de cursos a refrescar:', hexes.length);
         
         // Iniciar refresh
@@ -1141,7 +1170,8 @@ async function tryLoginByCode(code) {
     }
 
     // normal
-    if (ACCESS_HASH_MAP[hex]) {
+    const mergedMap = getMergedAccessHashMap();
+    if (mergedMap[hex]) {
       // Mostrar loader inmediatamente
       showLoader();
       
@@ -1168,7 +1198,7 @@ async function tryLoginByCode(code) {
       
       // ✅ Google Analytics: Tracking login exitoso curso
       if (typeof gtag !== 'undefined') {
-        const courseData = ACCESS_HASH_MAP[hex];
+        const courseData = mergedMap[hex];
         gtag('event', 'login_success_course', {
           'event_category': 'authentication',
           'event_label': courseData.card?.tag || 'unknown'
@@ -1233,6 +1263,135 @@ $('#btn-master-copy').addEventListener('click', async () => {
     prompt('Copie este enlace:', url.toString());
   }
 });
+
+// Modal agregar curso
+const modalAddCourse = $('#modalAddCourse');
+const modalClose = $('#modalAddCourseClose');
+const btnAddCourse = $('#btn-add-course');
+const formAddCourse = $('#formAddCourse');
+const inputCourseAccent = $('#inputCourseAccent');
+const inputCourseAccentHex = $('#inputCourseAccentHex');
+
+// Sincronizar color picker con input hex
+if (inputCourseAccent && inputCourseAccentHex) {
+  inputCourseAccent.addEventListener('input', (e) => {
+    inputCourseAccentHex.value = e.target.value;
+  });
+  inputCourseAccentHex.addEventListener('input', (e) => {
+    const val = e.target.value;
+    if (val.match(/^#[0-9A-Fa-f]{6}$/)) {
+      inputCourseAccent.value = val;
+    }
+  });
+}
+
+// Abrir modal
+if (btnAddCourse) {
+  btnAddCourse.addEventListener('click', () => {
+    modalAddCourse.classList.add('show');
+  });
+}
+
+// Cerrar modal
+if (modalClose) {
+  modalClose.addEventListener('click', () => {
+    modalAddCourse.classList.remove('show');
+  });
+}
+
+$('#btnCancelAddCourse')?.addEventListener('click', () => {
+  modalAddCourse.classList.remove('show');
+});
+
+// Submit formulario
+if (formAddCourse) {
+  formAddCourse.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const title = $('#inputCourseTitle').value.trim();
+    const meta = $('#inputCourseMeta').value.trim();
+    const imageUrl = $('#inputCourseImage').value.trim();
+    const tag = $('#inputCourseTag').value.trim().toUpperCase();
+    const variant = $('#selectCourseVariant').value;
+    const accent = $('#inputCourseAccent').value;
+    const code = $('#inputCourseCode').value.trim();
+    
+    // Validaciones
+    if (!title || !meta || !imageUrl || !tag || !code) {
+      alert('Complete todos los campos');
+      return;
+    }
+    
+    // Validar URL de imagen
+    try {
+      new URL(imageUrl);
+    } catch {
+      alert('URL de imagen inválida');
+      return;
+    }
+    
+    // Verificar que el código no exista
+    const existingCourses = getMergedAccessHashMap();
+    const hex = await sha256Hex(code);
+    if (existingCourses[hex]) {
+      alert('Este código ya existe. Use otro.');
+      return;
+    }
+    
+    // Verificar que el tag sea único
+    const tags = Object.values(existingCourses).map(c => c.card?.tag?.toUpperCase());
+    if (tags.includes(tag)) {
+      alert('Este tag ya está en uso. Use otro.');
+      return;
+    }
+    
+    // Crear datos del curso
+    const courseData = {
+      title: title,
+      meta: meta,
+      files: [],
+      card: {
+        img: imageUrl,
+        tag: tag,
+        variant: variant,
+        seed: Math.floor(Math.random() * 100),
+        accent: accent
+      }
+    };
+    
+    // Guardar curso
+    addCustomCourse(hex, courseData);
+    
+    // Analytics tracking
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'course_created', {
+        'event_category': 'management',
+        'event_label': tag
+      });
+    }
+    
+    // Cerrar modal y recargar grid
+    modalAddCourse.classList.remove('show');
+    formAddCourse.reset();
+    inputCourseAccent.value = '#5aa9ff';
+    inputCourseAccentHex.value = '#5aa9ff';
+    
+    // Reconstruir grid
+    buildMasterGrid();
+    
+    // Mostrar mensaje de éxito
+    alert(`✅ Curso "${tag}" creado exitosamente.\n\nCódigo para acceder: ${code}`);
+  });
+}
+
+// Cerrar modal al hacer click fuera
+if (modalAddCourse) {
+  modalAddCourse.addEventListener('click', (e) => {
+    if (e.target === modalAddCourse) {
+      modalAddCourse.classList.remove('show');
+    }
+  });
+}
 
 /* ============ init ============ */
 (async function init(){
