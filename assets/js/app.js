@@ -143,12 +143,22 @@ async function loadRemoteCoursesOnInit(){
     // No bloquear la carga si falla
   }
 }
-function addCustomCourse(hex, courseData){
+async function addCustomCourse(hex, courseData){
   const custom = loadCustomCourses();
   custom[hex] = courseData;
   saveCustomCourses(custom);
-  // ✅ Guardar también en remoto
-  remoteSaveCourse(hex, courseData);
+  // ✅ Guardar también en remoto (esperar confirmación)
+  const saveResult = await remoteSaveCourse(hex, courseData).catch(e => {
+    console.error('[ADD COURSE] ❌ Error guardando curso en remoto:', e);
+    alert('⚠️ Error al guardar curso en remoto. El curso está guardado localmente pero no se sincronizará.');
+    return false;
+  });
+  
+  if (saveResult) {
+    console.log('[ADD COURSE] ✅ Curso guardado en remoto correctamente');
+  } else {
+    console.warn('[ADD COURSE] ⚠️ No se pudo guardar en remoto (continuando de todas formas)');
+  }
 }
 function removeCustomCourse(hex){
   const custom = loadCustomCourses();
@@ -450,20 +460,32 @@ async function refreshFromRemote(hex, context){
 
 // ===== Sincronización remota de cursos personalizados =====
 async function remoteSaveCourse(hex, courseData){
-  if (!hasRemote()) return false;
+  if (!hasRemote()) {
+    console.warn('[COURSE SAVE] ⚠️ No hay remoto configurado');
+    return false;
+  }
   try {
     const courseJson = JSON.stringify(courseData);
     console.log('[COURSE SAVE] Enviando curso a remoto - hex:', hex.substring(0,8));
+    console.log('[COURSE SAVE] Datos del curso:', courseJson.substring(0, 100) + '...');
+    console.log('[COURSE SAVE] URL remoto:', REMOTE_BASE_URL);
+    
+    // ✅ Validar que tenemos los datos necesarios
+    if (!hex || !courseJson || courseJson === '{}') {
+      console.error('[COURSE SAVE] ❌ Datos inválidos: hex o courseData vacíos');
+      return false;
+    }
     
     const iframe = document.createElement('iframe');
-    iframe.name = 'hiddenFrameCourse';
+    iframe.name = 'hiddenFrameCourse_' + Date.now();
     iframe.style.display = 'none';
     document.body.appendChild(iframe);
     
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = REMOTE_BASE_URL;
-    form.target = 'hiddenFrameCourse';
+    form.target = iframe.name;
+    form.enctype = 'application/x-www-form-urlencoded'; // ✅ Agregar enctype
     
     const hexInput = document.createElement('input');
     hexInput.type = 'hidden';
@@ -479,17 +501,33 @@ async function remoteSaveCourse(hex, courseData){
     form.appendChild(courseInput);
     document.body.appendChild(form);
     
+    console.log('[COURSE SAVE] Formulario creado, enviando...');
     form.submit();
-    console.log('[COURSE SAVE] ✅ Curso enviado a remoto');
+    console.log('[COURSE SAVE] ✅ Formulario enviado a:', REMOTE_BASE_URL);
     
+    // ✅ Esperar un momento para asegurar que el formulario se envió
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Limpiar después de enviar (pero mantener iframe para no interrumpir el envío)
     setTimeout(() => {
-      if (form.parentNode) document.body.removeChild(form);
-      if (iframe.parentNode) document.body.removeChild(iframe);
-    }, 2000);
+      try {
+        if (form.parentNode) document.body.removeChild(form);
+      } catch (e) {
+        console.warn('[COURSE SAVE] Error limpiando formulario:', e);
+      }
+      // Limpiar iframe después de más tiempo para asegurar que recibió la respuesta
+      setTimeout(() => {
+        try {
+          if (iframe.parentNode) document.body.removeChild(iframe);
+        } catch (e) {
+          console.warn('[COURSE SAVE] Error limpiando iframe:', e);
+        }
+      }, 1000);
+    }, 500);
     
     return true;
   } catch (e) { 
-    console.error('Error en remoteSaveCourse:', e);
+    console.error('[COURSE SAVE] ❌ Error en remoteSaveCourse:', e);
     return false; 
   }
 }
@@ -1861,8 +1899,13 @@ function setupAddCourseModal() {
       }
     };
     
-    // Guardar curso
-    addCustomCourse(hex, courseData);
+    // Guardar curso (esperar confirmación)
+    await addCustomCourse(hex, courseData);
+    
+    // ✅ Forzar refresh de cursos para que se vea inmediatamente
+    await refreshCustomCourses().catch(e => {
+      console.warn('[ADD COURSE] Error refrescando cursos después de crear:', e);
+    });
     
     // Analytics tracking
     if (typeof gtag !== 'undefined') {
