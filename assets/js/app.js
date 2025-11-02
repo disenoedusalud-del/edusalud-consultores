@@ -504,6 +504,15 @@ async function remoteDeleteCourse(hex){
     setTimeout(() => {
       if (form.parentNode) document.body.removeChild(form);
       if (iframe.parentNode) document.body.removeChild(iframe);
+      
+      // ✅ Forzar refresh inmediato para que otros dispositivos vean el cambio
+      const refreshAttempts = [500, 1000, 2000, 4000];
+      refreshAttempts.forEach((delay, index) => {
+        setTimeout(async () => {
+          console.log(`[COURSE DELETE] Refrescando después de eliminar (intento ${index + 1}/${refreshAttempts.length} - ${delay}ms)...`);
+          await refreshCustomCourses();
+        }, delay);
+      });
     }, 2000);
     
     return true;
@@ -1349,9 +1358,6 @@ async function tryLoginByCode(code) {
 
     // master
     if (hex === MASTER_HASH) {
-      // Mostrar loader inmediatamente
-      showLoader();
-      
       // ✅ NUEVO: Esperar a que termine el refresh ANTES de cerrar el loader
       if (hasRemote()) {
         console.log('[SYNC] Iniciando refresh de todos los cursos...');
@@ -1517,12 +1523,15 @@ $('#btn-master-copy').addEventListener('click', async () => {
   const qp = new URLSearchParams(location.search);
   const pre = qp.get('code');
   if (pre) {
+    // ✅ Mostrar loader inmediatamente si hay código pre-cargado
+    showLoader();
     try {
       const decoded = atob(pre);
       if (decoded) {
         const ok = await tryLoginByCode(decoded);
         if (ok) { try { $('#code').value = decoded; } catch(e) {} return; }
         else {
+          hideLoader(); // ✅ Ocultar loader antes de mostrar acceso
           setQueryParam('code', null);
           showAccess();
           $('#msg').textContent = 'El enlace contiene código inválido o expirado.';
@@ -1530,7 +1539,10 @@ $('#btn-master-copy').addEventListener('click', async () => {
           return;
         }
       }
-    } catch (e) { console.warn('Parámetro code inválido', e); }
+    } catch (e) { 
+      hideLoader(); // ✅ Ocultar loader si hay error
+      console.warn('Parámetro code inválido', e); 
+    }
   }
   showAccess();
   maybeShowAttemptsWarning();
