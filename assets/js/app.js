@@ -105,6 +105,15 @@ function addCustomCourse(hex, courseData){
   custom[hex] = courseData;
   saveCustomCourses(custom);
 }
+function removeCustomCourse(hex){
+  const custom = loadCustomCourses();
+  delete custom[hex];
+  saveCustomCourses(custom);
+}
+function isCustomCourse(hex){
+  const custom = loadCustomCourses();
+  return hex in custom;
+}
 
 /* ============ persistencia de enlaces por curso ============ */
 const FILES_STORAGE_PREFIX = 'edusalud_files_';
@@ -708,6 +717,10 @@ function buildMasterGrid() {
     header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;';
     const t = document.createElement('div');
     t.innerHTML = `<div style="font-weight:700">${data.title}</div><div class="meta">${data.meta || ''}</div>`;
+    
+    const headerActions = document.createElement('div');
+    headerActions.style.cssText = 'display:flex; gap:8px;';
+    
     const open = document.createElement('button');
     open.className = 'btn secondary';
     open.type = 'button';
@@ -733,7 +746,35 @@ function buildMasterGrid() {
       renderCourse(hex);
       showContent();
     });
-    header.appendChild(t); header.appendChild(open);
+    headerActions.appendChild(open);
+    
+    // Botón eliminar solo para cursos personalizados
+    if (isCustomCourse(hex)) {
+      const btnDelete = document.createElement('button');
+      btnDelete.className = 'btn';
+      btnDelete.type = 'button';
+      btnDelete.textContent = '🗑️ Eliminar';
+      btnDelete.style.background = 'linear-gradient(135deg, #ff4444, #cc0000)';
+      btnDelete.addEventListener('click', () => {
+        if (confirm(`¿Eliminar curso "${data.title}"? Esta acción no se puede deshacer.`)) {
+          removeCustomCourse(hex);
+          buildMasterGrid();
+          alert('✅ Curso eliminado');
+          
+          // Analytics tracking
+          if (typeof gtag !== 'undefined') {
+            gtag('event', 'course_deleted', {
+              'event_category': 'management',
+              'event_label': data.card?.tag || 'unknown'
+            });
+          }
+        }
+      });
+      headerActions.appendChild(btnDelete);
+    }
+    
+    header.appendChild(t);
+    header.appendChild(headerActions);
     right.appendChild(header);
 
     // lista de archivos (editable con DnD)
@@ -1264,47 +1305,79 @@ $('#btn-master-copy').addEventListener('click', async () => {
   }
 });
 
-// Modal agregar curso
-const modalAddCourse = $('#modalAddCourse');
-const modalClose = $('#modalAddCourseClose');
-const btnAddCourse = $('#btn-add-course');
-const formAddCourse = $('#formAddCourse');
-const inputCourseAccent = $('#inputCourseAccent');
-const inputCourseAccentHex = $('#inputCourseAccentHex');
+/* ============ init ============ */
+(async function init(){
+  $('#year').textContent = new Date().getFullYear();
+  $('#year_master').textContent = new Date().getFullYear();
 
-// Sincronizar color picker con input hex
-if (inputCourseAccent && inputCourseAccentHex) {
-  inputCourseAccent.addEventListener('input', (e) => {
-    inputCourseAccentHex.value = e.target.value;
-  });
-  inputCourseAccentHex.addEventListener('input', (e) => {
-    const val = e.target.value;
-    if (val.match(/^#[0-9A-Fa-f]{6}$/)) {
-      inputCourseAccent.value = val;
-    }
-  });
-}
+  const qp = new URLSearchParams(location.search);
+  const pre = qp.get('code');
+  if (pre) {
+    try {
+      const decoded = atob(pre);
+      if (decoded) {
+        const ok = await tryLoginByCode(decoded);
+        if (ok) { try { $('#code').value = decoded; } catch(e) {} return; }
+        else {
+          setQueryParam('code', null);
+          showAccess();
+          $('#msg').textContent = 'El enlace contiene código inválido o expirado.';
+          $('#msg').classList.add('error');
+          return;
+        }
+      }
+    } catch (e) { console.warn('Parámetro code inválido', e); }
+  }
+  showAccess();
+  maybeShowAttemptsWarning();
+  
+  // ✅ Configurar modal de agregar curso DESPUÉS de que todo está cargado
+  setupAddCourseModal();
+})();
 
-// Abrir modal
-if (btnAddCourse) {
-  btnAddCourse.addEventListener('click', () => {
-    modalAddCourse.classList.add('show');
-  });
-}
+/* ============ Modal agregar curso ============ */
+function setupAddCourseModal() {
+  const modalAddCourse = $('#modalAddCourse');
+  const modalClose = $('#modalAddCourseClose');
+  const btnAddCourse = $('#btn-add-course');
+  const formAddCourse = $('#formAddCourse');
+  const inputCourseAccent = $('#inputCourseAccent');
+  const inputCourseAccentHex = $('#inputCourseAccentHex');
 
-// Cerrar modal
-if (modalClose) {
-  modalClose.addEventListener('click', () => {
+  if (!modalAddCourse || !formAddCourse) return;
+
+  // Sincronizar color picker con input hex
+  if (inputCourseAccent && inputCourseAccentHex) {
+    inputCourseAccent.addEventListener('input', (e) => {
+      inputCourseAccentHex.value = e.target.value;
+    });
+    inputCourseAccentHex.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (val.match(/^#[0-9A-Fa-f]{6}$/)) {
+        inputCourseAccent.value = val;
+      }
+    });
+  }
+
+  // Abrir modal
+  if (btnAddCourse) {
+    btnAddCourse.addEventListener('click', () => {
+      modalAddCourse.classList.add('show');
+    });
+  }
+
+  // Cerrar modal
+  if (modalClose) {
+    modalClose.addEventListener('click', () => {
+      modalAddCourse.classList.remove('show');
+    });
+  }
+
+  $('#btnCancelAddCourse')?.addEventListener('click', () => {
     modalAddCourse.classList.remove('show');
   });
-}
 
-$('#btnCancelAddCourse')?.addEventListener('click', () => {
-  modalAddCourse.classList.remove('show');
-});
-
-// Submit formulario
-if (formAddCourse) {
+  // Submit formulario
   formAddCourse.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -1326,8 +1399,11 @@ if (formAddCourse) {
     try {
       new URL(imageUrl);
     } catch {
-      alert('URL de imagen inválida');
-      return;
+      // Si no es una URL absoluta, asumimos que es relativa
+      if (!imageUrl.startsWith('/') && !imageUrl.startsWith('assets/')) {
+        alert('URL de imagen inválida');
+        return;
+      }
     }
     
     // Verificar que el código no exista
@@ -1382,43 +1458,14 @@ if (formAddCourse) {
     // Mostrar mensaje de éxito
     alert(`✅ Curso "${tag}" creado exitosamente.\n\nCódigo para acceder: ${code}`);
   });
-}
 
-// Cerrar modal al hacer click fuera
-if (modalAddCourse) {
+  // Cerrar modal al hacer click fuera
   modalAddCourse.addEventListener('click', (e) => {
     if (e.target === modalAddCourse) {
       modalAddCourse.classList.remove('show');
     }
   });
 }
-
-/* ============ init ============ */
-(async function init(){
-  $('#year').textContent = new Date().getFullYear();
-  $('#year_master').textContent = new Date().getFullYear();
-
-  const qp = new URLSearchParams(location.search);
-  const pre = qp.get('code');
-  if (pre) {
-    try {
-      const decoded = atob(pre);
-      if (decoded) {
-        const ok = await tryLoginByCode(decoded);
-        if (ok) { try { $('#code').value = decoded; } catch(e) {} return; }
-        else {
-          setQueryParam('code', null);
-          showAccess();
-          $('#msg').textContent = 'El enlace contiene código inválido o expirado.';
-          $('#msg').classList.add('error');
-          return;
-        }
-      }
-    } catch (e) { console.warn('Parámetro code inválido', e); }
-  }
-  showAccess();
-  maybeShowAttemptsWarning();
-})();
 
 /* ============ FUNCIONES DE PRUEBA GLOBALES ============ */
 // Ejecutar en la consola para probar:
