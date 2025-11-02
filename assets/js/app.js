@@ -587,7 +587,7 @@ async function remoteGetCourses(){
 async function refreshCustomCourses(){
   if (!hasRemote()) {
     console.log('[REFRESH] Sin remoto, saltando...');
-    return;
+    return false;
   }
   try {
     console.log('[REFRESH] Obteniendo cursos personalizados remotos...');
@@ -600,17 +600,23 @@ async function refreshCustomCourses(){
     
     console.log('[REFRESH] Comparación - Remoto:', remoteKeys.length, 'Local:', Object.keys(localCourses).length);
     
+    // Detectar cambios antes de guardar
+    const hadChanges = JSON.stringify(localCourses) !== JSON.stringify(remoteCourses);
+    
     // Guardar solo los cursos remotos (remoto es la fuente de verdad)
     saveCustomCourses(remoteCourses);
     console.log('[REFRESH] ✅ Cursos sincronizados');
     
-    // Si estamos en vista master, reconstruir
-    if (document.getElementById('master') && !document.getElementById('master').classList.contains('hidden')) {
-      console.log('[REFRESH] Reconstruyendo Vista Maestra...');
+    // Si estamos en vista master, reconstruir SOLO si hubo cambios
+    if (hadChanges && document.getElementById('master') && !document.getElementById('master').classList.contains('hidden')) {
+      console.log('[REFRESH] ✅ Cambios detectados, reconstruyendo Vista Maestra...');
       buildMasterGrid();
+      return true;
     }
+    return false;
   } catch (e) {
     console.error('[REFRESH] Error en refreshCustomCourses:', e);
+    return false;
   }
 }
 
@@ -706,7 +712,7 @@ function showAccess() {
 }
 // Sistema de refresh periódico para sincronización en tiempo real
 let periodicRefreshInterval = null;
-const PERIODIC_REFRESH_INTERVAL_MS = 10000; // 10 segundos
+const PERIODIC_REFRESH_INTERVAL_MS = 3000; // 3 segundos para mejor sincronización
 
 function startPeriodicRefresh(currentHex = null) {
   // Detener cualquier refresh periódico existente
