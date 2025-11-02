@@ -324,5 +324,22 @@
   <!-- Scripts -->
   <script src="assets/js/electric-card.js?v=3" defer></script>
   <script src="assets/js/app.js?v=7" defer></script>
+  
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        // GitHub Pages con subdirectorio
+        const swPath = '/edusalud-consultores/sw.js';
+        navigator.serviceWorker.register(swPath)
+          .then((registration) => {
+            console.log('[SW] ✅ Registrado correctamente:', registration.scope);
+          })
+          .catch((error) => {
+            console.log('[SW] ❌ Error al registrar:', error);
+          });
+      });
+    }
+  </script>
 </body>
 </html>
