@@ -102,10 +102,8 @@ function getMergedAccessHashMap(){
 }
 
 // Cargar cursos remotos al inicio
-async function loadRemoteCoursesOnce(){
-  const loadedKey = 'remote_courses_loaded';
-  if (sessionStorage.getItem(loadedKey)) return; // Ya cargamos
-  sessionStorage.setItem(loadedKey, 'true');
+async function loadRemoteCoursesOnInit(){
+  // Cargar cursos remotos sin sessionStorage para que siempre cargue
   await refreshCustomCourses();
 }
 function addCustomCourse(hex, courseData){
@@ -578,27 +576,32 @@ async function remoteGetCourses(){
 }
 
 async function refreshCustomCourses(){
-  if (!hasRemote()) return;
+  if (!hasRemote()) {
+    console.log('[REFRESH] Sin remoto, saltando...');
+    return;
+  }
   try {
     console.log('[REFRESH] Obteniendo cursos personalizados remotos...');
     const remoteCourses = await remoteGetCourses();
+    console.log('[REFRESH] Cursos remotos obtenidos:', Object.keys(remoteCourses).length);
     
     // ✅ Remoto es la fuente de verdad - sobrescribir completamente
     const localCourses = loadCustomCourses();
     const remoteKeys = Object.keys(remoteCourses);
     
-    if (remoteKeys.length > 0 || Object.keys(localCourses).length > 0) {
-      // Guardar solo los cursos remotos (remoto es la fuente de verdad)
-      saveCustomCourses(remoteCourses);
-      console.log('[REFRESH] ✅ Cursos sincronizados, remoto:', remoteKeys.length, 'locales:', Object.keys(localCourses).length);
-      
-      // Si estamos en vista master, reconstruir
-      if (document.getElementById('master') && !document.getElementById('master').classList.contains('hidden')) {
-        buildMasterGrid();
-      }
+    console.log('[REFRESH] Comparación - Remoto:', remoteKeys.length, 'Local:', Object.keys(localCourses).length);
+    
+    // Guardar solo los cursos remotos (remoto es la fuente de verdad)
+    saveCustomCourses(remoteCourses);
+    console.log('[REFRESH] ✅ Cursos sincronizados');
+    
+    // Si estamos en vista master, reconstruir
+    if (document.getElementById('master') && !document.getElementById('master').classList.contains('hidden')) {
+      console.log('[REFRESH] Reconstruyendo Vista Maestra...');
+      buildMasterGrid();
     }
   } catch (e) {
-    console.error('Error en refreshCustomCourses:', e);
+    console.error('[REFRESH] Error en refreshCustomCourses:', e);
   }
 }
 
@@ -1532,7 +1535,7 @@ $('#btn-master-copy').addEventListener('click', async () => {
   setupAddCourseModal();
   
   // ✅ Cargar cursos remotos
-  loadRemoteCoursesOnce();
+  loadRemoteCoursesOnInit();
 })();
 
 /* ============ Modal agregar curso ============ */
@@ -1544,7 +1547,16 @@ function setupAddCourseModal() {
   const inputCourseAccent = $('#inputCourseAccent');
   const inputCourseAccentHex = $('#inputCourseAccentHex');
 
-  if (!modalAddCourse || !formAddCourse) return;
+  console.log('[SETUP] Elementos encontrados:', {
+    modalAddCourse: !!modalAddCourse,
+    formAddCourse: !!formAddCourse,
+    btnAddCourse: !!btnAddCourse
+  });
+
+  if (!modalAddCourse || !formAddCourse) {
+    console.error('[SETUP] Faltan elementos del modal');
+    return;
+  }
 
   // Sincronizar color picker con input hex
   if (inputCourseAccent && inputCourseAccentHex) {
