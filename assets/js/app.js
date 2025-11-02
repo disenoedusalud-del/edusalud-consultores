@@ -704,28 +704,21 @@ async function refreshCustomCourses(){
       console.warn('[REFRESH] ⚠️ No se pudieron guardar cursos (modo incógnito?), continuando...', e);
     }
     
-    // ✅ IMPORTANTE: Refrescar también los archivos de los cursos personalizados
-    // Esto asegura que los URLs agregados se vean en otros dispositivos
-    const customHexes = Object.keys(remoteCourses || {});
-    if (customHexes.length > 0) {
-      console.log('[REFRESH] Refrescando archivos de', customHexes.length, 'cursos personalizados...');
-      // Refrescar archivos en background (no bloquear)
-      Promise.allSettled(
-        customHexes.map(hex => 
-          refreshFromRemoteSilent(hex).catch(e => {
-            console.warn('[REFRESH] Error refrescando archivos de curso', hex.substring(0, 8) + '...', e);
-            return false;
-          })
-        )
-      ).then(results => {
-        const successful = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
-        console.log('[REFRESH] ✅ Archivos refrescados:', successful, 'de', customHexes.length, 'cursos personalizados');
-        
-        // Si estamos viendo un curso personalizado, actualizar la vista
-        if (currentKeyHex && customHexes.includes(currentKeyHex)) {
-          console.log('[REFRESH] Actualizando vista del curso personalizado actual...');
-          renderCourse(currentKeyHex);
+    // ✅ IMPORTANTE: Refrescar archivos SOLO del curso actual si es personalizado
+    // No refrescar todos los cursos personalizados para evitar lentitud
+    // El refresh periódico se encargará de refrescar todos cada 3 segundos
+    if (currentKeyHex && remoteCourses && remoteCourses[currentKeyHex]) {
+      console.log('[REFRESH] Curso actual es personalizado, refrescando sus archivos...');
+      refreshFromRemoteSilent(currentKeyHex).then(updated => {
+        if (updated) {
+          console.log('[REFRESH] ✅ Archivos del curso actual actualizados');
+          // Solo actualizar vista si estamos viendo ese curso
+          if (document.getElementById('content') && !document.getElementById('content').classList.contains('hidden')) {
+            renderCourse(currentKeyHex);
+          }
         }
+      }).catch(e => {
+        console.warn('[REFRESH] Error refrescando archivos del curso actual:', e);
       });
     }
     
@@ -1041,21 +1034,6 @@ function renderCourse(keyHex) {
   
   // Iniciar refresh periódico para este curso
   startPeriodicRefresh(keyHex);
-  
-  // ✅ Si es un curso personalizado, refrescar archivos inmediatamente al abrir
-  if (isCustomCourse(keyHex) && hasRemote()) {
-    console.log('[RENDER] Curso personalizado detectado, refrescando archivos...');
-    refreshFromRemoteSilent(keyHex).then(updated => {
-      if (updated) {
-        console.log('[RENDER] ✅ Archivos actualizados, re-renderizando...');
-        renderCourse(keyHex); // Re-renderizar con los archivos actualizados
-      } else {
-        console.log('[RENDER] Archivos ya están actualizados');
-      }
-    }).catch(e => {
-      console.warn('[RENDER] Error refrescando archivos:', e);
-    });
-  }
 }
 
 /* ============ render master ============ */
@@ -1670,7 +1648,16 @@ async function tryLoginByCode(code) {
     }
 
     // normal
-    // ✅ Obtener mergedMap ANTES de cualquier operación remota
+    // ✅ CRÍTICO: Cargar cursos personalizados ANTES de validar (por si no están cargados)
+    // Esto asegura que cursos personalizados recién creados estén disponibles
+    if (hasRemote()) {
+      console.log('[LOGIN] Cargando cursos personalizados antes de validar...');
+      await refreshCustomCourses().catch(e => {
+        console.warn('[LOGIN] Error cargando cursos personalizados (continuando):', e);
+      });
+    }
+    
+    // ✅ Obtener mergedMap DESPUÉS de cargar cursos personalizados
     const mergedMap = getMergedAccessHashMap();
     console.log('[LOGIN] Validando código, cursos disponibles:', Object.keys(mergedMap).length);
     console.log('[LOGIN] Hex a buscar:', hex.substring(0, 8) + '...');
@@ -1680,24 +1667,18 @@ async function tryLoginByCode(code) {
       // Mostrar loader inmediatamente
       showLoader();
       
-      // ✅ Refresh en background con timeout corto para no bloquear el login
+      // ✅ CRÍTICO: Esperar refresh ANTES de renderizar (igual que cursos base desde master)
+      // Esto asegura que los archivos estén actualizados cuando se muestra el curso
       if (hasRemote()) {
-        console.log('[SYNC] Iniciando refresh en background...');
-        Promise.race([
-          refreshFromRemoteSilent(hex).catch(e => {
-            console.warn('[SYNC] Error en refresh:', e);
-            return false;
-          }),
-          new Promise(resolve => setTimeout(() => {
-            console.log('[SYNC] Timeout refresh, continuando con login...');
-            resolve(false);
-          }, 1000)) // Timeout de 1 segundo máximo
-        ]).then(() => {
-          console.log('[SYNC] Refresh completado o timeout');
+        console.log('[SYNC] Iniciando refresh antes de mostrar curso...');
+        await refreshFromRemoteSilent(hex).catch(e => {
+          console.warn('[SYNC] Error en refresh:', e);
+          return false;
         });
+        console.log('[SYNC] ✅ Refresh completado, renderizando curso...');
       }
       
-      // Ejecutar animación de loader inmediatamente (sin esperar refresh)
+      // Ejecutar animación de loader después del refresh
       try { 
         await runLoader(); 
       } catch (e) {}
