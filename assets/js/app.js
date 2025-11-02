@@ -848,18 +848,27 @@ function startPeriodicRefresh(currentHex = null) {
   
   periodicRefreshInterval = setInterval(async () => {
     try {
-      // ✅ Verificar si hay un input enfocado O un formulario de edición abierto
+      // ✅ PROTECCIÓN MEJORADA: Verificar TODOS los inputs y textareas visibles
       const activeElement = document.activeElement;
-      const isInputFocused = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
-      const hasEditFormOpen = document.querySelector('[data-edit-form]') !== null;
-      
-      // ✅ Verificar también si algún input del formulario de agregar link tiene valor (usuario escribiendo)
-      const addFormInputs = document.querySelectorAll('[data-edit-form="add-link"]');
-      const hasAddFormContent = Array.from(addFormInputs).some(input => 
-        input && (input.value && input.value.trim().length > 0 || input === activeElement)
+      const isInputFocused = activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.contentEditable === 'true'
       );
       
-      if (isInputFocused || hasEditFormOpen || hasAddFormContent) {
+      // ✅ Verificar si HAY ALGÚN input con contenido (incluso si no está enfocado)
+      const allInputs = document.querySelectorAll('input[type="text"], input[type="url"], textarea');
+      const hasInputWithContent = Array.from(allInputs).some(input => {
+        if (!input || !input.offsetParent) return false; // No está visible
+        const value = (input.value || '').trim();
+        return value.length > 0 || input === activeElement;
+      });
+      
+      // ✅ Verificar si hay formularios de edición abiertos
+      const hasEditFormOpen = document.querySelector('[data-edit-form]') !== null;
+      
+      // ✅ Si hay cualquier input enfocado O con contenido O formulario abierto, SALTEAR refresh
+      if (isInputFocused || hasInputWithContent || hasEditFormOpen) {
         console.log('[PERIODIC] ⏭️ Saltando refresh: usuario escribiendo o editando');
         return;
       }
@@ -901,8 +910,25 @@ function startPeriodicRefresh(currentHex = null) {
           });
           
           if (updated) {
-            console.log('[PERIODIC] ✅ Cambios detectados en archivos, actualizando vista...');
-            renderCourse(currentHex);
+            // ✅ VERIFICAR OTRA VEZ antes de actualizar la vista (por si el usuario empezó a escribir durante el refresh)
+            const activeElementNow = document.activeElement;
+            const isInputFocusedNow = activeElementNow && (
+              activeElementNow.tagName === 'INPUT' || 
+              activeElementNow.tagName === 'TEXTAREA'
+            );
+            const allInputsNow = document.querySelectorAll('input[type="text"], input[type="url"], textarea');
+            const hasInputWithContentNow = Array.from(allInputsNow).some(input => {
+              if (!input || !input.offsetParent) return false;
+              const value = (input.value || '').trim();
+              return value.length > 0;
+            });
+            
+            if (!isInputFocusedNow && !hasInputWithContentNow) {
+              console.log('[PERIODIC] ✅ Cambios detectados en archivos, actualizando vista...');
+              renderCourse(currentHex);
+            } else {
+              console.log('[PERIODIC] ⏭️ Cambios detectados pero saltando actualización: usuario escribiendo');
+            }
           }
           
           // ✅ También refrescar cursos personalizados en background (para detectar nuevos cursos)
