@@ -13,7 +13,26 @@ function setQueryParam(key, value) {
   if (value == null) url.searchParams.delete(key); else url.searchParams.set(key, value);
   history.replaceState({}, '', url);
 }
-function downloadFile(url) { window.open(url, '_blank', 'noopener'); }
+function downloadFile(url, label = '') { 
+  window.open(url, '_blank', 'noopener'); 
+  
+  // ✅ Google Analytics: Tracking de descarga
+  if (typeof gtag !== 'undefined') {
+    try {
+      const hostname = new URL(url).hostname;
+      gtag('event', 'file_download', {
+        'event_category': 'download',
+        'event_label': label || hostname,
+        'value': 1
+      });
+    } catch(e) {
+      gtag('event', 'file_download', {
+        'event_category': 'download',
+        'event_label': 'unknown'
+      });
+    }
+  }
+}
 
 /* ============ base de cursos (hash -> data) ============ */
 const MASTER_HASH = "7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8"; // EDUMASTER123456987
@@ -613,7 +632,7 @@ function renderCourse(keyHex) {
     btn.className = 'btn';
     btn.type = 'button';
     btn.textContent = 'Ver más';
-    btn.addEventListener('click', () => downloadFile(item.url));
+    btn.addEventListener('click', () => downloadFile(item.url, item.label));
     row.appendChild(btn);
     list.appendChild(row);
   });
@@ -711,7 +730,7 @@ function buildMasterGrid() {
       btnOpen.className = 'btn';
       btnOpen.type = 'button';
       btnOpen.textContent = 'Descargar';
-      btnOpen.addEventListener('click', () => downloadFile(item.url));
+      btnOpen.addEventListener('click', () => downloadFile(item.url, item.label));
 
       const btnEdit = document.createElement('button');
       btnEdit.className = 'btn secondary';
@@ -1051,6 +1070,14 @@ async function tryLoginByCode(code) {
   try {
     const hex = await sha256Hex(code);
 
+    // ✅ Google Analytics: Tracking de intento de login
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'login_attempt', {
+        'event_category': 'authentication',
+        'event_label': 'attempt'
+      });
+    }
+
     // master
     if (hex === MASTER_HASH) {
       // Mostrar loader inmediatamente
@@ -1103,6 +1130,13 @@ async function tryLoginByCode(code) {
       $('#year_master').textContent = new Date().getFullYear();
       showMaster();
       
+      // ✅ Google Analytics: Tracking login exitoso Master
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'login_success_master', {
+          'event_category': 'authentication'
+        });
+      }
+      
       return true;
     }
 
@@ -1132,12 +1166,31 @@ async function tryLoginByCode(code) {
       renderCourse(hex);
       showContent();
       
+      // ✅ Google Analytics: Tracking login exitoso curso
+      if (typeof gtag !== 'undefined') {
+        const courseData = ACCESS_HASH_MAP[hex];
+        gtag('event', 'login_success_course', {
+          'event_category': 'authentication',
+          'event_label': courseData.card?.tag || 'unknown'
+        });
+      }
+      
       return true;
     } else {
       const attempts = recordAttempt();
       msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
       msg.classList.add('error');
       maybeShowAttemptsWarning();
+      
+      // ✅ Google Analytics: Tracking de código inválido
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'login_error', {
+          'event_category': 'authentication',
+          'event_label': 'invalid_code',
+          'value': attempts
+        });
+      }
+      
       return false;
     }
   } catch (e) {
