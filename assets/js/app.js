@@ -1531,12 +1531,19 @@ $('#btn-master-copy').addEventListener('click', async () => {
   showAccess();
   maybeShowAttemptsWarning();
   
-  // ✅ Configurar modal de agregar curso DESPUÉS de que todo está cargado
-  setupAddCourseModal();
-  
   // ✅ Cargar cursos remotos
   loadRemoteCoursesOnInit();
 })();
+
+// ✅ Configurar modal cuando DOM está completamente cargado
+let modalSetupDone = false;
+const setupModalOnce = () => {
+  if (modalSetupDone) return;
+  modalSetupDone = true;
+  setupAddCourseModal();
+};
+window.addEventListener('DOMContentLoaded', setupModalOnce);
+window.addEventListener('load', setupModalOnce);
 
 /* ============ Modal agregar curso ============ */
 function setupAddCourseModal() {
