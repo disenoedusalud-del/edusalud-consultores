@@ -350,22 +350,33 @@ function remoteGetFilesJSONP(hex){
   });
 }
 async function remoteSaveFiles(hex, files){
-  if (!hasRemote()) return false;
+  if (!hasRemote()) {
+    console.warn('[SAVE] ⚠️ No hay remoto configurado');
+    return false;
+  }
   try {
     const filesJson = JSON.stringify(Array.isArray(files) ? files : []);
     console.log('[SAVE] Enviando a remoto - hex:', hex.substring(0,8), 'archivos:', files.length);
     console.log('[SAVE] Datos a guardar:', filesJson.substring(0, 100) + '...');
+    console.log('[SAVE] URL remoto:', REMOTE_BASE_URL);
+    
+    // ✅ Validar que tenemos los datos necesarios
+    if (!hex || !filesJson) {
+      console.error('[SAVE] ❌ Datos inválidos: hex o files vacíos');
+      return false;
+    }
     
     // Google Apps Script funciona mejor con formularios HTML que con fetch
     const iframe = document.createElement('iframe');
-    iframe.name = 'hiddenFrame';
+    iframe.name = 'hiddenFrame_' + Date.now();
     iframe.style.display = 'none';
     document.body.appendChild(iframe);
     
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = REMOTE_BASE_URL;
-    form.target = 'hiddenFrame';
+    form.target = iframe.name;
+    form.enctype = 'application/x-www-form-urlencoded';
     
     const hexInput = document.createElement('input');
     hexInput.type = 'hidden';
@@ -381,55 +392,32 @@ async function remoteSaveFiles(hex, files){
     form.appendChild(filesInput);
     document.body.appendChild(form);
     
+    console.log('[SAVE] Formulario creado, enviando...');
     form.submit();
     console.log('[SAVE] ✅ Formulario enviado a:', REMOTE_BASE_URL);
     
-    // Limpiar después de enviar y forzar refresh múltiples veces (para asegurar sincronización)
-    setTimeout(() => {
-      if (form.parentNode) document.body.removeChild(form);
-      if (iframe.parentNode) document.body.removeChild(iframe);
-      
-      // Forzar refresh inmediato y múltiples intentos para asegurar sincronización
-      // El refresh inmediato es crítico para que otros navegadores vean los cambios
-      const refreshAttempts = [500, 1000, 2000, 4000];
-      refreshAttempts.forEach((delay, index) => {
-        setTimeout(async () => {
-          console.log(`[SAVE] Refrescando después de guardar (intento ${index + 1}/${refreshAttempts.length} - ${delay}ms)...`);
-          
-          // Forzar lectura desde remoto sin usar caché
-          const remote = await remoteGetFiles(hex).catch(e => {
-            console.warn('[SAVE] Error obteniendo datos remotos:', e);
-            return null;
-          });
-          
-          if (remote && Array.isArray(remote)) {
-            const current = getFilesForHex(hex);
-            const remoteStr = stableStringify(remote);
-            const currentStr = stableStringify(current);
-            
-            console.log('[SAVE] Comparación - Remoto:', remote.length, 'vs Local:', current.length);
-            
-            // SIEMPRE sincronizar con remoto (remoto es la fuente de verdad después de guardar)
-            if (remoteStr !== currentStr) {
-              console.log('[SAVE] ✅ Desincronización detectada, forzando sincronización...');
-              saveFilesOverride(hex, remote);
-              
-              // Si remoto está vacío y hay base, limpiar override
-              const base = getBaseFilesForHex(hex);
-              if (remote.length === 0 && base.length > 0) {
-                clearFilesOverride(hex);
-              }
-              
-              console.log('[SAVE] ✅ Sincronizado, reconstruyendo grid...');
-              buildMasterGrid();
-            } else {
-              console.log('[SAVE] ✅ Ya sincronizado');
-            }
-          }
-        }, delay);
-      });
-    }, 2000);
+    // ✅ Esperar un momento para asegurar que el formulario se envió
+    await new Promise(resolve => setTimeout(resolve, 100));
     
+    // Limpiar después de enviar (pero mantener iframe para no interrumpir el envío)
+    setTimeout(() => {
+      try {
+        if (form.parentNode) document.body.removeChild(form);
+      } catch (e) {
+        console.warn('[SAVE] Error limpiando formulario:', e);
+      }
+      // Limpiar iframe después de más tiempo para asegurar que recibió la respuesta
+      setTimeout(() => {
+        try {
+          if (iframe.parentNode) document.body.removeChild(iframe);
+        } catch (e) {
+          console.warn('[SAVE] Error limpiando iframe:', e);
+        }
+      }, 1000);
+    }, 500);
+    
+    // ✅ Devolver true inmediatamente ya que el formulario se envió
+    // El envío es asíncrono pero la función necesita retornar
     return true;
   } catch (e) { 
     console.error('Error en remoteSaveFiles:', e);
@@ -536,18 +524,29 @@ async function remoteDeleteCourse(hex){
     document.body.appendChild(form);
     
     form.submit();
-    console.log('[COURSE DELETE] ✅ Curso eliminado en remoto');
+    console.log('[COURSE DELETE] ✅ Formulario de eliminación enviado a:', REMOTE_BASE_URL);
     
+    // ✅ Limpiar formulario después de enviar
     setTimeout(() => {
-      if (form.parentNode) document.body.removeChild(form);
-      if (iframe.parentNode) document.body.removeChild(iframe);
+      try {
+        if (form.parentNode) document.body.removeChild(form);
+        if (iframe.parentNode) document.body.removeChild(iframe);
+      } catch (e) {
+        console.warn('[COURSE DELETE] Error limpiando formulario:', e);
+      }
       
       // ✅ Forzar refresh inmediato para que otros dispositivos vean el cambio
+      console.log('[COURSE DELETE] Iniciando refresh para sincronizar eliminación...');
       const refreshAttempts = [500, 1000, 2000, 4000];
       refreshAttempts.forEach((delay, index) => {
         setTimeout(async () => {
           console.log(`[COURSE DELETE] Refrescando después de eliminar (intento ${index + 1}/${refreshAttempts.length} - ${delay}ms)...`);
-          await refreshCustomCourses();
+          try {
+            await refreshCustomCourses();
+            console.log('[COURSE DELETE] ✅ Refresh completado');
+          } catch (e) {
+            console.warn('[COURSE DELETE] Error en refresh:', e);
+          }
         }, delay);
       });
     }, 2000);
@@ -1044,9 +1043,16 @@ function buildMasterGrid() {
       btnDelete.type = 'button';
       btnDelete.textContent = '🗑️ Eliminar';
       btnDelete.style.background = 'linear-gradient(135deg, #ff4444, #cc0000)';
-      btnDelete.addEventListener('click', () => {
+      btnDelete.addEventListener('click', async () => {
         if (confirm(`¿Eliminar curso "${data.title}"? Esta acción no se puede deshacer.`)) {
+          // ✅ Eliminar curso (local y remoto)
           removeCustomCourse(hex);
+          
+          // ✅ Forzar refresh inmediato de cursos para que otros dispositivos vean el cambio
+          await refreshCustomCourses().catch(e => {
+            console.warn('[DELETE] Error refrescando cursos después de eliminar:', e);
+          });
+          
           buildMasterGrid();
           alert('✅ Curso eliminado');
           
@@ -1146,7 +1152,11 @@ function buildMasterGrid() {
           const next = files.slice();
           next[idx] = { label: newLabel, url: newUrl };
           saveFilesOverride(hex, next);
-          remoteSaveFiles(hex, next);
+          
+          // ✅ GUARDAR EN REMOTO (esperar confirmación)
+          await remoteSaveFiles(hex, next).catch(e => {
+            console.error('[EDIT] ❌ Error guardando en remoto:', e);
+          });
           
           // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
           const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
@@ -1190,11 +1200,15 @@ function buildMasterGrid() {
       btnRemove.className = 'btn secondary';
       btnRemove.type = 'button';
       btnRemove.textContent = 'Quitar';
-      btnRemove.addEventListener('click', () => {
+      btnRemove.addEventListener('click', async () => {
         const next = files.slice();
         next.splice(idx, 1);
         saveFilesOverride(hex, next);
-        remoteSaveFiles(hex, next);
+        
+        // ✅ GUARDAR EN REMOTO (esperar confirmación)
+        await remoteSaveFiles(hex, next).catch(e => {
+          console.error('[REMOVE] ❌ Error guardando en remoto:', e);
+        });
         
         // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
         const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
@@ -1235,8 +1249,19 @@ function buildMasterGrid() {
       const [moved] = next.splice(from, 1);
       next.splice(to, 0, moved);
       saveFilesOverride(hex, next);
-      remoteSaveFiles(hex, next);
-      buildMasterGrid();
+      
+      // ✅ GUARDAR EN REMOTO (esperar confirmación)
+      await remoteSaveFiles(hex, next).catch(e => {
+        console.error('[REORDER] ❌ Error guardando en remoto:', e);
+      });
+      
+      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
+      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+      if (isMasterView) {
+        buildMasterGrid();
+      } else {
+        renderCourse(hex);
+      }
     });
 
     // formulario para agregar nuevo link
@@ -1285,7 +1310,19 @@ function buildMasterGrid() {
       inputUrl.value = '';
       
       saveFilesOverride(hex, next);
-      remoteSaveFiles(hex, next);
+      
+      // ✅ GUARDAR EN REMOTO (esperar confirmación)
+      const saveResult = await remoteSaveFiles(hex, next).catch(e => {
+        console.error('[ADD] ❌ Error guardando en remoto:', e);
+        alert('⚠️ Error al guardar en remoto. Los cambios están guardados localmente pero no se sincronizarán.');
+        return false;
+      });
+      
+      if (saveResult) {
+        console.log('[ADD] ✅ Archivo guardado en remoto correctamente');
+      } else {
+        console.warn('[ADD] ⚠️ No se pudo guardar en remoto (continuando de todas formas)');
+      }
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin recargar)
       // Verificar si estamos en vista master o vista curso
@@ -1318,10 +1355,14 @@ function buildMasterGrid() {
     btnRestore.type = 'button';
     btnRestore.textContent = 'Restaurar enlaces originales';
     btnRestore.style.marginTop = '10px';
-    btnRestore.addEventListener('click', () => {
+    btnRestore.addEventListener('click', async () => {
       if (!confirm('¿Restaurar la lista original de enlaces? Se perderán los cambios locales.')) return;
       clearFilesOverride(hex);
-      remoteSaveFiles(hex, getFilesForHex(hex));
+      
+      // ✅ GUARDAR EN REMOTO (esperar confirmación)
+      await remoteSaveFiles(hex, getFilesForHex(hex)).catch(e => {
+        console.error('[RESTORE] ❌ Error guardando en remoto:', e);
+      });
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
       const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
