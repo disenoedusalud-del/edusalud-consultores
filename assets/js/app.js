@@ -608,7 +608,6 @@ async function remoteGetCourses(){
   if (!hasRemote()) return {};
   try {
     console.log('[COURSE GET] Obteniendo cursos remotos...');
-    const url = REMOTE_BASE_URL + '?action=get_courses&callback=_gas_jsonp_' + Date.now();
     
     return new Promise((resolve) => {
       const callbackName = '_gas_jsonp_courses_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -626,6 +625,7 @@ async function remoteGetCourses(){
         } catch(e) {}
       };
       
+      // ✅ CRÍTICO: Registrar callback ANTES de agregar script al DOM
       window[callbackName] = function(data) {
         if (resolved) return;
         resolved = true;
@@ -635,6 +635,8 @@ async function remoteGetCourses(){
         if (data && typeof data.courses === 'object') {
           courses = data.courses;
           console.log('[COURSE GET] ✅ Cursos remotos obtenidos:', Object.keys(courses).length);
+        } else {
+          console.warn('[COURSE GET] ⚠️ Datos recibidos no tienen formato esperado:', data);
         }
         
         cleanup();
@@ -658,6 +660,8 @@ async function remoteGetCourses(){
         resolve({});
       };
       
+      // ✅ Agregar script DESPUÉS de registrar callback
+      console.log('[COURSE GET] Callback registrado:', callbackName);
       document.body.appendChild(script);
     });
   } catch (e) {
@@ -1839,15 +1843,9 @@ $('#btn-master-copy').addEventListener('click', async () => {
   loadRemoteCoursesOnInit();
 })();
 
-// ✅ Configurar modal cuando DOM está completamente cargado
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', setupAddCourseModal);
-} else {
-  setupAddCourseModal();
-}
-
 /* ============ Modal agregar curso ============ */
 let setupAddCourseModalDone = false;
+
 function setupAddCourseModal() {
   if (setupAddCourseModalDone) {
     console.log('[SETUP] Ya configurado, saltando...');
@@ -1997,6 +1995,13 @@ function setupAddCourseModal() {
       modalAddCourse.classList.remove('show');
     }
   });
+}
+
+// ✅ Configurar modal cuando DOM está completamente cargado
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupAddCourseModal);
+} else {
+  setupAddCourseModal();
 }
 
 /* ============ FUNCIONES DE PRUEBA GLOBALES ============ */
