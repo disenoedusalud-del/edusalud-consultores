@@ -100,15 +100,27 @@ function getMergedAccessHashMap(){
   // Combinar base con custom
   return Object.assign({}, base, custom);
 }
+
+// Cargar cursos remotos al inicio
+async function loadRemoteCoursesOnce(){
+  const loadedKey = 'remote_courses_loaded';
+  if (sessionStorage.getItem(loadedKey)) return; // Ya cargamos
+  sessionStorage.setItem(loadedKey, 'true');
+  await refreshCustomCourses();
+}
 function addCustomCourse(hex, courseData){
   const custom = loadCustomCourses();
   custom[hex] = courseData;
   saveCustomCourses(custom);
+  // ✅ Guardar también en remoto
+  remoteSaveCourse(hex, courseData);
 }
 function removeCustomCourse(hex){
   const custom = loadCustomCourses();
   delete custom[hex];
   saveCustomCourses(custom);
+  // ✅ Eliminar también en remoto
+  remoteDeleteCourse(hex);
 }
 function isCustomCourse(hex){
   const custom = loadCustomCourses();
@@ -410,6 +422,180 @@ async function refreshFromRemote(hex, context){
   } catch (e) {
     console.warn('Error en refreshFromRemote:', e);
     return false;
+  }
+}
+
+// ===== Sincronización remota de cursos personalizados =====
+async function remoteSaveCourse(hex, courseData){
+  if (!hasRemote()) return false;
+  try {
+    const courseJson = JSON.stringify(courseData);
+    console.log('[COURSE SAVE] Enviando curso a remoto - hex:', hex.substring(0,8));
+    
+    const iframe = document.createElement('iframe');
+    iframe.name = 'hiddenFrameCourse';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = REMOTE_BASE_URL;
+    form.target = 'hiddenFrameCourse';
+    
+    const hexInput = document.createElement('input');
+    hexInput.type = 'hidden';
+    hexInput.name = 'hex';
+    hexInput.value = hex;
+    
+    const courseInput = document.createElement('input');
+    courseInput.type = 'hidden';
+    courseInput.name = 'course';
+    courseInput.value = courseJson;
+    
+    form.appendChild(hexInput);
+    form.appendChild(courseInput);
+    document.body.appendChild(form);
+    
+    form.submit();
+    console.log('[COURSE SAVE] ✅ Curso enviado a remoto');
+    
+    setTimeout(() => {
+      if (form.parentNode) document.body.removeChild(form);
+      if (iframe.parentNode) document.body.removeChild(iframe);
+    }, 2000);
+    
+    return true;
+  } catch (e) { 
+    console.error('Error en remoteSaveCourse:', e);
+    return false; 
+  }
+}
+
+async function remoteDeleteCourse(hex){
+  if (!hasRemote()) return false;
+  try {
+    console.log('[COURSE DELETE] Eliminando curso remoto - hex:', hex.substring(0,8));
+    
+    const iframe = document.createElement('iframe');
+    iframe.name = 'hiddenFrameCourseDel';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = REMOTE_BASE_URL;
+    form.target = 'hiddenFrameCourseDel';
+    
+    const hexInput = document.createElement('input');
+    hexInput.type = 'hidden';
+    hexInput.name = 'hex';
+    hexInput.value = hex;
+    
+    const deleteInput = document.createElement('input');
+    deleteInput.type = 'hidden';
+    deleteInput.name = 'action';
+    deleteInput.value = 'delete_course';
+    
+    form.appendChild(hexInput);
+    form.appendChild(deleteInput);
+    document.body.appendChild(form);
+    
+    form.submit();
+    console.log('[COURSE DELETE] ✅ Curso eliminado en remoto');
+    
+    setTimeout(() => {
+      if (form.parentNode) document.body.removeChild(form);
+      if (iframe.parentNode) document.body.removeChild(iframe);
+    }, 2000);
+    
+    return true;
+  } catch (e) { 
+    console.error('Error en remoteDeleteCourse:', e);
+    return false; 
+  }
+}
+
+async function remoteGetCourses(){
+  if (!hasRemote()) return {};
+  try {
+    console.log('[COURSE GET] Obteniendo cursos remotos...');
+    const url = REMOTE_BASE_URL + '?action=get_courses&callback=_gas_jsonp_' + Date.now();
+    
+    return new Promise((resolve) => {
+      const callbackName = '_gas_jsonp_courses_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      const script = document.createElement('script');
+      script.src = REMOTE_BASE_URL + '?action=get_courses&callback=' + callbackName;
+      script.async = true;
+      
+      let resolved = false;
+      const cleanup = () => {
+        try {
+          if (script.parentNode) document.body.removeChild(script);
+        } catch(e) {}
+        try {
+          if (window[callbackName]) delete window[callbackName];
+        } catch(e) {}
+      };
+      
+      window[callbackName] = function(data) {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeout);
+        
+        let courses = {};
+        if (data && typeof data.courses === 'object') {
+          courses = data.courses;
+          console.log('[COURSE GET] ✅ Cursos remotos obtenidos:', Object.keys(courses).length);
+        }
+        
+        cleanup();
+        resolve(courses);
+      };
+      
+      const timeout = setTimeout(() => {
+        if (resolved) return;
+        resolved = true;
+        console.warn('[COURSE GET] ⚠️ Timeout');
+        cleanup();
+        resolve({});
+      }, 3000);
+      
+      script.onerror = () => {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeout);
+        console.error('[COURSE GET] ❌ Error cargando cursos remotos');
+        cleanup();
+        resolve({});
+      };
+      
+      document.body.appendChild(script);
+    });
+  } catch (e) {
+    console.error('Error en remoteGetCourses:', e);
+    return {};
+  }
+}
+
+async function refreshCustomCourses(){
+  if (!hasRemote()) return;
+  try {
+    console.log('[REFRESH] Obteniendo cursos personalizados remotos...');
+    const remoteCourses = await remoteGetCourses();
+    if (Object.keys(remoteCourses).length > 0) {
+      // Mezclar con cursos locales
+      const localCourses = loadCustomCourses();
+      const merged = Object.assign({}, localCourses, remoteCourses);
+      saveCustomCourses(merged);
+      console.log('[REFRESH] ✅ Cursos sincronizados');
+      
+      // Si estamos en vista master, reconstruir
+      if (document.getElementById('master') && !document.getElementById('master').classList.contains('hidden')) {
+        buildMasterGrid();
+      }
+    }
+  } catch (e) {
+    console.error('Error en refreshCustomCourses:', e);
   }
 }
 
@@ -1333,6 +1519,9 @@ $('#btn-master-copy').addEventListener('click', async () => {
   
   // ✅ Configurar modal de agregar curso DESPUÉS de que todo está cargado
   setupAddCourseModal();
+  
+  // ✅ Cargar cursos remotos
+  loadRemoteCoursesOnce();
 })();
 
 /* ============ Modal agregar curso ============ */
