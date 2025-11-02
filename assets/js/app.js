@@ -502,28 +502,36 @@ async function remoteSaveCourse(hex, courseData){
     document.body.appendChild(form);
     
     console.log('[COURSE SAVE] Formulario creado, enviando...');
+    console.log('[COURSE SAVE] Hex:', hex);
+    console.log('[COURSE SAVE] Course JSON length:', courseJson.length);
+    
+    // ✅ Enviar formulario
     form.submit();
     console.log('[COURSE SAVE] ✅ Formulario enviado a:', REMOTE_BASE_URL);
     
-    // ✅ Esperar un momento para asegurar que el formulario se envió
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // ✅ Esperar más tiempo para asegurar que el servidor procesó el envío
+    // No limpiar inmediatamente para no interrumpir el envío
+    await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos
     
-    // Limpiar después de enviar (pero mantener iframe para no interrumpir el envío)
+    // Limpiar formulario después de enviar (iframe se mantiene un poco más)
     setTimeout(() => {
       try {
         if (form.parentNode) document.body.removeChild(form);
+        console.log('[COURSE SAVE] Formulario limpiado');
       } catch (e) {
         console.warn('[COURSE SAVE] Error limpiando formulario:', e);
       }
-      // Limpiar iframe después de más tiempo para asegurar que recibió la respuesta
-      setTimeout(() => {
-        try {
-          if (iframe.parentNode) document.body.removeChild(iframe);
-        } catch (e) {
-          console.warn('[COURSE SAVE] Error limpiando iframe:', e);
-        }
-      }, 1000);
     }, 500);
+    
+    // Limpiar iframe después de más tiempo
+    setTimeout(() => {
+      try {
+        if (iframe.parentNode) document.body.removeChild(iframe);
+        console.log('[COURSE SAVE] Iframe limpiado');
+      } catch (e) {
+        console.warn('[COURSE SAVE] Error limpiando iframe:', e);
+      }
+    }, 3000); // 3 segundos total
     
     return true;
   } catch (e) { 
@@ -882,18 +890,26 @@ function startPeriodicRefresh(currentHex = null) {
         }
       } else if (currentHex) {
         // ✅ Refresh del curso actual (incluye cursos personalizados)
-        // Verificar si es curso base o personalizado usando mergedMap
         const mergedMap = getMergedAccessHashMap();
         if (mergedMap[currentHex]) {
           console.log('[PERIODIC] Refrescando curso actual (hex:', currentHex.substring(0, 8) + ')...');
+          
+          // ✅ CRÍTICO: Refrescar archivos del curso actual PRIMERO (los URLs se guardan en overrides)
           const updated = await refreshFromRemoteSilent(currentHex).catch(e => {
-            console.warn('[PERIODIC] Error:', e);
+            console.warn('[PERIODIC] Error refrescando archivos:', e);
             return false;
           });
+          
           if (updated) {
             console.log('[PERIODIC] ✅ Cambios detectados en archivos, actualizando vista...');
             renderCourse(currentHex);
           }
+          
+          // ✅ También refrescar cursos personalizados en background (para detectar nuevos cursos)
+          // Esto no bloquea porque ya actualizamos la vista arriba si había cambios en archivos
+          refreshCustomCourses().catch(e => {
+            console.warn('[PERIODIC] Error refrescando cursos personalizados:', e);
+          });
         }
       }
     } catch (e) {
