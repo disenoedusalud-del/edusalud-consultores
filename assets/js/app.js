@@ -790,7 +790,13 @@ function startPeriodicRefresh(currentHex = null) {
       const isInputFocused = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
       const hasEditFormOpen = document.querySelector('[data-edit-form]') !== null;
       
-      if (isInputFocused || hasEditFormOpen) {
+      // ✅ Verificar también si algún input del formulario de agregar link tiene valor (usuario escribiendo)
+      const addFormInputs = document.querySelectorAll('[data-edit-form="add-link"]');
+      const hasAddFormContent = Array.from(addFormInputs).some(input => 
+        input && (input.value && input.value.trim().length > 0 || input === activeElement)
+      );
+      
+      if (isInputFocused || hasEditFormOpen || hasAddFormContent) {
         console.log('[PERIODIC] ⏭️ Saltando refresh: usuario escribiendo o editando');
         return;
       }
@@ -1141,7 +1147,14 @@ function buildMasterGrid() {
           next[idx] = { label: newLabel, url: newUrl };
           saveFilesOverride(hex, next);
           remoteSaveFiles(hex, next);
-          buildMasterGrid();
+          
+          // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
+          const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+          if (isMasterView) {
+            buildMasterGrid();
+          } else {
+            renderCourse(hex);
+          }
         });
         
         const btnCancel = document.createElement('button');
@@ -1182,7 +1195,14 @@ function buildMasterGrid() {
         next.splice(idx, 1);
         saveFilesOverride(hex, next);
         remoteSaveFiles(hex, next);
-        buildMasterGrid();
+        
+        // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
+        const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+        if (isMasterView) {
+          buildMasterGrid();
+        } else {
+          renderCourse(hex);
+        }
       });
 
       actions.appendChild(btnOpen);
@@ -1222,6 +1242,7 @@ function buildMasterGrid() {
     // formulario para agregar nuevo link
     const addWrap = document.createElement('div');
     addWrap.style.marginTop = '12px';
+    addWrap.setAttribute('data-edit-form', 'add-link'); // ✅ Marcar para que el refresh no interfiera
     const addLabel = document.createElement('label');
     addLabel.textContent = 'Agregar nuevo enlace';
     addLabel.style.display = 'block';
@@ -1235,11 +1256,13 @@ function buildMasterGrid() {
     inputLabel.className = 'input';
     inputLabel.type = 'text';
     inputLabel.placeholder = 'Etiqueta (ej. Manual de Marca)';
+    inputLabel.setAttribute('data-edit-form', 'add-link'); // ✅ Marcar también los inputs
 
     const inputUrl = document.createElement('input');
     inputUrl.className = 'input';
     inputUrl.type = 'url';
     inputUrl.placeholder = 'URL (https://...)';
+    inputUrl.setAttribute('data-edit-form', 'add-link'); // ✅ Marcar también los inputs
 
     const btnAdd = document.createElement('button');
     btnAdd.className = 'btn';
@@ -1264,10 +1287,22 @@ function buildMasterGrid() {
       saveFilesOverride(hex, next);
       remoteSaveFiles(hex, next);
       
-      // ✅ Log informativo: El refresh periódico (cada 3 seg) detectará los cambios automáticamente
-      console.log('[ADD] ✅ Archivo guardado localmente y en remoto. Otros dispositivos lo verán en el próximo refresh (máx 3 segundos)');
+      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin recargar)
+      // Verificar si estamos en vista master o vista curso
+      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
       
-      buildMasterGrid();
+      if (isMasterView) {
+        // Si estamos en vista master, reconstruir el grid
+        buildMasterGrid();
+        console.log('[ADD] ✅ Vista master actualizada');
+      } else {
+        // Si estamos en vista de curso individual, re-renderizar el curso
+        renderCourse(hex);
+        console.log('[ADD] ✅ Vista de curso actualizada');
+      }
+      
+      // ✅ Log informativo
+      console.log('[ADD] ✅ Archivo guardado localmente y en remoto. Otros dispositivos lo verán en el próximo refresh (máx 3 segundos)');
     });
 
     addRow.appendChild(inputLabel);
@@ -1287,7 +1322,14 @@ function buildMasterGrid() {
       if (!confirm('¿Restaurar la lista original de enlaces? Se perderán los cambios locales.')) return;
       clearFilesOverride(hex);
       remoteSaveFiles(hex, getFilesForHex(hex));
-      buildMasterGrid();
+      
+      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
+      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+      if (isMasterView) {
+        buildMasterGrid();
+      } else {
+        renderCourse(hex);
+      }
     });
     right.appendChild(btnRestore);
 
