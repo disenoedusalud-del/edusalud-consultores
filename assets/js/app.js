@@ -1395,6 +1395,10 @@ async function tryLoginByCode(code) {
       
       clearAttempts();
       setQueryParam('code', btoa(code));
+      
+      // ✅ Cargar cursos remotos antes de construir el grid
+      await refreshCustomCourses();
+      
       buildMasterGrid();
       setupMasterSearch();
       $('#year_master').textContent = new Date().getFullYear();
@@ -1531,22 +1535,26 @@ $('#btn-master-copy').addEventListener('click', async () => {
   showAccess();
   maybeShowAttemptsWarning();
   
-  // ✅ Cargar cursos remotos
+  // ✅ Cargar cursos remotos (no bloquear con await para no demorar carga)
   loadRemoteCoursesOnInit();
 })();
 
 // ✅ Configurar modal cuando DOM está completamente cargado
-let modalSetupDone = false;
-const setupModalOnce = () => {
-  if (modalSetupDone) return;
-  modalSetupDone = true;
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupAddCourseModal);
+} else {
   setupAddCourseModal();
-};
-window.addEventListener('DOMContentLoaded', setupModalOnce);
-window.addEventListener('load', setupModalOnce);
+}
 
 /* ============ Modal agregar curso ============ */
+let setupAddCourseModalDone = false;
 function setupAddCourseModal() {
+  if (setupAddCourseModalDone) {
+    console.log('[SETUP] Ya configurado, saltando...');
+    return;
+  }
+  setupAddCourseModalDone = true;
+  
   const modalAddCourse = $('#modalAddCourse');
   const modalClose = $('#modalAddCourseClose');
   const btnAddCourse = $('#btn-add-course');
