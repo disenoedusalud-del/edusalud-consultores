@@ -201,7 +201,7 @@ function getFilesForHex(hex){
 }
 
 /* ============ sincronización remota (opcional) ============ */
-const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycby_Yzp_6LGvvEEkirmuLCl3qH17sQ582WNrjCgvWlDohyt8tjgMUnHdQ6KRvxhinQsT/exec';
+const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbzxGPegF6u_r5WSgrrbLr09G1QZOCW7VF7P9roiACdWPqCeyL0_EjRnQNJUF7SASd67/exec';
 function hasRemote(){ return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE_URL.startsWith('http'); }
 function stableStringify(obj){ try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 async function remoteGetFiles(hex){
@@ -840,7 +840,7 @@ function showAccess() {
 }
 // Sistema de refresh periódico para sincronización en tiempo real
 let periodicRefreshInterval = null;
-const PERIODIC_REFRESH_INTERVAL_MS = 3000; // 3 segundos para mejor sincronización
+const PERIODIC_REFRESH_INTERVAL_MS = 2000; // 2 segundos para sincronización más rápida
 
 function startPeriodicRefresh(currentHex = null) {
   // Detener cualquier refresh periódico existente
@@ -852,7 +852,7 @@ function startPeriodicRefresh(currentHex = null) {
   
   periodicRefreshInterval = setInterval(async () => {
     try {
-      // ✅ PROTECCIÓN MEJORADA: Verificar TODOS los inputs y textareas visibles
+      // ✅ PROTECCIÓN: Verificar solo si está escribiendo AHORA
       const activeElement = document.activeElement;
       const isInputFocused = activeElement && (
         activeElement.tagName === 'INPUT' || 
@@ -860,19 +860,11 @@ function startPeriodicRefresh(currentHex = null) {
         activeElement.contentEditable === 'true'
       );
       
-      // ✅ Verificar si HAY ALGÚN input con contenido (incluso si no está enfocado)
-      const allInputs = document.querySelectorAll('input[type="text"], input[type="url"], textarea');
-      const hasInputWithContent = Array.from(allInputs).some(input => {
-        if (!input || !input.offsetParent) return false; // No está visible
-        const value = (input.value || '').trim();
-        return value.length > 0 || input === activeElement;
-      });
-      
-      // ✅ Verificar si hay formularios de edición abiertos
+      // ✅ Verificar si hay formularios de edición inline abiertos (botones editar/guardar visibles)
       const hasEditFormOpen = document.querySelector('[data-edit-form]') !== null;
       
-      // ✅ Si hay cualquier input enfocado O con contenido O formulario abierto, SALTEAR refresh
-      if (isInputFocused || hasInputWithContent || hasEditFormOpen) {
+      // ✅ SOLO saltar si realmente está escribiendo AHORA (no por contenido viejo en inputs)
+      if (isInputFocused || hasEditFormOpen) {
         console.log('[PERIODIC] ⏭️ Saltando refresh: usuario escribiendo o editando');
         return;
       }
@@ -920,14 +912,8 @@ function startPeriodicRefresh(currentHex = null) {
               activeElementNow.tagName === 'INPUT' || 
               activeElementNow.tagName === 'TEXTAREA'
             );
-            const allInputsNow = document.querySelectorAll('input[type="text"], input[type="url"], textarea');
-            const hasInputWithContentNow = Array.from(allInputsNow).some(input => {
-              if (!input || !input.offsetParent) return false;
-              const value = (input.value || '').trim();
-              return value.length > 0;
-            });
             
-            if (!isInputFocusedNow && !hasInputWithContentNow) {
+            if (!isInputFocusedNow) {
               console.log('[PERIODIC] ✅ Cambios detectados en archivos, actualizando vista...');
               renderCourse(currentHex);
             } else {
@@ -1254,13 +1240,20 @@ function buildMasterGrid() {
           const next = files.slice();
           next[idx] = { label: newLabel, url: newUrl };
           saveFilesOverride(hex, next);
-          
-          // ✅ GUARDAR EN REMOTO (esperar confirmación)
-          await remoteSaveFiles(hex, next).catch(e => {
-            console.error('[EDIT] ❌ Error guardando en remoto:', e);
-          });
-          
-          // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
+      
+      // ✅ GUARDAR EN REMOTO (esperar confirmación)
+      const editSaveResult = await remoteSaveFiles(hex, next).catch(e => {
+        console.error('[EDIT] ❌ Error guardando en remoto:', e);
+        return false;
+      });
+      
+      if (editSaveResult) {
+        // Dar tiempo a Google Sheets para procesar
+        await new Promise(resolve => setTimeout(resolve, 800));
+        console.log('[EDIT] 🔄 Propagación completada');
+      }
+      
+      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
           const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
           if (isMasterView) {
             buildMasterGrid();
@@ -1308,9 +1301,16 @@ function buildMasterGrid() {
         saveFilesOverride(hex, next);
         
         // ✅ GUARDAR EN REMOTO (esperar confirmación)
-        await remoteSaveFiles(hex, next).catch(e => {
+        const removeSaveResult = await remoteSaveFiles(hex, next).catch(e => {
           console.error('[REMOVE] ❌ Error guardando en remoto:', e);
+          return false;
         });
+        
+        if (removeSaveResult) {
+          // Dar tiempo a Google Sheets para procesar
+          await new Promise(resolve => setTimeout(resolve, 800));
+          console.log('[REMOVE] 🔄 Propagación completada');
+        }
         
         // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
         const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
@@ -1353,9 +1353,16 @@ function buildMasterGrid() {
       saveFilesOverride(hex, next);
       
       // ✅ GUARDAR EN REMOTO (esperar confirmación)
-      await remoteSaveFiles(hex, next).catch(e => {
+      const reorderSaveResult = await remoteSaveFiles(hex, next).catch(e => {
         console.error('[REORDER] ❌ Error guardando en remoto:', e);
+        return false;
       });
+      
+      if (reorderSaveResult) {
+        // Dar tiempo a Google Sheets para procesar
+        await new Promise(resolve => setTimeout(resolve, 800));
+        console.log('[REORDER] 🔄 Propagación completada');
+      }
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
       const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
@@ -1422,6 +1429,10 @@ function buildMasterGrid() {
       
       if (saveResult) {
         console.log('[ADD] ✅ Archivo guardado en remoto correctamente');
+        
+        // ✅ NUEVO: Dar tiempo a Google Sheets para procesar el cambio
+        await new Promise(resolve => setTimeout(resolve, 800));
+        console.log('[ADD] 🔄 Propagación a Google Sheets completada');
       } else {
         console.warn('[ADD] ⚠️ No se pudo guardar en remoto (continuando de todas formas)');
       }
@@ -1462,9 +1473,16 @@ function buildMasterGrid() {
       clearFilesOverride(hex);
       
       // ✅ GUARDAR EN REMOTO (esperar confirmación)
-      await remoteSaveFiles(hex, getFilesForHex(hex)).catch(e => {
+      const restoreSaveResult = await remoteSaveFiles(hex, getFilesForHex(hex)).catch(e => {
         console.error('[RESTORE] ❌ Error guardando en remoto:', e);
+        return false;
       });
+      
+      if (restoreSaveResult) {
+        // Dar tiempo a Google Sheets para procesar
+        await new Promise(resolve => setTimeout(resolve, 800));
+        console.log('[RESTORE] 🔄 Propagación completada');
+      }
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
       const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
