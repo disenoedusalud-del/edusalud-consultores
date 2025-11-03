@@ -716,14 +716,18 @@ async function refreshCustomCourses(){
     
     console.log('[REFRESH] Comparación - Remoto:', remoteKeys.length, 'Local:', Object.keys(localCourses).length);
     
-    // Detectar cambios antes de guardar
-    const hadChanges = JSON.stringify(localCourses) !== JSON.stringify(remoteCourses || {});
+    // ✅ MEJORADO: Fusionar cursos remotos con locales en lugar de sobrescribir completamente
+    // Esto preserva cursos locales que el servidor aún no ha procesado
+    const mergedCourses = { ...localCourses, ...remoteCourses };
     
-    // Guardar solo los cursos remotos (remoto es la fuente de verdad)
+    // Detectar cambios después de la fusión
+    const hadChanges = JSON.stringify(localCourses) !== JSON.stringify(mergedCourses);
+    
+    // Guardar cursos fusionados (remoto tiene prioridad, pero local preserva cursos nuevos)
     // ✅ Manejar error de localStorage silenciosamente
     try {
-      saveCustomCourses(remoteCourses || {});
-      console.log('[REFRESH] ✅ Cursos sincronizados');
+      saveCustomCourses(mergedCourses);
+      console.log('[REFRESH] ✅ Cursos sincronizados (fusionados:', Object.keys(mergedCourses).length, 'cursos)');
     } catch (e) {
       console.warn('[REFRESH] ⚠️ No se pudieron guardar cursos (modo incógnito?), continuando...', e);
     }
@@ -731,7 +735,7 @@ async function refreshCustomCourses(){
     // ✅ IMPORTANTE: Refrescar archivos SOLO del curso actual si es personalizado
     // No refrescar todos los cursos personalizados para evitar lentitud
     // El refresh periódico se encargará de refrescar todos cada 3 segundos
-    if (currentKeyHex && remoteCourses && remoteCourses[currentKeyHex]) {
+    if (currentKeyHex && mergedCourses && mergedCourses[currentKeyHex]) {
       console.log('[REFRESH] Curso actual es personalizado, refrescando sus archivos...');
       refreshFromRemoteSilent(currentKeyHex).then(updated => {
         if (updated) {
@@ -2023,10 +2027,15 @@ function setupAddCourseModal() {
     // Guardar curso (esperar confirmación)
     await addCustomCourse(hex, courseData);
     
-    // ✅ Forzar refresh de cursos para que se vea inmediatamente
-    await refreshCustomCourses().catch(e => {
-      console.warn('[ADD COURSE] Error refrescando cursos después de crear:', e);
-    });
+    // ✅ CRÍTICO: Reconstruir grid INMEDIATAMENTE con datos locales
+    // Esto asegura que el curso se vea incluso si el refresh falla o es lento
+    buildMasterGrid();
+    
+    // Cerrar modal inmediatamente para mejor UX
+    modalAddCourse.classList.remove('show');
+    formAddCourse.reset();
+    inputCourseAccent.value = '#5aa9ff';
+    inputCourseAccentHex.value = '#5aa9ff';
     
     // Analytics tracking
     if (typeof gtag !== 'undefined') {
@@ -2036,17 +2045,23 @@ function setupAddCourseModal() {
       });
     }
     
-    // Cerrar modal y recargar grid
-    modalAddCourse.classList.remove('show');
-    formAddCourse.reset();
-    inputCourseAccent.value = '#5aa9ff';
-    inputCourseAccentHex.value = '#5aa9ff';
-    
-    // Reconstruir grid
-    buildMasterGrid();
-    
     // Mostrar mensaje de éxito
     alert(`✅ Curso "${tag}" creado exitosamente.\n\nCódigo para acceder: ${code}`);
+    
+    // ✅ Esperar un momento para que el servidor procese el guardado
+    // Luego hacer refresh para sincronizar (sin bloquear la UI)
+    setTimeout(async () => {
+      try {
+        console.log('[ADD COURSE] Sincronizando con servidor...');
+        await refreshCustomCourses();
+        // Si el refresh trajo cambios, reconstruir de nuevo
+        buildMasterGrid();
+        console.log('[ADD COURSE] ✅ Sincronización completada');
+      } catch (e) {
+        console.warn('[ADD COURSE] Error refrescando cursos después de crear:', e);
+        // El curso ya está visible gracias al buildMasterGrid() anterior
+      }
+    }, 1000); // Esperar 1 segundo para que el servidor procese
   });
 
   // Cerrar modal al hacer click fuera
