@@ -445,7 +445,7 @@
   <!-- Service Worker Registration -->
   <script>
     // ✅ NUEVO: Flag para desarrollo
-    const IS_DEVELOPMENT = true; // Cambiar a false en producción
+    const IS_DEVELOPMENT = false; // Cambiar a false en producción
     
     if (!IS_DEVELOPMENT && 'serviceWorker' in navigator) {
       window.addEventListener('load', () => {
