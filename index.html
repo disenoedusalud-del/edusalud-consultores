@@ -4,7 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Content Security Policy: Permite JSONP y scripts necesarios -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://script.google.com https://script.googleusercontent.com https://www.googletagmanager.com https://www.google-analytics.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; frame-src 'self' https://script.google.com https://script.googleusercontent.com;" />
+  <!-- Nota: Si GitHub Pages aplica su propia CSP, esta meta tag podría no tener efecto completo -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com; connect-src 'self' https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; frame-src 'self' https://*.google.com https://*.googleusercontent.com;" />
   <title>Portal de Recursos para Consultores – EduSalud</title>
   <meta name="description" content="Descarga de toolkits (PPT, logos, manuales de marca, social kit, formatos). Acceso mediante código otorgado por coordinación." />
   
@@ -296,7 +297,7 @@
         </div>
         <div>
           <h1>Portal de Recursos para Consultores · EduSalud</h1>
-          <p class="lead">Descargue materiales oficiales (PPT, logos, manual de marca, social kit, formatos). Acceso mediante código otorgado por el depaetamento de comunicaciones.</p>
+          <p class="lead">Descargue materiales oficiales (PPT, logos, manual de marca, social kit, formatos). Acceso mediante código otorgado por el departamento de comunicaciones.</p>
         </div>
       </div>
 
