@@ -119,48 +119,14 @@ function saveCustomCourses(courses){
   }
 }
 function getMergedAccessHashMap(){
-  // ✅ CRÍTICO: Siempre devolver al menos los cursos base, incluso si falla localStorage
-  // Esto es especialmente importante en modo incógnito
   const base = ACCESS_HASH_MAP || {};
-  
-  // ✅ Verificar que base tiene contenido (importante para modo incógnito)
-  if (!base || typeof base !== 'object' || Object.keys(base).length === 0) {
-    console.error('[HASHMAP] ⚠️ ACCESS_HASH_MAP está vacío o undefined!');
-    console.error('[HASHMAP] Esto es un error crítico - los cursos base deben estar disponibles');
-    return {}; // Retornar objeto vacío en lugar de fallar
-  }
-  
-  // ✅ En modo incógnito, localStorage puede fallar silenciosamente
-  // Intentar cargar cursos personalizados pero continuar si falla
   let custom = {};
   try {
     custom = loadCustomCourses();
-    console.log('[HASHMAP] 🔍 Cursos personalizados cargados desde localStorage:', Object.keys(custom).length);
   } catch (e) {
-    console.warn('[HASHMAP] ⚠️ Error cargando cursos custom (modo incógnito?):', e);
-    console.warn('[HASHMAP] Continuando con solo cursos base');
-    custom = {}; // Usar objeto vacío si falla
+    custom = {};
   }
-  
-  // ✅ Combinar base con custom (base siempre debe existir)
-  // Si custom está vacío (modo incógnito), al menos tenemos los cursos base
-  const merged = Object.assign({}, base, custom);
-  const baseCount = Object.keys(base).length;
-  const customCount = Object.keys(custom).length;
-  const totalCount = Object.keys(merged).length;
-  
-  console.log('[HASHMAP] 📊 Resumen: Base:', baseCount, 'Custom:', customCount, 'Total:', totalCount);
-  
-  // ✅ Verificar que al menos tenemos cursos base
-  if (totalCount === 0) {
-    console.error('[HASHMAP] ❌ CRÍTICO: No hay cursos disponibles después de merge!');
-    console.error('[HASHMAP] Base keys:', Object.keys(base));
-    console.error('[HASHMAP] Custom keys:', Object.keys(custom));
-  } else if (baseCount === 0 && totalCount > 0) {
-    console.warn('[HASHMAP] ⚠️ ADVERTENCIA: Solo hay cursos personalizados, no hay cursos base!');
-  }
-  
-  return merged;
+  return Object.assign({}, base, custom);
 }
 
 // Cargar cursos remotos al inicio
@@ -1232,46 +1198,13 @@ function renderCourse(keyHex) {
 /* ============ render master ============ */
 function buildMasterGrid() {
   const grid = $('#masterGrid');
-  if (!grid) {
-    console.error('[BUILD GRID] ❌ Grid no encontrado!');
-    return;
-  }
+  if (!grid) return;
   
   grid.innerHTML = '';
-
-  // ✅ CRÍTICO: Asegurar que siempre tengamos al menos los cursos base
-  // Esto es especialmente importante en modo incógnito donde localStorage puede fallar
   const mergedMap = getMergedAccessHashMap();
-  const courseCount = Object.keys(mergedMap).length;
-  console.log('[BUILD GRID] Construyendo grid con', courseCount, 'cursos totales');
-  
-  // ✅ Verificar que tenemos cursos disponibles (al menos los base)
-  if (courseCount === 0) {
-    console.error('[BUILD GRID] ❌ ERROR: No hay cursos disponibles!');
-    console.error('[BUILD GRID] ACCESS_HASH_MAP tiene', Object.keys(ACCESS_HASH_MAP || {}).length, 'cursos base');
-    const baseCourses = Object.keys(ACCESS_HASH_MAP || {});
-    if (baseCourses.length === 0) {
-      console.error('[BUILD GRID] ❌ CRÍTICO: ACCESS_HASH_MAP está vacío!');
-      grid.innerHTML = '<div style="padding:20px; text-align:center; color:#fff;">⚠️ Error: No se pudieron cargar los cursos. Por favor, recargue la página.</div>';
-      return;
-    }
-    // Si hay cursos base pero no están en mergedMap, usar directamente ACCESS_HASH_MAP
-    console.warn('[BUILD GRID] ⚠️ mergedMap vacío pero hay cursos base, usando ACCESS_HASH_MAP directamente');
-    Object.entries(ACCESS_HASH_MAP).forEach(([hex, data]) => {
-      if (hex === MASTER_HASH) return;
-      // Construir tarjeta directamente desde ACCESS_HASH_MAP
-      // (usar el mismo código que está abajo)
-    });
-  }
-  
-  let cardsCreated = 0;
   
   Object.entries(mergedMap).forEach(([hex, data]) => {
-    // excluir el master si algún día lo metes en el mismo objeto
     if (hex === MASTER_HASH) return;
-    
-    console.log('[BUILD GRID] Agregando curso al grid:', hex.substring(0,8), '-', data.title);
-    cardsCreated++;
 
     const cardEl = document.createElement('div');
     cardEl.className = 'master-card';
@@ -1677,11 +1610,6 @@ function buildMasterGrid() {
   });
   
   const actualCards = grid.querySelectorAll('.master-card').length;
-  console.log('[BUILD GRID] ✅ Grid construido:', {
-    esperados: cardsCreated,
-    creados: actualCards,
-    diferencia: cardsCreated - actualCards
-  });
   
   // herramientas exportar/importar
   try { ensureMasterTools(); } catch(e) {}
@@ -1852,135 +1780,26 @@ async function tryLoginByCode(code) {
 
     // master
     if (hex === MASTER_HASH) {
-      console.log('[MASTER] ✅ Código maestro detectado');
-      
-      // ✅ CRÍTICO: Manejar modo incógnito - localStorage puede fallar silenciosamente
-      // Verificar si estamos en modo incógnito
-      let isIncognito = false;
-      try {
-        if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
-          isIncognito = true;
-          console.warn('[MASTER] ⚠️ Modo incógnito detectado - localStorage no disponible');
-        } else {
-          // Intentar escribir y leer para verificar si realmente funciona
-          const testKey = '__test_incognito__';
-          try {
-            localStorage.setItem(testKey, 'test');
-            localStorage.removeItem(testKey);
-          } catch (e) {
-            isIncognito = true;
-            console.warn('[MASTER] ⚠️ Modo incógnito detectado - localStorage no funcional:', e);
-          }
-        }
-      } catch (e) {
-        isIncognito = true;
-        console.warn('[MASTER] ⚠️ Modo incógnito detectado:', e);
-      }
-      
-      if (isIncognito) {
-        console.log('[MASTER] 🔒 Modo incógnito: Continuando sin localStorage (solo cursos base)');
-      }
-      
-      // ✅ Refresh en background (no bloquear login) con timeout corto
+      // Refresh en background (no bloquear login)
       if (hasRemote()) {
-        console.log('[SYNC] Iniciando refresh de todos los cursos en background...');
         const mergedMap = getMergedAccessHashMap();
         const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
-        console.log('[SYNC] Total de cursos a refrescar:', hexes.length);
-        
-        // ✅ En modo incógnito, continuar incluso si no hay cursos personalizados
-        if (hexes.length === 0 && isIncognito) {
-          console.log('[SYNC] Modo incógnito: No hay cursos personalizados locales, usando solo cursos base');
-        }
-        
-        // Iniciar refresh en background (no await, con timeout global)
         Promise.race([
-          Promise.allSettled(hexes.map((h, index) => {
-            const isLast = index === hexes.length - 1;
-            const label = isLast ? `[ÚLTIMO CURSO]` : '';
-            console.log(`${label} [SYNC] Refrescando curso ${index + 1}/${hexes.length}: ${h.substring(0, 8)}...`);
-            return refreshFromRemoteSilent(h)
-              .then(result => {
-                if (isLast) {
-                  console.log(`[ÚLTIMO CURSO] ✅ Refresh completado para ${h.substring(0, 8)}, resultado:`, result);
-                }
-                return result;
-              })
-              .catch(e => {
-                console.error(`[SYNC] ❌ Error refrescando curso ${h.substring(0, 8)}:`, e);
-                return false;
-              });
-          })),
-          new Promise(resolve => setTimeout(() => {
-            console.log('[SYNC] Timeout refresh global, continuando...');
-            resolve([]); // ✅ Resolver con array vacío en lugar de objeto
-          }, 2000)) // Timeout de 2 segundos máximo para todos los cursos
-        ])
-          .then(results => {
-            // ✅ Manejar correctamente el resultado (puede ser array o array vacío)
-            if (Array.isArray(results) && results.length > 0) {
-              const successful = results.filter(r => r.status === 'fulfilled').length;
-              const failed = results.filter(r => r.status === 'rejected').length;
-              console.log(`[SYNC] Refresh completado: ${successful} exitosos, ${failed} fallidos`);
-            } else {
-              console.log('[SYNC] Timeout alcanzado, continuando con login...');
-            }
-          })
-          .catch(e => {
-            console.warn('[SYNC] Error general en refresh:', e);
-          });
-        
-        console.log('[SYNC] Refresh iniciado en background, continuando con login...');
+          Promise.allSettled(hexes.map(h => refreshFromRemoteSilent(h).catch(() => false))),
+          new Promise(resolve => setTimeout(() => resolve([]), 2000))
+        ]).catch(() => {});
       }
       
-      // Ejecutar animación de loader ahora que ya tenemos los datos
-      try { 
-        await runLoader(); 
-      } catch (e) {
-        console.warn('[MASTER] Error en loader (continuando):', e);
-      }
-      
+      await runLoader();
       clearAttempts();
       setQueryParam('code', btoa(code));
       
-      // ✅ CRÍTICO: Cargar cursos remotos ANTES de construir el grid
-      // ✅ En modo incógnito, esto puede fallar pero debe continuar
-      console.log('[MASTER] Cargando cursos remotos antes de construir grid...');
-      try {
-        await refreshCustomCourses().catch(e => {
-          console.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
-        });
-        console.log('[MASTER] ✅ Cursos remotos cargados');
-      } catch (e) {
-        console.warn('[MASTER] ⚠️ Error crítico cargando cursos remotos (continuando con cursos base):', e);
-      }
-      
-      // ✅ CRÍTICO: Construir grid incluso si falló refreshCustomCourses
-      // En modo incógnito, al menos mostrar cursos base
-      console.log('[MASTER] Construyendo grid...');
-      try {
-        buildMasterGrid();
-        console.log('[MASTER] ✅ Grid construido exitosamente');
-      } catch (e) {
-        console.error('[MASTER] ❌ ERROR construyendo grid:', e);
-        // Intentar mostrar error al usuario
-        msg.textContent = 'Error al cargar la vista maestra. Por favor, recargue la página.';
-        msg.classList.add('error');
-        return false;
-      }
-      
-      try {
-        setupMasterSearch();
-        const yearMasterEl = $('#year_master');
-        if (yearMasterEl) yearMasterEl.textContent = new Date().getFullYear();
-        showMaster();
-        console.log('[MASTER] ✅ Vista maestra mostrada exitosamente');
-      } catch (e) {
-        console.error('[MASTER] ❌ ERROR mostrando vista maestra:', e);
-        msg.textContent = 'Error al mostrar la vista maestra. Por favor, recargue la página.';
-        msg.classList.add('error');
-        return false;
-      }
+      await refreshCustomCourses().catch(() => {});
+      buildMasterGrid();
+      setupMasterSearch();
+      const yearMasterEl = $('#year_master');
+      if (yearMasterEl) yearMasterEl.textContent = new Date().getFullYear();
+      showMaster();
       
       // ✅ Google Analytics: Tracking login exitoso Master
       if (typeof gtag !== 'undefined') {
