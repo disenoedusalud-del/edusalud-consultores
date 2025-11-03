@@ -970,9 +970,21 @@ function startPeriodicRefresh(currentHex = null) {
         // ✅ También refrescar cursos personalizados (para nuevos cursos, no solo archivos)
         await refreshCustomCourses();
         
+        // ✅ CRÍTICO: Reconstruir grid SIEMPRE si hay cambios O si es la primera vez
+        // Esto asegura que cambios remotos se vean incluso si la detección falla
         if (anyUpdated) {
           console.log('[PERIODIC] ✅ Cambios detectados, actualizando vista...');
           buildMasterGrid();
+        } else {
+          // ✅ Aún así reconstruir cada cierto tiempo para asegurar sincronización
+          // Contador para reconstruir cada 5 refreshes (cada ~15 segundos)
+          if (!window._lastMasterGridRebuild) window._lastMasterGridRebuild = 0;
+          window._lastMasterGridRebuild++;
+          if (window._lastMasterGridRebuild >= 5) {
+            console.log('[PERIODIC] Reconstruyendo grid periódicamente para asegurar sincronización...');
+            buildMasterGrid();
+            window._lastMasterGridRebuild = 0;
+          }
         }
       } else if (currentHex) {
         // ✅ Refresh del curso actual (incluye cursos personalizados)
@@ -993,18 +1005,36 @@ function startPeriodicRefresh(currentHex = null) {
               activeElementNow.tagName === 'INPUT' || 
               activeElementNow.tagName === 'TEXTAREA'
             );
-            const allInputsNow = document.querySelectorAll('input[type="text"], input[type="url"], textarea');
-            const hasInputWithContentNow = Array.from(allInputsNow).some(input => {
-              if (!input || !input.offsetParent) return false;
-              const value = (input.value || '').trim();
-              return value.length > 0;
-            });
+            const hasEditFormOpenNow = document.querySelector('[data-edit-form]') !== null;
             
-            if (!isInputFocusedNow && !hasInputWithContentNow) {
+            // ✅ CRÍTICO: Solo saltar si el usuario está ACTIVAMENTE escribiendo (enfoque), no solo si hay inputs visibles
+            // Esto permite que URLs agregados desde otra cuenta se vean inmediatamente
+            if (!isInputFocusedNow && !hasEditFormOpenNow) {
               console.log('[PERIODIC] ✅ Cambios detectados en archivos, actualizando vista...');
               renderCourse(currentHex);
             } else {
-              console.log('[PERIODIC] ⏭️ Cambios detectados pero saltando actualización: usuario escribiendo');
+              console.log('[PERIODIC] ⏭️ Cambios detectados pero saltando actualización: usuario escribiendo activamente');
+            }
+          } else {
+            // ✅ Aún así reconstruir cada cierto tiempo para asegurar sincronización
+            // Contador para reconstruir cada 5 refreshes (cada ~15 segundos)
+            if (!window._lastCourseRefreshRebuild) window._lastCourseRefreshRebuild = {};
+            if (!window._lastCourseRefreshRebuild[currentHex]) window._lastCourseRefreshRebuild[currentHex] = 0;
+            window._lastCourseRefreshRebuild[currentHex]++;
+            
+            if (window._lastCourseRefreshRebuild[currentHex] >= 5) {
+              console.log('[PERIODIC] Reconstruyendo vista de curso periódicamente para asegurar sincronización...');
+              const activeElementNow = document.activeElement;
+              const isInputFocusedNow = activeElementNow && (
+                activeElementNow.tagName === 'INPUT' || 
+                activeElementNow.tagName === 'TEXTAREA'
+              );
+              const hasEditFormOpenNow = document.querySelector('[data-edit-form]') !== null;
+              
+              if (!isInputFocusedNow && !hasEditFormOpenNow) {
+                renderCourse(currentHex);
+              }
+              window._lastCourseRefreshRebuild[currentHex] = 0;
             }
           }
           
@@ -1603,6 +1633,7 @@ async function refreshFromRemoteSilent(hex){
     }
     
     console.log('[REFRESH] Datos remotos obtenidos:', remote.length, 'archivos');
+    console.log('[REFRESH] 📋 Contenido remoto:', remote.map(f => `${f.label}: ${f.url}`).join(', '));
     
     const current = getFilesForHex(hex);
     const base = getBaseFilesForHex(hex); // Datos originales del código
@@ -1614,18 +1645,63 @@ async function refreshFromRemoteSilent(hex){
     console.log('[REFRESH] - Remoto:', remote.length, 'archivos');
     console.log('[REFRESH] - Local:', current.length, 'archivos');
     console.log('[REFRESH] - Base:', base.length, 'archivos');
+    console.log('[REFRESH] 📋 Contenido local:', current.map(f => `${f.label}: ${f.url}`).join(', '));
     
-    // CRÍTICO: Si remoto es diferente a local, actualizar SIEMPRE (sin excepciones)
+    // ✅ CRÍTICO: Comparar primero por longitud (más rápido y detecta cambios inmediatamente)
+    // Si hay diferencia en longitud, SIEMPRE sincronizar (remoto tiene prioridad)
+    if (remote.length !== current.length) {
+      console.log('[REFRESH] ✅ CAMBIOS DETECTADOS - Diferencia en cantidad de archivos');
+      console.log('[REFRESH] Remoto:', remote.length, 'archivos');
+      console.log('[REFRESH] Local:', current.length, 'archivos');
+      console.log('[REFRESH] 📋 Contenido remoto:', remote.map(f => `${f.label}: ${f.url}`).join(', '));
+      console.log('[REFRESH] 📋 Contenido local:', current.map(f => `${f.label}: ${f.url}`).join(', '));
+      
+      // SIEMPRE sincronizar con remoto (remoto es la fuente de verdad)
+      saveFilesOverride(hex, remote);
+      
+      // ✅ VERIFICAR que se guardó correctamente
+      const verify = getFilesForHex(hex);
+      const verifyStr = stableStringify(verify);
+      const savedCorrectly = verifyStr === remoteStr;
+      console.log('[REFRESH] 🔍 Verificación post-guardado:', savedCorrectly ? '✅ SÍ' : '❌ NO');
+      if (!savedCorrectly) {
+        console.error('[REFRESH] ❌ ERROR: Los datos no se guardaron correctamente en localStorage!');
+        console.error('[REFRESH] Esperado:', remoteStr.substring(0, 200));
+        console.error('[REFRESH] Obtenido:', verifyStr.substring(0, 200));
+      }
+      
+      // Si remoto está vacío pero base tiene enlaces, limpiar override para usar base
+      if (remote.length === 0 && base.length > 0) {
+        console.log('[REFRESH] Remoto vacío, limpiando override para usar datos base');
+        clearFilesOverride(hex);
+        return true;
+      }
+      
+      return true;
+    }
+    
+    // CRÍTICO: Si remoto es diferente a local (mismo largo pero contenido diferente), actualizar SIEMPRE
     // Esto asegura que los cambios remotos siempre prevalezcan
     const stringsMatch = remoteStr === currentStr;
     
     if (!stringsMatch) {
-      console.log('[REFRESH] ✅ CAMBIOS DETECTADOS - Remoto diferente a Local');
-      console.log('[REFRESH] Remoto JSON:', remoteStr.substring(0, 200));
-      console.log('[REFRESH] Local JSON:', currentStr.substring(0, 200));
+      console.log('[REFRESH] ✅ CAMBIOS DETECTADOS - Remoto diferente a Local (mismo largo pero contenido diferente)');
+      console.log('[REFRESH] Remoto JSON:', remoteStr.substring(0, 300));
+      console.log('[REFRESH] Local JSON:', currentStr.substring(0, 300));
       
       // SIEMPRE sincronizar con remoto (remoto es la fuente de verdad)
       saveFilesOverride(hex, remote);
+      
+      // ✅ VERIFICAR que se guardó correctamente
+      const verify = getFilesForHex(hex);
+      const verifyStr = stableStringify(verify);
+      const savedCorrectly = verifyStr === remoteStr;
+      console.log('[REFRESH] 🔍 Verificación post-guardado:', savedCorrectly ? '✅ SÍ' : '❌ NO');
+      if (!savedCorrectly) {
+        console.error('[REFRESH] ❌ ERROR: Los datos no se guardaron correctamente en localStorage!');
+        console.error('[REFRESH] Esperado:', remoteStr.substring(0, 200));
+        console.error('[REFRESH] Obtenido:', verifyStr.substring(0, 200));
+      }
       
       // Si remoto está vacío pero base tiene enlaces, limpiar override para usar base
       if (remote.length === 0 && base.length > 0) {
@@ -1647,21 +1723,12 @@ async function refreshFromRemoteSilent(hex){
       return true;
     }
     
-    // Caso: remoto tiene menos elementos que local (se borraron enlaces)
-    if (remote.length < current.length) {
-      console.log('[REFRESH] ⚠️ Remoto tiene MENOS elementos que local');
-      console.log('[REFRESH] Forzando sincronización con remoto...');
-      saveFilesOverride(hex, remote);
-      if (remote.length === 0 && base.length > 0) {
-        clearFilesOverride(hex);
-      }
-      return true;
-    }
     
     console.log('[REFRESH] ✅ Sin cambios, datos sincronizados');
     return false;
   } catch (e) { 
     console.error('[REFRESH] Error en refresh silencioso:', e);
+    console.error('[REFRESH] Stack trace:', e.stack);
     return false; 
   }
 }
