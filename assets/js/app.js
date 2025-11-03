@@ -131,13 +131,16 @@ function getMergedAccessHashMap(){
   let custom = {};
   try {
     custom = loadCustomCourses();
+    console.log('[HASHMAP] 🔍 Cursos personalizados cargados desde localStorage:', Object.keys(custom));
+    console.log('[HASHMAP] 🔍 Detalles:', custom);
   } catch (e) {
     console.warn('[HASHMAP] Error cargando cursos custom, usando solo base:', e);
   }
   
   // Combinar base con custom (base siempre debe existir)
   const merged = Object.assign({}, base, custom);
-  console.log('[HASHMAP] Cursos base:', Object.keys(base).length, 'Custom:', Object.keys(custom).length, 'Total:', Object.keys(merged).length);
+  console.log('[HASHMAP] 📊 Resumen: Base:', Object.keys(base).length, 'Custom:', Object.keys(custom).length, 'Total:', Object.keys(merged).length);
+  console.log('[HASHMAP] 🔑 Hex de cursos custom:', Object.keys(custom));
   
   return merged;
 }
@@ -153,9 +156,19 @@ async function loadRemoteCoursesOnInit(){
   }
 }
 async function addCustomCourse(hex, courseData){
+  console.log('[ADD COURSE] Guardando curso localmente - hex:', hex.substring(0,8));
+  console.log('[ADD COURSE] Datos del curso:', courseData);
+  
   const custom = loadCustomCourses();
+  console.log('[ADD COURSE] Cursos actuales antes de agregar:', Object.keys(custom).length);
+  
   custom[hex] = courseData;
   saveCustomCourses(custom);
+  
+  console.log('[ADD COURSE] ✅ Curso guardado localmente');
+  console.log('[ADD COURSE] Cursos después de guardar:', Object.keys(custom).length);
+  console.log('[ADD COURSE] Verificando que se guardó:', hex in loadCustomCourses() ? '✅ SÍ' : '❌ NO');
+  
   // ✅ Guardar también en remoto (esperar confirmación)
   const saveResult = await remoteSaveCourse(hex, courseData).catch(e => {
     console.error('[ADD COURSE] ❌ Error guardando curso en remoto:', e);
@@ -751,9 +764,17 @@ async function refreshCustomCourses(){
     console.log('[REFRESH] 📋 Hex remotos:', remoteKeys);
     console.log('[REFRESH] 📋 Hex locales:', localKeys);
     
-    // ✅ MEJORADO: Fusionar cursos remotos con locales en lugar de sobrescribir completamente
-    // Esto preserva cursos locales que el servidor aún no ha procesado
-    const mergedCourses = { ...localCourses, ...remoteCourses };
+    // ✅ MEJORADO: Fusionar cursos remotos con locales
+    // PRIORIDAD: Si remoto tiene cursos, usar remoto (es la fuente de verdad)
+    // Pero preservar cursos locales que no están en remoto (pueden ser recién creados)
+    const mergedCourses = { ...localCourses };
+    
+    // Agregar/actualizar cursos remotos (remoto tiene prioridad)
+    if (remoteCourses && typeof remoteCourses === 'object') {
+      Object.keys(remoteCourses).forEach(hex => {
+        mergedCourses[hex] = remoteCourses[hex];
+      });
+    }
     
     // Detectar cambios después de la fusión
     const hadChanges = JSON.stringify(localCourses) !== JSON.stringify(mergedCourses);
@@ -763,6 +784,7 @@ async function refreshCustomCourses(){
     try {
       saveCustomCourses(mergedCourses);
       console.log('[REFRESH] ✅ Cursos sincronizados (fusionados:', Object.keys(mergedCourses).length, 'cursos)');
+      console.log('[REFRESH] 📊 Resumen: Local:', localKeys.length, 'Remoto:', remoteKeys.length, 'Final:', Object.keys(mergedCourses).length);
     } catch (e) {
       console.warn('[REFRESH] ⚠️ No se pudieron guardar cursos (modo incógnito?), continuando...', e);
     }
@@ -1137,12 +1159,24 @@ function renderCourse(keyHex) {
 /* ============ render master ============ */
 function buildMasterGrid() {
   const grid = $('#masterGrid');
+  if (!grid) {
+    console.error('[BUILD GRID] ❌ Grid no encontrado!');
+    return;
+  }
+  
   grid.innerHTML = '';
 
   const mergedMap = getMergedAccessHashMap();
+  console.log('[BUILD GRID] Construyendo grid con', Object.keys(mergedMap).length, 'cursos totales');
+  
+  let cardsCreated = 0;
+  
   Object.entries(mergedMap).forEach(([hex, data]) => {
     // excluir el master si algún día lo metes en el mismo objeto
     if (hex === MASTER_HASH) return;
+    
+    console.log('[BUILD GRID] Agregando curso al grid:', hex.substring(0,8), '-', data.title);
+    cardsCreated++;
 
     const cardEl = document.createElement('div');
     cardEl.className = 'master-card';
@@ -1541,6 +1575,14 @@ function buildMasterGrid() {
     cardEl.appendChild(right);
     grid.appendChild(cardEl);
   });
+  
+  const actualCards = grid.querySelectorAll('.master-card').length;
+  console.log('[BUILD GRID] ✅ Grid construido:', {
+    esperados: cardsCreated,
+    creados: actualCards,
+    diferencia: cardsCreated - actualCards
+  });
+  
   // herramientas exportar/importar
   try { ensureMasterTools(); } catch(e) {}
 }
@@ -2065,9 +2107,50 @@ function setupAddCourseModal() {
     // Guardar curso (esperar confirmación)
     await addCustomCourse(hex, courseData);
     
+    // ✅ CRÍTICO: Verificar que el curso se guardó correctamente
+    const verifyCourses = loadCustomCourses();
+    const courseExists = hex in verifyCourses;
+    console.log('[ADD COURSE] 🔍 Verificación post-guardado:', {
+      hex: hex.substring(0,8),
+      existe: courseExists,
+      totalCursos: Object.keys(verifyCourses).length
+    });
+    
+    if (!courseExists) {
+      console.error('[ADD COURSE] ❌ ERROR: El curso NO se guardó en localStorage!');
+      alert('⚠️ Error: El curso no se pudo guardar localmente. Intente de nuevo.');
+      return;
+    }
+    
     // ✅ CRÍTICO: Reconstruir grid INMEDIATAMENTE con datos locales
     // Esto asegura que el curso se vea incluso si el refresh falla o es lento
+    console.log('[ADD COURSE] Reconstruyendo grid inmediatamente...');
     buildMasterGrid();
+    
+    // Verificar que el curso aparece en el grid
+    setTimeout(() => {
+      const grid = $('#masterGrid');
+      const courseCards = grid ? grid.querySelectorAll('.master-card') : [];
+      console.log('[ADD COURSE] 🔍 Verificación en DOM:', {
+        totalCards: courseCards.length,
+        buscandoHex: hex.substring(0,8)
+      });
+      
+      // Buscar el curso en el grid
+      let found = false;
+      courseCards.forEach(card => {
+        const cardTitle = card.querySelector('strong')?.textContent || '';
+        if (courseData.title && cardTitle.includes(courseData.title.substring(0, 20))) {
+          found = true;
+          console.log('[ADD COURSE] ✅ Curso encontrado en grid:', cardTitle);
+        }
+      });
+      
+      if (!found) {
+        console.warn('[ADD COURSE] ⚠️ Curso no encontrado en grid, reconstruyendo de nuevo...');
+        buildMasterGrid();
+      }
+    }, 100);
     
     // Cerrar modal inmediatamente para mejor UX
     modalAddCourse.classList.remove('show');
@@ -2091,13 +2174,16 @@ function setupAddCourseModal() {
     setTimeout(async () => {
       try {
         console.log('[ADD COURSE] Sincronizando con servidor...');
-        await refreshCustomCourses();
-        // Si el refresh trajo cambios, reconstruir de nuevo
+        const refreshed = await refreshCustomCourses();
+        // ✅ CRÍTICO: Reconstruir grid SIEMPRE después de crear curso
+        // Esto asegura que se muestre incluso si hay problemas de sincronización
         buildMasterGrid();
         console.log('[ADD COURSE] ✅ Sincronización completada');
       } catch (e) {
         console.warn('[ADD COURSE] Error refrescando cursos después de crear:', e);
         // El curso ya está visible gracias al buildMasterGrid() anterior
+        // Pero reconstruir de nuevo por si acaso
+        buildMasterGrid();
       }
     }, 1000); // Esperar 1 segundo para que el servidor procese
   });
