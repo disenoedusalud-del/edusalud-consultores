@@ -637,31 +637,44 @@ async function remoteGetCourses(){
         } catch(e) {}
       };
       
+      // ✅ CRÍTICO: Declarar timeout ANTES de usarlo en callbacks
+      let timeout;
+      
       // ✅ CRÍTICO: Registrar callback ANTES de agregar script al DOM
       window[callbackName] = function(data) {
         if (resolved) return;
         resolved = true;
         clearTimeout(timeout);
         
+        console.log('[COURSE GET] 🔍 Respuesta completa del servidor:', data);
+        
         let courses = {};
         if (data && typeof data.courses === 'object') {
           courses = data.courses;
           console.log('[COURSE GET] ✅ Cursos remotos obtenidos:', Object.keys(courses).length);
+          console.log('[COURSE GET] 📋 Hex de cursos:', Object.keys(courses));
+        } else if (data && typeof data === 'object') {
+          // ✅ INTENTAR: Si data es directamente un objeto de cursos (sin wrapper)
+          console.log('[COURSE GET] ⚠️ Intentando parsear data directamente como objeto de cursos...');
+          courses = data;
+          console.log('[COURSE GET] ✅ Cursos parseados directamente:', Object.keys(courses).length);
+          console.log('[COURSE GET] 📋 Hex de cursos:', Object.keys(courses));
         } else {
           console.warn('[COURSE GET] ⚠️ Datos recibidos no tienen formato esperado:', data);
+          console.warn('[COURSE GET] Tipo de data:', typeof data);
         }
         
         cleanup();
         resolve(courses);
       };
       
-      const timeout = setTimeout(() => {
+      timeout = setTimeout(() => {
         if (resolved) return;
         resolved = true;
-        console.warn('[COURSE GET] ⚠️ Timeout');
+        console.warn('[COURSE GET] ⚠️ Timeout después de 5s');
         cleanup();
         resolve({});
-      }, 3000);
+      }, 5000); // ✅ Aumentado a 5 segundos para dar más tiempo al servidor
       
       script.onerror = () => {
         if (resolved) return;
@@ -690,31 +703,36 @@ async function refreshCustomCourses(){
   try {
     console.log('[REFRESH] Obteniendo cursos personalizados remotos...');
     
-    // ✅ Agregar timeout más corto para evitar bloqueos en modo incógnito
+    // ✅ CRÍTICO: Timeout debe ser mayor que el timeout de remoteGetCourses (3s)
     const timeoutPromise = new Promise((resolve) => {
       setTimeout(() => {
         console.warn('[REFRESH] ⚠️ Timeout obteniendo cursos remotos (continuando con cursos base)');
         resolve({});
-      }, 2000); // 2 segundos máximo (reducido de 5 para respuesta más rápida)
+      }, 5000); // ✅ Aumentado a 5 segundos para dar tiempo al JSONP
     });
     
     const remoteCoursesPromise = remoteGetCourses();
     const remoteCourses = await Promise.race([remoteCoursesPromise, timeoutPromise]);
     
     console.log('[REFRESH] Cursos remotos obtenidos:', Object.keys(remoteCourses || {}).length);
+    console.log('[REFRESH] 🔍 Cursos remotos completos:', remoteCourses);
     
     // ✅ Remoto es la fuente de verdad - sobrescribir completamente
     let localCourses = {};
     try {
       localCourses = loadCustomCourses();
+      console.log('[REFRESH] Cursos locales cargados:', Object.keys(localCourses).length);
     } catch (e) {
       console.warn('[REFRESH] Error cargando cursos locales (modo incógnito?):', e);
       localCourses = {};
     }
     
     const remoteKeys = Object.keys(remoteCourses || {});
+    const localKeys = Object.keys(localCourses);
     
-    console.log('[REFRESH] Comparación - Remoto:', remoteKeys.length, 'Local:', Object.keys(localCourses).length);
+    console.log('[REFRESH] Comparación - Remoto:', remoteKeys.length, 'Local:', localKeys.length);
+    console.log('[REFRESH] 📋 Hex remotos:', remoteKeys);
+    console.log('[REFRESH] 📋 Hex locales:', localKeys);
     
     // ✅ MEJORADO: Fusionar cursos remotos con locales en lugar de sobrescribir completamente
     // Esto preserva cursos locales que el servidor aún no ha procesado
@@ -1693,10 +1711,13 @@ async function tryLoginByCode(code) {
       clearAttempts();
       setQueryParam('code', btoa(code));
       
-      // ✅ Cargar cursos remotos en background (no bloquear)
-      refreshCustomCourses().catch(e => {
+      // ✅ CRÍTICO: Cargar cursos remotos ANTES de construir el grid
+      // Esperar a que termine para asegurar que los cursos estén disponibles
+      console.log('[MASTER] Cargando cursos remotos antes de construir grid...');
+      await refreshCustomCourses().catch(e => {
         console.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
       });
+      console.log('[MASTER] ✅ Cursos remotos cargados, construyendo grid...');
       
       buildMasterGrid();
       setupMasterSearch();
