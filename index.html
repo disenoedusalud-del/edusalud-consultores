@@ -445,32 +445,38 @@
   <!-- Service Worker Registration -->
   <script>
     // ✅ NUEVO: Flag para desarrollo
-    const IS_DEVELOPMENT = false; // Cambiar a false en producción
+    const IS_DEVELOPMENT = true; // Cambiar a false en producción
     
-    if (!IS_DEVELOPMENT && 'serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        const swPath = '/edusalud-consultores/sw.js';
-        navigator.serviceWorker.register(swPath)
-          .then((registration) => {
-            console.log('[SW] ✅ Registrado correctamente:', registration.scope);
-            
-            // ✅ NUEVO: Forzar actualización en cada carga en desarrollo
-            registration.update();
-          })
-          .catch((error) => {
-            console.log('[SW] ❌ Error al registrar:', error);
+        if (IS_DEVELOPMENT) {
+          // En desarrollo: desregistrar cualquier SW existente y registrar nuevo
+          navigator.serviceWorker.getRegistrations().then(registrations => {
+            registrations.forEach(reg => reg.unregister());
+          }).then(() => {
+            const swPath = '/edusalud-consultores/sw.js';
+            navigator.serviceWorker.register(swPath)
+              .then((registration) => {
+                console.log('[SW] ✅ Registrado (DESARROLLO):', registration.scope);
+                // Forzar actualización inmediata
+                registration.update();
+              })
+              .catch((error) => {
+                console.log('[SW] ❌ Error al registrar:', error);
+              });
           });
+        } else {
+          // En producción: registro normal
+          const swPath = '/edusalud-consultores/sw.js';
+          navigator.serviceWorker.register(swPath)
+            .then((registration) => {
+              console.log('[SW] ✅ Registrado correctamente:', registration.scope);
+            })
+            .catch((error) => {
+              console.log('[SW] ❌ Error al registrar:', error);
+            });
+        }
       });
-    } else if (IS_DEVELOPMENT) {
-      // En desarrollo: desregistrar cualquier SW existente
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-          registrations.forEach(registration => {
-            registration.unregister();
-            console.log('[SW] �� Service Worker desregistrado para desarrollo');
-          });
-        });
-      }
     }
   </script>
 </body>
