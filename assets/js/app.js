@@ -179,23 +179,16 @@ const CURRENT_CACHE_VERSION = '1.2'; // Incrementar para forzar limpieza
 
 function storageKeyFor(hex){ return FILES_STORAGE_PREFIX + hex; }
 
-// ✅ Verificar versión de caché y limpiar si es antigua
+// ✅ Verificar versión de caché (YA NO limpia automáticamente)
 function checkAndCleanOldCache(){
   try {
     const storedVersion = localStorage.getItem(CACHE_VERSION_KEY);
     if (storedVersion !== CURRENT_CACHE_VERSION) {
-      console.log('[CACHE] ⚠️ Versión de caché obsoleta, limpiando...');
-      // Limpiar todos los archivos almacenados
-      const keys = Object.keys(localStorage);
-      keys.forEach(key => {
-        if (key.startsWith(FILES_STORAGE_PREFIX)) {
-          localStorage.removeItem(key);
-          console.log('[CACHE] 🧹 Limpiado:', key);
-        }
-      });
-      // Actualizar versión
+      console.log('[CACHE] ℹ️ Nueva versión detectada:', CURRENT_CACHE_VERSION);
+      // SOLO actualizar versión, NO limpiar datos
+      // Los datos se sincronizarán con remoto automáticamente
       localStorage.setItem(CACHE_VERSION_KEY, CURRENT_CACHE_VERSION);
-      console.log('[CACHE] ✅ Caché limpiado, versión actualizada a', CURRENT_CACHE_VERSION);
+      console.log('[CACHE] ✅ Versión actualizada, datos se sincronizarán automáticamente');
       return true;
     }
     return false;
@@ -1580,60 +1573,43 @@ async function refreshFromRemoteSilent(hex){
     const base = getBaseFilesForHex(hex); // Datos originales del código
     const currentStr = stableStringify(current);
     const remoteStr = stableStringify(remote);
-    const baseStr = stableStringify(base);
     
     console.log('[REFRESH] Estado actual:');
     console.log('[REFRESH] - Remoto:', remote.length, 'archivos');
     console.log('[REFRESH] - Local:', current.length, 'archivos');
     console.log('[REFRESH] - Base:', base.length, 'archivos');
     
-    // ✅ CRÍTICO: SIEMPRE confiar en remoto como fuente de verdad
-    // Ignorar localStorage si hay diferencias
+    // ✅ LÓGICA SIMPLIFICADA CON SENTIDO COMÚN:
+    // 1. Si remoto TIENE datos → SIEMPRE usar remoto (es la verdad)
+    // 2. Si remoto está VACÍO → usar base si existe, sino limpiar
+    // 3. NUNCA limpiar si hay datos válidos disponibles
+    
     const stringsMatch = remoteStr === currentStr;
     
     if (!stringsMatch) {
       console.log('[REFRESH] ✅ CAMBIOS DETECTADOS - Remoto diferente a Local');
-      console.log('[REFRESH] Remoto JSON:', remoteStr.substring(0, 200));
-      console.log('[REFRESH] Local JSON:', currentStr.substring(0, 200));
+      console.log('[REFRESH] Remoto:', remote.length, 'archivos | Local:', current.length, 'archivos');
       
-      // ✅ NUEVO: Si remoto está vacío y base también, limpiar override
+      // ✅ CASO 1: Remoto TIENE datos → SIEMPRE sincronizar (sin importar qué hay en local)
+      if (remote.length > 0) {
+        console.log('[REFRESH] 📥 Remoto tiene', remote.length, 'archivos - Sincronizando (fuente de verdad)');
+        saveFilesOverride(hex, remote);
+        return true;
+      }
+      
+      // ✅ CASO 2: Remoto VACÍO pero base TIENE datos → Usar base (limpiar override)
+      if (remote.length === 0 && base.length > 0) {
+        console.log('[REFRESH] 🔄 Remoto vacío, usando datos base (', base.length, 'archivos)');
+        clearFilesOverride(hex);
+        return true;
+      }
+      
+      // ✅ CASO 3: Remoto VACÍO y base VACÍA → Limpiar override
       if (remote.length === 0 && base.length === 0) {
-        console.log('[REFRESH] Remoto y base vacíos, limpiando override');
+        console.log('[REFRESH] 🧹 Remoto y base vacíos, limpiando override');
         clearFilesOverride(hex);
         return true;
       }
-      
-      // ✅ NUEVO: Si remoto está vacío pero base tiene enlaces, usar base
-      if (remote.length === 0 && base.length > 0) {
-        console.log('[REFRESH] Remoto vacío, limpiando override para usar datos base');
-        clearFilesOverride(hex);
-        return true;
-      }
-      
-      // ✅ Si remoto tiene datos, SIEMPRE sincronizar (remoto es fuente de verdad)
-      console.log('[REFRESH] 📥 Sincronizando con remoto (fuente de verdad)');
-      saveFilesOverride(hex, remote);
-      return true;
-    }
-    
-    // ✅ Verificar inconsistencias incluso si strings coinciden
-    // Caso: remoto vacío pero local tiene más que base (datos obsoletos)
-    if (remote.length === 0 && current.length > base.length) {
-      console.log('[REFRESH] ⚠️ INCONSISTENCIA: Remoto vacío pero local tiene datos obsoletos');
-      console.log('[REFRESH] 🧹 Limpiando localStorage para sincronizar...');
-      clearFilesOverride(hex);
-      return true;
-    }
-    
-    // Caso: remoto tiene menos elementos que local (se borraron enlaces)
-    if (remote.length < current.length) {
-      console.log('[REFRESH] ⚠️ Remoto tiene MENOS elementos que local (enlaces borrados)');
-      console.log('[REFRESH] 🧹 Forzando sincronización con remoto...');
-      saveFilesOverride(hex, remote);
-      if (remote.length === 0 && base.length > 0) {
-        clearFilesOverride(hex);
-      }
-      return true;
     }
     
     console.log('[REFRESH] ✅ Sin cambios, datos sincronizados');
@@ -1879,20 +1855,24 @@ $('#btn-master-copy').addEventListener('click', async () => {
   }
 });
 
-// ✅ NUEVO: Función global para limpiar caché completa (disponible desde consola)
-window.clearAllCaches = async function() {
-  console.log('[CACHE CLEAR] 🧹 Iniciando limpieza completa de caché...');
+// ✅ FUNCIÓN PARA FORZAR SINCRONIZACIÓN COMPLETA (usar solo si hay problemas)
+window.forceSyncAll = async function() {
+  console.log('[FORCE SYNC] 🔄 Iniciando sincronización forzada con remoto...');
+  
+  if (!confirm('¿Forzar sincronización completa? Esto descargará todos los datos desde remoto.')) {
+    return;
+  }
   
   // 1. Limpiar localStorage de archivos
   const filesCleared = clearAllFilesOverrides();
-  console.log('[CACHE CLEAR] 🧹 Limpiados', filesCleared, 'archivos de localStorage');
+  console.log('[FORCE SYNC] 🧹 Limpiados', filesCleared, 'archivos de localStorage');
   
   // 2. Limpiar caché del navegador
   if ('caches' in window) {
     const cacheNames = await caches.keys();
     await Promise.all(
       cacheNames.map(cacheName => {
-        console.log('[CACHE CLEAR] 🧹 Eliminando caché:', cacheName);
+        console.log('[FORCE SYNC] 🧹 Eliminando caché:', cacheName);
         return caches.delete(cacheName);
       })
     );
@@ -1903,19 +1883,16 @@ window.clearAllCaches = async function() {
     const registrations = await navigator.serviceWorker.getRegistrations();
     await Promise.all(
       registrations.map(reg => {
-        console.log('[CACHE CLEAR] 🧹 Desregistrando Service Worker');
+        console.log('[FORCE SYNC] 🧹 Desregistrando Service Worker');
         return reg.unregister();
       })
     );
   }
   
-  // 4. Actualizar versión de caché
-  localStorage.setItem(CACHE_VERSION_KEY, CURRENT_CACHE_VERSION);
+  console.log('[FORCE SYNC] ✅ Sincronización completada. Recargando...');
+  alert('✅ Sincronización completada. La página se recargará.');
   
-  console.log('[CACHE CLEAR] ✅ Caché completamente limpiado');
-  alert('✅ Caché limpiado. La página se recargará para aplicar cambios.');
-  
-  // 5. Recargar página
+  // 4. Recargar página
   setTimeout(() => {
     location.reload(true);
   }, 500);
