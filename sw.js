@@ -1,24 +1,17 @@
 // Service Worker para Plataforma EduSalud
-// Versión 1.1 - Con soporte para desarrollo
+// Versión 1.0 - Caché estratégico de assets
 
-// ✅ DETECTAR MODO DESARROLLO
-// Cambiar a false antes de hacer commit a producción
-const IS_DEVELOPMENT = false; // ⚠️ CAMBIAR A false EN PRODUCCIÓN
-
-// ✅ VERSIÓN DINÁMICA EN DESARROLLO
+// ✅ NUEVO: Detectar modo desarrollo
+const IS_DEVELOPMENT = true; // Cambiar a false en producción
 const VERSION = IS_DEVELOPMENT 
-  ? `edusalud-dev-${Date.now()}` 
-  : 'edusalud-v1';
-  
+  ? 'edusalud-dev-' + Date.now() // Versión única cada vez en desarrollo
+  : 'edusalud-v1'; // Versión estable en producción
+
 const CACHE_NAME = VERSION;
-const RUNTIME_CACHE = IS_DEVELOPMENT 
-  ? `edusalud-runtime-${Date.now()}` 
-  : 'edusalud-runtime-v1';
+const RUNTIME_CACHE = 'edusalud-runtime-' + (IS_DEVELOPMENT ? Date.now() : 'v1');
 
 // Assets críticos que se cachean inmediatamente
 const BASE_PATH = '/edusalud-consultores';
-
-// ✅ EN DESARROLLO: NO PRE-CACHEAR ASSETS
 const STATIC_ASSETS = IS_DEVELOPMENT ? [] : [
   BASE_PATH + '/',
   BASE_PATH + '/index.html',
@@ -111,17 +104,24 @@ self.addEventListener('fetch', (event) => {
     return; // No procesar requests externos
   }
 
-  // ✅ ESTRATEGIA DIFERENTE SEGÚN MODO
+  // ✅ NUEVO: Estrategia diferente en desarrollo vs producción
   if (IS_DEVELOPMENT) {
-    // MODO DESARROLLO: Network-First (siempre busca nueva versión)
+    // Modo desarrollo: Network-First (siempre busca nueva versión)
     event.respondWith(
-      fetch(request, { cache: 'no-store' })
+      fetch(request)
         .then((response) => {
-          // NO cachear en desarrollo
+          // Solo cachear si es exitosa
+          if (response && response.status === 200 && response.type === 'basic') {
+            const responseToCache = response.clone();
+            // Cachear solo para offline, no para servir
+            if (isImage(url) || isFont(url)) {
+              caches.open(CACHE_NAME).then(cache => cache.put(request, responseToCache));
+            }
+          }
           return response;
         })
         .catch(() => {
-          // Solo usar cache si falla completamente la red
+          // Solo usar cache si falla la red
           return caches.match(request).then(cached => {
             if (cached) return cached;
             if (request.mode === 'navigate') {
@@ -132,7 +132,7 @@ self.addEventListener('fetch', (event) => {
         })
     );
   } else {
-    // MODO PRODUCCIÓN: Cache-First (estrategia original)
+    // Modo producción: Cache-First (estrategia original)
     event.respondWith(
       caches.match(request)
         .then((cachedResponse) => {
