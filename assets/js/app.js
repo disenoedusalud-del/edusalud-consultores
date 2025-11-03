@@ -1046,6 +1046,7 @@ function renderCourse(keyHex) {
   $('#courseMeta').textContent = data.meta || '';
 
   const list = $('#filelist');
+  if (!list) return; // Elemento no encontrado, salir silenciosamente
   list.innerHTML = '';
   const files = getFilesForHex(keyHex);
   (files || []).forEach(item => {
