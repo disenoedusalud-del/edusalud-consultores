@@ -14,6 +14,15 @@ function setQueryParam(key, value) {
   history.replaceState({}, '', url);
 }
 function downloadFile(url, label = '') { 
+  // ✅ Validar URL antes de abrir
+  try {
+    new URL(url);
+  } catch (e) {
+    console.error('[DOWNLOAD] URL inválida:', url);
+    alert('URL inválida. No se puede abrir el enlace.');
+    return;
+  }
+  
   window.open(url, '_blank', 'noopener'); 
   
   // ✅ Google Analytics: Tracking de descarga
@@ -262,7 +271,7 @@ async function testWebAppResponse(hex) {
 
 function remoteGetFilesJSONP(hex){
   return new Promise((resolve) => {
-    const callbackName = '_gas_jsonp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const callbackName = '_gas_jsonp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
     const script = document.createElement('script');
     const url = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex) + '&callback=' + callbackName;
     script.src = url;
@@ -281,6 +290,9 @@ function remoteGetFilesJSONP(hex){
         if (window[callbackName]) delete window[callbackName];
       } catch(e) {}
     };
+    
+    // ✅ CRÍTICO: Declarar timeout ANTES de usarlo en callbacks
+    let timeout;
     
     // Crear callback global ANTES de agregar el script
     window[callbackName] = function(data) {
@@ -341,7 +353,7 @@ function remoteGetFilesJSONP(hex){
     };
     
     // Timeout reducido a 3 segundos para respuesta más rápida
-    const timeout = setTimeout(() => {
+    timeout = setTimeout(() => {
       if (resolved) return;
       resolved = true;
       console.warn('[JSONP] ⚠️ Timeout después de 3s para hex:', hex.substring(0,8));
@@ -610,7 +622,7 @@ async function remoteGetCourses(){
     console.log('[COURSE GET] Obteniendo cursos remotos...');
     
     return new Promise((resolve) => {
-      const callbackName = '_gas_jsonp_courses_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      const callbackName = '_gas_jsonp_courses_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
       const script = document.createElement('script');
       script.src = REMOTE_BASE_URL + '?action=get_courses&callback=' + callbackName;
       script.async = true;
@@ -1649,14 +1661,17 @@ async function tryLoginByCode(code) {
           })),
           new Promise(resolve => setTimeout(() => {
             console.log('[SYNC] Timeout refresh global, continuando...');
-            resolve({});
+            resolve([]); // ✅ Resolver con array vacío en lugar de objeto
           }, 2000)) // Timeout de 2 segundos máximo para todos los cursos
         ])
           .then(results => {
-            if (Array.isArray(results)) {
+            // ✅ Manejar correctamente el resultado (puede ser array o array vacío)
+            if (Array.isArray(results) && results.length > 0) {
               const successful = results.filter(r => r.status === 'fulfilled').length;
               const failed = results.filter(r => r.status === 'rejected').length;
               console.log(`[SYNC] Refresh completado: ${successful} exitosos, ${failed} fallidos`);
+            } else {
+              console.log('[SYNC] Timeout alcanzado, continuando con login...');
             }
           })
           .catch(e => {
@@ -1681,7 +1696,8 @@ async function tryLoginByCode(code) {
       
       buildMasterGrid();
       setupMasterSearch();
-      $('#year_master').textContent = new Date().getFullYear();
+      const yearMasterEl = $('#year_master');
+      if (yearMasterEl) yearMasterEl.textContent = new Date().getFullYear();
       showMaster();
       
       // ✅ Google Analytics: Tracking login exitoso Master
@@ -1776,42 +1792,76 @@ async function tryLoginByCode(code) {
 }
 
 /* ============ eventos ============ */
-$('#btn-enter').addEventListener('click', () => tryLoginByCode($('#code').value));
-$('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#btn-enter').click(); } });
-$('#btn-logout').addEventListener('click', () => { currentKeyHex = null; setQueryParam('code', null); showAccess(); });
+// ✅ Validar elementos DOM antes de agregar event listeners
+const btnEnter = $('#btn-enter');
+const codeInput = $('#code');
+const btnLogout = $('#btn-logout');
+const btnCopyCodeLink = $('#btn-copy-code-link');
+const btnMasterExit = $('#btn-master-exit');
+const btnMasterCopy = $('#btn-master-copy');
 
-$('#btn-copy-code-link').addEventListener('click', async () => {
-  if (!currentKeyHex) return;
-  const url = new URL(location.href);
-  const codeField = $('#code');
-  const encoded = url.searchParams.get('code');
-  const codeVal = (encoded ? atob(encoded) : codeField.value) || '';
-  if (!codeVal) return;
-  url.searchParams.set('code', btoa(codeVal));
-  try {
-    await navigator.clipboard.writeText(url.toString());
-    alert('Enlace copiado al portapapeles');
-  } catch (e) {
-    prompt('Copie este enlace:', url.toString());
-  }
-});
+if (btnEnter && codeInput) {
+  btnEnter.addEventListener('click', () => tryLoginByCode(codeInput.value));
+  codeInput.addEventListener('keydown', (e) => { 
+    if (e.key === 'Enter') { 
+      e.preventDefault(); 
+      btnEnter.click(); 
+    } 
+  });
+}
 
-$('#btn-master-exit').addEventListener('click', () => { setQueryParam('code', null); showAccess(); });
-$('#btn-master-copy').addEventListener('click', async () => {
-  const url = new URL(location.href);
-  url.searchParams.set('code', btoa('EDUMASTER123456987'));
-  try {
-    await navigator.clipboard.writeText(url.toString());
-    alert('Enlace de vista maestra copiado');
-  } catch (e) {
-    prompt('Copie este enlace:', url.toString());
-  }
-});
+if (btnLogout) {
+  btnLogout.addEventListener('click', () => { 
+    currentKeyHex = null; 
+    setQueryParam('code', null); 
+    showAccess(); 
+  });
+}
+
+if (btnCopyCodeLink) {
+  btnCopyCodeLink.addEventListener('click', async () => {
+    if (!currentKeyHex) return;
+    const url = new URL(location.href);
+    const codeField = $('#code');
+    const encoded = url.searchParams.get('code');
+    const codeVal = (encoded ? atob(encoded) : (codeField ? codeField.value : '')) || '';
+    if (!codeVal) return;
+    url.searchParams.set('code', btoa(codeVal));
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      alert('Enlace copiado al portapapeles');
+    } catch (e) {
+      prompt('Copie este enlace:', url.toString());
+    }
+  });
+}
+
+if (btnMasterExit) {
+  btnMasterExit.addEventListener('click', () => { 
+    setQueryParam('code', null); 
+    showAccess(); 
+  });
+}
+
+if (btnMasterCopy) {
+  btnMasterCopy.addEventListener('click', async () => {
+    const url = new URL(location.href);
+    url.searchParams.set('code', btoa('EDUMASTER123456987'));
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      alert('Enlace de vista maestra copiado');
+    } catch (e) {
+      prompt('Copie este enlace:', url.toString());
+    }
+  });
+}
 
 /* ============ init ============ */
 (async function init(){
-  $('#year').textContent = new Date().getFullYear();
-  $('#year_master').textContent = new Date().getFullYear();
+  const yearEl = $('#year');
+  const yearMasterEl = $('#year_master');
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
+  if (yearMasterEl) yearMasterEl.textContent = new Date().getFullYear();
 
   const qp = new URLSearchParams(location.search);
   const pre = qp.get('code');
@@ -1822,13 +1872,22 @@ $('#btn-master-copy').addEventListener('click', async () => {
       const decoded = atob(pre);
       if (decoded) {
         const ok = await tryLoginByCode(decoded);
-        if (ok) { try { $('#code').value = decoded; } catch(e) {} return; }
+        if (ok) { 
+          const codeEl = $('#code');
+          if (codeEl) {
+            try { codeEl.value = decoded; } catch(e) {} 
+          }
+          return; 
+        }
         else {
           hideLoader(); // ✅ Ocultar loader antes de mostrar acceso
           setQueryParam('code', null);
           showAccess();
-          $('#msg').textContent = 'El enlace contiene código inválido o expirado.';
-          $('#msg').classList.add('error');
+          const msgEl = $('#msg');
+          if (msgEl) {
+            msgEl.textContent = 'El enlace contiene código inválido o expirado.';
+            msgEl.classList.add('error');
+          }
           return;
         }
       }
