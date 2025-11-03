@@ -444,13 +444,16 @@
   
   <!-- Service Worker Registration -->
   <script>
-    // ✅ NUEVO: Flag para desarrollo
-    const IS_DEVELOPMENT = true; // Cambiar a false en producción
+    // ✅ MODO DESARROLLO: Cambia a false antes de hacer commit a producción
+    // En desarrollo: Los cambios se ven inmediatamente sin limpiar caché
+    // En producción: Usa caché optimizado para mejor rendimiento
+    const IS_DEVELOPMENT = true; // ⚠️ CAMBIAR A false EN PRODUCCIÓN
     
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         if (IS_DEVELOPMENT) {
           // En desarrollo: desregistrar cualquier SW existente y registrar nuevo
+          // Esto asegura que siempre se use la versión más reciente
           navigator.serviceWorker.getRegistrations().then(registrations => {
             registrations.forEach(reg => reg.unregister());
           }).then(() => {
@@ -458,6 +461,7 @@
             navigator.serviceWorker.register(swPath)
               .then((registration) => {
                 console.log('[SW] ✅ Registrado (DESARROLLO):', registration.scope);
+                console.log('[SW] 💡 Los cambios se verán inmediatamente sin limpiar caché');
                 // Forzar actualización inmediata
                 registration.update();
               })
@@ -466,7 +470,7 @@
               });
           });
         } else {
-          // En producción: registro normal
+          // En producción: registro normal con caché optimizado
           const swPath = '/edusalud-consultores/sw.js';
           navigator.serviceWorker.register(swPath)
             .then((registration) => {
