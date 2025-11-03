@@ -174,7 +174,37 @@ function isCustomCourse(hex){
 
 /* ============ persistencia de enlaces por curso ============ */
 const FILES_STORAGE_PREFIX = 'edusalud_files_';
+const CACHE_VERSION_KEY = 'edusalud_cache_version';
+const CURRENT_CACHE_VERSION = '1.2'; // Incrementar para forzar limpieza
+
 function storageKeyFor(hex){ return FILES_STORAGE_PREFIX + hex; }
+
+// ✅ Verificar versión de caché y limpiar si es antigua
+function checkAndCleanOldCache(){
+  try {
+    const storedVersion = localStorage.getItem(CACHE_VERSION_KEY);
+    if (storedVersion !== CURRENT_CACHE_VERSION) {
+      console.log('[CACHE] ⚠️ Versión de caché obsoleta, limpiando...');
+      // Limpiar todos los archivos almacenados
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith(FILES_STORAGE_PREFIX)) {
+          localStorage.removeItem(key);
+          console.log('[CACHE] 🧹 Limpiado:', key);
+        }
+      });
+      // Actualizar versión
+      localStorage.setItem(CACHE_VERSION_KEY, CURRENT_CACHE_VERSION);
+      console.log('[CACHE] ✅ Caché limpiado, versión actualizada a', CURRENT_CACHE_VERSION);
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.warn('[CACHE] Error verificando versión:', e);
+    return false;
+  }
+}
+
 function loadFilesOverride(hex){
   try {
     const raw = localStorage.getItem(storageKeyFor(hex));
@@ -189,6 +219,24 @@ function saveFilesOverride(hex, files){
 }
 function clearFilesOverride(hex){
   try { localStorage.removeItem(storageKeyFor(hex)); } catch(e) {}
+}
+// ✅ Limpiar TODOS los overrides de archivos
+function clearAllFilesOverrides(){
+  try {
+    const keys = Object.keys(localStorage);
+    let count = 0;
+    keys.forEach(key => {
+      if (key.startsWith(FILES_STORAGE_PREFIX)) {
+        localStorage.removeItem(key);
+        count++;
+      }
+    });
+    console.log('[CACHE] 🧹 Limpiados', count, 'archivos de localStorage');
+    return count;
+  } catch (e) {
+    console.warn('[CACHE] Error limpiando archivos:', e);
+    return 0;
+  }
 }
 function getBaseFilesForHex(hex){
   const base = ACCESS_HASH_MAP[hex]?.files;
@@ -1539,8 +1587,8 @@ async function refreshFromRemoteSilent(hex){
     console.log('[REFRESH] - Local:', current.length, 'archivos');
     console.log('[REFRESH] - Base:', base.length, 'archivos');
     
-    // CRÍTICO: Si remoto es diferente a local, actualizar SIEMPRE (sin excepciones)
-    // Esto asegura que los cambios remotos siempre prevalezcan
+    // ✅ CRÍTICO: SIEMPRE confiar en remoto como fuente de verdad
+    // Ignorar localStorage si hay diferencias
     const stringsMatch = remoteStr === currentStr;
     
     if (!stringsMatch) {
@@ -1548,33 +1596,39 @@ async function refreshFromRemoteSilent(hex){
       console.log('[REFRESH] Remoto JSON:', remoteStr.substring(0, 200));
       console.log('[REFRESH] Local JSON:', currentStr.substring(0, 200));
       
-      // SIEMPRE sincronizar con remoto (remoto es la fuente de verdad)
-      saveFilesOverride(hex, remote);
+      // ✅ NUEVO: Si remoto está vacío y base también, limpiar override
+      if (remote.length === 0 && base.length === 0) {
+        console.log('[REFRESH] Remoto y base vacíos, limpiando override');
+        clearFilesOverride(hex);
+        return true;
+      }
       
-      // Si remoto está vacío pero base tiene enlaces, limpiar override para usar base
+      // ✅ NUEVO: Si remoto está vacío pero base tiene enlaces, usar base
       if (remote.length === 0 && base.length > 0) {
         console.log('[REFRESH] Remoto vacío, limpiando override para usar datos base');
         clearFilesOverride(hex);
         return true;
       }
       
-      // Si remoto tiene datos, guardarlos (incluso si es un array vacío)
+      // ✅ Si remoto tiene datos, SIEMPRE sincronizar (remoto es fuente de verdad)
+      console.log('[REFRESH] 📥 Sincronizando con remoto (fuente de verdad)');
+      saveFilesOverride(hex, remote);
       return true;
     }
     
-    // Si las strings coinciden pero hay inconsistencias visuales, verificar
-    // Caso: remoto vacío pero local tiene más que base (overrides obsoletos)
+    // ✅ Verificar inconsistencias incluso si strings coinciden
+    // Caso: remoto vacío pero local tiene más que base (datos obsoletos)
     if (remote.length === 0 && current.length > base.length) {
-      console.log('[REFRESH] ⚠️ INCONSISTENCIA: Remoto vacío pero local tiene overrides obsoletos');
-      console.log('[REFRESH] Limpiando localStorage para sincronizar con remoto...');
+      console.log('[REFRESH] ⚠️ INCONSISTENCIA: Remoto vacío pero local tiene datos obsoletos');
+      console.log('[REFRESH] 🧹 Limpiando localStorage para sincronizar...');
       clearFilesOverride(hex);
       return true;
     }
     
     // Caso: remoto tiene menos elementos que local (se borraron enlaces)
     if (remote.length < current.length) {
-      console.log('[REFRESH] ⚠️ Remoto tiene MENOS elementos que local');
-      console.log('[REFRESH] Forzando sincronización con remoto...');
+      console.log('[REFRESH] ⚠️ Remoto tiene MENOS elementos que local (enlaces borrados)');
+      console.log('[REFRESH] 🧹 Forzando sincronización con remoto...');
       saveFilesOverride(hex, remote);
       if (remote.length === 0 && base.length > 0) {
         clearFilesOverride(hex);
@@ -1825,8 +1879,56 @@ $('#btn-master-copy').addEventListener('click', async () => {
   }
 });
 
+// ✅ NUEVO: Función global para limpiar caché completa (disponible desde consola)
+window.clearAllCaches = async function() {
+  console.log('[CACHE CLEAR] 🧹 Iniciando limpieza completa de caché...');
+  
+  // 1. Limpiar localStorage de archivos
+  const filesCleared = clearAllFilesOverrides();
+  console.log('[CACHE CLEAR] 🧹 Limpiados', filesCleared, 'archivos de localStorage');
+  
+  // 2. Limpiar caché del navegador
+  if ('caches' in window) {
+    const cacheNames = await caches.keys();
+    await Promise.all(
+      cacheNames.map(cacheName => {
+        console.log('[CACHE CLEAR] 🧹 Eliminando caché:', cacheName);
+        return caches.delete(cacheName);
+      })
+    );
+  }
+  
+  // 3. Desregistrar Service Worker
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(
+      registrations.map(reg => {
+        console.log('[CACHE CLEAR] 🧹 Desregistrando Service Worker');
+        return reg.unregister();
+      })
+    );
+  }
+  
+  // 4. Actualizar versión de caché
+  localStorage.setItem(CACHE_VERSION_KEY, CURRENT_CACHE_VERSION);
+  
+  console.log('[CACHE CLEAR] ✅ Caché completamente limpiado');
+  alert('✅ Caché limpiado. La página se recargará para aplicar cambios.');
+  
+  // 5. Recargar página
+  setTimeout(() => {
+    location.reload(true);
+  }, 500);
+};
+
 /* ============ init ============ */
 (async function init(){
+  // ✅ NUEVO: Verificar y limpiar caché obsoleto al inicio
+  const wasCleanedCache = checkAndCleanOldCache();
+  if (wasCleanedCache) {
+    console.log('[INIT] 🧹 Caché limpiado al inicio - datos frescos garantizados');
+  }
+  
   $('#year').textContent = new Date().getFullYear();
   $('#year_master').textContent = new Date().getFullYear();
 
