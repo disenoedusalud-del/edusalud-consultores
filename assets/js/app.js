@@ -447,25 +447,15 @@ async function remoteSaveFiles(hex, files){
     form.submit();
     console.log('[SAVE] ✅ Formulario enviado a:', REMOTE_BASE_URL);
     
-    // ✅ Esperar un momento para asegurar que el formulario se envió
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Limpiar después de enviar (pero mantener iframe para no interrumpir el envío)
+    // Limpiar después de un breve delay
     setTimeout(() => {
       try {
         if (form.parentNode) document.body.removeChild(form);
+        if (iframe.parentNode) document.body.removeChild(iframe);
       } catch (e) {
-        console.warn('[SAVE] Error limpiando formulario:', e);
+        console.warn('[SAVE] Error limpiando:', e);
       }
-      // Limpiar iframe después de más tiempo para asegurar que recibió la respuesta
-      setTimeout(() => {
-        try {
-          if (iframe.parentNode) document.body.removeChild(iframe);
-        } catch (e) {
-          console.warn('[SAVE] Error limpiando iframe:', e);
-        }
-      }, 1000);
-    }, 500);
+    }, 2000);
     
     // ✅ Devolver true inmediatamente ya que el formulario se envió
     // El envío es asíncrono pero la función necesita retornar
@@ -881,7 +871,7 @@ function showAccess() {
 }
 // Sistema de refresh periódico para sincronización en tiempo real
 let periodicRefreshInterval = null;
-const PERIODIC_REFRESH_INTERVAL_MS = 2000; // 2 segundos para sincronización más rápida
+const PERIODIC_REFRESH_INTERVAL_MS = 3000; // 3 segundos (óptimo para sincronización)
 
 function startPeriodicRefresh(currentHex = null) {
   // Detener cualquier refresh periódico existente
@@ -1283,16 +1273,9 @@ function buildMasterGrid() {
           saveFilesOverride(hex, next);
       
       // ✅ GUARDAR EN REMOTO (esperar confirmación)
-      const editSaveResult = await remoteSaveFiles(hex, next).catch(e => {
+      await remoteSaveFiles(hex, next).catch(e => {
         console.error('[EDIT] ❌ Error guardando en remoto:', e);
-        return false;
       });
-      
-      if (editSaveResult) {
-        // Dar tiempo a Google Sheets para procesar
-        await new Promise(resolve => setTimeout(resolve, 800));
-        console.log('[EDIT] 🔄 Propagación completada');
-      }
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
           const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
@@ -1342,16 +1325,9 @@ function buildMasterGrid() {
         saveFilesOverride(hex, next);
         
         // ✅ GUARDAR EN REMOTO (esperar confirmación)
-        const removeSaveResult = await remoteSaveFiles(hex, next).catch(e => {
+        await remoteSaveFiles(hex, next).catch(e => {
           console.error('[REMOVE] ❌ Error guardando en remoto:', e);
-          return false;
         });
-        
-        if (removeSaveResult) {
-          // Dar tiempo a Google Sheets para procesar
-          await new Promise(resolve => setTimeout(resolve, 800));
-          console.log('[REMOVE] 🔄 Propagación completada');
-        }
         
         // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
         const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
@@ -1394,16 +1370,9 @@ function buildMasterGrid() {
       saveFilesOverride(hex, next);
       
       // ✅ GUARDAR EN REMOTO (esperar confirmación)
-      const reorderSaveResult = await remoteSaveFiles(hex, next).catch(e => {
+      await remoteSaveFiles(hex, next).catch(e => {
         console.error('[REORDER] ❌ Error guardando en remoto:', e);
-        return false;
       });
-      
-      if (reorderSaveResult) {
-        // Dar tiempo a Google Sheets para procesar
-        await new Promise(resolve => setTimeout(resolve, 800));
-        console.log('[REORDER] 🔄 Propagación completada');
-      }
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
       const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
@@ -1470,10 +1439,6 @@ function buildMasterGrid() {
       
       if (saveResult) {
         console.log('[ADD] ✅ Archivo guardado en remoto correctamente');
-        
-        // ✅ NUEVO: Dar tiempo a Google Sheets para procesar el cambio
-        await new Promise(resolve => setTimeout(resolve, 800));
-        console.log('[ADD] 🔄 Propagación a Google Sheets completada');
       } else {
         console.warn('[ADD] ⚠️ No se pudo guardar en remoto (continuando de todas formas)');
       }
@@ -1514,16 +1479,9 @@ function buildMasterGrid() {
       clearFilesOverride(hex);
       
       // ✅ GUARDAR EN REMOTO (esperar confirmación)
-      const restoreSaveResult = await remoteSaveFiles(hex, getFilesForHex(hex)).catch(e => {
+      await remoteSaveFiles(hex, getFilesForHex(hex)).catch(e => {
         console.error('[RESTORE] ❌ Error guardando en remoto:', e);
-        return false;
       });
-      
-      if (restoreSaveResult) {
-        // Dar tiempo a Google Sheets para procesar
-        await new Promise(resolve => setTimeout(resolve, 800));
-        console.log('[RESTORE] 🔄 Propagación completada');
-      }
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
       const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
