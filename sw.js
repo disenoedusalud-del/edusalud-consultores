@@ -3,7 +3,7 @@
 
 // ✅ DETECTAR MODO DESARROLLO
 // Cambiar a false antes de hacer commit a producción
-const IS_DEVELOPMENT = true; // ⚠️ CAMBIAR A false EN PRODUCCIÓN
+const IS_DEVELOPMENT = false; // ⚠️ CAMBIAR A false EN PRODUCCIÓN
 
 // ✅ VERSIÓN DINÁMICA EN DESARROLLO
 const VERSION = IS_DEVELOPMENT 
