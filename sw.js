@@ -1,8 +1,8 @@
 // Service Worker para Plataforma EduSalud
-// Versión 1.0 - Caché estratégico de assets
+// Versión 1.1 - Con soporte para desarrollo (Network-First en desarrollo)
 
 // ✅ NUEVO: Detectar modo desarrollo
-const IS_DEVELOPMENT = false; // Cambiar a false en producción
+const IS_DEVELOPMENT = true; // Cambiar a false en producción
 const VERSION = IS_DEVELOPMENT 
   ? 'edusalud-dev-' + Date.now() // Versión única cada vez en desarrollo
   : 'edusalud-v1'; // Versión estable en producción
@@ -107,21 +107,27 @@ self.addEventListener('fetch', (event) => {
   // ✅ NUEVO: Estrategia diferente en desarrollo vs producción
   if (IS_DEVELOPMENT) {
     // Modo desarrollo: Network-First (siempre busca nueva versión)
+    // NO cachear JS/CSS/HTML para que los cambios sean inmediatos
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: 'no-store' })
         .then((response) => {
-          // Solo cachear si es exitosa
+          // En desarrollo: NO cachear JS, CSS ni HTML para ver cambios inmediatos
+          if (isJS(url) || isCSS(url) || url.pathname.endsWith('.html') || url.pathname === BASE_PATH + '/' || url.pathname === BASE_PATH + '/index.html') {
+            // NO cachear estos archivos en desarrollo
+            return response;
+          }
+          
+          // Solo cachear imágenes para offline (opcional)
           if (response && response.status === 200 && response.type === 'basic') {
-            const responseToCache = response.clone();
-            // Cachear solo para offline, no para servir
             if (isImage(url) || isFont(url)) {
+              const responseToCache = response.clone();
               caches.open(CACHE_NAME).then(cache => cache.put(request, responseToCache));
             }
           }
           return response;
         })
         .catch(() => {
-          // Solo usar cache si falla la red
+          // Solo usar cache si falla la red (fallback offline)
           return caches.match(request).then(cached => {
             if (cached) return cached;
             if (request.mode === 'navigate') {
