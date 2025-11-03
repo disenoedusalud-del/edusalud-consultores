@@ -13,35 +13,7 @@ function setQueryParam(key, value) {
   if (value == null) url.searchParams.delete(key); else url.searchParams.set(key, value);
   history.replaceState({}, '', url);
 }
-function downloadFile(url, label = '') { 
-  // ✅ Validar URL antes de abrir
-  try {
-    new URL(url);
-  } catch (e) {
-    console.error('[DOWNLOAD] URL inválida:', url);
-    alert('URL inválida. No se puede abrir el enlace.');
-    return;
-  }
-  
-  window.open(url, '_blank', 'noopener'); 
-  
-  // ✅ Google Analytics: Tracking de descarga
-  if (typeof gtag !== 'undefined') {
-    try {
-      const hostname = new URL(url).hostname;
-      gtag('event', 'file_download', {
-        'event_category': 'download',
-        'event_label': label || hostname,
-        'value': 1
-      });
-    } catch(e) {
-      gtag('event', 'file_download', {
-        'event_category': 'download',
-        'event_label': 'unknown'
-      });
-    }
-  }
-}
+function downloadFile(url) { window.open(url, '_blank', 'noopener'); }
 
 /* ============ base de cursos (hash -> data) ============ */
 const MASTER_HASH = "7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8"; // EDUMASTER123456987
@@ -89,95 +61,6 @@ const ACCESS_HASH_MAP = {
   }
 };
 
-/* ============ persistencia de cursos personalizados ============ */
-const CUSTOM_COURSES_KEY = 'edusalud_custom_courses';
-function loadCustomCourses(){
-  try {
-    // ✅ Verificar que localStorage está disponible (importante para modo incógnito)
-    if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
-      console.warn('[STORAGE] localStorage no disponible (modo incógnito?)');
-      return {};
-    }
-    const raw = localStorage.getItem(CUSTOM_COURSES_KEY);
-    const obj = raw ? JSON.parse(raw) : null;
-    return typeof obj === 'object' && obj !== null ? obj : {};
-  } catch (e) {
-    console.warn('[STORAGE] Error cargando cursos personalizados:', e);
-    return {};
-  }
-}
-function saveCustomCourses(courses){
-  try {
-    // ✅ Verificar que localStorage está disponible
-    if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
-      console.warn('[STORAGE] localStorage no disponible, no se pueden guardar cursos');
-      return;
-    }
-    localStorage.setItem(CUSTOM_COURSES_KEY, JSON.stringify(courses || {}));
-  } catch (e) {
-    console.warn('[STORAGE] Error guardando cursos personalizados:', e);
-  }
-}
-function getMergedAccessHashMap(){
-  const base = ACCESS_HASH_MAP || {};
-  let custom = {};
-  try {
-    custom = loadCustomCourses();
-  } catch (e) {
-    custom = {};
-  }
-  return Object.assign({}, base, custom);
-}
-
-// Cargar cursos remotos al inicio
-async function loadRemoteCoursesOnInit(){
-  // Cargar cursos remotos sin sessionStorage para que siempre cargue
-  try {
-    await refreshCustomCourses();
-  } catch (e) {
-    console.warn('[INIT] Error cargando cursos remotos al inicio (continuando):', e);
-    // No bloquear la carga si falla
-  }
-}
-async function addCustomCourse(hex, courseData){
-  console.log('[ADD COURSE] Guardando curso localmente - hex:', hex.substring(0,8));
-  console.log('[ADD COURSE] Datos del curso:', courseData);
-  
-  const custom = loadCustomCourses();
-  console.log('[ADD COURSE] Cursos actuales antes de agregar:', Object.keys(custom).length);
-  
-  custom[hex] = courseData;
-  saveCustomCourses(custom);
-  
-  console.log('[ADD COURSE] ✅ Curso guardado localmente');
-  console.log('[ADD COURSE] Cursos después de guardar:', Object.keys(custom).length);
-  console.log('[ADD COURSE] Verificando que se guardó:', hex in loadCustomCourses() ? '✅ SÍ' : '❌ NO');
-  
-  // ✅ Guardar también en remoto (esperar confirmación)
-  const saveResult = await remoteSaveCourse(hex, courseData).catch(e => {
-    console.error('[ADD COURSE] ❌ Error guardando curso en remoto:', e);
-    alert('⚠️ Error al guardar curso en remoto. El curso está guardado localmente pero no se sincronizará.');
-    return false;
-  });
-  
-  if (saveResult) {
-    console.log('[ADD COURSE] ✅ Curso guardado en remoto correctamente');
-  } else {
-    console.warn('[ADD COURSE] ⚠️ No se pudo guardar en remoto (continuando de todas formas)');
-  }
-}
-function removeCustomCourse(hex){
-  const custom = loadCustomCourses();
-  delete custom[hex];
-  saveCustomCourses(custom);
-  // ✅ Eliminar también en remoto
-  remoteDeleteCourse(hex);
-}
-function isCustomCourse(hex){
-  const custom = loadCustomCourses();
-  return hex in custom;
-}
-
 /* ============ persistencia de enlaces por curso ============ */
 const FILES_STORAGE_PREFIX = 'edusalud_files_';
 function storageKeyFor(hex){ return FILES_STORAGE_PREFIX + hex; }
@@ -197,36 +80,17 @@ function clearFilesOverride(hex){
   try { localStorage.removeItem(storageKeyFor(hex)); } catch(e) {}
 }
 function getBaseFilesForHex(hex){
-  // Primero buscar en cursos base
   const base = ACCESS_HASH_MAP[hex]?.files;
-  if (Array.isArray(base)) return base.slice();
-  
-  // Si no está en cursos base, buscar en cursos personalizados
-  const custom = loadCustomCourses();
-  const customCourse = custom[hex];
-  if (customCourse && Array.isArray(customCourse.files)) {
-    return customCourse.files.slice();
-  }
-  
-  return [];
+  return Array.isArray(base) ? base.slice() : [];
 }
 function getFilesForHex(hex){
-  // ✅ PRIORIDAD 1: Overrides (localStorage) - archivos modificados/agregados por el usuario
-  // Esto funciona igual para cursos base y personalizados
   const override = loadFilesOverride(hex);
-  if (override !== null) {
-    console.log('[FILES] Usando override para hex:', hex.substring(0,8), 'archivos:', override.length);
-    return override;
-  }
-  
-  // ✅ PRIORIDAD 2: Archivos base/personalizados originales
-  const base = getBaseFilesForHex(hex);
-  console.log('[FILES] Usando archivos base/personalizados para hex:', hex.substring(0,8), 'archivos:', base.length);
-  return base;
+  if (override) return override;
+  return getBaseFilesForHex(hex);
 }
 
 /* ============ sincronización remota (opcional) ============ */
-const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbxMz5Q1Q0cM0AR3-yjOT_3pOdKF5e4ASYOEX1NUBW1cV0YMdgI9SHk82FCm2okOuEg/exec';
+const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbyx0l1-H93a0wfML47fHrMVKA-P-huaBI3npJUepD0UgwxNZZfJEi4EX2B2IaN5Tk4D/exec';
 function hasRemote(){ return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE_URL.startsWith('http'); }
 function stableStringify(obj){ try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 async function remoteGetFiles(hex){
@@ -287,7 +151,7 @@ async function testWebAppResponse(hex) {
 
 function remoteGetFilesJSONP(hex){
   return new Promise((resolve) => {
-    const callbackName = '_gas_jsonp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+    const callbackName = '_gas_jsonp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     const script = document.createElement('script');
     const url = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex) + '&callback=' + callbackName;
     script.src = url;
@@ -306,9 +170,6 @@ function remoteGetFilesJSONP(hex){
         if (window[callbackName]) delete window[callbackName];
       } catch(e) {}
     };
-    
-    // ✅ CRÍTICO: Declarar timeout ANTES de usarlo en callbacks
-    let timeout;
     
     // Crear callback global ANTES de agregar el script
     window[callbackName] = function(data) {
@@ -369,7 +230,7 @@ function remoteGetFilesJSONP(hex){
     };
     
     // Timeout reducido a 3 segundos para respuesta más rápida
-    timeout = setTimeout(() => {
+    const timeout = setTimeout(() => {
       if (resolved) return;
       resolved = true;
       console.warn('[JSONP] ⚠️ Timeout después de 3s para hex:', hex.substring(0,8));
@@ -388,33 +249,22 @@ function remoteGetFilesJSONP(hex){
   });
 }
 async function remoteSaveFiles(hex, files){
-  if (!hasRemote()) {
-    console.warn('[SAVE] ⚠️ No hay remoto configurado');
-    return false;
-  }
+  if (!hasRemote()) return false;
   try {
     const filesJson = JSON.stringify(Array.isArray(files) ? files : []);
     console.log('[SAVE] Enviando a remoto - hex:', hex.substring(0,8), 'archivos:', files.length);
     console.log('[SAVE] Datos a guardar:', filesJson.substring(0, 100) + '...');
-    console.log('[SAVE] URL remoto:', REMOTE_BASE_URL);
-    
-    // ✅ Validar que tenemos los datos necesarios
-    if (!hex || !filesJson) {
-      console.error('[SAVE] ❌ Datos inválidos: hex o files vacíos');
-      return false;
-    }
     
     // Google Apps Script funciona mejor con formularios HTML que con fetch
     const iframe = document.createElement('iframe');
-    iframe.name = 'hiddenFrame_' + Date.now();
+    iframe.name = 'hiddenFrame';
     iframe.style.display = 'none';
     document.body.appendChild(iframe);
     
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = REMOTE_BASE_URL;
-    form.target = iframe.name;
-    form.enctype = 'application/x-www-form-urlencoded';
+    form.target = 'hiddenFrame';
     
     const hexInput = document.createElement('input');
     hexInput.type = 'hidden';
@@ -430,32 +280,55 @@ async function remoteSaveFiles(hex, files){
     form.appendChild(filesInput);
     document.body.appendChild(form);
     
-    console.log('[SAVE] Formulario creado, enviando...');
     form.submit();
     console.log('[SAVE] ✅ Formulario enviado a:', REMOTE_BASE_URL);
     
-    // ✅ Esperar un momento para asegurar que el formulario se envió
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Limpiar después de enviar (pero mantener iframe para no interrumpir el envío)
+    // Limpiar después de enviar y forzar refresh múltiples veces (para asegurar sincronización)
     setTimeout(() => {
-      try {
-        if (form.parentNode) document.body.removeChild(form);
-      } catch (e) {
-        console.warn('[SAVE] Error limpiando formulario:', e);
-      }
-      // Limpiar iframe después de más tiempo para asegurar que recibió la respuesta
-      setTimeout(() => {
-        try {
-          if (iframe.parentNode) document.body.removeChild(iframe);
-        } catch (e) {
-          console.warn('[SAVE] Error limpiando iframe:', e);
-        }
-      }, 1000);
-    }, 500);
+      if (form.parentNode) document.body.removeChild(form);
+      if (iframe.parentNode) document.body.removeChild(iframe);
+      
+      // Forzar refresh inmediato y múltiples intentos para asegurar sincronización
+      // El refresh inmediato es crítico para que otros navegadores vean los cambios
+      const refreshAttempts = [500, 1000, 2000, 4000];
+      refreshAttempts.forEach((delay, index) => {
+        setTimeout(async () => {
+          console.log(`[SAVE] Refrescando después de guardar (intento ${index + 1}/${refreshAttempts.length} - ${delay}ms)...`);
+          
+          // Forzar lectura desde remoto sin usar caché
+          const remote = await remoteGetFiles(hex).catch(e => {
+            console.warn('[SAVE] Error obteniendo datos remotos:', e);
+            return null;
+          });
+          
+          if (remote && Array.isArray(remote)) {
+            const current = getFilesForHex(hex);
+            const remoteStr = stableStringify(remote);
+            const currentStr = stableStringify(current);
+            
+            console.log('[SAVE] Comparación - Remoto:', remote.length, 'vs Local:', current.length);
+            
+            // SIEMPRE sincronizar con remoto (remoto es la fuente de verdad después de guardar)
+            if (remoteStr !== currentStr) {
+              console.log('[SAVE] ✅ Desincronización detectada, forzando sincronización...');
+              saveFilesOverride(hex, remote);
+              
+              // Si remoto está vacío y hay base, limpiar override
+              const base = getBaseFilesForHex(hex);
+              if (remote.length === 0 && base.length > 0) {
+                clearFilesOverride(hex);
+              }
+              
+              console.log('[SAVE] ✅ Sincronizado, reconstruyendo grid...');
+              buildMasterGrid();
+            } else {
+              console.log('[SAVE] ✅ Ya sincronizado');
+            }
+          }
+        }, delay);
+      });
+    }, 2000);
     
-    // ✅ Devolver true inmediatamente ya que el formulario se envió
-    // El envío es asíncrono pero la función necesita retornar
     return true;
   } catch (e) { 
     console.error('Error en remoteSaveFiles:', e);
@@ -482,344 +355,6 @@ async function refreshFromRemote(hex, context){
     return false;
   } catch (e) {
     console.warn('Error en refreshFromRemote:', e);
-    return false;
-  }
-}
-
-// ===== Sincronización remota de cursos personalizados =====
-async function remoteSaveCourse(hex, courseData){
-  if (!hasRemote()) {
-    console.warn('[COURSE SAVE] ⚠️ No hay remoto configurado');
-    return false;
-  }
-  try {
-    const courseJson = JSON.stringify(courseData);
-    console.log('[COURSE SAVE] Enviando curso a remoto - hex:', hex.substring(0,8));
-    console.log('[COURSE SAVE] Datos del curso:', courseJson.substring(0, 100) + '...');
-    console.log('[COURSE SAVE] URL remoto:', REMOTE_BASE_URL);
-    
-    // ✅ Validar que tenemos los datos necesarios
-    if (!hex || !courseJson || courseJson === '{}') {
-      console.error('[COURSE SAVE] ❌ Datos inválidos: hex o courseData vacíos');
-      return false;
-    }
-    
-    const iframe = document.createElement('iframe');
-    iframe.name = 'hiddenFrameCourse_' + Date.now();
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-    
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = REMOTE_BASE_URL;
-    form.target = iframe.name;
-    form.enctype = 'application/x-www-form-urlencoded'; // ✅ Agregar enctype
-    
-    const hexInput = document.createElement('input');
-    hexInput.type = 'hidden';
-    hexInput.name = 'hex';
-    hexInput.value = hex;
-    
-    const courseInput = document.createElement('input');
-    courseInput.type = 'hidden';
-    courseInput.name = 'course';
-    courseInput.value = courseJson;
-    
-    form.appendChild(hexInput);
-    form.appendChild(courseInput);
-    document.body.appendChild(form);
-    
-    console.log('[COURSE SAVE] Formulario creado, enviando...');
-    console.log('[COURSE SAVE] Hex:', hex);
-    console.log('[COURSE SAVE] Course JSON length:', courseJson.length);
-    
-    // ✅ Enviar formulario
-    form.submit();
-    console.log('[COURSE SAVE] ✅ Formulario enviado a:', REMOTE_BASE_URL);
-    
-    // ✅ Esperar más tiempo para asegurar que el servidor procesó el envío
-    // No limpiar inmediatamente para no interrumpir el envío
-    await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos
-    
-    // Limpiar formulario después de enviar (iframe se mantiene un poco más)
-    setTimeout(() => {
-      try {
-        if (form.parentNode) document.body.removeChild(form);
-        console.log('[COURSE SAVE] Formulario limpiado');
-      } catch (e) {
-        console.warn('[COURSE SAVE] Error limpiando formulario:', e);
-      }
-    }, 500);
-    
-    // Limpiar iframe después de más tiempo
-    setTimeout(() => {
-      try {
-        if (iframe.parentNode) document.body.removeChild(iframe);
-        console.log('[COURSE SAVE] Iframe limpiado');
-      } catch (e) {
-        console.warn('[COURSE SAVE] Error limpiando iframe:', e);
-      }
-    }, 3000); // 3 segundos total
-    
-    return true;
-  } catch (e) { 
-    console.error('[COURSE SAVE] ❌ Error en remoteSaveCourse:', e);
-    return false; 
-  }
-}
-
-async function remoteDeleteCourse(hex){
-  if (!hasRemote()) return false;
-  try {
-    console.log('[COURSE DELETE] Eliminando curso remoto - hex:', hex.substring(0,8));
-    
-    const iframe = document.createElement('iframe');
-    iframe.name = 'hiddenFrameCourseDel';
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-    
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = REMOTE_BASE_URL;
-    form.target = 'hiddenFrameCourseDel';
-    
-    const hexInput = document.createElement('input');
-    hexInput.type = 'hidden';
-    hexInput.name = 'hex';
-    hexInput.value = hex;
-    
-    const deleteInput = document.createElement('input');
-    deleteInput.type = 'hidden';
-    deleteInput.name = 'action';
-    deleteInput.value = 'delete_course';
-    
-    form.appendChild(hexInput);
-    form.appendChild(deleteInput);
-    document.body.appendChild(form);
-    
-    form.submit();
-    console.log('[COURSE DELETE] ✅ Formulario de eliminación enviado a:', REMOTE_BASE_URL);
-    
-    // ✅ Limpiar formulario después de enviar
-    setTimeout(() => {
-      try {
-        if (form.parentNode) document.body.removeChild(form);
-        if (iframe.parentNode) document.body.removeChild(iframe);
-      } catch (e) {
-        console.warn('[COURSE DELETE] Error limpiando formulario:', e);
-      }
-      
-      // ✅ Forzar refresh inmediato para que otros dispositivos vean el cambio
-      console.log('[COURSE DELETE] Iniciando refresh para sincronizar eliminación...');
-      const refreshAttempts = [500, 1000, 2000, 4000];
-      refreshAttempts.forEach((delay, index) => {
-        setTimeout(async () => {
-          console.log(`[COURSE DELETE] Refrescando después de eliminar (intento ${index + 1}/${refreshAttempts.length} - ${delay}ms)...`);
-          try {
-            await refreshCustomCourses();
-            console.log('[COURSE DELETE] ✅ Refresh completado');
-          } catch (e) {
-            console.warn('[COURSE DELETE] Error en refresh:', e);
-          }
-        }, delay);
-      });
-    }, 2000);
-    
-    return true;
-  } catch (e) { 
-    console.error('Error en remoteDeleteCourse:', e);
-    return false; 
-  }
-}
-
-async function remoteGetCourses(){
-  if (!hasRemote()) return {};
-  try {
-    console.log('[COURSE GET] Obteniendo cursos remotos...');
-    
-    return new Promise((resolve) => {
-      const callbackName = '_gas_jsonp_courses_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
-      const script = document.createElement('script');
-      const url = REMOTE_BASE_URL + '?action=get_courses&callback=' + callbackName;
-      script.src = url;
-      script.async = true;
-      
-      console.log('[COURSE GET] 🌐 URL completa:', url);
-      console.log('[COURSE GET] 🔤 Callback name:', callbackName);
-      
-      let resolved = false;
-      const cleanup = () => {
-        try {
-          if (script.parentNode) document.body.removeChild(script);
-        } catch(e) {}
-        try {
-          if (window[callbackName]) delete window[callbackName];
-        } catch(e) {}
-      };
-      
-      // ✅ CRÍTICO: Declarar timeout ANTES de usarlo en callbacks
-      let timeout;
-      
-      // ✅ CRÍTICO: Registrar callback ANTES de agregar script al DOM
-      window[callbackName] = function(data) {
-        if (resolved) return;
-        resolved = true;
-        clearTimeout(timeout);
-        
-        console.log('[COURSE GET] 🔍 Respuesta completa del servidor:', data);
-        
-        let courses = {};
-        if (data && typeof data.courses === 'object') {
-          courses = data.courses;
-          console.log('[COURSE GET] ✅ Cursos remotos obtenidos:', Object.keys(courses).length);
-          console.log('[COURSE GET] 📋 Hex de cursos:', Object.keys(courses));
-        } else if (data && typeof data === 'object') {
-          // ✅ INTENTAR: Si data es directamente un objeto de cursos (sin wrapper)
-          console.log('[COURSE GET] ⚠️ Intentando parsear data directamente como objeto de cursos...');
-          courses = data;
-          console.log('[COURSE GET] ✅ Cursos parseados directamente:', Object.keys(courses).length);
-          console.log('[COURSE GET] 📋 Hex de cursos:', Object.keys(courses));
-        } else {
-          console.warn('[COURSE GET] ⚠️ Datos recibidos no tienen formato esperado:', data);
-          console.warn('[COURSE GET] Tipo de data:', typeof data);
-        }
-        
-        cleanup();
-        resolve(courses);
-      };
-      
-      timeout = setTimeout(() => {
-        if (resolved) return;
-        resolved = true;
-        console.warn('[COURSE GET] ⚠️ Timeout después de 5s');
-        cleanup();
-        resolve({});
-      }, 5000); // ✅ Aumentado a 5 segundos para dar más tiempo al servidor
-      
-      script.onload = () => {
-        console.log('[COURSE GET] ✅ Script cargado exitosamente');
-        // Verificar si el callback se ejecutó después de 1 segundo
-        setTimeout(() => {
-          if (!resolved) {
-            console.warn('[COURSE GET] ⚠️ Script cargó pero callback no se ejecutó después de 1s');
-          }
-        }, 1000);
-      };
-      
-      script.onerror = () => {
-        if (resolved) return;
-        resolved = true;
-        clearTimeout(timeout);
-        console.error('[COURSE GET] ❌ Error cargando script (script.onerror)');
-        console.error('[COURSE GET] URL que falló:', url);
-        cleanup();
-        resolve({});
-      };
-      
-      // ✅ Agregar script DESPUÉS de registrar callback
-      console.log('[COURSE GET] Callback registrado:', callbackName);
-      console.log('[COURSE GET] Agregando script al DOM...');
-      document.body.appendChild(script);
-      console.log('[COURSE GET] ✅ Script agregado al DOM');
-    });
-  } catch (e) {
-    console.error('Error en remoteGetCourses:', e);
-    return {};
-  }
-}
-
-async function refreshCustomCourses(){
-  if (!hasRemote()) {
-    console.log('[REFRESH] Sin remoto, saltando...');
-    return false;
-  }
-  try {
-    console.log('[REFRESH] Obteniendo cursos personalizados remotos...');
-    
-    // ✅ CRÍTICO: Timeout debe ser mayor que el timeout de remoteGetCourses (3s)
-    const timeoutPromise = new Promise((resolve) => {
-      setTimeout(() => {
-        console.warn('[REFRESH] ⚠️ Timeout obteniendo cursos remotos (continuando con cursos base)');
-        resolve({});
-      }, 5000); // ✅ Aumentado a 5 segundos para dar tiempo al JSONP
-    });
-    
-    const remoteCoursesPromise = remoteGetCourses();
-    const remoteCourses = await Promise.race([remoteCoursesPromise, timeoutPromise]);
-    
-    console.log('[REFRESH] Cursos remotos obtenidos:', Object.keys(remoteCourses || {}).length);
-    console.log('[REFRESH] 🔍 Cursos remotos completos:', remoteCourses);
-    
-    // ✅ Remoto es la fuente de verdad - sobrescribir completamente
-    let localCourses = {};
-    try {
-      localCourses = loadCustomCourses();
-      console.log('[REFRESH] Cursos locales cargados:', Object.keys(localCourses).length);
-    } catch (e) {
-      console.warn('[REFRESH] Error cargando cursos locales (modo incógnito?):', e);
-      localCourses = {};
-    }
-    
-    const remoteKeys = Object.keys(remoteCourses || {});
-    const localKeys = Object.keys(localCourses);
-    
-    console.log('[REFRESH] Comparación - Remoto:', remoteKeys.length, 'Local:', localKeys.length);
-    console.log('[REFRESH] 📋 Hex remotos:', remoteKeys);
-    console.log('[REFRESH] 📋 Hex locales:', localKeys);
-    
-    // ✅ MEJORADO: Fusionar cursos remotos con locales
-    // PRIORIDAD: Si remoto tiene cursos, usar remoto (es la fuente de verdad)
-    // Pero preservar cursos locales que no están en remoto (pueden ser recién creados)
-    const mergedCourses = { ...localCourses };
-    
-    // Agregar/actualizar cursos remotos (remoto tiene prioridad)
-    if (remoteCourses && typeof remoteCourses === 'object') {
-      Object.keys(remoteCourses).forEach(hex => {
-        mergedCourses[hex] = remoteCourses[hex];
-      });
-    }
-    
-    // Detectar cambios después de la fusión
-    const hadChanges = JSON.stringify(localCourses) !== JSON.stringify(mergedCourses);
-    
-    // Guardar cursos fusionados (remoto tiene prioridad, pero local preserva cursos nuevos)
-    // ✅ Manejar error de localStorage silenciosamente
-    try {
-      saveCustomCourses(mergedCourses);
-      console.log('[REFRESH] ✅ Cursos sincronizados (fusionados:', Object.keys(mergedCourses).length, 'cursos)');
-      console.log('[REFRESH] 📊 Resumen: Local:', localKeys.length, 'Remoto:', remoteKeys.length, 'Final:', Object.keys(mergedCourses).length);
-    } catch (e) {
-      console.warn('[REFRESH] ⚠️ No se pudieron guardar cursos (modo incógnito?), continuando...', e);
-    }
-    
-    // ✅ IMPORTANTE: Refrescar archivos SOLO del curso actual si es personalizado
-    // No refrescar todos los cursos personalizados para evitar lentitud
-    // El refresh periódico se encargará de refrescar todos cada 3 segundos
-    if (currentKeyHex && mergedCourses && mergedCourses[currentKeyHex]) {
-      console.log('[REFRESH] Curso actual es personalizado, refrescando sus archivos...');
-      refreshFromRemoteSilent(currentKeyHex).then(updated => {
-        if (updated) {
-          console.log('[REFRESH] ✅ Archivos del curso actual actualizados');
-          // Solo actualizar vista si estamos viendo ese curso
-          if (document.getElementById('content') && !document.getElementById('content').classList.contains('hidden')) {
-            renderCourse(currentKeyHex);
-          }
-        }
-      }).catch(e => {
-        console.warn('[REFRESH] Error refrescando archivos del curso actual:', e);
-      });
-    }
-    
-    // Si estamos en vista master, reconstruir SOLO si hubo cambios
-    if (hadChanges && document.getElementById('master') && !document.getElementById('master').classList.contains('hidden')) {
-      console.log('[REFRESH] ✅ Cambios detectados, reconstruyendo Vista Maestra...');
-      buildMasterGrid();
-      return true;
-    }
-    return false;
-  } catch (e) {
-    console.error('[REFRESH] Error en refreshCustomCourses:', e);
-    // ✅ No fallar completamente, siempre devolver false para continuar
     return false;
   }
 }
@@ -916,7 +451,7 @@ function showAccess() {
 }
 // Sistema de refresh periódico para sincronización en tiempo real
 let periodicRefreshInterval = null;
-const PERIODIC_REFRESH_INTERVAL_MS = 3000; // 3 segundos para mejor sincronización
+const PERIODIC_REFRESH_INTERVAL_MS = 10000; // 10 segundos
 
 function startPeriodicRefresh(currentHex = null) {
   // Detener cualquier refresh periódico existente
@@ -928,41 +463,10 @@ function startPeriodicRefresh(currentHex = null) {
   
   periodicRefreshInterval = setInterval(async () => {
     try {
-      // ✅ PROTECCIÓN MEJORADA: Verificar TODOS los inputs y textareas visibles
-      const activeElement = document.activeElement;
-      const isInputFocused = activeElement && (
-        activeElement.tagName === 'INPUT' || 
-        activeElement.tagName === 'TEXTAREA' ||
-        activeElement.contentEditable === 'true'
-      );
-      
-      // ✅ Verificar si HAY ALGÚN input con contenido (incluso si no está enfocado)
-      const allInputs = document.querySelectorAll('input[type="text"], input[type="url"], textarea');
-      const hasInputWithContent = Array.from(allInputs).some(input => {
-        if (!input || !input.offsetParent) return false; // No está visible
-        const value = (input.value || '').trim();
-        return value.length > 0 || input === activeElement;
-      });
-      
-      // ✅ Verificar si hay formularios de edición abiertos
-      const hasEditFormOpen = document.querySelector('[data-edit-form]') !== null;
-      
-      // ✅ Si hay cualquier input enfocado O con contenido O formulario abierto, SALTEAR refresh
-      if (isInputFocused || hasInputWithContent || hasEditFormOpen) {
-        console.log('[PERIODIC] ⏭️ Saltando refresh: usuario escribiendo o editando');
-        return;
-      }
-      
       if (currentHex === MASTER_HASH) {
-        // ✅ Refresh de todos los cursos para vista maestra (incluye personalizados)
-        // ✅ IMPORTANTE: Los cursos personalizados usan la MISMA lógica de sincronización de archivos
-        console.log('[PERIODIC] Refrescando todos los cursos (base + personalizados)...');
-        const mergedMap = getMergedAccessHashMap();
-        const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
-        const customHexes = hexes.filter(h => isCustomCourse(h));
-        const baseHexes = hexes.filter(h => !isCustomCourse(h));
-        console.log('[PERIODIC] Total cursos a refrescar:', hexes.length, '(Base:', baseHexes.length, 'Personalizados:', customHexes.length, ')');
-        
+        // Refresh de todos los cursos para vista maestra
+        console.log('[PERIODIC] Refrescando todos los cursos...');
+        const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
         const results = await Promise.allSettled(
           hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
             console.warn('[PERIODIC] Error refrescando', h.substring(0, 8), ':', e);
@@ -972,86 +476,20 @@ function startPeriodicRefresh(currentHex = null) {
         const anyUpdated = results.some(r => 
           r.status === 'fulfilled' && r.value === true
         );
-        
-        // ✅ También refrescar cursos personalizados (para nuevos cursos, no solo archivos)
-        await refreshCustomCourses();
-        
-        // ✅ CRÍTICO: Reconstruir grid SIEMPRE si hay cambios O si es la primera vez
-        // Esto asegura que cambios remotos se vean incluso si la detección falla
         if (anyUpdated) {
           console.log('[PERIODIC] ✅ Cambios detectados, actualizando vista...');
           buildMasterGrid();
-        } else {
-          // ✅ Aún así reconstruir cada cierto tiempo para asegurar sincronización
-          // Contador para reconstruir cada 5 refreshes (cada ~15 segundos)
-          if (!window._lastMasterGridRebuild) window._lastMasterGridRebuild = 0;
-          window._lastMasterGridRebuild++;
-          if (window._lastMasterGridRebuild >= 5) {
-            console.log('[PERIODIC] Reconstruyendo grid periódicamente para asegurar sincronización...');
-            buildMasterGrid();
-            window._lastMasterGridRebuild = 0;
-          }
         }
-      } else if (currentHex) {
-        // ✅ Refresh del curso actual (incluye cursos personalizados)
-        const mergedMap = getMergedAccessHashMap();
-        if (mergedMap[currentHex]) {
-          const isCustom = isCustomCourse(currentHex);
-          const courseType = isCustom ? '(PERSONALIZADO)' : '(BASE)';
-          console.log('[PERIODIC] Refrescando curso actual (hex:', currentHex.substring(0, 8), courseType + ')...');
-          
-          // ✅ CRÍTICO: Refrescar archivos del curso actual PRIMERO (los URLs se guardan en overrides)
-          // ✅ Esto funciona igual para cursos base y personalizados - ambos usan la misma lógica
-          const updated = await refreshFromRemoteSilent(currentHex).catch(e => {
-            console.warn('[PERIODIC] Error refrescando archivos:', e);
-            return false;
-          });
-          
-          if (updated) {
-            // ✅ VERIFICAR OTRA VEZ antes de actualizar la vista (por si el usuario empezó a escribir durante el refresh)
-            const activeElementNow = document.activeElement;
-            const isInputFocusedNow = activeElementNow && (
-              activeElementNow.tagName === 'INPUT' || 
-              activeElementNow.tagName === 'TEXTAREA'
-            );
-            const hasEditFormOpenNow = document.querySelector('[data-edit-form]') !== null;
-            
-            // ✅ CRÍTICO: Solo saltar si el usuario está ACTIVAMENTE escribiendo (enfoque), no solo si hay inputs visibles
-            // Esto permite que URLs agregados desde otra cuenta se vean inmediatamente
-            if (!isInputFocusedNow && !hasEditFormOpenNow) {
-              console.log('[PERIODIC] ✅ Cambios detectados en archivos, actualizando vista...');
-              renderCourse(currentHex);
-            } else {
-              console.log('[PERIODIC] ⏭️ Cambios detectados pero saltando actualización: usuario escribiendo activamente');
-            }
-          } else {
-            // ✅ Aún así reconstruir cada cierto tiempo para asegurar sincronización
-            // Contador para reconstruir cada 5 refreshes (cada ~15 segundos)
-            if (!window._lastCourseRefreshRebuild) window._lastCourseRefreshRebuild = {};
-            if (!window._lastCourseRefreshRebuild[currentHex]) window._lastCourseRefreshRebuild[currentHex] = 0;
-            window._lastCourseRefreshRebuild[currentHex]++;
-            
-            if (window._lastCourseRefreshRebuild[currentHex] >= 5) {
-              console.log('[PERIODIC] Reconstruyendo vista de curso periódicamente para asegurar sincronización...');
-              const activeElementNow = document.activeElement;
-              const isInputFocusedNow = activeElementNow && (
-                activeElementNow.tagName === 'INPUT' || 
-                activeElementNow.tagName === 'TEXTAREA'
-              );
-              const hasEditFormOpenNow = document.querySelector('[data-edit-form]') !== null;
-              
-              if (!isInputFocusedNow && !hasEditFormOpenNow) {
-                renderCourse(currentHex);
-              }
-              window._lastCourseRefreshRebuild[currentHex] = 0;
-            }
-          }
-          
-          // ✅ También refrescar cursos personalizados en background (para detectar nuevos cursos)
-          // Esto no bloquea porque ya actualizamos la vista arriba si había cambios en archivos
-          refreshCustomCourses().catch(e => {
-            console.warn('[PERIODIC] Error refrescando cursos personalizados:', e);
-          });
+      } else if (currentHex && ACCESS_HASH_MAP[currentHex]) {
+        // Refresh del curso actual
+        console.log('[PERIODIC] Refrescando curso actual...');
+        const updated = await refreshFromRemoteSilent(currentHex).catch(e => {
+          console.warn('[PERIODIC] Error:', e);
+          return false;
+        });
+        if (updated) {
+          console.log('[PERIODIC] ✅ Cambios detectados, actualizando vista...');
+          renderCourse(currentHex);
         }
       }
     } catch (e) {
@@ -1084,16 +522,6 @@ function showMaster() {
   // Refresh inmediato adicional para limpiar datos obsoletos al abrir
   if (hasRemote()) {
     setTimeout(async () => {
-      // ✅ Verificar si hay un input enfocado O un formulario de edición abierto
-      const activeElement = document.activeElement;
-      const isInputFocused = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
-      const hasEditFormOpen = document.querySelector('[data-edit-form]') !== null;
-      
-      if (isInputFocused || hasEditFormOpen) {
-        console.log('[SYNC] ⏭️ Saltando refresh inmediato: usuario escribiendo o editando');
-        return;
-      }
-      
       console.log('[SYNC] Refresh inmediato adicional al mostrar master...');
       const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
       const results = await Promise.allSettled(
@@ -1105,10 +533,6 @@ function showMaster() {
       const anyUpdated = results.some(r => 
         r.status === 'fulfilled' && r.value === true
       );
-      
-      // ✅ NUEVO: También refrescar cursos personalizados
-      await refreshCustomCourses();
-      
       if (anyUpdated) {
         console.log('[SYNC] ✅ Cambios detectados en refresh inmediato, actualizando...');
         buildMasterGrid();
@@ -1150,15 +574,13 @@ function runLoader(durationMs = LOAD_DURATION_MS) {
 
 /* ============ render curso (1) ============ */
 function renderCourse(keyHex) {
-  const mergedMap = getMergedAccessHashMap();
-  const data = mergedMap[keyHex];
+  const data = ACCESS_HASH_MAP[keyHex];
   if (!data) return;
 
   $('#courseTitle').textContent = data.title;
   $('#courseMeta').textContent = data.meta || '';
 
   const list = $('#filelist');
-  if (!list) return; // Elemento no encontrado, salir silenciosamente
   list.innerHTML = '';
   const files = getFilesForHex(keyHex);
   (files || []).forEach(item => {
@@ -1171,7 +593,7 @@ function renderCourse(keyHex) {
     btn.className = 'btn';
     btn.type = 'button';
     btn.textContent = 'Ver más';
-    btn.addEventListener('click', () => downloadFile(item.url, item.label));
+    btn.addEventListener('click', () => downloadFile(item.url));
     row.appendChild(btn);
     list.appendChild(row);
   });
@@ -1198,12 +620,10 @@ function renderCourse(keyHex) {
 /* ============ render master ============ */
 function buildMasterGrid() {
   const grid = $('#masterGrid');
-  if (!grid) return;
-  
   grid.innerHTML = '';
-  const mergedMap = getMergedAccessHashMap();
-  
-  Object.entries(mergedMap).forEach(([hex, data]) => {
+
+  Object.entries(ACCESS_HASH_MAP).forEach(([hex, data]) => {
+    // excluir el master si algún día lo metes en el mismo objeto
     if (hex === MASTER_HASH) return;
 
     const cardEl = document.createElement('div');
@@ -1221,71 +641,51 @@ function buildMasterGrid() {
     header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;';
     const t = document.createElement('div');
     t.innerHTML = `<div style="font-weight:700">${data.title}</div><div class="meta">${data.meta || ''}</div>`;
-    
-    const headerActions = document.createElement('div');
-    headerActions.style.cssText = 'display:flex; gap:8px;';
-    
     const open = document.createElement('button');
     open.className = 'btn secondary';
     open.type = 'button';
     open.textContent = 'Abrir curso';
     open.addEventListener('click', async () => {
-      // Mostrar loader inmediatamente
-      showLoader();
-      
-      // ✅ NUEVO: Esperar a que termine el refresh ANTES de cerrar el loader
+      // Iniciar refresh ANTES del loader para que se ejecuten en paralelo
+      let refreshPromise = Promise.resolve(false);
       if (hasRemote()) {
-        console.log('[SYNC] Iniciando refresh antes del loader...');
-        await refreshFromRemoteSilent(hex).catch(e => {
+        console.log('[SYNC] Iniciando refresh ANTES del loader...');
+        refreshPromise = refreshFromRemoteSilent(hex).catch(e => {
           console.warn('[SYNC] Error en refresh:', e);
           return false;
         });
-        console.log('[SYNC] ✅ Refresh completado, cerrando loader...');
       }
       
-      // Ejecutar animación de loader ahora que ya tenemos los datos
+      // Ejecutar loader (y refresh en paralelo, pero no esperamos el refresh)
       await runLoader();
       
       currentKeyHex = hex;
       renderCourse(hex);
       showContent();
-    });
-    headerActions.appendChild(open);
-    
-    // Botón eliminar solo para cursos personalizados
-    if (isCustomCourse(hex)) {
-      const btnDelete = document.createElement('button');
-      btnDelete.className = 'btn';
-      btnDelete.type = 'button';
-      btnDelete.textContent = '🗑️ Eliminar';
-      btnDelete.style.background = 'linear-gradient(135deg, #ff4444, #cc0000)';
-      btnDelete.addEventListener('click', async () => {
-        if (confirm(`¿Eliminar curso "${data.title}"? Esta acción no se puede deshacer.`)) {
-          // ✅ Eliminar curso (local y remoto)
-          removeCustomCourse(hex);
-          
-          // ✅ Forzar refresh inmediato de cursos para que otros dispositivos vean el cambio
-          await refreshCustomCourses().catch(e => {
-            console.warn('[DELETE] Error refrescando cursos después de eliminar:', e);
-          });
-          
-          buildMasterGrid();
-          alert('✅ Curso eliminado');
-          
-          // Analytics tracking
-          if (typeof gtag !== 'undefined') {
-            gtag('event', 'course_deleted', {
-              'event_category': 'management',
-              'event_label': data.card?.tag || 'unknown'
-            });
-          }
+      
+      // Si el refresh terminó durante el loader, actualizar ahora
+      refreshPromise.then(refreshUpdated => {
+        if (refreshUpdated && currentKeyHex === hex) {
+          console.log('[SYNC] ✅ Actualizando curso con datos remotos obtenidos durante loader...');
+          renderCourse(hex);
         }
-      });
-      headerActions.appendChild(btnDelete);
-    }
-    
-    header.appendChild(t);
-    header.appendChild(headerActions);
+      }).catch(e => console.warn('[SYNC] Error:', e));
+      
+      // Intentos adicionales rápidos por si el refresh aún no terminó
+      if (hasRemote()) {
+        [200, 500, 1000].forEach((delay, index) => {
+          setTimeout(() => {
+            refreshFromRemoteSilent(hex).then(updated => {
+              if (updated && currentKeyHex === hex) {
+                console.log(`[SYNC] ✅ Curso actualizado desde remoto (intento ${index + 2}), re-renderizando...`);
+                renderCourse(hex);
+              }
+            }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
+          }, delay);
+        });
+      }
+    });
+    header.appendChild(t); header.appendChild(open);
     right.appendChild(header);
 
     // lista de archivos (editable con DnD)
@@ -1310,133 +710,21 @@ function buildMasterGrid() {
       btnOpen.className = 'btn';
       btnOpen.type = 'button';
       btnOpen.textContent = 'Descargar';
-      btnOpen.addEventListener('click', () => downloadFile(item.url, item.label));
-
-      const btnEdit = document.createElement('button');
-      btnEdit.className = 'btn secondary';
-      btnEdit.type = 'button';
-      btnEdit.textContent = 'Editar';
-      btnEdit.addEventListener('click', () => {
-        // ✅ Deshabilitar los 3 botones principales
-        btnOpen.disabled = true;
-        btnEdit.disabled = true;
-        btnRemove.disabled = true;
-        btnOpen.style.opacity = '0.5';
-        btnEdit.style.opacity = '0.5';
-        btnRemove.style.opacity = '0.5';
-        btnOpen.style.cursor = 'not-allowed';
-        btnEdit.style.cursor = 'not-allowed';
-        btnRemove.style.cursor = 'not-allowed';
-        
-        // Crear inputs temporales para editar
-        const editWrap = document.createElement('div');
-        editWrap.dataset.editForm = 'true'; // Marcar para evitar refreshes
-        editWrap.style.cssText = 'display:flex; flex-direction:column; gap:8px; margin-top:8px; padding:12px; background:#0e1630; border:1px solid rgba(255,255,255,.1); border-radius:8px;';
-        
-        const editLabel = document.createElement('input');
-        editLabel.type = 'text';
-        editLabel.value = item.label;
-        editLabel.className = 'input';
-        editLabel.placeholder = 'Etiqueta';
-        
-        const editUrl = document.createElement('input');
-        editUrl.type = 'url';
-        editUrl.value = item.url;
-        editUrl.className = 'input';
-        editUrl.placeholder = 'URL';
-        
-        const editActions = document.createElement('div');
-        editActions.style.cssText = 'display:flex; gap:8px;';
-        
-        const btnSave = document.createElement('button');
-        btnSave.className = 'btn';
-        btnSave.textContent = 'Guardar';
-        btnSave.addEventListener('click', async () => {
-          const newLabel = editLabel.value.trim();
-          const newUrl = editUrl.value.trim();
-          if (!newLabel || !newUrl) {
-            alert('Complete etiqueta y URL');
-            return;
-          }
-          try {
-            new URL(newUrl);
-          } catch {
-            alert('URL inválida');
-            return;
-          }
-          
-          const next = files.slice();
-          next[idx] = { label: newLabel, url: newUrl };
-          saveFilesOverride(hex, next);
-          
-          // ✅ GUARDAR EN REMOTO (esperar confirmación)
-          await remoteSaveFiles(hex, next).catch(e => {
-            console.error('[EDIT] ❌ Error guardando en remoto:', e);
-          });
-          
-          // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
-          const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
-          if (isMasterView) {
-            buildMasterGrid();
-          } else {
-            renderCourse(hex);
-          }
-        });
-        
-        const btnCancel = document.createElement('button');
-        btnCancel.className = 'btn secondary';
-        btnCancel.textContent = 'Cancelar';
-        btnCancel.addEventListener('click', () => {
-          // ✅ Restaurar los 3 botones principales
-          btnOpen.disabled = false;
-          btnEdit.disabled = false;
-          btnRemove.disabled = false;
-          btnOpen.style.opacity = '';
-          btnEdit.style.opacity = '';
-          btnRemove.style.opacity = '';
-          btnOpen.style.cursor = '';
-          btnEdit.style.cursor = '';
-          btnRemove.style.cursor = '';
-          
-          row.removeChild(editWrap);
-        });
-        
-        editActions.appendChild(btnSave);
-        editActions.appendChild(btnCancel);
-        editWrap.appendChild(editLabel);
-        editWrap.appendChild(editUrl);
-        editWrap.appendChild(editActions);
-        row.appendChild(editWrap);
-        
-        // Enfocar el primer input
-        setTimeout(() => editLabel.focus(), 100);
-      });
+      btnOpen.addEventListener('click', () => downloadFile(item.url));
 
       const btnRemove = document.createElement('button');
       btnRemove.className = 'btn secondary';
       btnRemove.type = 'button';
       btnRemove.textContent = 'Quitar';
-      btnRemove.addEventListener('click', async () => {
+      btnRemove.addEventListener('click', () => {
         const next = files.slice();
         next.splice(idx, 1);
         saveFilesOverride(hex, next);
-        
-        // ✅ GUARDAR EN REMOTO (esperar confirmación)
-        await remoteSaveFiles(hex, next).catch(e => {
-          console.error('[REMOVE] ❌ Error guardando en remoto:', e);
-        });
-        
-        // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
-        const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
-        if (isMasterView) {
-          buildMasterGrid();
-        } else {
-          renderCourse(hex);
-        }
+        remoteSaveFiles(hex, next);
+        buildMasterGrid();
       });
 
       actions.appendChild(btnOpen);
-      actions.appendChild(btnEdit);
       actions.appendChild(btnRemove);
 
       row.appendChild(leftInfo);
@@ -1465,25 +753,13 @@ function buildMasterGrid() {
       const [moved] = next.splice(from, 1);
       next.splice(to, 0, moved);
       saveFilesOverride(hex, next);
-      
-      // ✅ GUARDAR EN REMOTO (esperar confirmación)
-      await remoteSaveFiles(hex, next).catch(e => {
-        console.error('[REORDER] ❌ Error guardando en remoto:', e);
-      });
-      
-      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
-      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
-      if (isMasterView) {
-        buildMasterGrid();
-      } else {
-        renderCourse(hex);
-      }
+      remoteSaveFiles(hex, next);
+      buildMasterGrid();
     });
 
     // formulario para agregar nuevo link
     const addWrap = document.createElement('div');
     addWrap.style.marginTop = '12px';
-    addWrap.setAttribute('data-edit-form', 'add-link'); // ✅ Marcar para que el refresh no interfiera
     const addLabel = document.createElement('label');
     addLabel.textContent = 'Agregar nuevo enlace';
     addLabel.style.display = 'block';
@@ -1497,13 +773,11 @@ function buildMasterGrid() {
     inputLabel.className = 'input';
     inputLabel.type = 'text';
     inputLabel.placeholder = 'Etiqueta (ej. Manual de Marca)';
-    inputLabel.setAttribute('data-edit-form', 'add-link'); // ✅ Marcar también los inputs
 
     const inputUrl = document.createElement('input');
     inputUrl.className = 'input';
     inputUrl.type = 'url';
     inputUrl.placeholder = 'URL (https://...)';
-    inputUrl.setAttribute('data-edit-form', 'add-link'); // ✅ Marcar también los inputs
 
     const btnAdd = document.createElement('button');
     btnAdd.className = 'btn';
@@ -1516,8 +790,7 @@ function buildMasterGrid() {
       try { new URL(urlVal); } catch { alert('URL inválida'); return; }
       
       const current = getFilesForHex(hex);
-      const isCustom = isCustomCourse(hex);
-      console.log('[ADD] Links actuales:', current.length, isCustom ? '(Curso personalizado)' : '(Curso base)');
+      console.log('[ADD] Links actuales:', current.length);
       const next = current.concat({ label: labelVal, url: urlVal });
       console.log('[ADD] Links después de agregar:', next.length);
       console.log('[ADD] Array completo a guardar:', JSON.stringify(next));
@@ -1526,41 +799,9 @@ function buildMasterGrid() {
       inputLabel.value = '';
       inputUrl.value = '';
       
-      // ✅ GUARDAR LOCALMENTE (localStorage - overrides)
-      // ✅ Esto funciona igual para cursos base y personalizados
       saveFilesOverride(hex, next);
-      console.log('[ADD] ✅ Archivo guardado localmente en overrides');
-      
-      // ✅ GUARDAR EN REMOTO (Google Sheets - hoja "overrides")
-      // ✅ MISMA LÓGICA para cursos base y personalizados - ambos se guardan en la misma hoja
-      const saveResult = await remoteSaveFiles(hex, next).catch(e => {
-        console.error('[ADD] ❌ Error guardando en remoto:', e);
-        alert('⚠️ Error al guardar en remoto. Los cambios están guardados localmente pero no se sincronizarán.');
-        return false;
-      });
-      
-      if (saveResult) {
-        console.log('[ADD] ✅ Archivo guardado en remoto correctamente - Se sincronizará automáticamente en otros dispositivos');
-      } else {
-        console.warn('[ADD] ⚠️ No se pudo guardar en remoto (continuando de todas formas)');
-      }
-      
-      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin recargar)
-      // Verificar si estamos en vista master o vista curso
-      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
-      
-      if (isMasterView) {
-        // Si estamos en vista master, reconstruir el grid
-        buildMasterGrid();
-        console.log('[ADD] ✅ Vista master actualizada');
-      } else {
-        // Si estamos en vista de curso individual, re-renderizar el curso
-        renderCourse(hex);
-        console.log('[ADD] ✅ Vista de curso actualizada');
-      }
-      
-      // ✅ Log informativo
-      console.log('[ADD] ✅ Archivo guardado localmente y en remoto. Otros dispositivos lo verán en el próximo refresh (máx 3 segundos)');
+      remoteSaveFiles(hex, next);
+      buildMasterGrid();
     });
 
     addRow.appendChild(inputLabel);
@@ -1576,22 +817,11 @@ function buildMasterGrid() {
     btnRestore.type = 'button';
     btnRestore.textContent = 'Restaurar enlaces originales';
     btnRestore.style.marginTop = '10px';
-    btnRestore.addEventListener('click', async () => {
+    btnRestore.addEventListener('click', () => {
       if (!confirm('¿Restaurar la lista original de enlaces? Se perderán los cambios locales.')) return;
       clearFilesOverride(hex);
-      
-      // ✅ GUARDAR EN REMOTO (esperar confirmación)
-      await remoteSaveFiles(hex, getFilesForHex(hex)).catch(e => {
-        console.error('[RESTORE] ❌ Error guardando en remoto:', e);
-      });
-      
-      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
-      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
-      if (isMasterView) {
-        buildMasterGrid();
-      } else {
-        renderCourse(hex);
-      }
+      remoteSaveFiles(hex, getFilesForHex(hex));
+      buildMasterGrid();
     });
     right.appendChild(btnRestore);
 
@@ -1608,9 +838,6 @@ function buildMasterGrid() {
     cardEl.appendChild(right);
     grid.appendChild(cardEl);
   });
-  
-  const actualCards = grid.querySelectorAll('.master-card').length;
-  
   // herramientas exportar/importar
   try { ensureMasterTools(); } catch(e) {}
 }
@@ -1631,7 +858,6 @@ async function refreshFromRemoteSilent(hex){
     }
     
     console.log('[REFRESH] Datos remotos obtenidos:', remote.length, 'archivos');
-    console.log('[REFRESH] 📋 Contenido remoto:', remote.map(f => `${f.label}: ${f.url}`).join(', '));
     
     const current = getFilesForHex(hex);
     const base = getBaseFilesForHex(hex); // Datos originales del código
@@ -1643,63 +869,18 @@ async function refreshFromRemoteSilent(hex){
     console.log('[REFRESH] - Remoto:', remote.length, 'archivos');
     console.log('[REFRESH] - Local:', current.length, 'archivos');
     console.log('[REFRESH] - Base:', base.length, 'archivos');
-    console.log('[REFRESH] 📋 Contenido local:', current.map(f => `${f.label}: ${f.url}`).join(', '));
     
-    // ✅ CRÍTICO: Comparar primero por longitud (más rápido y detecta cambios inmediatamente)
-    // Si hay diferencia en longitud, SIEMPRE sincronizar (remoto tiene prioridad)
-    if (remote.length !== current.length) {
-      console.log('[REFRESH] ✅ CAMBIOS DETECTADOS - Diferencia en cantidad de archivos');
-      console.log('[REFRESH] Remoto:', remote.length, 'archivos');
-      console.log('[REFRESH] Local:', current.length, 'archivos');
-      console.log('[REFRESH] 📋 Contenido remoto:', remote.map(f => `${f.label}: ${f.url}`).join(', '));
-      console.log('[REFRESH] 📋 Contenido local:', current.map(f => `${f.label}: ${f.url}`).join(', '));
-      
-      // SIEMPRE sincronizar con remoto (remoto es la fuente de verdad)
-      saveFilesOverride(hex, remote);
-      
-      // ✅ VERIFICAR que se guardó correctamente
-      const verify = getFilesForHex(hex);
-      const verifyStr = stableStringify(verify);
-      const savedCorrectly = verifyStr === remoteStr;
-      console.log('[REFRESH] 🔍 Verificación post-guardado:', savedCorrectly ? '✅ SÍ' : '❌ NO');
-      if (!savedCorrectly) {
-        console.error('[REFRESH] ❌ ERROR: Los datos no se guardaron correctamente en localStorage!');
-        console.error('[REFRESH] Esperado:', remoteStr.substring(0, 200));
-        console.error('[REFRESH] Obtenido:', verifyStr.substring(0, 200));
-      }
-      
-      // Si remoto está vacío pero base tiene enlaces, limpiar override para usar base
-      if (remote.length === 0 && base.length > 0) {
-        console.log('[REFRESH] Remoto vacío, limpiando override para usar datos base');
-        clearFilesOverride(hex);
-        return true;
-      }
-      
-      return true;
-    }
-    
-    // CRÍTICO: Si remoto es diferente a local (mismo largo pero contenido diferente), actualizar SIEMPRE
+    // CRÍTICO: Si remoto es diferente a local, actualizar SIEMPRE (sin excepciones)
     // Esto asegura que los cambios remotos siempre prevalezcan
     const stringsMatch = remoteStr === currentStr;
     
     if (!stringsMatch) {
-      console.log('[REFRESH] ✅ CAMBIOS DETECTADOS - Remoto diferente a Local (mismo largo pero contenido diferente)');
-      console.log('[REFRESH] Remoto JSON:', remoteStr.substring(0, 300));
-      console.log('[REFRESH] Local JSON:', currentStr.substring(0, 300));
+      console.log('[REFRESH] ✅ CAMBIOS DETECTADOS - Remoto diferente a Local');
+      console.log('[REFRESH] Remoto JSON:', remoteStr.substring(0, 200));
+      console.log('[REFRESH] Local JSON:', currentStr.substring(0, 200));
       
       // SIEMPRE sincronizar con remoto (remoto es la fuente de verdad)
       saveFilesOverride(hex, remote);
-      
-      // ✅ VERIFICAR que se guardó correctamente
-      const verify = getFilesForHex(hex);
-      const verifyStr = stableStringify(verify);
-      const savedCorrectly = verifyStr === remoteStr;
-      console.log('[REFRESH] 🔍 Verificación post-guardado:', savedCorrectly ? '✅ SÍ' : '❌ NO');
-      if (!savedCorrectly) {
-        console.error('[REFRESH] ❌ ERROR: Los datos no se guardaron correctamente en localStorage!');
-        console.error('[REFRESH] Esperado:', remoteStr.substring(0, 200));
-        console.error('[REFRESH] Obtenido:', verifyStr.substring(0, 200));
-      }
       
       // Si remoto está vacío pero base tiene enlaces, limpiar override para usar base
       if (remote.length === 0 && base.length > 0) {
@@ -1721,12 +902,21 @@ async function refreshFromRemoteSilent(hex){
       return true;
     }
     
+    // Caso: remoto tiene menos elementos que local (se borraron enlaces)
+    if (remote.length < current.length) {
+      console.log('[REFRESH] ⚠️ Remoto tiene MENOS elementos que local');
+      console.log('[REFRESH] Forzando sincronización con remoto...');
+      saveFilesOverride(hex, remote);
+      if (remote.length === 0 && base.length > 0) {
+        clearFilesOverride(hex);
+      }
+      return true;
+    }
     
     console.log('[REFRESH] ✅ Sin cambios, datos sincronizados');
     return false;
   } catch (e) { 
     console.error('[REFRESH] Error en refresh silencioso:', e);
-    console.error('[REFRESH] Stack trace:', e.stack);
     return false; 
   }
 }
@@ -1770,41 +960,117 @@ async function tryLoginByCode(code) {
   try {
     const hex = await sha256Hex(code);
 
-    // ✅ Google Analytics: Tracking de intento de login
-    if (typeof gtag !== 'undefined') {
-      gtag('event', 'login_attempt', {
-        'event_category': 'authentication',
-        'event_label': 'attempt'
-      });
-    }
-
     // master
     if (hex === MASTER_HASH) {
-      // Refresh en background (no bloquear login)
+      // Iniciar refresh ANTES del loader para que se ejecuten en paralelo
+      let refreshPromise = Promise.resolve(false);
       if (hasRemote()) {
-        const mergedMap = getMergedAccessHashMap();
-        const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
-        Promise.race([
-          Promise.allSettled(hexes.map(h => refreshFromRemoteSilent(h).catch(() => false))),
-          new Promise(resolve => setTimeout(() => resolve([]), 2000))
-        ]).catch(() => {});
+        console.log('[SYNC] Iniciando refresh de todos los cursos ANTES del loader...');
+        const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
+        console.log('[SYNC] Total de cursos a refrescar:', hexes.length);
+        
+        // Usar allSettled para que continúe aunque algunos cursos fallen
+        refreshPromise = Promise.allSettled(hexes.map((h, index) => {
+          const isLast = index === hexes.length - 1;
+          const label = isLast ? `[ÚLTIMO CURSO]` : '';
+          console.log(`${label} [SYNC] Refrescando curso ${index + 1}/${hexes.length}: ${h.substring(0, 8)}...`);
+          return refreshFromRemoteSilent(h)
+            .then(result => {
+              if (isLast) {
+                console.log(`[ÚLTIMO CURSO] ✅ Refresh completado para ${h.substring(0, 8)}, resultado:`, result);
+                // Verificar datos después del refresh
+                const files = getFilesForHex(h);
+                console.log(`[ÚLTIMO CURSO] Archivos actuales después del refresh:`, files.length);
+              }
+              return result;
+            })
+            .catch(e => {
+              console.error(`[SYNC] ❌ Error refrescando curso ${h.substring(0, 8)}:`, e);
+              if (isLast) {
+                console.error(`[ÚLTIMO CURSO] ❌ FALLO CRÍTICO en último curso:`, e);
+              }
+              return false;
+            });
+        }))
+          .then(results => {
+            const successful = results.filter(r => r.status === 'fulfilled').length;
+            const failed = results.filter(r => r.status === 'rejected').length;
+            console.log(`[SYNC] Refresh completado: ${successful} exitosos, ${failed} fallidos`);
+            
+            if (failed > 0) {
+              results.forEach((r, i) => {
+                if (r.status === 'rejected') {
+                  console.warn(`[SYNC] ❌ Curso ${i + 1} falló:`, hexes[i].substring(0, 8), r.reason);
+                }
+              });
+            }
+            
+            const anyUpdated = results.some(r => 
+              r.status === 'fulfilled' && r.value === true
+            );
+            if (anyUpdated) {
+              console.log('[SYNC] ✅ Cambios detectados durante loader');
+            }
+            return anyUpdated;
+          })
+          .catch(e => {
+            console.warn('[SYNC] Error general en refresh:', e);
+            return false;
+          });
       }
       
-      await runLoader();
+      // Ejecutar loader (y refresh en paralelo, pero no esperamos el refresh)
+      try { 
+        await runLoader(); 
+      } catch (e) {}
+      
       clearAttempts();
       setQueryParam('code', btoa(code));
-      
-      await refreshCustomCourses().catch(() => {});
       buildMasterGrid();
       setupMasterSearch();
-      const yearMasterEl = $('#year_master');
-      if (yearMasterEl) yearMasterEl.textContent = new Date().getFullYear();
+      $('#year_master').textContent = new Date().getFullYear();
       showMaster();
       
-      // ✅ Google Analytics: Tracking login exitoso Master
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'login_success_master', {
-          'event_category': 'authentication'
+      // Si el refresh terminó durante el loader, actualizar ahora
+      refreshPromise.then(refreshUpdated => {
+        if (refreshUpdated) {
+          console.log('[SYNC] ✅ Actualizando grid con datos remotos obtenidos durante loader...');
+          buildMasterGrid();
+        }
+      }).catch(e => console.warn('[SYNC] Error:', e));
+      
+      // Intentos adicionales rápidos por si el refresh aún no terminó
+      if (hasRemote()) {
+        [200, 500, 1000].forEach((delay, index) => {
+          setTimeout(async () => {
+            console.log(`[SYNC] Verificando datos remotos (intento ${index + 2})...`);
+            const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
+            
+            // Usar allSettled para que continúe aunque algunos cursos fallen
+            const results = await Promise.allSettled(
+              hexes.map((h, i) => {
+                console.log(`[SYNC] Intento ${index + 2} - Curso ${i + 1}/${hexes.length}: ${h.substring(0, 8)}...`);
+                return refreshFromRemoteSilent(h).catch(e => {
+                  console.warn(`[SYNC] Error en intento ${index + 2} curso ${h.substring(0, 8)}:`, e);
+                  return false;
+                });
+              })
+            );
+            
+            const successful = results.filter(r => r.status === 'fulfilled').length;
+            const failed = results.filter(r => r.status === 'rejected').length;
+            if (failed > 0) {
+              console.warn(`[SYNC] Intento ${index + 2}: ${successful} exitosos, ${failed} fallidos`);
+            }
+            
+            const anyUpdated = results.some(r => 
+              r.status === 'fulfilled' && r.value === true
+            );
+            if (anyUpdated) {
+              console.log(`[SYNC] ✅ Cambios detectados en intento ${index + 2}, reconstruyendo grid...`);
+              buildMasterGrid();
+            }
+          }, delay);
         });
       }
       
@@ -1812,37 +1078,18 @@ async function tryLoginByCode(code) {
     }
 
     // normal
-    // ✅ CRÍTICO: Cargar cursos personalizados ANTES de validar (por si no están cargados)
-    // Esto asegura que cursos personalizados recién creados estén disponibles
-    if (hasRemote()) {
-      console.log('[LOGIN] Cargando cursos personalizados antes de validar...');
-      await refreshCustomCourses().catch(e => {
-        console.warn('[LOGIN] Error cargando cursos personalizados (continuando):', e);
-      });
-    }
-    
-    // ✅ Obtener mergedMap DESPUÉS de cargar cursos personalizados
-    const mergedMap = getMergedAccessHashMap();
-    console.log('[LOGIN] Validando código, cursos disponibles:', Object.keys(mergedMap).length);
-    console.log('[LOGIN] Hex a buscar:', hex.substring(0, 8) + '...');
-    
-    if (mergedMap && mergedMap[hex]) {
-      console.log('[LOGIN] ✅ Código válido encontrado en hashmap');
-      // Mostrar loader inmediatamente
-      showLoader();
-      
-      // ✅ CRÍTICO: Esperar refresh ANTES de renderizar (igual que cursos base desde master)
-      // Esto asegura que los archivos estén actualizados cuando se muestra el curso
+    if (ACCESS_HASH_MAP[hex]) {
+      // Iniciar refresh ANTES del loader para que se ejecuten en paralelo
+      let refreshPromise = Promise.resolve(false);
       if (hasRemote()) {
-        console.log('[SYNC] Iniciando refresh antes de mostrar curso...');
-        await refreshFromRemoteSilent(hex).catch(e => {
+        console.log('[SYNC] Iniciando refresh ANTES del loader...');
+        refreshPromise = refreshFromRemoteSilent(hex).catch(e => {
           console.warn('[SYNC] Error en refresh:', e);
           return false;
         });
-        console.log('[SYNC] ✅ Refresh completado, renderizando curso...');
       }
       
-      // Ejecutar animación de loader después del refresh
+      // Ejecutar loader (y refresh en paralelo, pero no esperamos el refresh)
       try { 
         await runLoader(); 
       } catch (e) {}
@@ -1853,35 +1100,34 @@ async function tryLoginByCode(code) {
       renderCourse(hex);
       showContent();
       
-      // ✅ Google Analytics: Tracking login exitoso curso
-      if (typeof gtag !== 'undefined') {
-        const courseData = mergedMap[hex];
-        gtag('event', 'login_success_course', {
-          'event_category': 'authentication',
-          'event_label': courseData.card?.tag || 'unknown'
+      // Si el refresh terminó durante el loader, actualizar ahora
+      refreshPromise.then(refreshUpdated => {
+        if (refreshUpdated && currentKeyHex === hex) {
+          console.log('[SYNC] ✅ Actualizando curso con datos remotos obtenidos durante loader...');
+          renderCourse(hex);
+        }
+      }).catch(e => console.warn('[SYNC] Error:', e));
+      
+      // Intentos adicionales rápidos por si el refresh aún no terminó
+      if (hasRemote()) {
+        [200, 500, 1000].forEach((delay, index) => {
+          setTimeout(() => {
+            refreshFromRemoteSilent(hex).then(updated => {
+              if (updated && currentKeyHex === hex) {
+                console.log(`[SYNC] ✅ Curso actualizado desde remoto (intento ${index + 2}), re-renderizando...`);
+                renderCourse(hex);
+              }
+            }).catch(e => console.warn('[SYNC] Error refrescando curso:', e));
+          }, delay);
         });
       }
       
       return true;
     } else {
-      console.warn('[LOGIN] ❌ Código no encontrado en hashmap');
-      console.warn('[LOGIN] Cursos disponibles:', Object.keys(mergedMap || {}));
-      console.warn('[LOGIN] Hex buscado:', hex.substring(0, 8) + '...');
-      
       const attempts = recordAttempt();
       msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
       msg.classList.add('error');
       maybeShowAttemptsWarning();
-      
-      // ✅ Google Analytics: Tracking de código inválido
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'login_error', {
-          'event_category': 'authentication',
-          'event_label': 'invalid_code',
-          'value': attempts
-        });
-      }
-      
       return false;
     }
   } catch (e) {
@@ -1893,337 +1139,64 @@ async function tryLoginByCode(code) {
 }
 
 /* ============ eventos ============ */
-// ✅ Validar elementos DOM antes de agregar event listeners
-const btnEnter = $('#btn-enter');
-const codeInput = $('#code');
-const btnLogout = $('#btn-logout');
-const btnCopyCodeLink = $('#btn-copy-code-link');
-const btnMasterExit = $('#btn-master-exit');
-const btnMasterCopy = $('#btn-master-copy');
+$('#btn-enter').addEventListener('click', () => tryLoginByCode($('#code').value));
+$('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#btn-enter').click(); } });
+$('#btn-logout').addEventListener('click', () => { currentKeyHex = null; setQueryParam('code', null); showAccess(); });
 
-if (btnEnter && codeInput) {
-  btnEnter.addEventListener('click', () => tryLoginByCode(codeInput.value));
-  codeInput.addEventListener('keydown', (e) => { 
-    if (e.key === 'Enter') { 
-      e.preventDefault(); 
-      btnEnter.click(); 
-    } 
-  });
-}
+$('#btn-copy-code-link').addEventListener('click', async () => {
+  if (!currentKeyHex) return;
+  const url = new URL(location.href);
+  const codeField = $('#code');
+  const encoded = url.searchParams.get('code');
+  const codeVal = (encoded ? atob(encoded) : codeField.value) || '';
+  if (!codeVal) return;
+  url.searchParams.set('code', btoa(codeVal));
+  try {
+    await navigator.clipboard.writeText(url.toString());
+    alert('Enlace copiado al portapapeles');
+  } catch (e) {
+    prompt('Copie este enlace:', url.toString());
+  }
+});
 
-if (btnLogout) {
-  btnLogout.addEventListener('click', () => { 
-    currentKeyHex = null; 
-    setQueryParam('code', null); 
-    showAccess(); 
-  });
-}
-
-if (btnCopyCodeLink) {
-  btnCopyCodeLink.addEventListener('click', async () => {
-    if (!currentKeyHex) return;
-    const url = new URL(location.href);
-    const codeField = $('#code');
-    const encoded = url.searchParams.get('code');
-    const codeVal = (encoded ? atob(encoded) : (codeField ? codeField.value : '')) || '';
-    if (!codeVal) return;
-    url.searchParams.set('code', btoa(codeVal));
-    try {
-      await navigator.clipboard.writeText(url.toString());
-      alert('Enlace copiado al portapapeles');
-    } catch (e) {
-      prompt('Copie este enlace:', url.toString());
-    }
-  });
-}
-
-if (btnMasterExit) {
-  btnMasterExit.addEventListener('click', () => { 
-    setQueryParam('code', null); 
-    showAccess(); 
-  });
-}
-
-if (btnMasterCopy) {
-  btnMasterCopy.addEventListener('click', async () => {
-    const url = new URL(location.href);
-    url.searchParams.set('code', btoa('EDUMASTER123456987'));
-    try {
-      await navigator.clipboard.writeText(url.toString());
-      alert('Enlace de vista maestra copiado');
-    } catch (e) {
-      prompt('Copie este enlace:', url.toString());
-    }
-  });
-}
+$('#btn-master-exit').addEventListener('click', () => { setQueryParam('code', null); showAccess(); });
+$('#btn-master-copy').addEventListener('click', async () => {
+  const url = new URL(location.href);
+  url.searchParams.set('code', btoa('EDUMASTER123456987'));
+  try {
+    await navigator.clipboard.writeText(url.toString());
+    alert('Enlace de vista maestra copiado');
+  } catch (e) {
+    prompt('Copie este enlace:', url.toString());
+  }
+});
 
 /* ============ init ============ */
 (async function init(){
-  const yearEl = $('#year');
-  const yearMasterEl = $('#year_master');
-  if (yearEl) yearEl.textContent = new Date().getFullYear();
-  if (yearMasterEl) yearMasterEl.textContent = new Date().getFullYear();
+  $('#year').textContent = new Date().getFullYear();
+  $('#year_master').textContent = new Date().getFullYear();
 
   const qp = new URLSearchParams(location.search);
   const pre = qp.get('code');
   if (pre) {
-    // ✅ Mostrar loader inmediatamente si hay código pre-cargado
-    showLoader();
     try {
       const decoded = atob(pre);
       if (decoded) {
         const ok = await tryLoginByCode(decoded);
-        if (ok) { 
-          const codeEl = $('#code');
-          if (codeEl) {
-            try { codeEl.value = decoded; } catch(e) {} 
-          }
-          return; 
-        }
+        if (ok) { try { $('#code').value = decoded; } catch(e) {} return; }
         else {
-          hideLoader(); // ✅ Ocultar loader antes de mostrar acceso
           setQueryParam('code', null);
           showAccess();
-          const msgEl = $('#msg');
-          if (msgEl) {
-            msgEl.textContent = 'El enlace contiene código inválido o expirado.';
-            msgEl.classList.add('error');
-          }
+          $('#msg').textContent = 'El enlace contiene código inválido o expirado.';
+          $('#msg').classList.add('error');
           return;
         }
       }
-    } catch (e) { 
-      hideLoader(); // ✅ Ocultar loader si hay error
-      console.warn('Parámetro code inválido', e); 
-    }
+    } catch (e) { console.warn('Parámetro code inválido', e); }
   }
   showAccess();
   maybeShowAttemptsWarning();
-  
-  // ✅ Cargar cursos remotos (no bloquear con await para no demorar carga)
-  loadRemoteCoursesOnInit();
 })();
-
-/* ============ Modal agregar curso ============ */
-let setupAddCourseModalDone = false;
-
-function setupAddCourseModal() {
-  if (setupAddCourseModalDone) {
-    console.log('[SETUP] Ya configurado, saltando...');
-    return;
-  }
-  setupAddCourseModalDone = true;
-  
-  const modalAddCourse = $('#modalAddCourse');
-  const modalClose = $('#modalAddCourseClose');
-  const btnAddCourse = $('#btn-add-course');
-  const formAddCourse = $('#formAddCourse');
-  const inputCourseAccent = $('#inputCourseAccent');
-  const inputCourseAccentHex = $('#inputCourseAccentHex');
-
-  console.log('[SETUP] Elementos encontrados:', {
-    modalAddCourse: !!modalAddCourse,
-    formAddCourse: !!formAddCourse,
-    btnAddCourse: !!btnAddCourse
-  });
-
-  if (!modalAddCourse || !formAddCourse) {
-    console.error('[SETUP] Faltan elementos del modal');
-    return;
-  }
-
-  // Sincronizar color picker con input hex
-  if (inputCourseAccent && inputCourseAccentHex) {
-    inputCourseAccent.addEventListener('input', (e) => {
-      inputCourseAccentHex.value = e.target.value;
-    });
-    inputCourseAccentHex.addEventListener('input', (e) => {
-      const val = e.target.value;
-      if (val.match(/^#[0-9A-Fa-f]{6}$/)) {
-        inputCourseAccent.value = val;
-      }
-    });
-  }
-
-  // Abrir modal
-  if (btnAddCourse) {
-    btnAddCourse.addEventListener('click', () => {
-      modalAddCourse.classList.add('show');
-    });
-  }
-
-  // Cerrar modal
-  if (modalClose) {
-    modalClose.addEventListener('click', () => {
-      modalAddCourse.classList.remove('show');
-    });
-  }
-
-  $('#btnCancelAddCourse')?.addEventListener('click', () => {
-    modalAddCourse.classList.remove('show');
-  });
-
-  // Submit formulario
-  formAddCourse.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const title = $('#inputCourseTitle').value.trim();
-    const meta = $('#inputCourseMeta').value.trim();
-    const imageUrl = $('#inputCourseImage').value.trim();
-    const tag = $('#inputCourseTag').value.trim().toUpperCase();
-    const variant = $('#selectCourseVariant').value;
-    const accent = $('#inputCourseAccent').value;
-    const code = $('#inputCourseCode').value.trim();
-    
-    // Validaciones
-    if (!title || !meta || !imageUrl || !tag || !code) {
-      alert('Complete todos los campos');
-      return;
-    }
-    
-    // Validar URL de imagen
-    try {
-      new URL(imageUrl);
-    } catch {
-      // Si no es una URL absoluta, asumimos que es relativa
-      if (!imageUrl.startsWith('/') && !imageUrl.startsWith('assets/')) {
-        alert('URL de imagen inválida');
-        return;
-      }
-    }
-    
-    // Verificar que el código no exista
-    const existingCourses = getMergedAccessHashMap();
-    const hex = await sha256Hex(code);
-    if (existingCourses[hex]) {
-      alert('Este código ya existe. Use otro.');
-      return;
-    }
-    
-    // Verificar que el tag sea único
-    const tags = Object.values(existingCourses).map(c => c.card?.tag?.toUpperCase());
-    if (tags.includes(tag)) {
-      alert('Este tag ya está en uso. Use otro.');
-      return;
-    }
-    
-    // Crear datos del curso
-    const courseData = {
-      title: title,
-      meta: meta,
-      files: [], // ✅ Archivos iniciales vacíos (se agregarán con la misma lógica que cursos base)
-      card: {
-        img: imageUrl,
-        tag: tag,
-        variant: variant,
-        seed: Math.floor(Math.random() * 100),
-        accent: accent
-      }
-    };
-    
-    // ✅ CRÍTICO: Inicializar archivos vacíos en overrides para que use la misma lógica de sincronización
-    // Esto asegura que los URLs agregados después se guarden en remoto igual que los cursos base
-    saveFilesOverride(hex, []);
-    console.log('[ADD COURSE] ✅ Archivos inicializados en overrides para sincronización automática');
-    
-    // Guardar curso (esperar confirmación)
-    await addCustomCourse(hex, courseData);
-    
-    // ✅ CRÍTICO: Verificar que el curso se guardó correctamente
-    const verifyCourses = loadCustomCourses();
-    const courseExists = hex in verifyCourses;
-    console.log('[ADD COURSE] 🔍 Verificación post-guardado:', {
-      hex: hex.substring(0,8),
-      existe: courseExists,
-      totalCursos: Object.keys(verifyCourses).length
-    });
-    
-    if (!courseExists) {
-      console.error('[ADD COURSE] ❌ ERROR: El curso NO se guardó en localStorage!');
-      alert('⚠️ Error: El curso no se pudo guardar localmente. Intente de nuevo.');
-      return;
-    }
-    
-    // ✅ CRÍTICO: Reconstruir grid INMEDIATAMENTE con datos locales
-    // Esto asegura que el curso se vea incluso si el refresh falla o es lento
-    console.log('[ADD COURSE] Reconstruyendo grid inmediatamente...');
-    buildMasterGrid();
-    
-    // Verificar que el curso aparece en el grid
-    setTimeout(() => {
-      const grid = $('#masterGrid');
-      const courseCards = grid ? grid.querySelectorAll('.master-card') : [];
-      console.log('[ADD COURSE] 🔍 Verificación en DOM:', {
-        totalCards: courseCards.length,
-        buscandoHex: hex.substring(0,8)
-      });
-      
-      // Buscar el curso en el grid
-      let found = false;
-      courseCards.forEach(card => {
-        const cardTitle = card.querySelector('strong')?.textContent || '';
-        if (courseData.title && cardTitle.includes(courseData.title.substring(0, 20))) {
-          found = true;
-          console.log('[ADD COURSE] ✅ Curso encontrado en grid:', cardTitle);
-        }
-      });
-      
-      if (!found) {
-        console.warn('[ADD COURSE] ⚠️ Curso no encontrado en grid, reconstruyendo de nuevo...');
-        buildMasterGrid();
-      }
-    }, 100);
-    
-    // Cerrar modal inmediatamente para mejor UX
-    modalAddCourse.classList.remove('show');
-    formAddCourse.reset();
-    inputCourseAccent.value = '#5aa9ff';
-    inputCourseAccentHex.value = '#5aa9ff';
-    
-    // Analytics tracking
-    if (typeof gtag !== 'undefined') {
-      gtag('event', 'course_created', {
-        'event_category': 'management',
-        'event_label': tag
-      });
-    }
-    
-    // Mostrar mensaje de éxito
-    alert(`✅ Curso "${tag}" creado exitosamente.\n\nCódigo para acceder: ${code}`);
-    
-    // ✅ Esperar un momento para que el servidor procese el guardado
-    // Luego hacer refresh para sincronizar (sin bloquear la UI)
-    setTimeout(async () => {
-      try {
-        console.log('[ADD COURSE] Sincronizando con servidor...');
-        const refreshed = await refreshCustomCourses();
-        // ✅ CRÍTICO: Reconstruir grid SIEMPRE después de crear curso
-        // Esto asegura que se muestre incluso si hay problemas de sincronización
-        buildMasterGrid();
-        console.log('[ADD COURSE] ✅ Sincronización completada');
-      } catch (e) {
-        console.warn('[ADD COURSE] Error refrescando cursos después de crear:', e);
-        // El curso ya está visible gracias al buildMasterGrid() anterior
-        // Pero reconstruir de nuevo por si acaso
-        buildMasterGrid();
-      }
-    }, 1000); // Esperar 1 segundo para que el servidor procese
-  });
-
-  // Cerrar modal al hacer click fuera
-  modalAddCourse.addEventListener('click', (e) => {
-    if (e.target === modalAddCourse) {
-      modalAddCourse.classList.remove('show');
-    }
-  });
-}
-
-// ✅ Configurar modal cuando DOM está completamente cargado
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', setupAddCourseModal);
-} else {
-  setupAddCourseModal();
-}
 
 /* ============ FUNCIONES DE PRUEBA GLOBALES ============ */
 // Ejecutar en la consola para probar:
