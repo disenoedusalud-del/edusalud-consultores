@@ -213,13 +213,32 @@ function clearFilesOverride(hex){
   try { localStorage.removeItem(storageKeyFor(hex)); } catch(e) {}
 }
 function getBaseFilesForHex(hex){
+  // Primero buscar en cursos base
   const base = ACCESS_HASH_MAP[hex]?.files;
-  return Array.isArray(base) ? base.slice() : [];
+  if (Array.isArray(base)) return base.slice();
+  
+  // Si no está en cursos base, buscar en cursos personalizados
+  const custom = loadCustomCourses();
+  const customCourse = custom[hex];
+  if (customCourse && Array.isArray(customCourse.files)) {
+    return customCourse.files.slice();
+  }
+  
+  return [];
 }
 function getFilesForHex(hex){
+  // ✅ PRIORIDAD 1: Overrides (localStorage) - archivos modificados/agregados por el usuario
+  // Esto funciona igual para cursos base y personalizados
   const override = loadFilesOverride(hex);
-  if (override) return override;
-  return getBaseFilesForHex(hex);
+  if (override !== null) {
+    console.log('[FILES] Usando override para hex:', hex.substring(0,8), 'archivos:', override.length);
+    return override;
+  }
+  
+  // ✅ PRIORIDAD 2: Archivos base/personalizados originales
+  const base = getBaseFilesForHex(hex);
+  console.log('[FILES] Usando archivos base/personalizados para hex:', hex.substring(0,8), 'archivos:', base.length);
+  return base;
 }
 
 /* ============ sincronización remota (opcional) ============ */
@@ -951,11 +970,14 @@ function startPeriodicRefresh(currentHex = null) {
       }
       
       if (currentHex === MASTER_HASH) {
-        // Refresh de todos los cursos para vista maestra (incluye personalizados)
-        console.log('[PERIODIC] Refrescando todos los cursos...');
+        // ✅ Refresh de todos los cursos para vista maestra (incluye personalizados)
+        // ✅ IMPORTANTE: Los cursos personalizados usan la MISMA lógica de sincronización de archivos
+        console.log('[PERIODIC] Refrescando todos los cursos (base + personalizados)...');
         const mergedMap = getMergedAccessHashMap();
         const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
-        console.log('[PERIODIC] Total cursos a refrescar (base + personalizados):', hexes.length);
+        const customHexes = hexes.filter(h => isCustomCourse(h));
+        const baseHexes = hexes.filter(h => !isCustomCourse(h));
+        console.log('[PERIODIC] Total cursos a refrescar:', hexes.length, '(Base:', baseHexes.length, 'Personalizados:', customHexes.length, ')');
         
         const results = await Promise.allSettled(
           hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
@@ -990,9 +1012,11 @@ function startPeriodicRefresh(currentHex = null) {
         // ✅ Refresh del curso actual (incluye cursos personalizados)
         const mergedMap = getMergedAccessHashMap();
         if (mergedMap[currentHex]) {
-          console.log('[PERIODIC] Refrescando curso actual (hex:', currentHex.substring(0, 8) + ')...');
+          const isCustom = isCustomCourse(currentHex);
+          console.log('[PERIODIC] Refrescando curso actual (hex:', currentHex.substring(0, 8), isCustom ? '(PERSONALIZADO)' : '(BASE)') + ')...');
           
           // ✅ CRÍTICO: Refrescar archivos del curso actual PRIMERO (los URLs se guardan en overrides)
+          // ✅ Esto funciona igual para cursos base y personalizados - ambos usan la misma lógica
           const updated = await refreshFromRemoteSilent(currentHex).catch(e => {
             console.warn('[PERIODIC] Error refrescando archivos:', e);
             return false;
@@ -1518,7 +1542,8 @@ function buildMasterGrid() {
       try { new URL(urlVal); } catch { alert('URL inválida'); return; }
       
       const current = getFilesForHex(hex);
-      console.log('[ADD] Links actuales:', current.length);
+      const isCustom = isCustomCourse(hex);
+      console.log('[ADD] Links actuales:', current.length, isCustom ? '(Curso personalizado)' : '(Curso base)');
       const next = current.concat({ label: labelVal, url: urlVal });
       console.log('[ADD] Links después de agregar:', next.length);
       console.log('[ADD] Array completo a guardar:', JSON.stringify(next));
@@ -1527,9 +1552,13 @@ function buildMasterGrid() {
       inputLabel.value = '';
       inputUrl.value = '';
       
+      // ✅ GUARDAR LOCALMENTE (localStorage - overrides)
+      // ✅ Esto funciona igual para cursos base y personalizados
       saveFilesOverride(hex, next);
+      console.log('[ADD] ✅ Archivo guardado localmente en overrides');
       
-      // ✅ GUARDAR EN REMOTO (esperar confirmación)
+      // ✅ GUARDAR EN REMOTO (Google Sheets - hoja "overrides")
+      // ✅ MISMA LÓGICA para cursos base y personalizados - ambos se guardan en la misma hoja
       const saveResult = await remoteSaveFiles(hex, next).catch(e => {
         console.error('[ADD] ❌ Error guardando en remoto:', e);
         alert('⚠️ Error al guardar en remoto. Los cambios están guardados localmente pero no se sincronizarán.');
@@ -1537,7 +1566,7 @@ function buildMasterGrid() {
       });
       
       if (saveResult) {
-        console.log('[ADD] ✅ Archivo guardado en remoto correctamente');
+        console.log('[ADD] ✅ Archivo guardado en remoto correctamente - Se sincronizará automáticamente en otros dispositivos');
       } else {
         console.warn('[ADD] ⚠️ No se pudo guardar en remoto (continuando de todas formas)');
       }
@@ -2161,7 +2190,7 @@ function setupAddCourseModal() {
     const courseData = {
       title: title,
       meta: meta,
-      files: [],
+      files: [], // ✅ Archivos iniciales vacíos (se agregarán con la misma lógica que cursos base)
       card: {
         img: imageUrl,
         tag: tag,
@@ -2170,6 +2199,11 @@ function setupAddCourseModal() {
         accent: accent
       }
     };
+    
+    // ✅ CRÍTICO: Inicializar archivos vacíos en overrides para que use la misma lógica de sincronización
+    // Esto asegura que los URLs agregados después se guarden en remoto igual que los cursos base
+    saveFilesOverride(hex, []);
+    console.log('[ADD COURSE] ✅ Archivos inicializados en overrides para sincronización automática');
     
     // Guardar curso (esperar confirmación)
     await addCustomCourse(hex, courseData);
