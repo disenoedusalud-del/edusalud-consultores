@@ -210,7 +210,7 @@ function getFilesForHex(hex){
 }
 
 /* ============ sincronización remota (opcional) ============ */
-const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbzxGPegF6u_r5WSgrrbLr09G1QZOCW7VF7P9roiACdWPqCeyL0_EjRnQNJUF7SASd67/exec';
+const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbxMz5Q1Q0cM0AR3-yjOT_3pOdKF5e4ASYOEX1NUBW1cV0YMdgI9SHk82FCm2okOuEg/exec';
 function hasRemote(){ return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE_URL.startsWith('http'); }
 function stableStringify(obj){ try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 async function remoteGetFiles(hex){
@@ -624,8 +624,12 @@ async function remoteGetCourses(){
     return new Promise((resolve) => {
       const callbackName = '_gas_jsonp_courses_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
       const script = document.createElement('script');
-      script.src = REMOTE_BASE_URL + '?action=get_courses&callback=' + callbackName;
+      const url = REMOTE_BASE_URL + '?action=get_courses&callback=' + callbackName;
+      script.src = url;
       script.async = true;
+      
+      console.log('[COURSE GET] 🌐 URL completa:', url);
+      console.log('[COURSE GET] 🔤 Callback name:', callbackName);
       
       let resolved = false;
       const cleanup = () => {
@@ -676,18 +680,31 @@ async function remoteGetCourses(){
         resolve({});
       }, 5000); // ✅ Aumentado a 5 segundos para dar más tiempo al servidor
       
+      script.onload = () => {
+        console.log('[COURSE GET] ✅ Script cargado exitosamente');
+        // Verificar si el callback se ejecutó después de 1 segundo
+        setTimeout(() => {
+          if (!resolved) {
+            console.warn('[COURSE GET] ⚠️ Script cargó pero callback no se ejecutó después de 1s');
+          }
+        }, 1000);
+      };
+      
       script.onerror = () => {
         if (resolved) return;
         resolved = true;
         clearTimeout(timeout);
-        console.error('[COURSE GET] ❌ Error cargando cursos remotos');
+        console.error('[COURSE GET] ❌ Error cargando script (script.onerror)');
+        console.error('[COURSE GET] URL que falló:', url);
         cleanup();
         resolve({});
       };
       
       // ✅ Agregar script DESPUÉS de registrar callback
       console.log('[COURSE GET] Callback registrado:', callbackName);
+      console.log('[COURSE GET] Agregando script al DOM...');
       document.body.appendChild(script);
+      console.log('[COURSE GET] ✅ Script agregado al DOM');
     });
   } catch (e) {
     console.error('Error en remoteGetCourses:', e);
