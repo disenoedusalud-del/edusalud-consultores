@@ -3,8 +3,22 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Content Security Policy: Permite JSONP y scripts necesarios -->
+  <!-- Nota: Si GitHub Pages aplica su propia CSP, esta meta tag podría no tener efecto completo -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com; connect-src 'self' https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; frame-src 'self' https://*.google.com https://*.googleusercontent.com;" />
   <title>Portal de Recursos para Consultores – EduSalud</title>
   <meta name="description" content="Descarga de toolkits (PPT, logos, manuales de marca, social kit, formatos). Acceso mediante código otorgado por coordinación." />
+  
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TCR727DDDL"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-TCR727DDDL');
+  </script>
+  <!-- /Google Analytics 4 -->
+  
   <style>
     :root{
       --bg:#0b1020;
@@ -212,6 +226,66 @@
       padding:10px 14px; border-radius:12px; cursor:pointer;
     }
     .master-search button:hover{ transform: translateY(-1px); }
+    
+    /* Modal para agregar curso */
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+    }
+    .modal.show { display: flex; }
+    .modal-content {
+      background: var(--bg);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 600px;
+      width: calc(100% - 40px);
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.4);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .modal-header h2 { margin: 0; }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 24px;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      line-height: 32px;
+    }
+    .modal-close:hover { color: var(--danger); }
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .form-group .input {
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+      justify-content: flex-end;
+    }
   </style>
 </head>
 <body>
@@ -286,6 +360,7 @@
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
         <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
         <div class="row">
+          <button id="btn-add-course" class="btn" type="button">➕ Agregar curso</button>
           <button id="btn-master-copy" class="btn secondary" type="button">Compartir enlace con código</button>
           <button id="btn-master-exit" class="btn secondary" type="button">Salir</button>
         </div>
@@ -310,8 +385,93 @@
     <div id="loaderPercent" class="loader-percent">0%</div>
   </div>
 
+  <!-- Modal Agregar Curso -->
+  <div id="modalAddCourse" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>➕ Agregar Nuevo Curso</h2>
+        <button class="modal-close" id="modalAddCourseClose">&times;</button>
+      </div>
+      <form id="formAddCourse">
+        <div class="form-group">
+          <label for="inputCourseTitle">Título del Curso *</label>
+          <input id="inputCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required />
+        </div>
+        <div class="form-group">
+          <label for="inputCourseMeta">Descripción / Meta *</label>
+          <input id="inputCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required />
+        </div>
+        <div class="form-group">
+          <label for="inputCourseImage">URL de la Imagen *</label>
+          <input id="inputCourseImage" class="input" type="url" placeholder="https://..." required />
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
+            📁 Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="inputCourseTag">Tag del Curso *</label>
+          <input id="inputCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" />
+        </div>
+        <div class="form-group">
+          <label for="selectCourseVariant">Estilo Visual *</label>
+          <select id="selectCourseVariant" class="input" required>
+            <option value="dramatic">Dramatic (Azul)</option>
+            <option value="neon">Neon (Cian)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="inputCourseAccent">Color Accent</label>
+          <div style="display:flex; gap:10px;">
+            <input id="inputCourseAccent" class="input" type="color" value="#5aa9ff" />
+            <input type="text" class="input" id="inputCourseAccentHex" value="#5aa9ff" maxlength="7" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="inputCourseCode">Código Secreto (se auto-generará) *</label>
+          <input id="inputCourseCode" class="input" type="text" placeholder="Ingresa un código único, ej: CURSO123456" required />
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn secondary" id="btnCancelAddCourse">Cancelar</button>
+          <button type="submit" class="btn">Crear Curso</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="assets/js/electric-card.js?v=3" defer></script>
-  <script src="assets/js/app.js?v=7" defer></script>
+  <script src="assets/js/app.js?v=18" defer></script>
+  
+  <!-- Service Worker Registration -->
+  <script>
+    // ✅ NUEVO: Flag para desarrollo
+    const IS_DEVELOPMENT = true; // Cambiar a false en producción
+    
+    if (!IS_DEVELOPMENT && 'serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        const swPath = '/edusalud-consultores/sw.js';
+        navigator.serviceWorker.register(swPath)
+          .then((registration) => {
+            console.log('[SW] ✅ Registrado correctamente:', registration.scope);
+            
+            // ✅ NUEVO: Forzar actualización en cada carga en desarrollo
+            registration.update();
+          })
+          .catch((error) => {
+            console.log('[SW] ❌ Error al registrar:', error);
+          });
+      });
+    } else if (IS_DEVELOPMENT) {
+      // En desarrollo: desregistrar cualquier SW existente
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          registrations.forEach(registration => {
+            registration.unregister();
+            console.log('[SW] �� Service Worker desregistrado para desarrollo');
+          });
+        });
+      }
+    }
+  </script>
 </body>
 </html>
