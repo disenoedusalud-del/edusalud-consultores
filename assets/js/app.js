@@ -292,7 +292,11 @@ async function remoteGetFiles(hex){
 // Función de diagnóstico para ver qué devuelve el WebApp
 async function testWebAppResponse(hex) {
   console.log('[DIAG] Probando respuesta del WebApp...');
-  const testUrl = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex) + '&callback=test_callback';
+  // 🛡️ Cache-buster
+  const testUrl = REMOTE_BASE_URL 
+    + '?hex=' + encodeURIComponent(hex) 
+    + '&callback=test_callback'
+    + '&ts=' + Date.now();
   
   // Intentar cargar como imagen para ver si hay redirección
   const img = new Image();
@@ -310,7 +314,11 @@ function remoteGetFilesJSONP(hex){
   return new Promise((resolve) => {
     const callbackName = '_gas_jsonp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     const script = document.createElement('script');
-    const url = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex) + '&callback=' + callbackName;
+    // 🛡️ Cache-buster para evitar respuestas viejas del navegador/CDN
+    const url = REMOTE_BASE_URL 
+      + '?hex=' + encodeURIComponent(hex) 
+      + '&callback=' + callbackName
+      + '&ts=' + Date.now();
     script.src = url;
     script.async = true;
     
@@ -648,7 +656,11 @@ async function remoteGetCourses(){
     return new Promise((resolve) => {
       const callbackName = '_gas_jsonp_courses_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
       const script = document.createElement('script');
-      script.src = REMOTE_BASE_URL + '?action=get_courses&callback=' + callbackName;
+      // 🛡️ Cache-buster para evitar respuestas viejas
+      script.src = REMOTE_BASE_URL 
+        + '?action=get_courses'
+        + '&callback=' + callbackName
+        + '&ts=' + Date.now();
       script.async = true;
       
       let resolved = false;
@@ -876,7 +888,7 @@ function showAccess() {
 }
 // Sistema de refresh periódico para sincronización en tiempo real
 let periodicRefreshInterval = null;
-const PERIODIC_REFRESH_INTERVAL_MS = 1500; // 1.5 segundos (sincronización ultra rápida)
+const PERIODIC_REFRESH_INTERVAL_MS = 1200; // 1.2 segundos (sincronización ultra rápida)
 
 function startPeriodicRefresh(currentHex = null) {
   // Detener cualquier refresh periódico existente
@@ -1281,9 +1293,15 @@ function buildMasterGrid() {
           saveFilesOverride(hex, next);
       
       // ✅ GUARDAR EN REMOTO (esperar confirmación)
-      await remoteSaveFiles(hex, next).catch(e => {
+      const editOk = await remoteSaveFiles(hex, next).catch(e => {
         console.error('[EDIT] ❌ Error guardando en remoto:', e);
+        return false;
       });
+      
+      if (editOk) {
+        // 🔄 Push optimista: sincronizar con remoto inmediatamente
+        await refreshFromRemoteSilent(hex).catch(() => {});
+      }
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
           const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
@@ -1333,9 +1351,15 @@ function buildMasterGrid() {
         saveFilesOverride(hex, next);
         
         // ✅ GUARDAR EN REMOTO (esperar confirmación)
-        await remoteSaveFiles(hex, next).catch(e => {
+        const removeOk = await remoteSaveFiles(hex, next).catch(e => {
           console.error('[REMOVE] ❌ Error guardando en remoto:', e);
+          return false;
         });
+        
+        if (removeOk) {
+          // 🔄 Push optimista: sincronizar con remoto
+          await refreshFromRemoteSilent(hex).catch(() => {});
+        }
         
         // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
         const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
@@ -1378,9 +1402,15 @@ function buildMasterGrid() {
       saveFilesOverride(hex, next);
       
       // ✅ GUARDAR EN REMOTO (esperar confirmación)
-      await remoteSaveFiles(hex, next).catch(e => {
+      const reorderOk = await remoteSaveFiles(hex, next).catch(e => {
         console.error('[REORDER] ❌ Error guardando en remoto:', e);
+        return false;
       });
+      
+      if (reorderOk) {
+        // 🔄 Push optimista: sincronizar con remoto
+        await refreshFromRemoteSilent(hex).catch(() => {});
+      }
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
       const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
@@ -1446,7 +1476,10 @@ function buildMasterGrid() {
       });
       
       if (saveResult) {
-        console.log('[ADD] ✅ Guardado en remoto - Otros dispositivos verán cambio en ~1.5 segundos');
+        console.log('[ADD] ✅ Guardado en remoto');
+        // 🔄 Push optimista: leer inmediatamente desde remoto para sincronizar
+        await refreshFromRemoteSilent(hex).catch(() => {});
+        console.log('[ADD] 🔄 Sincronizado con remoto - Otros dispositivos lo verán en ~1s');
       } else {
         console.warn('[ADD] ⚠️ No se pudo guardar en remoto');
       }
@@ -1487,9 +1520,15 @@ function buildMasterGrid() {
       clearFilesOverride(hex);
       
       // ✅ GUARDAR EN REMOTO (esperar confirmación)
-      await remoteSaveFiles(hex, getFilesForHex(hex)).catch(e => {
+      const restoreOk = await remoteSaveFiles(hex, getFilesForHex(hex)).catch(e => {
         console.error('[RESTORE] ❌ Error guardando en remoto:', e);
+        return false;
       });
+      
+      if (restoreOk) {
+        // 🔄 Push optimista: sincronizar con remoto
+        await refreshFromRemoteSilent(hex).catch(() => {});
+      }
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
       const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
@@ -2096,13 +2135,21 @@ if (document.readyState === 'loading') {
 // testJSONP('88f62dd...') <- reemplazar con un hex real de algún curso
 window.testJSONP = async function(hex) {
   console.log('🧪 TEST JSONP para hex:', hex);
-  console.log('URL:', REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex) + '&callback=test_callback');
+  // 🛡️ Cache-buster
+  const url = REMOTE_BASE_URL 
+    + '?hex=' + encodeURIComponent(hex) 
+    + '&callback=test_callback'
+    + '&ts=' + Date.now();
+  console.log('URL:', url);
   
   return new Promise((resolve) => {
     const callbackName = 'test_callback_' + Date.now();
     const script = document.createElement('script');
-    const url = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex) + '&callback=' + callbackName;
-    script.src = url;
+    const testUrl = REMOTE_BASE_URL 
+      + '?hex=' + encodeURIComponent(hex) 
+      + '&callback=' + callbackName
+      + '&ts=' + Date.now();
+    script.src = testUrl;
     
     window[callbackName] = function(data) {
       console.log('✅ CALLBACK EJECUTADO!', data);
