@@ -710,6 +710,7 @@ async function remoteGetCourses(){
       
       // ✅ Agregar script DESPUÉS de registrar callback
       console.log('[COURSE GET] Callback registrado:', callbackName);
+      console.log('[COURSE GET] URL completa:', script.src);
       document.body.appendChild(script);
     });
   } catch (e) {
