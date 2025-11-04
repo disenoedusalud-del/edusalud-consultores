@@ -394,14 +394,14 @@ function remoteGetFilesJSONP(hex){
       }, 2000);
     };
     
-    // Timeout reducido a 3 segundos para respuesta más rápida
+    // Timeout de 10 segundos (Google Apps Script puede ser lento en primera carga)
     const timeout = setTimeout(() => {
       if (resolved) return;
       resolved = true;
-      console.warn('[JSONP] ⚠️ Timeout después de 3s para hex:', hex.substring(0,8));
+      console.warn('[JSONP] ⚠️ Timeout después de 10s para hex:', hex.substring(0,8));
       cleanup();
       resolve(null);
-    }, 3000);
+    }, 10000);
     
     try {
       document.body.appendChild(script);
@@ -694,10 +694,10 @@ async function remoteGetCourses(){
       const timeout = setTimeout(() => {
         if (resolved) return;
         resolved = true;
-        console.warn('[COURSE GET] ⚠️ Timeout');
+        console.warn('[COURSE GET] ⚠️ Timeout después de 10s');
         cleanup();
         resolve({});
-      }, 3000);
+      }, 10000);
       
       script.onerror = () => {
         if (resolved) return;
@@ -726,12 +726,12 @@ async function refreshCustomCourses(){
   try {
     console.log('[REFRESH] Obteniendo cursos personalizados remotos...');
     
-    // ✅ Agregar timeout más corto para evitar bloqueos en modo incógnito
+    // ✅ Timeout de 10 segundos (Google Apps Script puede ser lento en primera carga)
     const timeoutPromise = new Promise((resolve) => {
       setTimeout(() => {
-        console.warn('[REFRESH] ⚠️ Timeout obteniendo cursos remotos (continuando con cursos base)');
+        console.warn('[REFRESH] ⚠️ Timeout obteniendo cursos remotos después de 10s (continuando con cursos base)');
         resolve({});
-      }, 2000); // 2 segundos máximo (reducido de 5 para respuesta más rápida)
+      }, 10000); // 10 segundos para dar tiempo a Google Apps Script
     });
     
     const remoteCoursesPromise = remoteGetCourses();
