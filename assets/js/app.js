@@ -237,8 +237,13 @@ function getBaseFilesForHex(hex){
 }
 function getFilesForHex(hex){
   const override = loadFilesOverride(hex);
-  if (override) return override;
-  return getBaseFilesForHex(hex);
+  if (override) {
+    // console.log('[FILES] Usando override para', hex.substring(0,8), ':', override.length, 'archivos');
+    return override;
+  }
+  const base = getBaseFilesForHex(hex);
+  // console.log('[FILES] Usando base para', hex.substring(0,8), ':', base.length, 'archivos');
+  return base;
 }
 
 /* ============ sincronización remota (opcional) ============ */
@@ -1811,24 +1816,50 @@ $('#btn-master-copy').addEventListener('click', async () => {
   }
 });
 
-// ✅ FUNCIÓN PARA FORZAR SINCRONIZACIÓN COMPLETA (usar solo si hay problemas)
-window.forceSyncAll = async function() {
-  console.log('[FORCE SYNC] 🔄 Iniciando sincronización forzada con remoto...');
+// ✅ FUNCIÓN GLOBAL: Ver qué hay guardado en localStorage
+window.verDatosGuardados = function() {
+  console.log('==========================================');
+  console.log('📦 DATOS EN LOCALSTORAGE:');
+  console.log('==========================================');
   
-  if (!confirm('¿Forzar sincronización completa? Esto descargará todos los datos desde remoto.')) {
-    return;
-  }
+  const keys = Object.keys(localStorage);
+  const fileKeys = keys.filter(k => k.startsWith(FILES_STORAGE_PREFIX));
+  
+  console.log('Total archivos guardados:', fileKeys.length);
+  
+  fileKeys.forEach(key => {
+    const hex = key.replace(FILES_STORAGE_PREFIX, '');
+    try {
+      const data = JSON.parse(localStorage.getItem(key));
+      console.log('\n---');
+      console.log('Hex:', hex.substring(0, 10) + '...');
+      console.log('Archivos:', data.length);
+      data.forEach((file, idx) => {
+        console.log(`  ${idx + 1}. ${file.label}`);
+      });
+    } catch (e) {
+      console.error('Error leyendo:', key);
+    }
+  });
+  
+  console.log('\n==========================================');
+  return fileKeys.length;
+};
+
+// ✅ FUNCIÓN GLOBAL: Limpiar TODO y recargar
+window.limpiarTodoYRecargar = async function() {
+  console.log('[CLEAN] 🧹 LIMPIANDO TODO...');
   
   // 1. Limpiar localStorage de archivos
   const filesCleared = clearAllFilesOverrides();
-  console.log('[FORCE SYNC] 🧹 Limpiados', filesCleared, 'archivos de localStorage');
+  console.log('[CLEAN] 🧹 Limpiados', filesCleared, 'archivos de localStorage');
   
   // 2. Limpiar caché del navegador
   if ('caches' in window) {
     const cacheNames = await caches.keys();
     await Promise.all(
       cacheNames.map(cacheName => {
-        console.log('[FORCE SYNC] 🧹 Eliminando caché:', cacheName);
+        console.log('[CLEAN] 🧹 Eliminando caché:', cacheName);
         return caches.delete(cacheName);
       })
     );
@@ -1839,14 +1870,14 @@ window.forceSyncAll = async function() {
     const registrations = await navigator.serviceWorker.getRegistrations();
     await Promise.all(
       registrations.map(reg => {
-        console.log('[FORCE SYNC] 🧹 Desregistrando Service Worker');
+        console.log('[CLEAN] 🧹 Desregistrando Service Worker');
         return reg.unregister();
       })
     );
   }
   
-  console.log('[FORCE SYNC] ✅ Sincronización completada. Recargando...');
-  alert('✅ Sincronización completada. La página se recargará.');
+  console.log('[CLEAN] ✅ TODO LIMPIADO. Recargando...');
+  alert('✅ TODO limpiado. Solo verás datos desde Google Sheets.');
   
   // 4. Recargar página
   setTimeout(() => {
@@ -1856,11 +1887,14 @@ window.forceSyncAll = async function() {
 
 /* ============ init ============ */
 (async function init(){
-  // ✅ NUEVO: Verificar y limpiar caché obsoleto al inicio
-  const wasCleanedCache = checkAndCleanOldCache();
-  if (wasCleanedCache) {
-    console.log('[INIT] 🧹 Caché limpiado al inicio - datos frescos garantizados');
-  }
+  // ✅ LIMPIEZA FORZADA: Borrar TODO el localStorage de archivos al inicio
+  console.log('[INIT] 🧹 LIMPIANDO TODOS LOS ARCHIVOS LOCALES...');
+  const filesCleared = clearAllFilesOverrides();
+  console.log('[INIT] 🧹 Limpiados', filesCleared, 'archivos obsoletos');
+  console.log('[INIT] ✅ Solo se usarán datos remotos frescos desde Google Sheets');
+  
+  // Actualizar versión de caché
+  localStorage.setItem(CACHE_VERSION_KEY, CURRENT_CACHE_VERSION);
   
   $('#year').textContent = new Date().getFullYear();
   $('#year_master').textContent = new Date().getFullYear();
