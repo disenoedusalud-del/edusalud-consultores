@@ -2231,6 +2231,58 @@ window.testSyncComplete = async function(hex) {
   console.log('═══════════════════════════════════════════');
 };
 
+// 🔍 DIAGNÓSTICO: Ver qué devuelve realmente el servidor
+window.diagnosticarRespuesta = async function(hex = null) {
+  console.log('═══════════════════════════════════════════');
+  console.log('🔍 DIAGNÓSTICO DE RESPUESTA DEL SERVIDOR');
+  console.log('═══════════════════════════════════════════');
+  
+  const testUrl = hex 
+    ? `${REMOTE_BASE_URL}?hex=${encodeURIComponent(hex)}&ts=${Date.now()}`
+    : `${REMOTE_BASE_URL}?action=get_courses&ts=${Date.now()}`;
+  
+  console.log('URL a probar:', testUrl);
+  console.log('');
+  
+  try {
+    console.log('📡 Haciendo fetch directo (sin JSONP)...');
+    const response = await fetch(testUrl);
+    const text = await response.text();
+    
+    console.log('✅ Respuesta recibida:');
+    console.log('Status:', response.status);
+    console.log('Content-Type:', response.headers.get('content-type'));
+    console.log('');
+    console.log('📄 CONTENIDO COMPLETO:');
+    console.log('─────────────────────────────────────────');
+    console.log(text);
+    console.log('─────────────────────────────────────────');
+    console.log('');
+    
+    // Analizar qué tipo de respuesta es
+    if (text.includes('(') && text.includes(')')) {
+      console.log('✅ Parece ser JSONP (contiene paréntesis)');
+      const match = text.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*)\((.*)\);?$/);
+      if (match) {
+        console.log('✅ Callback encontrado:', match[1]);
+        console.log('✅ Datos:', match[2].substring(0, 100) + '...');
+      } else {
+        console.log('⚠️ Formato JSONP inválido');
+      }
+    } else if (text.startsWith('{') || text.startsWith('[')) {
+      console.log('⚠️ Es JSON puro (NO JSONP)');
+      console.log('❌ El servidor NO está usando el parámetro callback');
+    } else {
+      console.log('❌ Respuesta desconocida (no es JSON ni JSONP)');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error al hacer fetch:', error);
+  }
+  
+  console.log('═══════════════════════════════════════════');
+};
+
 // 🧪 TEST JSONP SIMPLE
 window.testJSONP = async function(hex) {
   console.log('🧪 TEST JSONP para hex:', hex);
