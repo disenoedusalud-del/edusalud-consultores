@@ -871,7 +871,7 @@ function showAccess() {
 }
 // Sistema de refresh periódico para sincronización en tiempo real
 let periodicRefreshInterval = null;
-const PERIODIC_REFRESH_INTERVAL_MS = 3000; // 3 segundos (óptimo para sincronización)
+const PERIODIC_REFRESH_INTERVAL_MS = 1500; // 1.5 segundos (sincronización ultra rápida)
 
 function startPeriodicRefresh(currentHex = null) {
   // Detener cualquier refresh periódico existente
@@ -879,7 +879,8 @@ function startPeriodicRefresh(currentHex = null) {
   
   if (!hasRemote()) return;
   
-  console.log('[PERIODIC] Iniciando refresh periódico cada', PERIODIC_REFRESH_INTERVAL_MS / 1000, 'segundos');
+  console.log('[PERIODIC] 🔄 Iniciando refresh AUTOMÁTICO cada', PERIODIC_REFRESH_INTERVAL_MS / 1000, 'segundos');
+  console.log('[PERIODIC] 💡 Los cambios aparecerán AUTOMÁTICAMENTE sin refrescar');
   
   periodicRefreshInterval = setInterval(async () => {
     try {
@@ -894,15 +895,17 @@ function startPeriodicRefresh(currentHex = null) {
       // ✅ Verificar si hay formularios de edición inline abiertos (botones editar/guardar visibles)
       const hasEditFormOpen = document.querySelector('[data-edit-form]') !== null;
       
-      // ✅ SOLO saltar si realmente está escribiendo AHORA (no por contenido viejo en inputs)
+      // ✅ SOLO saltar si realmente está escribiendo AHORA
       if (isInputFocused || hasEditFormOpen) {
-        console.log('[PERIODIC] ⏭️ Saltando refresh: usuario escribiendo o editando');
+        // console.log('[PERIODIC] ⏭️ Saltando refresh: usuario escribiendo');
         return;
       }
       
+      // console.log('[PERIODIC] ✅ Verificando cambios...');
+      
       if (currentHex === MASTER_HASH) {
         // Refresh de todos los cursos para vista maestra (incluye personalizados)
-        console.log('[PERIODIC] Refrescando todos los cursos...');
+        // console.log('[PERIODIC] Refrescando todos los cursos...');
         const mergedMap = getMergedAccessHashMap();
         const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
         console.log('[PERIODIC] Total cursos a refrescar (base + personalizados):', hexes.length);
@@ -928,7 +931,7 @@ function startPeriodicRefresh(currentHex = null) {
         // ✅ Refresh del curso actual (incluye cursos personalizados)
         const mergedMap = getMergedAccessHashMap();
         if (mergedMap[currentHex]) {
-          console.log('[PERIODIC] Refrescando curso actual (hex:', currentHex.substring(0, 8) + ')...');
+          // console.log('[PERIODIC] Refrescando curso actual (hex:', currentHex.substring(0, 8) + ')...');
           
           // ✅ CRÍTICO: Refrescar archivos del curso actual PRIMERO (los URLs se guardan en overrides)
           const updated = await refreshFromRemoteSilent(currentHex).catch(e => {
@@ -945,10 +948,10 @@ function startPeriodicRefresh(currentHex = null) {
             );
             
             if (!isInputFocusedNow) {
-              console.log('[PERIODIC] ✅ Cambios detectados en archivos, actualizando vista...');
+              console.log('[PERIODIC] 🔄 ACTUALIZACIÓN AUTOMÁTICA - Cambios detectados');
               renderCourse(currentHex);
             } else {
-              console.log('[PERIODIC] ⏭️ Cambios detectados pero saltando actualización: usuario escribiendo');
+              // console.log('[PERIODIC] ⏭️ Cambios detectados pero saltando: usuario escribiendo');
             }
           }
           
@@ -1438,9 +1441,9 @@ function buildMasterGrid() {
       });
       
       if (saveResult) {
-        console.log('[ADD] ✅ Archivo guardado en remoto correctamente');
+        console.log('[ADD] ✅ Guardado en remoto - Otros dispositivos verán cambio en ~1.5 segundos');
       } else {
-        console.warn('[ADD] ⚠️ No se pudo guardar en remoto (continuando de todas formas)');
+        console.warn('[ADD] ⚠️ No se pudo guardar en remoto');
       }
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin recargar)
@@ -1512,11 +1515,11 @@ function buildMasterGrid() {
 
 async function refreshFromRemoteSilent(hex){
   try {
-    console.log('[REFRESH] Iniciando refresh silencioso para hex:', hex.substring(0,8));
+    // console.log('[REFRESH] Iniciando refresh para hex:', hex.substring(0,8));
     const remote = await remoteGetFiles(hex);
     
     if (!remote) {
-      console.warn('[REFRESH] No se obtuvieron datos remotos para hex:', hex.substring(0,8));
+      // console.warn('[REFRESH] No se obtuvieron datos remotos');
       return false;
     }
     
@@ -1525,17 +1528,12 @@ async function refreshFromRemoteSilent(hex){
       return false;
     }
     
-    console.log('[REFRESH] Datos remotos obtenidos:', remote.length, 'archivos');
+    // console.log('[REFRESH] Datos remotos:', remote.length, 'archivos');
     
     const current = getFilesForHex(hex);
-    const base = getBaseFilesForHex(hex); // Datos originales del código
+    const base = getBaseFilesForHex(hex);
     const currentStr = stableStringify(current);
     const remoteStr = stableStringify(remote);
-    
-    console.log('[REFRESH] Estado actual:');
-    console.log('[REFRESH] - Remoto:', remote.length, 'archivos');
-    console.log('[REFRESH] - Local:', current.length, 'archivos');
-    console.log('[REFRESH] - Base:', base.length, 'archivos');
     
     // ✅ LÓGICA SIMPLIFICADA CON SENTIDO COMÚN:
     // 1. Si remoto TIENE datos → SIEMPRE usar remoto (es la verdad)
@@ -1545,32 +1543,32 @@ async function refreshFromRemoteSilent(hex){
     const stringsMatch = remoteStr === currentStr;
     
     if (!stringsMatch) {
-      console.log('[REFRESH] ✅ CAMBIOS DETECTADOS - Remoto diferente a Local');
+      console.log('[REFRESH] 🔄 CAMBIOS DETECTADOS - Sincronizando...');
       console.log('[REFRESH] Remoto:', remote.length, 'archivos | Local:', current.length, 'archivos');
       
-      // ✅ CASO 1: Remoto TIENE datos → SIEMPRE sincronizar (sin importar qué hay en local)
+      // ✅ CASO 1: Remoto TIENE datos → SIEMPRE sincronizar
       if (remote.length > 0) {
-        console.log('[REFRESH] 📥 Remoto tiene', remote.length, 'archivos - Sincronizando (fuente de verdad)');
+        console.log('[REFRESH] 📥 Aplicando', remote.length, 'archivos desde remoto');
         saveFilesOverride(hex, remote);
         return true;
       }
       
-      // ✅ CASO 2: Remoto VACÍO pero base TIENE datos → Usar base (limpiar override)
+      // ✅ CASO 2: Remoto VACÍO pero base TIENE datos → Usar base
       if (remote.length === 0 && base.length > 0) {
-        console.log('[REFRESH] 🔄 Remoto vacío, usando datos base (', base.length, 'archivos)');
+        console.log('[REFRESH] 🔄 Usando datos base (', base.length, 'archivos)');
         clearFilesOverride(hex);
         return true;
       }
       
-      // ✅ CASO 3: Remoto VACÍO y base VACÍA → Limpiar override
+      // ✅ CASO 3: Remoto y base VACÍOS → Limpiar
       if (remote.length === 0 && base.length === 0) {
-        console.log('[REFRESH] 🧹 Remoto y base vacíos, limpiando override');
+        console.log('[REFRESH] 🧹 Limpiando datos');
         clearFilesOverride(hex);
         return true;
       }
     }
     
-    console.log('[REFRESH] ✅ Sin cambios, datos sincronizados');
+    // console.log('[REFRESH] ✅ Sin cambios');
     return false;
   } catch (e) { 
     console.error('[REFRESH] Error en refresh silencioso:', e);
