@@ -2237,47 +2237,75 @@ window.diagnosticarRespuesta = async function(hex = null) {
   console.log('🔍 DIAGNÓSTICO DE RESPUESTA DEL SERVIDOR');
   console.log('═══════════════════════════════════════════');
   
-  const testUrl = hex 
+  // Test 1: Sin callback (JSON puro)
+  const testUrl1 = hex 
     ? `${REMOTE_BASE_URL}?hex=${encodeURIComponent(hex)}&ts=${Date.now()}`
     : `${REMOTE_BASE_URL}?action=get_courses&ts=${Date.now()}`;
   
-  console.log('URL a probar:', testUrl);
+  // Test 2: Con callback (JSONP)
+  const testUrl2 = hex 
+    ? `${REMOTE_BASE_URL}?hex=${encodeURIComponent(hex)}&callback=testCallback123&ts=${Date.now()}`
+    : `${REMOTE_BASE_URL}?action=get_courses&callback=testCallback123&ts=${Date.now()}`;
+  
+  console.log('');
+  console.log('🧪 TEST 1: Sin parámetro callback');
+  console.log('URL:', testUrl1);
   console.log('');
   
   try {
-    console.log('📡 Haciendo fetch directo (sin JSONP)...');
-    const response = await fetch(testUrl);
-    const text = await response.text();
+    const response1 = await fetch(testUrl1);
+    const text1 = await response1.text();
     
-    console.log('✅ Respuesta recibida:');
-    console.log('Status:', response.status);
-    console.log('Content-Type:', response.headers.get('content-type'));
-    console.log('');
-    console.log('📄 CONTENIDO COMPLETO:');
+    console.log('Status:', response1.status);
+    console.log('Content-Type:', response1.headers.get('content-type'));
+    console.log('📄 Respuesta:');
     console.log('─────────────────────────────────────────');
-    console.log(text);
+    console.log(text1);
+    console.log('─────────────────────────────────────────');
+  } catch (error) {
+    console.error('❌ Error:', error);
+  }
+  
+  console.log('');
+  console.log('🧪 TEST 2: Con parámetro callback=testCallback123');
+  console.log('URL:', testUrl2);
+  console.log('');
+  
+  try {
+    const response2 = await fetch(testUrl2);
+    const text2 = await response2.text();
+    
+    console.log('Status:', response2.status);
+    console.log('Content-Type:', response2.headers.get('content-type'));
+    console.log('📄 Respuesta:');
+    console.log('─────────────────────────────────────────');
+    console.log(text2);
     console.log('─────────────────────────────────────────');
     console.log('');
     
-    // Analizar qué tipo de respuesta es
-    if (text.includes('(') && text.includes(')')) {
-      console.log('✅ Parece ser JSONP (contiene paréntesis)');
-      const match = text.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*)\((.*)\);?$/);
-      if (match) {
-        console.log('✅ Callback encontrado:', match[1]);
-        console.log('✅ Datos:', match[2].substring(0, 100) + '...');
+    // Analizar si es JSONP válido
+    if (text2.includes('testCallback123')) {
+      console.log('✅ El servidor SÍ está usando el callback');
+      if (text2.startsWith('testCallback123(') && text2.includes(')')) {
+        console.log('✅ Formato JSONP CORRECTO');
+        console.log('');
+        console.log('🎉 ¡EL SERVIDOR ESTÁ CONFIGURADO CORRECTAMENTE!');
       } else {
-        console.log('⚠️ Formato JSONP inválido');
+        console.log('⚠️ El callback está presente pero el formato es incorrecto');
       }
-    } else if (text.startsWith('{') || text.startsWith('[')) {
-      console.log('⚠️ Es JSON puro (NO JSONP)');
-      console.log('❌ El servidor NO está usando el parámetro callback');
     } else {
-      console.log('❌ Respuesta desconocida (no es JSON ni JSONP)');
+      console.log('❌ El servidor NO está usando el callback');
+      console.log('❌ Problema: Google Apps Script no está devolviendo JSONP');
+      console.log('');
+      console.log('🔧 SOLUCIONES:');
+      console.log('1. Verifica que copiaste el código COMPLETO a Google Apps Script');
+      console.log('2. Verifica que guardaste (Ctrl+S)');
+      console.log('3. Haz una NUEVA implementación (no editar la existente)');
+      console.log('4. Copia la NUEVA URL y actualiza app.js');
     }
     
   } catch (error) {
-    console.error('❌ Error al hacer fetch:', error);
+    console.error('❌ Error:', error);
   }
   
   console.log('═══════════════════════════════════════════');
