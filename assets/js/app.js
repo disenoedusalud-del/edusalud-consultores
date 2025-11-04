@@ -892,98 +892,76 @@ let periodicRefreshInterval = null;
 const PERIODIC_REFRESH_INTERVAL_MS = 1200; // 1.2 segundos (sincronización ultra rápida)
 
 function startPeriodicRefresh(currentHex = null) {
-  // Detener cualquier refresh periódico existente
   stopPeriodicRefresh();
-  
   if (!hasRemote()) return;
-  
+
   console.log('[PERIODIC] 🔄 Iniciando refresh AUTOMÁTICO cada', PERIODIC_REFRESH_INTERVAL_MS / 1000, 'segundos');
   console.log('[PERIODIC] 💡 Los cambios aparecerán AUTOMÁTICAMENTE sin refrescar');
-  
-  periodicRefreshInterval = setInterval(async () => {
+
+  const runRefresh = async () => {
     try {
-      // ✅ PROTECCIÓN: Verificar solo si está escribiendo AHORA
       const activeElement = document.activeElement;
       const isInputFocused = activeElement && (
-        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'INPUT' ||
         activeElement.tagName === 'TEXTAREA' ||
         activeElement.contentEditable === 'true'
       );
-      
-      // ✅ Verificar si hay formularios de edición inline abiertos (botones editar/guardar visibles)
       const hasEditFormOpen = document.querySelector('[data-edit-form]') !== null;
-      
-      // ✅ SOLO saltar si realmente está escribiendo AHORA
+
       if (isInputFocused || hasEditFormOpen) {
-        // console.log('[PERIODIC] ⏭️ Saltando refresh: usuario escribiendo');
         return;
       }
-      
-      // console.log('[PERIODIC] ✅ Verificando cambios...');
-      
+
       if (currentHex === MASTER_HASH) {
-        // Refresh de todos los cursos para vista maestra (incluye personalizados)
-        // console.log('[PERIODIC] Refrescando todos los cursos...');
         const mergedMap = getMergedAccessHashMap();
         const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
         console.log('[PERIODIC] Total cursos a refrescar (base + personalizados):', hexes.length);
-        
+
         const results = await Promise.allSettled(
           hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
             console.warn('[PERIODIC] Error refrescando', h.substring(0, 8), ':', e);
             return false;
           }))
         );
-        const anyUpdated = results.some(r => 
-          r.status === 'fulfilled' && r.value === true
-        );
-        
-        // ✅ También refrescar cursos personalizados (para nuevos cursos, no solo archivos)
+        const anyUpdated = results.some(r => r.status === 'fulfilled' && r.value === true);
+
         await refreshCustomCourses();
-        
+
         if (anyUpdated) {
           console.log('[PERIODIC] ✅ Cambios detectados, actualizando vista...');
           buildMasterGrid();
         }
       } else if (currentHex) {
-        // ✅ Refresh del curso actual (incluye cursos personalizados)
         const mergedMap = getMergedAccessHashMap();
         if (mergedMap[currentHex]) {
-          // console.log('[PERIODIC] Refrescando curso actual (hex:', currentHex.substring(0, 8) + ')...');
-          
-          // ✅ CRÍTICO: Refrescar archivos del curso actual PRIMERO (los URLs se guardan en overrides)
           const updated = await refreshFromRemoteSilent(currentHex).catch(e => {
             console.warn('[PERIODIC] Error refrescando archivos:', e);
             return false;
           });
-          
+
           if (updated) {
-            // ✅ VERIFICAR OTRA VEZ antes de actualizar la vista (por si el usuario empezó a escribir durante el refresh)
             const activeElementNow = document.activeElement;
             const isInputFocusedNow = activeElementNow && (
-              activeElementNow.tagName === 'INPUT' || 
+              activeElementNow.tagName === 'INPUT' ||
               activeElementNow.tagName === 'TEXTAREA'
             );
-            
+
             if (!isInputFocusedNow) {
               console.log('[PERIODIC] 🔄 ACTUALIZACIÓN AUTOMÁTICA - Cambios detectados');
               renderCourse(currentHex);
-            } else {
-              // console.log('[PERIODIC] ⏭️ Cambios detectados pero saltando: usuario escribiendo');
             }
           }
-          
-          // ✅ También refrescar cursos personalizados en background (para detectar nuevos cursos)
-          // Esto no bloquea porque ya actualizamos la vista arriba si había cambios en archivos
-          refreshCustomCourses().catch(e => {
-            console.warn('[PERIODIC] Error refrescando cursos personalizados:', e);
-          });
+        } else {
+          console.warn('[PERIODIC] ⚠️ Hex no encontrado en mergedMap:', currentHex.substring(0, 8));
         }
       }
     } catch (e) {
-      console.warn('[PERIODIC] Error en refresh periódico:', e);
+      console.error('[PERIODIC] ❌ Error en refresh:', e);
     }
-  }, PERIODIC_REFRESH_INTERVAL_MS);
+  };
+
+  runRefresh();
+  periodicRefreshInterval = setInterval(runRefresh, PERIODIC_REFRESH_INTERVAL_MS);
 }
 
 function stopPeriodicRefresh() {
