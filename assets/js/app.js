@@ -1573,11 +1573,12 @@ function buildMasterGrid() {
 
 async function refreshFromRemoteSilent(hex){
   try {
-    // console.log('[REFRESH] Iniciando refresh para hex:', hex.substring(0,8));
-    const remote = await remoteGetFiles(hex);
+    console.log('[REFRESH] 🔄 Consultando remoto para hex:', hex.substring(0, 8));
+    // ✅ Usar JSONP directamente (no fetch que puede fallar)
+    const remote = await remoteGetFilesJSONP(hex);
     
     if (!remote) {
-      // console.warn('[REFRESH] No se obtuvieron datos remotos');
+      console.log('[REFRESH] ⚠️ Sin respuesta del remoto');
       return false;
     }
     
@@ -1585,6 +1586,8 @@ async function refreshFromRemoteSilent(hex){
       console.warn('[REFRESH] Datos remotos no son un array:', remote);
       return false;
     }
+    
+    console.log('[REFRESH] 📥 Remoto respondió:', remote.length, 'archivos');
     
     // console.log('[REFRESH] Datos remotos:', remote.length, 'archivos');
     
@@ -1607,7 +1610,9 @@ async function refreshFromRemoteSilent(hex){
       // ✅ CASO 1: Remoto TIENE datos → SIEMPRE sincronizar
       if (remote.length > 0) {
         console.log('[REFRESH] 📥 Aplicando', remote.length, 'archivos desde remoto');
+        console.log('[REFRESH] Datos:', JSON.stringify(remote).substring(0, 200));
         saveFilesOverride(hex, remote);
+        console.log('[REFRESH] ✅ Sincronización local completada');
         return true;
       }
       
