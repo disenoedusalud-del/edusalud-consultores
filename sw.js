@@ -98,6 +98,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  if (url.pathname === '/favicon.ico') {
+    event.respondWith(fetch(BASE_PATH + '/assets/logo-edusalud.png'));
+    return;
+  }
+
   // ✅ CRÍTICO: No interceptar requests externos (Google Apps Script, Analytics, etc.)
   // Dejar que el navegador los maneje normalmente
   if (url.origin !== location.origin) {
