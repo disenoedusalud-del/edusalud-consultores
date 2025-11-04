@@ -98,10 +98,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Solo cachea requests del mismo origen
+  // ✅ CRÍTICO: No interceptar requests externos (Google Apps Script, Analytics, etc.)
+  // Dejar que el navegador los maneje normalmente
   if (url.origin !== location.origin) {
-    console.log('[SW] Request externo, sin cache:', url.hostname);
-    return; // No procesar requests externos
+    // console.log('[SW] Request externo, dejando pasar:', url.hostname);
+    return; // El navegador manejará esto normalmente
   }
 
   // ✅ NUEVO: Estrategia diferente en desarrollo vs producción
