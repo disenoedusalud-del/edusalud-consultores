@@ -1940,11 +1940,10 @@ window.limpiarTodoYRecargar = async function() {
 
 /* ============ init ============ */
 (async function init(){
-  // ✅ LIMPIEZA FORZADA: Borrar TODO el localStorage de archivos al inicio
-  console.log('[INIT] 🧹 LIMPIANDO TODOS LOS ARCHIVOS LOCALES...');
-  const filesCleared = clearAllFilesOverrides();
-  console.log('[INIT] 🧹 Limpiados', filesCleared, 'archivos obsoletos');
-  console.log('[INIT] ✅ Solo se usarán datos remotos frescos desde Google Sheets');
+  // ✅ NO limpiar archivos al inicio - dejar que la sincronización automática lo maneje
+  console.log('[INIT] 🚀 Iniciando plataforma...');
+  console.log('[INIT] 📦 Archivos locales disponibles:', Object.keys(localStorage).filter(k => k.startsWith(FILES_STORAGE_PREFIX)).length);
+  console.log('[INIT] 🔄 La sincronización automática actualizará los datos cada 1.2s');
   
   // Actualizar versión de caché
   localStorage.setItem(CACHE_VERSION_KEY, CURRENT_CACHE_VERSION);
