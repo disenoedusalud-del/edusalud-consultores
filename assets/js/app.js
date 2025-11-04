@@ -1476,12 +1476,25 @@ function buildMasterGrid() {
       });
       
       if (saveResult) {
-        console.log('[ADD] ✅ Guardado en remoto');
+        console.log('[ADD] ✅ Guardado en remoto - POST exitoso');
+        
+        // Esperar 500ms para que Google Sheets procese
+        await new Promise(r => setTimeout(r, 500));
+        
         // 🔄 Push optimista: leer inmediatamente desde remoto para sincronizar
-        await refreshFromRemoteSilent(hex).catch(() => {});
-        console.log('[ADD] 🔄 Sincronizado con remoto - Otros dispositivos lo verán en ~1s');
+        console.log('[ADD] 🔄 Leyendo desde remoto para confirmar...');
+        const syncOk = await refreshFromRemoteSilent(hex).catch(() => false);
+        
+        if (syncOk) {
+          console.log('[ADD] ✅ SINCRONIZACIÓN CONFIRMADA - Otros dispositivos verán el cambio en ~1s');
+          alert('✅ Link agregado y sincronizado correctamente');
+        } else {
+          console.log('[ADD] ⚠️ Guardado pero no se pudo verificar sincronización');
+          alert('✅ Link agregado (verificando sincronización...)');
+        }
       } else {
         console.warn('[ADD] ⚠️ No se pudo guardar en remoto');
+        alert('⚠️ Link guardado localmente, pero NO se sincronizó con otros dispositivos');
       }
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin recargar)
@@ -2130,9 +2143,95 @@ if (document.readyState === 'loading') {
   setupAddCourseModal();
 }
 
-/* ============ FUNCIONES DE PRUEBA GLOBALES ============ */
-// Ejecutar en la consola para probar:
-// testJSONP('88f62dd...') <- reemplazar con un hex real de algún curso
+/* ============ FUNCIONES DE PRUEBA Y DIAGNÓSTICO GLOBALES ============ */
+
+// 🧪 TEST COMPLETO DE SINCRONIZACIÓN
+window.testSyncComplete = async function(hex) {
+  console.log('═══════════════════════════════════════════');
+  console.log('🧪 TEST COMPLETO DE SINCRONIZACIÓN');
+  console.log('═══════════════════════════════════════════');
+  console.log('Hex:', hex);
+  console.log('URL Remoto:', REMOTE_BASE_URL);
+  console.log('');
+  
+  // 1. Ver datos locales actuales
+  console.log('📦 PASO 1: Datos locales actuales');
+  const localFiles = getFilesForHex(hex);
+  console.log('  → Archivos locales:', localFiles.length);
+  console.log('  → Datos:', JSON.stringify(localFiles));
+  console.log('');
+  
+  // 2. Leer desde remoto
+  console.log('📥 PASO 2: Leer desde remoto (JSONP)');
+  const remoteFiles = await remoteGetFilesJSONP(hex);
+  console.log('  → Archivos remotos:', remoteFiles ? remoteFiles.length : 'NULL');
+  console.log('  → Datos:', JSON.stringify(remoteFiles));
+  console.log('');
+  
+  // 3. Agregar un archivo de prueba
+  console.log('✏️ PASO 3: Agregar archivo de prueba');
+  const testFile = {
+    label: 'TEST ' + new Date().toLocaleTimeString(),
+    url: 'https://ejemplo.com/test-' + Date.now()
+  };
+  const newFiles = [...localFiles, testFile];
+  console.log('  → Agregando:', testFile);
+  console.log('  → Total archivos:', newFiles.length);
+  console.log('');
+  
+  // 4. Guardar localmente
+  console.log('💾 PASO 4: Guardar localmente');
+  saveFilesOverride(hex, newFiles);
+  const savedLocal = getFilesForHex(hex);
+  console.log('  → Guardado local exitoso:', savedLocal.length === newFiles.length ? '✅' : '❌');
+  console.log('');
+  
+  // 5. Guardar en remoto
+  console.log('☁️ PASO 5: Guardar en remoto (POST)');
+  const saveOk = await remoteSaveFiles(hex, newFiles);
+  console.log('  → Resultado POST:', saveOk ? '✅ ÉXITO' : '❌ FALLÓ');
+  console.log('');
+  
+  // 6. Esperar 2 segundos para que Google Sheets procese
+  console.log('⏳ PASO 6: Esperando 2 segundos...');
+  await new Promise(r => setTimeout(r, 2000));
+  console.log('');
+  
+  // 7. Verificar que se guardó en remoto
+  console.log('🔍 PASO 7: Verificar en remoto');
+  const remoteCheck = await remoteGetFilesJSONP(hex);
+  console.log('  → Archivos en remoto:', remoteCheck ? remoteCheck.length : 'NULL');
+  console.log('  → Coincide con local:', remoteCheck && remoteCheck.length === newFiles.length ? '✅' : '❌');
+  console.log('  → Datos remotos:', JSON.stringify(remoteCheck));
+  console.log('');
+  
+  // 8. Resumen
+  console.log('═══════════════════════════════════════════');
+  console.log('📊 RESUMEN DEL TEST');
+  console.log('═══════════════════════════════════════════');
+  console.log('✓ Lectura local:', localFiles.length, 'archivos');
+  console.log('✓ Lectura remota inicial:', remoteFiles ? remoteFiles.length : 'NULL', 'archivos');
+  console.log('✓ Guardado local:', savedLocal.length === newFiles.length ? '✅' : '❌');
+  console.log('✓ Guardado remoto:', saveOk ? '✅' : '❌');
+  console.log('✓ Verificación remota:', remoteCheck && remoteCheck.length === newFiles.length ? '✅' : '❌');
+  console.log('');
+  
+  if (remoteCheck && remoteCheck.length === newFiles.length) {
+    console.log('🎉 ¡TEST EXITOSO! La sincronización funciona correctamente');
+    console.log('💡 Abre la página en otro dispositivo/pestaña y ejecuta:');
+    console.log('   verDatosGuardados()');
+  } else {
+    console.log('❌ TEST FALLÓ - La sincronización no está funcionando');
+    console.log('🔧 Posibles causas:');
+    console.log('   1. El POST no llega a Google Sheets');
+    console.log('   2. Google Apps Script tiene un error');
+    console.log('   3. La URL del WebApp es incorrecta');
+    console.log('   4. Hay un delay en el procesamiento');
+  }
+  console.log('═══════════════════════════════════════════');
+};
+
+// 🧪 TEST JSONP SIMPLE
 window.testJSONP = async function(hex) {
   console.log('🧪 TEST JSONP para hex:', hex);
   // 🛡️ Cache-buster
