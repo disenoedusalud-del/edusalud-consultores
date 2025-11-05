@@ -2056,6 +2056,11 @@ window.limpiarTodoYRecargar = async function() {
   
   // ✅ Cargar cursos remotos (no bloquear con await para no demorar carga)
   loadRemoteCoursesOnInit();
+  
+  // ✅ CRÍTICO: Iniciar polling automático incluso en pantalla de login
+  // Esto asegura que el botón flotante funcione desde el inicio
+  console.log('[INIT] 🔄 Iniciando polling automático global...');
+  startPeriodicRefresh(null);
 })();
 
 /* ============ Modal agregar curso ============ */
