@@ -130,6 +130,49 @@
     .hidden{ display:none !important; }
     .sr-only{ position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden }
 
+    /* Botón flotante de recarga */
+    .reload-fab {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 58px;
+      height: 58px;
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #062033;
+      cursor: pointer;
+      box-shadow: 0 12px 38px rgba(90,169,255,0.36);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      z-index: 999;
+    }
+    .reload-fab:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 16px 40px rgba(90,169,255,0.42);
+    }
+    .reload-fab:focus-visible {
+      outline: 3px solid rgba(90,169,255,0.65);
+      outline-offset: 4px;
+    }
+    .reload-fab svg {
+      width: 22px;
+      height: 22px;
+    }
+    .reload-fab.loading svg {
+      animation: spin 0.9s linear infinite;
+    }
+    @media (max-width: 640px) {
+      .reload-fab {
+        bottom: 22px;
+        right: 22px;
+        width: 54px;
+        height: 54px;
+      }
+    }
+
     /* Loader (original) */
     .edu-loader {
       position: fixed;
@@ -378,6 +421,13 @@
     </section>
   </div>
 
+  <button id="btn-speed-refresh" class="reload-fab" type="button" aria-label="Refrescar recursos" title="Recargar recursos (limpiar caché y sincronizar)">
+    <span class="sr-only">Recargar recursos</span>
+    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 0 1 13.657-5.657M20 12a8 8 0 0 1-13.657 5.657M4 12H2m2 0h2m12 0h2m-2 0h-2m-4-4v4l3 3" />
+    </svg>
+  </button>
+
   <!-- Loader -->
   <div id="eduLoader" class="edu-loader hidden" aria-hidden="true" role="alert" aria-live="polite">
     <div class="loader-ring" aria-hidden="true"></div>
@@ -442,6 +492,43 @@
   <!-- Scripts -->
   <script src="assets/js/electric-card.js?v=3" defer></script>
   <script src="assets/js/app.js?v=18" defer></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const refreshBtn = document.getElementById('btn-speed-refresh');
+      if (!refreshBtn) return;
+
+      const runRefresh = async () => {
+        if (refreshBtn.disabled) {
+          return;
+        }
+
+        refreshBtn.disabled = true;
+        refreshBtn.classList.add('loading');
+
+        try {
+          if (typeof window.limpiarTodoYRecargar === 'function') {
+            await window.limpiarTodoYRecargar();
+          } else {
+            console.warn('[FAB] limpiarTodoYRecargar no está disponible. Recargando con location.reload');
+            location.reload(true);
+          }
+        } catch (error) {
+          console.error('[FAB] Error forzando recarga:', error);
+          refreshBtn.disabled = false;
+          refreshBtn.classList.remove('loading');
+          alert('No se pudo forzar la recarga automática. Refresca la página manualmente.');
+        }
+      };
+
+      refreshBtn.addEventListener('click', runRefresh);
+      refreshBtn.addEventListener('keydown', (evt) => {
+        if (evt.key === 'Enter' || evt.key === ' ') {
+          evt.preventDefault();
+          runRefresh();
+        }
+      });
+    });
+  </script>
   
   <!-- Service Worker Registration -->
   <script>
