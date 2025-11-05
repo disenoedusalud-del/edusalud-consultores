@@ -207,8 +207,13 @@ function loadFilesOverride(hex){
 }
 function saveFilesOverride(hex, files){
   try {
-    localStorage.setItem(storageKeyFor(hex), JSON.stringify(files || []));
-  } catch (e) {}
+    const key = storageKeyFor(hex);
+    const value = JSON.stringify(files || []);
+    localStorage.setItem(key, value);
+    console.log('[STORAGE] 💾 Guardados', files.length, 'archivos para hex:', hex.substring(0, 8));
+  } catch (e) {
+    console.error('[STORAGE] ❌ Error guardando archivos:', e);
+  }
 }
 function clearFilesOverride(hex){
   try { localStorage.removeItem(storageKeyFor(hex)); } catch(e) {}
@@ -1570,48 +1575,45 @@ async function refreshFromRemoteSilent(hex){
     
     console.log('[REFRESH] 📥 Remoto respondió:', remote.length, 'archivos');
     
-    // console.log('[REFRESH] Datos remotos:', remote.length, 'archivos');
-    
     const current = getFilesForHex(hex);
     const base = getBaseFilesForHex(hex);
     const currentStr = stableStringify(current);
     const remoteStr = stableStringify(remote);
     
-    // ✅ LÓGICA SIMPLIFICADA CON SENTIDO COMÚN:
-    // 1. Si remoto TIENE datos → SIEMPRE usar remoto (es la verdad)
-    // 2. Si remoto está VACÍO → usar base si existe, sino limpiar
-    // 3. NUNCA limpiar si hay datos válidos disponibles
+    // ✅ LÓGICA MEJORADA: Priorizar remoto siempre
+    // 1. Si remoto TIENE datos → SIEMPRE usar remoto (es la verdad absoluta)
+    // 2. Si cantidad es diferente → SIEMPRE sincronizar (detecta nuevos/eliminados)
+    // 3. Si remoto está VACÍO → usar base si existe, sino limpiar
     
     const stringsMatch = remoteStr === currentStr;
+    const countsDiffer = remote.length !== current.length;
     
-    if (!stringsMatch) {
+    // ✅ CASO 1: Remoto TIENE datos y (contenido diferente O cantidad diferente)
+    if (remote.length > 0 && (!stringsMatch || countsDiffer)) {
       console.log('[REFRESH] 🔄 CAMBIOS DETECTADOS - Sincronizando...');
       console.log('[REFRESH] Remoto:', remote.length, 'archivos | Local:', current.length, 'archivos');
-      
-      // ✅ CASO 1: Remoto TIENE datos → SIEMPRE sincronizar
-      if (remote.length > 0) {
-        console.log('[REFRESH] 📥 Aplicando', remote.length, 'archivos desde remoto');
-        console.log('[REFRESH] Datos:', JSON.stringify(remote).substring(0, 200));
-        saveFilesOverride(hex, remote);
-        console.log('[REFRESH] ✅ Sincronización local completada');
-        return true;
-      }
-      
-      // ✅ CASO 2: Remoto VACÍO pero base TIENE datos → Usar base
-      if (remote.length === 0 && base.length > 0) {
-        console.log('[REFRESH] 🔄 Usando datos base (', base.length, 'archivos)');
-        clearFilesOverride(hex);
-        return true;
-      }
-      
-      // ✅ CASO 3: Remoto y base VACÍOS → Limpiar
-      if (remote.length === 0 && base.length === 0) {
-        console.log('[REFRESH] 🧹 Limpiando datos');
-        clearFilesOverride(hex);
-        return true;
-      }
+      console.log('[REFRESH] 📥 Aplicando', remote.length, 'archivos desde remoto');
+      console.log('[REFRESH] Primer archivo:', remote[0]?.label || 'vacío');
+      saveFilesOverride(hex, remote);
+      console.log('[REFRESH] ✅ Sincronización local completada');
+      return true;
     }
     
+    // ✅ CASO 2: Remoto VACÍO pero local TIENE datos → Verificar si debe limpiar
+    if (remote.length === 0 && current.length > 0) {
+      // Si base también está vacío, limpiar local
+      if (base.length === 0) {
+        console.log('[REFRESH] 🧹 Remoto vacío y sin base, limpiando local');
+        clearFilesOverride(hex);
+        return true;
+      }
+      // Si base tiene datos, usar base
+      console.log('[REFRESH] 🔄 Usando datos base (', base.length, 'archivos)');
+      clearFilesOverride(hex);
+      return true;
+    }
+    
+    // ✅ CASO 3: Todo coincide
     // console.log('[REFRESH] ✅ Sin cambios');
     return false;
   } catch (e) { 
