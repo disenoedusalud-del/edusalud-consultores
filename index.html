@@ -139,7 +139,7 @@
       height: 58px;
       border: none;
       border-radius: 50%;
-      display: flex;
+      display: none; /* ✅ Oculto por defecto hasta autenticación */
       align-items: center;
       justify-content: center;
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
@@ -148,6 +148,9 @@
       box-shadow: 0 12px 38px rgba(90,169,255,0.36);
       transition: transform 0.12s ease, box-shadow 0.12s ease;
       z-index: 999;
+    }
+    .reload-fab.visible {
+      display: flex; /* ✅ Se muestra cuando está autenticado */
     }
     .reload-fab:hover {
       transform: translateY(-2px) scale(1.02);
