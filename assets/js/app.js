@@ -891,6 +891,9 @@ function showAccess() {
   $('#code').focus();
   // Detener refresh periódico cuando vuelves al acceso
   stopPeriodicRefresh();
+  // ✅ Ocultar botón flotante en pantalla de login
+  const fabBtn = document.getElementById('btn-speed-refresh');
+  if (fabBtn) fabBtn.classList.remove('visible');
 }
 // Sistema de refresh periódico para sincronización en tiempo real
 let periodicRefreshInterval = null;
@@ -1006,6 +1009,9 @@ function showContent() {
   $('#content').classList.remove('hidden');
   $('#master').classList.add('hidden');
   // No iniciar refresh periódico aquí, se inicia cuando se renderiza el curso
+  // ✅ Mostrar botón flotante cuando está autenticado
+  const fabBtn = document.getElementById('btn-speed-refresh');
+  if (fabBtn) fabBtn.classList.add('visible');
 }
 function showMaster() {
   $('#access').classList.add('hidden');
@@ -1013,6 +1019,10 @@ function showMaster() {
   $('#master').classList.remove('hidden');
   // ❌ NO iniciar polling automático (el usuario sincroniza manualmente con el botón)
   // startPeriodicRefresh(MASTER_HASH);
+  
+  // ✅ Mostrar botón flotante cuando está autenticado
+  const fabBtn = document.getElementById('btn-speed-refresh');
+  if (fabBtn) fabBtn.classList.add('visible');
   
   // Refresh inmediato adicional para limpiar datos obsoletos al abrir
   if (hasRemote()) {
