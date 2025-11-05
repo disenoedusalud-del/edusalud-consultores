@@ -1577,44 +1577,49 @@ async function refreshFromRemoteSilent(hex){
     
     const current = getFilesForHex(hex);
     const base = getBaseFilesForHex(hex);
-    const currentStr = stableStringify(current);
-    const remoteStr = stableStringify(remote);
     
-    // ✅ LÓGICA MEJORADA: Priorizar remoto siempre
-    // 1. Si remoto TIENE datos → SIEMPRE usar remoto (es la verdad absoluta)
-    // 2. Si cantidad es diferente → SIEMPRE sincronizar (detecta nuevos/eliminados)
-    // 3. Si remoto está VACÍO → usar base si existe, sino limpiar
+    // ✅ ESTRATEGIA PROFESIONAL: El remoto SIEMPRE es la verdad
+    // Si hay datos remotos, SIEMPRE los aplicamos (sin comparar)
+    // Esto asegura sincronización perfecta en todos los dispositivos
     
-    const stringsMatch = remoteStr === currentStr;
-    const countsDiffer = remote.length !== current.length;
-    
-    // ✅ CASO 1: Remoto TIENE datos y (contenido diferente O cantidad diferente)
-    if (remote.length > 0 && (!stringsMatch || countsDiffer)) {
-      console.log('[REFRESH] 🔄 CAMBIOS DETECTADOS - Sincronizando...');
-      console.log('[REFRESH] Remoto:', remote.length, 'archivos | Local:', current.length, 'archivos');
+    if (remote.length > 0) {
+      // Comparar para logging pero SIEMPRE actualizar
+      const currentStr = stableStringify(current);
+      const remoteStr = stableStringify(remote);
+      const hasChanges = remoteStr !== currentStr || remote.length !== current.length;
+      
+      if (hasChanges) {
+        console.log('[REFRESH] 🔄 CAMBIOS DETECTADOS');
+        console.log('[REFRESH] Remoto:', remote.length, 'archivos | Local:', current.length, 'archivos');
+      }
+      
+      // ✅ SIEMPRE guardar remoto (incluso si "parece" igual)
+      // Esto previene problemas de sincronización por diferencias sutiles
       console.log('[REFRESH] 📥 Aplicando', remote.length, 'archivos desde remoto');
-      console.log('[REFRESH] Primer archivo:', remote[0]?.label || 'vacío');
       saveFilesOverride(hex, remote);
-      console.log('[REFRESH] ✅ Sincronización local completada');
-      return true;
+      
+      if (hasChanges) {
+        console.log('[REFRESH] ✅ Sincronización completada con cambios');
+        return true;
+      } else {
+        // console.log('[REFRESH] ✅ Datos confirmados (sin cambios)');
+        return false;
+      }
     }
     
-    // ✅ CASO 2: Remoto VACÍO pero local TIENE datos → Verificar si debe limpiar
+    // ✅ Remoto vacío → Verificar si debe usar base o limpiar
     if (remote.length === 0 && current.length > 0) {
-      // Si base también está vacío, limpiar local
       if (base.length === 0) {
         console.log('[REFRESH] 🧹 Remoto vacío y sin base, limpiando local');
         clearFilesOverride(hex);
         return true;
       }
-      // Si base tiene datos, usar base
       console.log('[REFRESH] 🔄 Usando datos base (', base.length, 'archivos)');
       clearFilesOverride(hex);
       return true;
     }
     
-    // ✅ CASO 3: Todo coincide
-    // console.log('[REFRESH] ✅ Sin cambios');
+    // console.log('[REFRESH] ✅ Sin datos remotos ni locales');
     return false;
   } catch (e) { 
     console.error('[REFRESH] Error en refresh silencioso:', e);
@@ -1996,18 +2001,9 @@ window.limpiarTodoYRecargar = async function() {
 
 /* ============ init ============ */
 (async function init(){
+  // ✅ NO limpiar archivos al inicio - dejar que la sincronización automática lo maneje
   console.log('[INIT] 🚀 Iniciando plataforma...');
-  
-  // ✅ CRÍTICO: SIEMPRE limpiar localStorage al inicio para leer desde Sheets
-  // Esto asegura que TODOS los dispositivos (incluido local) lean la misma data
-  const localFilesCount = Object.keys(localStorage).filter(k => k.startsWith(FILES_STORAGE_PREFIX)).length;
-  if (localFilesCount > 0) {
-    console.log('[INIT] 🧹 Limpiando', localFilesCount, 'archivos locales obsoletos...');
-    clearAllFilesOverrides();
-    console.log('[INIT] ✅ localStorage limpio - se leerá desde Google Sheets');
-  } else {
-    console.log('[INIT] ℹ️ No hay archivos locales - se leerá desde Google Sheets');
-  }
+  console.log('[INIT] 📦 Archivos locales disponibles:', Object.keys(localStorage).filter(k => k.startsWith(FILES_STORAGE_PREFIX)).length);
   console.log('[INIT] 🔄 La sincronización automática actualizará los datos cada 1.2s');
   
   // Actualizar versión de caché
