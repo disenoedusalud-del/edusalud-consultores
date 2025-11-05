@@ -941,7 +941,10 @@ function startPeriodicRefresh(currentHex = null) {
         
         // ✅ Actualizar botón flotante (siempre, incluso cuando NO hay cambios)
         if (typeof window.updateSyncButtonState === 'function') {
+          console.log('[PERIODIC-MASTER] 🔔 Actualizando botón:', anyUpdated ? 'AMARILLO (cambios)' : 'AZUL (sin cambios)');
           window.updateSyncButtonState(anyUpdated);
+        } else {
+          console.warn('[PERIODIC-MASTER] ⚠️ updateSyncButtonState no disponible');
         }
       } else if (currentHex) {
         const mergedMap = getMergedAccessHashMap();
@@ -966,7 +969,10 @@ function startPeriodicRefresh(currentHex = null) {
           
           // ✅ Actualizar botón flotante
           if (typeof window.updateSyncButtonState === 'function') {
+            console.log('[PERIODIC-CURSO] 🔔 Actualizando botón:', updated ? 'AMARILLO (cambios)' : 'AZUL (sin cambios)');
             window.updateSyncButtonState(updated);
+          } else {
+            console.warn('[PERIODIC-CURSO] ⚠️ updateSyncButtonState no disponible');
           }
         } else {
           console.warn('[PERIODIC] ⚠️ Hex no encontrado en mergedMap:', currentHex.substring(0, 8));
