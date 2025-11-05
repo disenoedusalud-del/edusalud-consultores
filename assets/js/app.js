@@ -920,9 +920,13 @@ function startPeriodicRefresh(currentHex = null) {
         activeElement.tagName === 'TEXTAREA' ||
         activeElement.contentEditable === 'true'
       );
-      const hasEditFormOpen = document.querySelector('[data-edit-form]') !== null;
+      
+      // ✅ CORREGIDO: Solo bloquear si hay un input/textarea enfocado dentro de un form de edición
+      // No bloquear solo porque exista el formulario de "agregar link"
+      const hasEditFormOpen = isInputFocused && activeElement.closest('[data-edit-form]') !== null;
 
-      if (isInputFocused || hasEditFormOpen) {
+      if (isInputFocused && hasEditFormOpen) {
+        console.log('[PERIODIC] ⏸️ Pausado: usuario escribiendo en formulario');
         return;
       }
 
