@@ -421,10 +421,10 @@
     </section>
   </div>
 
-  <button id="btn-speed-refresh" class="reload-fab" type="button" aria-label="Refrescar recursos" title="Recargar recursos (limpiar caché y sincronizar)">
-    <span class="sr-only">Recargar recursos</span>
+  <button id="btn-speed-refresh" class="reload-fab" type="button" aria-label="Sincronizar recursos" title="Sincronizar recursos desde el servidor">
+    <span class="sr-only">Sincronizar recursos</span>
     <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 0 1 13.657-5.657M20 12a8 8 0 0 1-13.657 5.657M4 12H2m2 0h2m12 0h2m-2 0h-2m-4-4v4l3 3" />
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
     </svg>
   </button>
 
@@ -506,17 +506,22 @@
         refreshBtn.classList.add('loading');
 
         try {
-          if (typeof window.limpiarTodoYRecargar === 'function') {
-            await window.limpiarTodoYRecargar();
+          console.log('[FAB] 🔄 Forzando sincronización desde servidor...');
+          
+          // ✅ Llamar a la función global de refresh forzado (sin borrar localStorage)
+          if (typeof window.forzarSincronizacion === 'function') {
+            await window.forzarSincronizacion();
+            console.log('[FAB] ✅ Sincronización completada');
           } else {
-            console.warn('[FAB] limpiarTodoYRecargar no está disponible. Recargando con location.reload');
+            console.warn('[FAB] forzarSincronizacion no está disponible. Recargando...');
             location.reload(true);
           }
         } catch (error) {
-          console.error('[FAB] Error forzando recarga:', error);
+          console.error('[FAB] Error forzando sincronización:', error);
+          alert('Error al sincronizar. Intenta nuevamente.');
+        } finally {
           refreshBtn.disabled = false;
           refreshBtn.classList.remove('loading');
-          alert('No se pudo forzar la recarga automática. Refresca la página manualmente.');
         }
       };
 
