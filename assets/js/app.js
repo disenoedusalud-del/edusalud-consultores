@@ -1058,6 +1058,9 @@ function renderCourse(keyHex) {
   const data = mergedMap[keyHex];
   if (!data) return;
 
+  // ✅ Guardar hex globalmente para el botón de sincronización forzada
+  window.currentCourseHex = keyHex;
+
   $('#courseTitle').textContent = data.title;
   $('#courseMeta').textContent = data.meta || '';
 
@@ -1880,6 +1883,74 @@ window.verDatosGuardados = function() {
   
   console.log('\n==========================================');
   return fileKeys.length;
+};
+
+// ✅ FUNCIÓN GLOBAL: Forzar sincronización desde servidor (SIN borrar localStorage)
+window.forzarSincronizacion = async function() {
+  console.log('[SYNC FORCE] 🔄 Forzando sincronización desde servidor...');
+  
+  try {
+    // Detectar en qué vista estamos
+    const isMasterView = !$('#master').classList.contains('hidden');
+    const isContentView = !$('#content').classList.contains('hidden');
+    
+    if (isMasterView) {
+      console.log('[SYNC FORCE] 📋 Vista Maestra detectada - Sincronizando todos los cursos...');
+      
+      // Refrescar cursos personalizados
+      await refreshCustomCourses().catch(e => {
+        console.warn('[SYNC FORCE] Error refrescando cursos:', e);
+      });
+      
+      // Refrescar todos los archivos de cada curso
+      const mergedMap = getMergedAccessHashMap();
+      const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
+      
+      console.log('[SYNC FORCE] Total cursos a sincronizar:', hexes.length);
+      
+      const results = await Promise.allSettled(
+        hexes.map(h => refreshFromRemoteSilent(h))
+      );
+      
+      const updated = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+      console.log('[SYNC FORCE] ✅ Sincronizados', updated, 'cursos');
+      
+      // Reconstruir grid
+      buildMasterGrid();
+      
+      alert(`✅ Sincronización completada: ${updated} curso(s) actualizado(s)`);
+      
+    } else if (isContentView) {
+      console.log('[SYNC FORCE] 📄 Vista de curso detectada - Sincronizando curso actual...');
+      
+      // Obtener el hex del curso actual
+      const currentHex = window.currentCourseHex; // Necesitamos guardarlo globalmente
+      
+      if (currentHex) {
+        const updated = await refreshFromRemoteSilent(currentHex);
+        
+        if (updated) {
+          console.log('[SYNC FORCE] ✅ Curso sincronizado, re-renderizando...');
+          renderCourse(currentHex);
+          alert('✅ Recursos sincronizados desde el servidor');
+        } else {
+          console.log('[SYNC FORCE] ℹ️ No hay cambios nuevos');
+          alert('ℹ️ Ya estás viendo la última versión');
+        }
+      } else {
+        console.warn('[SYNC FORCE] ⚠️ No se detectó hex del curso actual');
+        alert('⚠️ No se pudo identificar el curso actual');
+      }
+      
+    } else {
+      console.log('[SYNC FORCE] ℹ️ No hay vista activa para sincronizar');
+      alert('ℹ️ Primero ingresa a un curso o a la vista maestra');
+    }
+    
+  } catch (error) {
+    console.error('[SYNC FORCE] ❌ Error:', error);
+    throw error;
+  }
 };
 
 // ✅ FUNCIÓN GLOBAL: Limpiar TODO y recargar
