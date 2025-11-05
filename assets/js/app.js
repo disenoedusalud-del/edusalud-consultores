@@ -2207,8 +2207,11 @@ function setupAddCourseModal() {
     // Reconstruir grid
     buildMasterGrid();
     
-    // Mostrar mensaje de éxito
-    alert(`✅ Curso "${tag}" creado exitosamente.\n\nCódigo para acceder: ${code}`);
+    // ✅ Mostrar modal de éxito
+    window.showSuccessModal(
+      '¡Curso Creado Exitosamente!',
+      `El curso "${tag}" ha sido creado.\n\nCódigo de acceso: ${code}`
+    );
   });
 
   // Cerrar modal al hacer click fuera
