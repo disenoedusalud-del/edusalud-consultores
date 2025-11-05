@@ -542,6 +542,32 @@
     </div>
   </div>
 
+  <!-- Modal de éxito -->
+  <div id="successModal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content" style="max-width: 450px;">
+      <button class="modal-close" id="successModalClose" aria-label="Cerrar">&times;</button>
+      
+      <div style="text-align: center; padding: 30px 20px;">
+        <!-- Icono de éxito -->
+        <div style="width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 50%; background: linear-gradient(135deg, rgba(74,222,128,0.2), rgba(34,197,94,0.1)); display: flex; align-items: center; justify-content: center;">
+          <svg style="width: 45px; height: 45px; color: #4ade80;" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+          </svg>
+        </div>
+        
+        <h3 id="successModalTitle" style="margin-bottom: 12px; font-size: 22px; color: #4ade80;">¡Éxito!</h3>
+        <p id="successModalMessage" style="color: var(--muted); margin-bottom: 28px; font-size: 16px;">
+          El curso ha sido creado correctamente.
+        </p>
+        
+        <button id="successModalBtn" class="btn" type="button" style="min-width: 140px; background: linear-gradient(135deg, #4ade80, #22c55e);">
+          Continuar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="assets/js/electric-card.js?v=3" defer></script>
   <script src="assets/js/app.js?v=18" defer></script>
@@ -654,6 +680,7 @@
 
   <!-- Script del modal de confirmación de eliminación -->
   <script>
+  // ✅ Modal de confirmación para eliminar
   (function() {
     const modal = document.getElementById('deleteConfirmModal');
     const btnClose = document.getElementById('deleteConfirmClose');
@@ -686,6 +713,50 @@
       }
       closeModal();
     });
+    
+    // Cerrar con Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('show')) {
+        closeModal();
+      }
+    });
+    
+    // Cerrar al hacer click en el overlay
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+  })();
+
+  // ✅ Modal de éxito
+  (function() {
+    const modal = document.getElementById('successModal');
+    const btnClose = document.getElementById('successModalClose');
+    const btnContinue = document.getElementById('successModalBtn');
+    const modalTitle = document.getElementById('successModalTitle');
+    const modalMessage = document.getElementById('successModalMessage');
+    
+    // Función global para mostrar el modal de éxito
+    window.showSuccessModal = function(title, message) {
+      if (title) modalTitle.textContent = title;
+      if (message) modalMessage.textContent = message;
+      modal.classList.add('show');
+      
+      // Auto-cerrar después de 3 segundos
+      setTimeout(() => {
+        closeModal();
+      }, 3000);
+    };
+    
+    // Cerrar modal
+    function closeModal() {
+      modal.classList.remove('show');
+    }
+    
+    // Event listeners
+    btnClose.addEventListener('click', closeModal);
+    btnContinue.addEventListener('click', closeModal);
     
     // Cerrar con Escape
     document.addEventListener('keydown', (e) => {
