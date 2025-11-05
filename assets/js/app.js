@@ -935,9 +935,11 @@ function startPeriodicRefresh(currentHex = null) {
         if (anyUpdated) {
           console.log('[PERIODIC] ✅ Cambios detectados, actualizando vista...');
           buildMasterGrid();
+        } else {
+          // console.log('[PERIODIC] Sin cambios');
         }
         
-        // ✅ Actualizar botón flotante
+        // ✅ Actualizar botón flotante (siempre, incluso cuando NO hay cambios)
         if (typeof window.updateSyncButtonState === 'function') {
           window.updateSyncButtonState(anyUpdated);
         }
@@ -2212,6 +2214,41 @@ if (document.readyState === 'loading') {
 }
 
 /* ============ FUNCIONES DE PRUEBA Y DIAGNÓSTICO GLOBALES ============ */
+
+// 🧪 TEST DE BOTÓN FLOTANTE (CAMBIO DE COLOR)
+window.testButtonColor = function() {
+  console.log('═══════════════════════════════════════════');
+  console.log('🧪 TEST DE BOTÓN FLOTANTE');
+  console.log('═══════════════════════════════════════════');
+  console.log('');
+  
+  // Test 1: Cambiar a amarillo
+  console.log('Test 1: Cambiando botón a AMARILLO (con cambios)...');
+  if (typeof window.updateSyncButtonState === 'function') {
+    window.updateSyncButtonState(true);
+    console.log('✅ Botón debería estar AMARILLO pulsante ahora');
+    console.log('   Verifica visualmente el botón flotante →');
+  } else {
+    console.error('❌ updateSyncButtonState no está disponible');
+    console.error('   Asegúrate de haber refrescado la página');
+  }
+  
+  // Test 2: Esperar 4 segundos y cambiar a azul
+  setTimeout(() => {
+    console.log('');
+    console.log('Test 2: Cambiando botón a AZUL (sin cambios)...');
+    if (typeof window.updateSyncButtonState === 'function') {
+      window.updateSyncButtonState(false);
+      console.log('✅ Botón debería estar AZUL ahora');
+      console.log('   Verifica visualmente el botón flotante →');
+    }
+    
+    console.log('');
+    console.log('═══════════════════════════════════════════');
+    console.log('Si viste el cambio de colores, ¡funciona! 🎉');
+    console.log('═══════════════════════════════════════════');
+  }, 4000);
+};
 
 // 🧪 TEST COMPLETO DE SINCRONIZACIÓN
 window.testSyncComplete = async function(hex) {
