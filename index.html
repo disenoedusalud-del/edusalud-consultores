@@ -164,6 +164,23 @@
     .reload-fab.loading svg {
       animation: spin 0.9s linear infinite;
     }
+    /* Estado: cambios pendientes */
+    .reload-fab.has-changes {
+      background: linear-gradient(135deg, #ffd93d, #f59e0b);
+      box-shadow: 0 12px 38px rgba(255, 217, 61, 0.48);
+      animation: pulse-yellow 2s ease-in-out infinite;
+    }
+    .reload-fab.has-changes:hover {
+      box-shadow: 0 16px 40px rgba(255, 217, 61, 0.6);
+    }
+    @keyframes pulse-yellow {
+      0%, 100% {
+        box-shadow: 0 12px 38px rgba(255, 217, 61, 0.48);
+      }
+      50% {
+        box-shadow: 0 12px 48px rgba(255, 217, 61, 0.7);
+      }
+    }
     @media (max-width: 640px) {
       .reload-fab {
         bottom: 22px;
@@ -341,7 +358,7 @@
         </div>
         <div>
           <h1>Portal de Recursos para Consultores · EduSalud</h1>
-          <p class="lead">Descargue materiales oficiales (PPT, logos, manual de marca, social kit, formatos). Acceso mediante código otorgado por el depaetamento de comunicaciones.</p>
+          <p class="lead">Descargue materiales oficiales (PPT, logos, manual de marca, social kit, formatos). Acceso mediante código otorgado por el departamento de comunicaciones.</p>
         </div>
       </div>
 
@@ -497,6 +514,25 @@
       const refreshBtn = document.getElementById('btn-speed-refresh');
       if (!refreshBtn) return;
 
+      // ✅ Variable global para controlar estado del botón
+      window.btnSyncHasChanges = false;
+      
+      // ✅ Función para actualizar el estado visual del botón
+      window.updateSyncButtonState = (hasChanges) => {
+        if (hasChanges !== window.btnSyncHasChanges) {
+          window.btnSyncHasChanges = hasChanges;
+          if (hasChanges) {
+            refreshBtn.classList.add('has-changes');
+            refreshBtn.setAttribute('title', '🟡 Nuevos recursos disponibles - Click para sincronizar');
+            console.log('[FAB] 🟡 Botón cambió a AMARILLO (cambios detectados)');
+          } else {
+            refreshBtn.classList.remove('has-changes');
+            refreshBtn.setAttribute('title', 'Sincronizar recursos desde el servidor');
+            console.log('[FAB] 🔵 Botón cambió a AZUL (sin cambios)');
+          }
+        }
+      };
+
       const runRefresh = async () => {
         if (refreshBtn.disabled) {
           return;
@@ -512,6 +548,9 @@
           if (typeof window.forzarSincronizacion === 'function') {
             await window.forzarSincronizacion();
             console.log('[FAB] ✅ Sincronización completada');
+            
+            // ✅ Resetear estado a azul después de sincronizar
+            window.updateSyncButtonState(false);
           } else {
             console.warn('[FAB] forzarSincronizacion no está disponible. Recargando...');
             location.reload(true);
