@@ -1,21 +1,25 @@
 /* ===================== FIREBASE FIRESTORE - TIEMPO REAL ===================== */
-// ✅ Importar Firebase Firestore para sincronización en tiempo real
-import { db } from './src/firebase.js';
-import {
-  collection,
-  addDoc,
-  query,
-  orderBy,
-  onSnapshot,
-  serverTimestamp,
-  deleteDoc,
-  doc
-} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+// ⚠️ Firebase está temporalmente deshabilitado para mantener compatibilidad
+// ⚠️ Para habilitarlo, necesitas cambiar el script en index.html a type="module"
+// ⚠️ y descomentar las siguientes líneas:
+
+// import { db } from './src/firebase.js';
+// import {
+//   collection,
+//   addDoc,
+//   query,
+//   orderBy,
+//   onSnapshot,
+//   serverTimestamp,
+//   deleteDoc,
+//   doc
+// } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 
 // ✅ Variable global para suscripción activa
 let firestoreUnsubscribe = null;
+let db = null; // Firebase deshabilitado temporalmente
 
-console.log('[FIREBASE] Módulo Firebase cargado');
+console.log('[FIREBASE] Módulo Firebase DESHABILITADO (para activarlo, ver instrucciones en FIREBASE_SETUP.md)');
 
 /* ===================== util ===================== */
 const $ = (s) => document.querySelector(s);
