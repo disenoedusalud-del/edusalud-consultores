@@ -1953,7 +1953,13 @@ window.forzarSincronizacion = async function() {
       // Reconstruir grid
       buildMasterGrid();
       
-      alert(`✅ Sincronización completada: ${updated} curso(s) actualizado(s)`);
+      // ✅ Mostrar modal de éxito (sin alert)
+      if (typeof window.showSuccessModal === 'function') {
+        window.showSuccessModal(
+          '¡Sincronización Exitosa!',
+          `${updated} curso(s) actualizado(s) desde el servidor.`
+        );
+      }
       
     } else if (isContentView) {
       console.log('[SYNC FORCE] 📄 Vista de curso detectada - Sincronizando curso actual...');
@@ -1967,19 +1973,43 @@ window.forzarSincronizacion = async function() {
         if (updated) {
           console.log('[SYNC FORCE] ✅ Curso sincronizado, re-renderizando...');
           renderCourse(currentHex);
-          alert('✅ Recursos sincronizados desde el servidor');
+          // ✅ Mostrar modal de éxito (sin alert)
+          if (typeof window.showSuccessModal === 'function') {
+            window.showSuccessModal(
+              '¡Sincronización Exitosa!',
+              'Los recursos se han actualizado correctamente desde el servidor.'
+            );
+          }
         } else {
           console.log('[SYNC FORCE] ℹ️ No hay cambios nuevos');
-          alert('ℹ️ Ya estás viendo la última versión');
+          // ✅ Mostrar modal informativo (sin alert)
+          if (typeof window.showSuccessModal === 'function') {
+            window.showSuccessModal(
+              'Sin Cambios',
+              'Ya estás viendo la última versión disponible.'
+            );
+          }
         }
       } else {
         console.warn('[SYNC FORCE] ⚠️ No se detectó hex del curso actual');
-        alert('⚠️ No se pudo identificar el curso actual');
+        // ✅ Mostrar modal de advertencia (sin alert)
+        if (typeof window.showSuccessModal === 'function') {
+          window.showSuccessModal(
+            'Error',
+            'No se pudo identificar el curso actual.'
+          );
+        }
       }
       
     } else {
       console.log('[SYNC FORCE] ℹ️ No hay vista activa para sincronizar');
-      alert('ℹ️ Primero ingresa a un curso o a la vista maestra');
+      // ✅ Mostrar modal informativo (sin alert)
+      if (typeof window.showSuccessModal === 'function') {
+        window.showSuccessModal(
+          'Información',
+          'Primero ingresa a un curso o a la vista maestra.'
+        );
+      }
     }
     
   } catch (error) {
