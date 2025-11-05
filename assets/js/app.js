@@ -1,3 +1,22 @@
+/* ===================== FIREBASE FIRESTORE - TIEMPO REAL ===================== */
+// ✅ Importar Firebase Firestore para sincronización en tiempo real
+import { db } from './src/firebase.js';
+import {
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  onSnapshot,
+  serverTimestamp,
+  deleteDoc,
+  doc
+} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+
+// ✅ Variable global para suscripción activa
+let firestoreUnsubscribe = null;
+
+console.log('[FIREBASE] Módulo Firebase cargado');
+
 /* ===================== util ===================== */
 const $ = (s) => document.querySelector(s);
 const toHex = (buffer) =>
@@ -250,6 +269,188 @@ function getFilesForHex(hex){
   // console.log('[FILES] Usando base para', hex.substring(0,8), ':', base.length, 'archivos');
   return base;
 }
+
+/* ===================== FIREBASE FIRESTORE - FUNCIONES EN TIEMPO REAL ===================== */
+
+/**
+ * ✅ FUNCIÓN: Inicializar listeners de Firestore en tiempo real
+ * Se ejecuta cuando se renderiza un curso para escuchar cambios en tiempo real
+ */
+function initFirestoreRealtime(courseHex) {
+  // Verificar que Firebase esté disponible
+  if (!db) {
+    console.log('[FIRESTORE] Firebase no configurado, continuando sin tiempo real');
+    return;
+  }
+
+  // Desuscribir listeners anteriores si existen
+  if (firestoreUnsubscribe) {
+    console.log('[FIRESTORE] Desuscribiendo listener anterior');
+    firestoreUnsubscribe();
+    firestoreUnsubscribe = null;
+  }
+
+  if (!courseHex || courseHex === MASTER_HASH) {
+    console.log('[FIRESTORE] No iniciar listener en vista master');
+    return;
+  }
+
+  console.log('[FIRESTORE] 🔥 Iniciando listener en tiempo real para curso:', courseHex.substring(0, 10) + '...');
+
+  try {
+    // Referencia a la colección de links de este curso
+    const linksRef = collection(db, 'courses', courseHex, 'links');
+    const q = query(linksRef, orderBy('createdAt', 'desc'));
+
+    // ✅ SUSCRIBIRSE a cambios en tiempo real
+    firestoreUnsubscribe = onSnapshot(q, (snapshot) => {
+      const changeType = snapshot.docChanges().map(c => c.type).join(', ');
+      console.log('[FIRESTORE] 📥 Cambios detectados:', snapshot.docChanges().length, '(' + changeType + ')');
+      
+      const firestoreLinks = [];
+      snapshot.forEach((doc) => {
+        firestoreLinks.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+
+      // ✅ Combinar links de Firebase con los de localStorage
+      mergeFirestoreLinks(courseHex, firestoreLinks);
+      
+    }, (error) => {
+      console.error('[FIRESTORE] ❌ Error en listener:', error);
+    });
+  } catch (error) {
+    console.error('[FIRESTORE] ❌ Error iniciando listener:', error);
+  }
+}
+
+/**
+ * ✅ FUNCIÓN: Combinar links de Firestore con localStorage y actualizar vista
+ */
+function mergeFirestoreLinks(courseHex, firestoreLinks) {
+  console.log('[FIRESTORE] Mergeando', firestoreLinks.length, 'links de Firebase');
+  
+  // Obtener links actuales de localStorage
+  const localLinks = getFilesForHex(courseHex) || [];
+  
+  // Convertir Firebase links al formato esperado
+  const firebaseFormatted = firestoreLinks.map(link => ({
+    label: link.label || '',
+    url: link.url || '',
+    firebaseId: link.id, // Guardar ID para poder eliminar después
+    createdAt: link.createdAt
+  }));
+  
+  // Combinar: Firebase primero, luego localStorage (sin duplicados por URL)
+  const merged = [...firebaseFormatted];
+  localLinks.forEach(localLink => {
+    const exists = merged.find(m => m.url === localLink.url);
+    if (!exists) {
+      merged.push(localLink);
+    }
+  });
+  
+  // Guardar en localStorage
+  saveFilesOverride(courseHex, merged);
+  
+  // ✅ RE-RENDERIZAR vista actual solo si es necesario
+  const isContentView = document.getElementById('content') && 
+                       !document.getElementById('content').classList.contains('hidden');
+  
+  if (isContentView && window.currentCourseHex === courseHex) {
+    console.log('[FIRESTORE] ♻️ Re-renderizando curso con nuevos datos');
+    renderCourse(courseHex);
+  }
+}
+
+/**
+ * ✅ FUNCIÓN GLOBAL: Agregar link a Firebase Firestore
+ * Se puede llamar desde cualquier parte del código
+ */
+window.agregarLinkFirebase = async function(courseHex, label, url) {
+  if (!db) {
+    throw new Error('Firebase no está configurado. Edita /src/firebase.js');
+  }
+
+  try {
+    // Validaciones
+    if (!label || !url) {
+      throw new Error('Etiqueta y URL son requeridos');
+    }
+    
+    // Validar URL
+    try {
+      new URL(url);
+    } catch {
+      throw new Error('URL inválida. Debe empezar con http:// o https://');
+    }
+    
+    console.log('[FIRESTORE] ➕ Agregando link a Firebase:', label);
+    
+    // Referencia a la colección del curso
+    const linksRef = collection(db, 'courses', courseHex, 'links');
+    
+    // Agregar documento con timestamp del servidor
+    const docRef = await addDoc(linksRef, {
+      label: label.trim(),
+      url: url.trim(),
+      createdAt: serverTimestamp()
+    });
+    
+    console.log('[FIRESTORE] ✅ Link agregado con ID:', docRef.id);
+    
+    // Mostrar modal de éxito
+    if (typeof window.showSuccessModal === 'function') {
+      window.showSuccessModal(
+        '¡Link Agregado!',
+        'El enlace se ha sincronizado y aparecerá en todos los dispositivos al instante.'
+      );
+    }
+    
+    return docRef.id;
+    
+  } catch (error) {
+    console.error('[FIRESTORE] ❌ Error agregando link:', error);
+    if (typeof window.showSuccessModal === 'function') {
+      window.showSuccessModal(
+        'Error',
+        error.message || 'No se pudo agregar el enlace'
+      );
+    }
+    throw error;
+  }
+};
+
+/**
+ * ✅ FUNCIÓN GLOBAL: Eliminar link de Firebase Firestore
+ */
+window.eliminarLinkFirebase = async function(courseHex, firebaseId) {
+  if (!db) {
+    console.warn('[FIRESTORE] Firebase no configurado');
+    return;
+  }
+
+  try {
+    if (!firebaseId) {
+      throw new Error('No se puede eliminar: link no tiene ID de Firebase');
+    }
+    
+    console.log('[FIRESTORE] 🗑️ Eliminando link de Firebase:', firebaseId);
+    
+    const docRef = doc(db, 'courses', courseHex, 'links', firebaseId);
+    await deleteDoc(docRef);
+    
+    console.log('[FIRESTORE] ✅ Link eliminado de Firebase');
+    
+  } catch (error) {
+    console.error('[FIRESTORE] ❌ Error eliminando link:', error);
+    throw error;
+  }
+};
+
+console.log('[FIRESTORE] ✅ Funciones Firebase registradas globalmente');
 
 /* ============ sincronización remota (opcional) ============ */
 const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbzoM4WegVy9eMrl3nmto_WsGtpNNmKI-E_1FLVuJFsJZoxraNTkxb1vKnCBU8yLiprN/exec';
@@ -1100,6 +1301,11 @@ function renderCourse(keyHex) {
   // ✅ Guardar hex globalmente para el botón de sincronización forzada
   window.currentCourseHex = keyHex;
 
+  // ✅ FIREBASE: Inicializar listener en tiempo real
+  if (typeof initFirestoreRealtime === 'function') {
+    initFirestoreRealtime(keyHex);
+  }
+
   $('#courseTitle').textContent = data.title;
   $('#courseMeta').textContent = data.meta || '';
 
@@ -1486,14 +1692,59 @@ function buildMasterGrid() {
     btnAdd.addEventListener('click', async () => {
       const labelVal = (inputLabel.value || '').trim();
       const urlVal = (inputUrl.value || '').trim();
-      if (!labelVal || !urlVal) { alert('Complete etiqueta y URL'); return; }
-      try { new URL(urlVal); } catch { alert('URL inválida'); return; }
       
+      if (!labelVal || !urlVal) {
+        if (typeof window.showSuccessModal === 'function') {
+          window.showSuccessModal('Error', 'Complete etiqueta y URL');
+        } else {
+          alert('Complete etiqueta y URL');
+        }
+        return;
+      }
+      
+      try {
+        new URL(urlVal);
+      } catch {
+        if (typeof window.showSuccessModal === 'function') {
+          window.showSuccessModal('Error', 'URL inválida. Debe empezar con http:// o https://');
+        } else {
+          alert('URL inválida');
+        }
+        return;
+      }
+      
+      // ✅ FIREBASE: Intentar agregar a Firestore primero (sincronización en tiempo real)
+      if (db && typeof window.agregarLinkFirebase === 'function') {
+        try {
+          await window.agregarLinkFirebase(hex, labelVal, urlVal);
+          
+          // Limpiar inputs
+          inputLabel.value = '';
+          inputUrl.value = '';
+          
+          console.log('[ADD] ✅ Link agregado a Firebase, sincronización automática activa');
+          
+          // También guardar en Google Sheets como backup
+          const current = getFilesForHex(hex);
+          const next = current.concat({ label: labelVal, url: urlVal });
+          remoteSaveFiles(hex, next).catch(e => {
+            console.warn('[ADD] ⚠️ No se pudo guardar en Google Sheets (backup):', e);
+          });
+          
+          return; // Salir, Firebase se encarga de actualizar la vista
+          
+        } catch (error) {
+          console.error('[ADD] ❌ Error con Firebase, usando método local:', error);
+          // Continuar con método local si Firebase falla
+        }
+      }
+      
+      // ✅ FALLBACK: Método local si Firebase no está disponible
+      console.log('[ADD] Usando método local (Firebase no disponible)');
       const current = getFilesForHex(hex);
       console.log('[ADD] Links actuales:', current.length);
       const next = current.concat({ label: labelVal, url: urlVal });
       console.log('[ADD] Links después de agregar:', next.length);
-      console.log('[ADD] Array completo a guardar:', JSON.stringify(next));
       
       // Limpiar inputs
       inputLabel.value = '';
@@ -1501,7 +1752,7 @@ function buildMasterGrid() {
       
       saveFilesOverride(hex, next);
       
-      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
+      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
       console.log('[ADD] ➕ Agregando link inmediatamente a la vista');
       const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
       
@@ -1513,11 +1764,10 @@ function buildMasterGrid() {
         console.log('[ADD] ✅ Vista de curso actualizada');
       }
       
-      // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
+      // ✅ GUARDAR EN REMOTO (Google Sheets)
       remoteSaveFiles(hex, next).then(saveResult => {
         if (saveResult) {
           console.log('[ADD] ✅ Guardado en remoto - POST exitoso');
-          // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
           setTimeout(() => {
             refreshFromRemoteSilent(hex).then(() => {
               console.log('[ADD] ✅ SINCRONIZACIÓN CONFIRMADA');
