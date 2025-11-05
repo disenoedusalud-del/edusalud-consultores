@@ -1996,9 +1996,18 @@ window.limpiarTodoYRecargar = async function() {
 
 /* ============ init ============ */
 (async function init(){
-  // ✅ NO limpiar archivos al inicio - dejar que la sincronización automática lo maneje
   console.log('[INIT] 🚀 Iniciando plataforma...');
-  console.log('[INIT] 📦 Archivos locales disponibles:', Object.keys(localStorage).filter(k => k.startsWith(FILES_STORAGE_PREFIX)).length);
+  
+  // ✅ CRÍTICO: SIEMPRE limpiar localStorage al inicio para leer desde Sheets
+  // Esto asegura que TODOS los dispositivos (incluido local) lean la misma data
+  const localFilesCount = Object.keys(localStorage).filter(k => k.startsWith(FILES_STORAGE_PREFIX)).length;
+  if (localFilesCount > 0) {
+    console.log('[INIT] 🧹 Limpiando', localFilesCount, 'archivos locales obsoletos...');
+    clearAllFilesOverrides();
+    console.log('[INIT] ✅ localStorage limpio - se leerá desde Google Sheets');
+  } else {
+    console.log('[INIT] ℹ️ No hay archivos locales - se leerá desde Google Sheets');
+  }
   console.log('[INIT] 🔄 La sincronización automática actualizará los datos cada 1.2s');
   
   // Actualizar versión de caché
