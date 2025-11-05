@@ -936,6 +936,11 @@ function startPeriodicRefresh(currentHex = null) {
           console.log('[PERIODIC] ✅ Cambios detectados, actualizando vista...');
           buildMasterGrid();
         }
+        
+        // ✅ Actualizar botón flotante
+        if (typeof window.updateSyncButtonState === 'function') {
+          window.updateSyncButtonState(anyUpdated);
+        }
       } else if (currentHex) {
         const mergedMap = getMergedAccessHashMap();
         if (mergedMap[currentHex]) {
@@ -955,6 +960,11 @@ function startPeriodicRefresh(currentHex = null) {
               console.log('[PERIODIC] 🔄 ACTUALIZACIÓN AUTOMÁTICA - Cambios detectados');
               renderCourse(currentHex);
             }
+          }
+          
+          // ✅ Actualizar botón flotante
+          if (typeof window.updateSyncButtonState === 'function') {
+            window.updateSyncButtonState(updated);
           }
         } else {
           console.warn('[PERIODIC] ⚠️ Hex no encontrado en mergedMap:', currentHex.substring(0, 8));
