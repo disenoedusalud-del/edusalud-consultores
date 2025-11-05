@@ -1194,7 +1194,10 @@ function buildMasterGrid() {
       btnDelete.textContent = '🗑️ Eliminar';
       btnDelete.style.background = 'linear-gradient(135deg, #ff4444, #cc0000)';
       btnDelete.addEventListener('click', async () => {
-        if (confirm(`¿Eliminar curso "${data.title}"? Esta acción no se puede deshacer.`)) {
+        // ✅ Mostrar modal de confirmación elegante
+        window.showDeleteConfirmModal(data.title, async () => {
+          console.log('[DELETE] Eliminando curso:', data.title);
+          
           // ✅ Eliminar curso (local y remoto)
           removeCustomCourse(hex);
           
@@ -1204,7 +1207,7 @@ function buildMasterGrid() {
           });
           
           buildMasterGrid();
-          alert('✅ Curso eliminado');
+          console.log('[DELETE] ✅ Curso eliminado exitosamente');
           
           // Analytics tracking
           if (typeof gtag !== 'undefined') {
@@ -1213,7 +1216,7 @@ function buildMasterGrid() {
               'event_label': data.card?.tag || 'unknown'
             });
           }
-        }
+        });
       });
       headerActions.appendChild(btnDelete);
     }
