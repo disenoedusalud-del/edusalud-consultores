@@ -917,7 +917,8 @@ function startPeriodicRefresh(currentHex = null) {
         return;
       }
 
-      if (currentHex === MASTER_HASH) {
+      // ✅ CORREGIDO: Si currentHex es null o MASTER_HASH, refrescar todos los cursos
+      if (!currentHex || currentHex === MASTER_HASH) {
         const mergedMap = getMergedAccessHashMap();
         const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
         console.log('[PERIODIC] Total cursos a refrescar (base + personalizados):', hexes.length);
@@ -934,7 +935,10 @@ function startPeriodicRefresh(currentHex = null) {
 
         if (anyUpdated) {
           console.log('[PERIODIC] ✅ Cambios detectados, actualizando vista...');
-          buildMasterGrid();
+          // Solo actualizar grid si realmente estamos en vista master
+          if (!document.getElementById('master')?.classList.contains('hidden')) {
+            buildMasterGrid();
+          }
         } else {
           // console.log('[PERIODIC] Sin cambios');
         }
