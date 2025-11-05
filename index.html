@@ -613,6 +613,12 @@
             
             // ✅ Resetear estado a azul después de sincronizar
             window.updateSyncButtonState(false);
+            
+            // ✅ Mostrar modal de éxito
+            window.showSuccessModal(
+              '¡Sincronización Exitosa!',
+              'Los recursos se han actualizado correctamente desde el servidor.'
+            );
           } else {
             console.warn('[FAB] forzarSincronizacion no está disponible. Recargando...');
             location.reload(true);
