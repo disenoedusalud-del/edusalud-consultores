@@ -1615,7 +1615,7 @@ async function refreshFromRemoteSilent(hex){
     // Esto asegura sincronización perfecta en todos los dispositivos
     
     if (remote.length > 0) {
-      // Comparar para logging pero SIEMPRE actualizar
+      // Comparar para detectar cambios REALES
       const currentStr = stableStringify(current);
       const remoteStr = stableStringify(remote);
       const hasChanges = remoteStr !== currentStr || remote.length !== current.length;
@@ -1623,18 +1623,12 @@ async function refreshFromRemoteSilent(hex){
       if (hasChanges) {
         console.log('[REFRESH] 🔄 CAMBIOS DETECTADOS');
         console.log('[REFRESH] Remoto:', remote.length, 'archivos | Local:', current.length, 'archivos');
-      }
-      
-      // ✅ SIEMPRE guardar remoto (incluso si "parece" igual)
-      // Esto previene problemas de sincronización por diferencias sutiles
-      console.log('[REFRESH] 📥 Aplicando', remote.length, 'archivos desde remoto');
-      saveFilesOverride(hex, remote);
-      
-      if (hasChanges) {
+        console.log('[REFRESH] 📥 Aplicando', remote.length, 'archivos desde remoto');
+        saveFilesOverride(hex, remote);
         console.log('[REFRESH] ✅ Sincronización completada con cambios');
         return true;
       } else {
-        // console.log('[REFRESH] ✅ Datos confirmados (sin cambios)');
+        // console.log('[REFRESH] ✅ Sin cambios (datos idénticos)');
         return false;
       }
     }
