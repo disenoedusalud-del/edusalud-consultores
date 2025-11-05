@@ -507,6 +507,41 @@
     </div>
   </div>
 
+  <!-- Modal de confirmación para eliminar curso -->
+  <div id="deleteConfirmModal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2>Confirmar Eliminación</h2>
+        <button class="modal-close" id="deleteConfirmClose" aria-label="Cerrar">&times;</button>
+      </div>
+      
+      <div style="text-align: center; padding: 20px 0;">
+        <!-- Icono de advertencia -->
+        <div style="width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 50%; background: linear-gradient(135deg, rgba(255,90,90,0.2), rgba(255,90,90,0.1)); display: flex; align-items: center; justify-content: center;">
+          <svg style="width: 40px; height: 40px; color: var(--danger);" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+          </svg>
+        </div>
+        
+        <h3 id="deleteCourseName" style="margin-bottom: 12px; font-size: 20px;"></h3>
+        <p style="color: var(--muted); margin-bottom: 24px;">
+          ¿Estás seguro de que deseas eliminar este curso?<br>
+          <strong style="color: var(--danger);">Esta acción no se puede deshacer.</strong>
+        </p>
+      </div>
+      
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button id="deleteConfirmCancel" class="btn secondary" type="button">
+          Cancelar
+        </button>
+        <button id="deleteConfirmYes" class="btn" type="button" style="background: linear-gradient(135deg, #ff5555, #cc0000);">
+          Sí, eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="assets/js/electric-card.js?v=3" defer></script>
   <script src="assets/js/app.js?v=18" defer></script>
@@ -615,6 +650,57 @@
         }
       });
     }
+  </script>
+
+  <!-- Script del modal de confirmación de eliminación -->
+  <script>
+  (function() {
+    const modal = document.getElementById('deleteConfirmModal');
+    const btnClose = document.getElementById('deleteConfirmClose');
+    const btnCancel = document.getElementById('deleteConfirmCancel');
+    const btnYes = document.getElementById('deleteConfirmYes');
+    const courseName = document.getElementById('deleteCourseName');
+    
+    let onConfirmCallback = null;
+    
+    // Función global para mostrar el modal
+    window.showDeleteConfirmModal = function(title, onConfirm) {
+      courseName.textContent = title;
+      onConfirmCallback = onConfirm;
+      modal.classList.add('show');
+    };
+    
+    // Cerrar modal
+    function closeModal() {
+      modal.classList.remove('show');
+      onConfirmCallback = null;
+    }
+    
+    // Event listeners
+    btnClose.addEventListener('click', closeModal);
+    btnCancel.addEventListener('click', closeModal);
+    
+    btnYes.addEventListener('click', () => {
+      if (onConfirmCallback) {
+        onConfirmCallback();
+      }
+      closeModal();
+    });
+    
+    // Cerrar con Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('show')) {
+        closeModal();
+      }
+    });
+    
+    // Cerrar al hacer click en el overlay
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+  })();
   </script>
 </body>
 </html>
