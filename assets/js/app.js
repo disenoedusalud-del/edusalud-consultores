@@ -1011,8 +1011,8 @@ function showMaster() {
   $('#access').classList.add('hidden');
   $('#content').classList.add('hidden');
   $('#master').classList.remove('hidden');
-  // Iniciar refresh periódico para vista maestra
-  startPeriodicRefresh(MASTER_HASH);
+  // ❌ NO iniciar polling automático (el usuario sincroniza manualmente con el botón)
+  // startPeriodicRefresh(MASTER_HASH);
   
   // Refresh inmediato adicional para limpiar datos obsoletos al abrir
   if (hasRemote()) {
@@ -1126,8 +1126,8 @@ function renderCourse(keyHex) {
     }
   } catch (e) { console.warn('No se pudo insertar la tarjeta:', e); }
   
-  // Iniciar refresh periódico para este curso
-  startPeriodicRefresh(keyHex);
+  // ❌ NO iniciar polling automático (el usuario sincroniza manualmente con el botón)
+  // startPeriodicRefresh(keyHex);
 }
 
 /* ============ render master ============ */
@@ -2057,10 +2057,9 @@ window.limpiarTodoYRecargar = async function() {
   // ✅ Cargar cursos remotos (no bloquear con await para no demorar carga)
   loadRemoteCoursesOnInit();
   
-  // ✅ CRÍTICO: Iniciar polling automático incluso en pantalla de login
-  // Esto asegura que el botón flotante funcione desde el inicio
-  console.log('[INIT] 🔄 Iniciando polling automático global...');
-  startPeriodicRefresh(null);
+  // ❌ NO iniciar polling automático para no interrumpir al usuario
+  // El botón manual de sincronización será usado cuando el usuario quiera
+  console.log('[INIT] ✅ Plataforma lista (sin polling automático)');
 })();
 
 /* ============ Modal agregar curso ============ */
