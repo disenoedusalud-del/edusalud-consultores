@@ -898,7 +898,16 @@ const PERIODIC_REFRESH_INTERVAL_MS = 1200; // 1.2 segundos (sincronización ultr
 
 function startPeriodicRefresh(currentHex = null) {
   stopPeriodicRefresh();
-  if (!hasRemote()) return;
+  
+  // ✅ Debug: verificar hasRemote
+  const remoteAvailable = hasRemote();
+  console.log('[PERIODIC] hasRemote():', remoteAvailable);
+  console.log('[PERIODIC] REMOTE_BASE_URL:', typeof REMOTE_BASE_URL !== 'undefined' ? REMOTE_BASE_URL : 'UNDEFINED');
+  
+  if (!remoteAvailable) {
+    console.warn('[PERIODIC] ⚠️ No se puede iniciar: REMOTE_BASE_URL no disponible');
+    return;
+  }
 
   console.log('[PERIODIC] 🔄 Iniciando refresh AUTOMÁTICO cada', PERIODIC_REFRESH_INTERVAL_MS / 1000, 'segundos');
   console.log('[PERIODIC] 💡 Los cambios aparecerán AUTOMÁTICAMENTE sin refrescar');
