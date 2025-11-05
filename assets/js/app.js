@@ -946,14 +946,10 @@ function startPeriodicRefresh(currentHex = null) {
 
         await refreshCustomCourses();
 
+        // ✅ NO actualizar la vista automáticamente para no interrumpir al usuario
+        // El botón amarillo le avisará que hay cambios, y puede sincronizar manualmente
         if (anyUpdated) {
-          console.log('[PERIODIC] ✅ Cambios detectados, actualizando vista...');
-          // Solo actualizar grid si realmente estamos en vista master
-          if (!document.getElementById('master')?.classList.contains('hidden')) {
-            buildMasterGrid();
-          }
-        } else {
-          // console.log('[PERIODIC] Sin cambios');
+          console.log('[PERIODIC] ✅ Cambios detectados (botón se pondrá amarillo)');
         }
         
         // ✅ Actualizar botón flotante (siempre, incluso cuando NO hay cambios)
@@ -971,17 +967,10 @@ function startPeriodicRefresh(currentHex = null) {
             return false;
           });
 
+          // ✅ NO actualizar la vista automáticamente para no interrumpir al usuario
+          // El botón amarillo le avisará que hay cambios, y puede sincronizar manualmente
           if (updated) {
-            const activeElementNow = document.activeElement;
-            const isInputFocusedNow = activeElementNow && (
-              activeElementNow.tagName === 'INPUT' ||
-              activeElementNow.tagName === 'TEXTAREA'
-            );
-
-            if (!isInputFocusedNow) {
-              console.log('[PERIODIC] 🔄 ACTUALIZACIÓN AUTOMÁTICA - Cambios detectados');
-              renderCourse(currentHex);
-            }
+            console.log('[PERIODIC] ✅ Cambios detectados (botón se pondrá amarillo)');
           }
           
           // ✅ Actualizar botón flotante
