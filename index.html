@@ -617,18 +617,20 @@
             // ✅ Resetear estado a azul después de sincronizar
             window.updateSyncButtonState(false);
             
-            // ✅ Mostrar modal de éxito
-            window.showSuccessModal(
-              '¡Sincronización Exitosa!',
-              'Los recursos se han actualizado correctamente desde el servidor.'
-            );
+            // ✅ El modal se muestra desde forzarSincronizacion() en app.js
           } else {
             console.warn('[FAB] forzarSincronizacion no está disponible. Recargando...');
             location.reload(true);
           }
         } catch (error) {
           console.error('[FAB] Error forzando sincronización:', error);
-          alert('Error al sincronizar. Intenta nuevamente.');
+          // ✅ Mostrar modal de error (sin alert)
+          if (typeof window.showSuccessModal === 'function') {
+            window.showSuccessModal(
+              'Error de Sincronización',
+              'No se pudo sincronizar. Intenta nuevamente.'
+            );
+          }
         } finally {
           refreshBtn.disabled = false;
           refreshBtn.classList.remove('loading');
