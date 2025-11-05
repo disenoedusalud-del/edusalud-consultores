@@ -1278,25 +1278,28 @@ function buildMasterGrid() {
           const next = files.slice();
           next[idx] = { label: newLabel, url: newUrl };
           saveFilesOverride(hex, next);
-      
-      // ✅ GUARDAR EN REMOTO (esperar confirmación)
-      const editOk = await remoteSaveFiles(hex, next).catch(e => {
-        console.error('[EDIT] ❌ Error guardando en remoto:', e);
-        return false;
-      });
-      
-      if (editOk) {
-        // 🔄 Push optimista: sincronizar con remoto inmediatamente
-        await refreshFromRemoteSilent(hex).catch(() => {});
-      }
-      
-      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
+          
+          // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
+          console.log('[EDIT] ✏️ Actualizando vista inmediatamente');
           const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
           if (isMasterView) {
             buildMasterGrid();
           } else {
             renderCourse(hex);
           }
+          
+          // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
+          remoteSaveFiles(hex, next).then(editOk => {
+            if (editOk) {
+              console.log('[EDIT] ✅ Guardado en remoto exitoso');
+              // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
+              refreshFromRemoteSilent(hex).catch(() => {});
+            } else {
+              console.warn('[EDIT] ⚠️ Error guardando en remoto');
+            }
+          }).catch(e => {
+            console.error('[EDIT] ❌ Error guardando en remoto:', e);
+          });
         });
         
         const btnCancel = document.createElement('button');
@@ -1337,24 +1340,27 @@ function buildMasterGrid() {
         next.splice(idx, 1);
         saveFilesOverride(hex, next);
         
-        // ✅ GUARDAR EN REMOTO (esperar confirmación)
-        const removeOk = await remoteSaveFiles(hex, next).catch(e => {
-          console.error('[REMOVE] ❌ Error guardando en remoto:', e);
-          return false;
-        });
-        
-        if (removeOk) {
-          // 🔄 Push optimista: sincronizar con remoto
-          await refreshFromRemoteSilent(hex).catch(() => {});
-        }
-        
-        // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
+        // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
+        console.log('[REMOVE] 🗑️ Eliminando archivo inmediatamente de la vista');
         const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
         if (isMasterView) {
           buildMasterGrid();
         } else {
           renderCourse(hex);
         }
+        
+        // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
+        remoteSaveFiles(hex, next).then(removeOk => {
+          if (removeOk) {
+            console.log('[REMOVE] ✅ Guardado en remoto exitoso');
+            // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
+            refreshFromRemoteSilent(hex).catch(() => {});
+          } else {
+            console.warn('[REMOVE] ⚠️ Error guardando en remoto');
+          }
+        }).catch(e => {
+          console.error('[REMOVE] ❌ Error guardando en remoto:', e);
+        });
       });
 
       actions.appendChild(btnOpen);
@@ -1388,24 +1394,27 @@ function buildMasterGrid() {
       next.splice(to, 0, moved);
       saveFilesOverride(hex, next);
       
-      // ✅ GUARDAR EN REMOTO (esperar confirmación)
-      const reorderOk = await remoteSaveFiles(hex, next).catch(e => {
-        console.error('[REORDER] ❌ Error guardando en remoto:', e);
-        return false;
-      });
-      
-      if (reorderOk) {
-        // 🔄 Push optimista: sincronizar con remoto
-        await refreshFromRemoteSilent(hex).catch(() => {});
-      }
-      
-      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
+      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
+      console.log('[REORDER] 🔄 Reordenando inmediatamente en la vista');
       const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
       if (isMasterView) {
         buildMasterGrid();
       } else {
         renderCourse(hex);
       }
+      
+      // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
+      remoteSaveFiles(hex, next).then(reorderOk => {
+        if (reorderOk) {
+          console.log('[REORDER] ✅ Guardado en remoto exitoso');
+          // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
+          refreshFromRemoteSilent(hex).catch(() => {});
+        } else {
+          console.warn('[REORDER] ⚠️ Error guardando en remoto');
+        }
+      }).catch(e => {
+        console.error('[REORDER] ❌ Error guardando en remoto:', e);
+      });
     });
 
     // formulario para agregar nuevo link
@@ -1455,51 +1464,36 @@ function buildMasterGrid() {
       
       saveFilesOverride(hex, next);
       
-      // ✅ GUARDAR EN REMOTO (esperar confirmación)
-      const saveResult = await remoteSaveFiles(hex, next).catch(e => {
-        console.error('[ADD] ❌ Error guardando en remoto:', e);
-        alert('⚠️ Error al guardar en remoto. Los cambios están guardados localmente pero no se sincronizarán.');
-        return false;
-      });
-      
-      if (saveResult) {
-        console.log('[ADD] ✅ Guardado en remoto - POST exitoso');
-        
-        // Esperar 500ms para que Google Sheets procese
-        await new Promise(r => setTimeout(r, 500));
-        
-        // 🔄 Push optimista: leer inmediatamente desde remoto para sincronizar
-        console.log('[ADD] 🔄 Leyendo desde remoto para confirmar...');
-        const syncOk = await refreshFromRemoteSilent(hex).catch(() => false);
-        
-        if (syncOk) {
-          console.log('[ADD] ✅ SINCRONIZACIÓN CONFIRMADA - Otros dispositivos verán el cambio en ~1s');
-          alert('✅ Link agregado y sincronizado correctamente');
-        } else {
-          console.log('[ADD] ⚠️ Guardado pero no se pudo verificar sincronización');
-          alert('✅ Link agregado (verificando sincronización...)');
-        }
-      } else {
-        console.warn('[ADD] ⚠️ No se pudo guardar en remoto');
-        alert('⚠️ Link guardado localmente, pero NO se sincronizó con otros dispositivos');
-      }
-      
-      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin recargar)
-      // Verificar si estamos en vista master o vista curso
+      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
+      console.log('[ADD] ➕ Agregando link inmediatamente a la vista');
       const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
       
       if (isMasterView) {
-        // Si estamos en vista master, reconstruir el grid
         buildMasterGrid();
         console.log('[ADD] ✅ Vista master actualizada');
       } else {
-        // Si estamos en vista de curso individual, re-renderizar el curso
         renderCourse(hex);
         console.log('[ADD] ✅ Vista de curso actualizada');
       }
       
-      // ✅ Log informativo
-      console.log('[ADD] ✅ Archivo guardado localmente y en remoto. Otros dispositivos lo verán en el próximo refresh (máx 3 segundos)');
+      // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
+      remoteSaveFiles(hex, next).then(saveResult => {
+        if (saveResult) {
+          console.log('[ADD] ✅ Guardado en remoto - POST exitoso');
+          // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
+          setTimeout(() => {
+            refreshFromRemoteSilent(hex).then(() => {
+              console.log('[ADD] ✅ SINCRONIZACIÓN CONFIRMADA');
+            }).catch(() => {
+              console.log('[ADD] ⚠️ Error en sincronización post-guardado');
+            });
+          }, 500);
+        } else {
+          console.warn('[ADD] ⚠️ No se pudo guardar en remoto');
+        }
+      }).catch(e => {
+        console.error('[ADD] ❌ Error guardando en remoto:', e);
+      });
     });
 
     addRow.appendChild(inputLabel);
@@ -1519,24 +1513,27 @@ function buildMasterGrid() {
       if (!confirm('¿Restaurar la lista original de enlaces? Se perderán los cambios locales.')) return;
       clearFilesOverride(hex);
       
-      // ✅ GUARDAR EN REMOTO (esperar confirmación)
-      const restoreOk = await remoteSaveFiles(hex, getFilesForHex(hex)).catch(e => {
-        console.error('[RESTORE] ❌ Error guardando en remoto:', e);
-        return false;
-      });
-      
-      if (restoreOk) {
-        // 🔄 Push optimista: sincronizar con remoto
-        await refreshFromRemoteSilent(hex).catch(() => {});
-      }
-      
-      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
+      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
+      console.log('[RESTORE] ♻️ Restaurando vista inmediatamente');
       const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
       if (isMasterView) {
         buildMasterGrid();
       } else {
         renderCourse(hex);
       }
+      
+      // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
+      remoteSaveFiles(hex, getFilesForHex(hex)).then(restoreOk => {
+        if (restoreOk) {
+          console.log('[RESTORE] ✅ Guardado en remoto exitoso');
+          // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
+          refreshFromRemoteSilent(hex).catch(() => {});
+        } else {
+          console.warn('[RESTORE] ⚠️ Error guardando en remoto');
+        }
+      }).catch(e => {
+        console.error('[RESTORE] ❌ Error guardando en remoto:', e);
+      });
     });
     right.appendChild(btnRestore);
 
