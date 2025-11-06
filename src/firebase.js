@@ -36,20 +36,26 @@
     // ✅ Inicializar Firebase
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
-      console.log('✅ [FIREBASE] Firebase inicializado correctamente');
+      console.log('[FIREBASE] ✅ Firebase inicializado correctamente');
     }
 
     // ✅ Obtener Firestore
     const db = firebase.firestore();
     window.firebaseDB = db; // Exponer globalmente
     
-    console.log('✅ [FIREBASE] Firestore listo para sincronización en tiempo real');
-    console.log('✅ [FIREBASE] Proyecto:', firebaseConfig.projectId);
+    console.log('[FIREBASE] ✅ Firestore listo para sincronización en tiempo real');
+    console.log('[FIREBASE] ✅ Proyecto:', firebaseConfig.projectId);
+    
+    // Disparar evento personalizado cuando Firebase esté listo
+    window.dispatchEvent(new CustomEvent('firebaseReady', { detail: { db } }));
 
   } catch (error) {
-    console.error('❌ [FIREBASE] Error inicializando Firebase:', error);
-    console.log('ℹ️ [FIREBASE] Continuando sin Firebase (usando Google Sheets)');
+    console.error('[FIREBASE] ❌ Error inicializando Firebase:', error);
+    console.log('[FIREBASE] ℹ️ Continuando sin Firebase (usando Google Sheets)');
     window.firebaseDB = null;
+    
+    // Disparar evento de error
+    window.dispatchEvent(new CustomEvent('firebaseError', { detail: { error } }));
   }
 
   // ✅ Función auxiliar para cargar scripts
