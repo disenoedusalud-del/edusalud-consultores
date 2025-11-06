@@ -1,25 +1,47 @@
 /* ===================== FIREBASE FIRESTORE - TIEMPO REAL ===================== */
-// ⚠️ Firebase está temporalmente deshabilitado para mantener compatibilidad
-// ⚠️ Para habilitarlo, necesitas cambiar el script en index.html a type="module"
-// ⚠️ y descomentar las siguientes líneas:
+// ✅ Firebase se carga dinámicamente desde /src/firebase.js
+// ✅ Compatible con GitHub Pages (sin módulos ES6)
+// ✅ Acceso a Firestore mediante window.firebaseDB
 
-// import { db } from './src/firebase.js';
-// import {
-//   collection,
-//   addDoc,
-//   query,
-//   orderBy,
-//   onSnapshot,
-//   serverTimestamp,
-//   deleteDoc,
-//   doc
-// } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
-
-// ✅ Variable global para suscripción activa
+// Variable global para suscripción activa
 let firestoreUnsubscribe = null;
-let db = null; // Firebase deshabilitado temporalmente
 
-console.log('[FIREBASE] Módulo Firebase DESHABILITADO (para activarlo, ver instrucciones en FIREBASE_SETUP.md)');
+// Función auxiliar para obtener Firestore
+function getFirestoreDB() {
+  return window.firebaseDB || null;
+}
+
+// Verificar si Firebase ya está listo o esperar a que cargue
+function checkFirebaseStatus() {
+  if (window.firebaseDB) {
+    console.log('[APP] ✅ Firebase disponible y listo para usar');
+    return true;
+  } else if (typeof firebase !== 'undefined') {
+    console.log('[APP] ⏳ Firebase cargando, esperando Firestore...');
+    return false;
+  } else {
+    console.log('[APP] ℹ️ Modo sin Firebase (usando solo Google Sheets)');
+    return false;
+  }
+}
+
+// Escuchar evento cuando Firebase esté listo
+window.addEventListener('firebaseReady', (e) => {
+  console.log('[APP] 🔥 Firebase conectado y listo para sincronización en tiempo real');
+  console.log('[APP] 📊 Base de datos:', e.detail.db ? 'Firestore activo' : 'No disponible');
+});
+
+// Escuchar evento de error de Firebase
+window.addEventListener('firebaseError', (e) => {
+  console.log('[APP] ⚠️ Firebase no disponible, usando Google Sheets como backend');
+});
+
+// Verificación inicial
+setTimeout(() => {
+  checkFirebaseStatus();
+}, 1500);
+
+console.log('[APP] Iniciando aplicación con soporte Firebase...');
 
 /* ===================== util ===================== */
 const $ = (s) => document.querySelector(s);
@@ -281,6 +303,8 @@ function getFilesForHex(hex){
  * Se ejecuta cuando se renderiza un curso para escuchar cambios en tiempo real
  */
 function initFirestoreRealtime(courseHex) {
+  const db = getFirestoreDB();
+  
   // Verificar que Firebase esté disponible
   if (!db) {
     console.log('[FIRESTORE] Firebase no configurado, continuando sin tiempo real');
@@ -302,12 +326,12 @@ function initFirestoreRealtime(courseHex) {
   console.log('[FIRESTORE] 🔥 Iniciando listener en tiempo real para curso:', courseHex.substring(0, 10) + '...');
 
   try {
-    // Referencia a la colección de links de este curso
-    const linksRef = collection(db, 'courses', courseHex, 'links');
-    const q = query(linksRef, orderBy('createdAt', 'desc'));
+    // Referencia a la colección de links de este curso (API compat)
+    const linksRef = db.collection('courses').doc(courseHex).collection('links');
+    const q = linksRef.orderBy('createdAt', 'desc');
 
     // ✅ SUSCRIBIRSE a cambios en tiempo real
-    firestoreUnsubscribe = onSnapshot(q, (snapshot) => {
+    firestoreUnsubscribe = q.onSnapshot((snapshot) => {
       const changeType = snapshot.docChanges().map(c => c.type).join(', ');
       console.log('[FIRESTORE] 📥 Cambios detectados:', snapshot.docChanges().length, '(' + changeType + ')');
       
@@ -374,8 +398,10 @@ function mergeFirestoreLinks(courseHex, firestoreLinks) {
  * Se puede llamar desde cualquier parte del código
  */
 window.agregarLinkFirebase = async function(courseHex, label, url) {
+  const db = getFirestoreDB();
+  
   if (!db) {
-    throw new Error('Firebase no está configurado. Edita /src/firebase.js');
+    throw new Error('Firebase no está configurado');
   }
 
   try {
@@ -393,14 +419,14 @@ window.agregarLinkFirebase = async function(courseHex, label, url) {
     
     console.log('[FIRESTORE] ➕ Agregando link a Firebase:', label);
     
-    // Referencia a la colección del curso
-    const linksRef = collection(db, 'courses', courseHex, 'links');
+    // Referencia a la colección del curso (API compat)
+    const linksRef = db.collection('courses').doc(courseHex).collection('links');
     
     // Agregar documento con timestamp del servidor
-    const docRef = await addDoc(linksRef, {
+    const docRef = await linksRef.add({
       label: label.trim(),
       url: url.trim(),
-      createdAt: serverTimestamp()
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     
     console.log('[FIRESTORE] ✅ Link agregado con ID:', docRef.id);
@@ -431,6 +457,8 @@ window.agregarLinkFirebase = async function(courseHex, label, url) {
  * ✅ FUNCIÓN GLOBAL: Eliminar link de Firebase Firestore
  */
 window.eliminarLinkFirebase = async function(courseHex, firebaseId) {
+  const db = getFirestoreDB();
+  
   if (!db) {
     console.warn('[FIRESTORE] Firebase no configurado');
     return;
@@ -443,8 +471,9 @@ window.eliminarLinkFirebase = async function(courseHex, firebaseId) {
     
     console.log('[FIRESTORE] 🗑️ Eliminando link de Firebase:', firebaseId);
     
-    const docRef = doc(db, 'courses', courseHex, 'links', firebaseId);
-    await deleteDoc(docRef);
+    // Referencia al documento (API compat)
+    const docRef = db.collection('courses').doc(courseHex).collection('links').doc(firebaseId);
+    await docRef.delete();
     
     console.log('[FIRESTORE] ✅ Link eliminado de Firebase');
     
@@ -1718,6 +1747,7 @@ function buildMasterGrid() {
       }
       
       // ✅ FIREBASE: Intentar agregar a Firestore primero (sincronización en tiempo real)
+      const db = getFirestoreDB();
       if (db && typeof window.agregarLinkFirebase === 'function') {
         try {
           await window.agregarLinkFirebase(hex, labelVal, urlVal);
