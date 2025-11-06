@@ -332,8 +332,21 @@ function initFirestoreRealtime(courseHex) {
 
     // ✅ SUSCRIBIRSE a cambios en tiempo real
     firestoreUnsubscribe = q.onSnapshot((snapshot) => {
-      const changeType = snapshot.docChanges().map(c => c.type).join(', ');
-      console.log('[FIRESTORE] 📥 Cambios detectados:', snapshot.docChanges().length, '(' + changeType + ')');
+      console.log('[FIRESTORE] 📥 onSnapshot disparado - Documentos:', snapshot.size);
+      
+      // Verificar si hay cambios reales
+      const changes = snapshot.docChanges();
+      if (changes.length > 0) {
+        const changeType = changes.map(c => c.type).join(', ');
+        console.log('[FIRESTORE] 📥 Cambios detectados:', changes.length, '(' + changeType + ')');
+        
+        // Mostrar detalles de cada cambio
+        changes.forEach((change, idx) => {
+          console.log(`[FIRESTORE]   ${idx + 1}. ${change.type.toUpperCase()}:`, change.doc.data().label);
+        });
+      } else {
+        console.log('[FIRESTORE] ℹ️ Sin cambios (carga inicial)');
+      }
       
       const firestoreLinks = [];
       snapshot.forEach((doc) => {
@@ -348,6 +361,8 @@ function initFirestoreRealtime(courseHex) {
       
     }, (error) => {
       console.error('[FIRESTORE] ❌ Error en listener:', error);
+      console.error('[FIRESTORE] ❌ Código de error:', error.code);
+      console.error('[FIRESTORE] ❌ Mensaje:', error.message);
     });
   } catch (error) {
     console.error('[FIRESTORE] ❌ Error iniciando listener:', error);
@@ -418,9 +433,12 @@ window.agregarLinkFirebase = async function(courseHex, label, url) {
     }
     
     console.log('[FIRESTORE] ➕ Agregando link a Firebase:', label);
+    console.log('[FIRESTORE] 📍 Curso:', courseHex.substring(0, 10) + '...');
     
     // Referencia a la colección del curso (API compat)
     const linksRef = db.collection('courses').doc(courseHex).collection('links');
+    
+    console.log('[FIRESTORE] 📤 Enviando datos a Firestore...');
     
     // Agregar documento con timestamp del servidor
     const docRef = await linksRef.add({
@@ -430,6 +448,7 @@ window.agregarLinkFirebase = async function(courseHex, label, url) {
     });
     
     console.log('[FIRESTORE] ✅ Link agregado con ID:', docRef.id);
+    console.log('[FIRESTORE] ⏳ Esperando que onSnapshot detecte el cambio...');
     
     // Mostrar modal de éxito
     if (typeof window.showSuccessModal === 'function') {
