@@ -572,10 +572,11 @@
   </div>
 
   <!-- Scripts -->
-  <!-- Firebase (carga dinámica, compatible sin módulos ES6) -->
+  <!-- Firebase (carga primero, sin defer) -->
   <script src="src/firebase.js"></script>
+  <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=3" defer></script>
-  <script src="assets/js/app.js?v=20" defer></script>
+  <script src="assets/js/app.js?v=21" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
