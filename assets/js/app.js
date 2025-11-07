@@ -469,7 +469,7 @@ window.agregarLinkFirebase = async function(courseHex, label, url) {
       );
     }
     
-    return docRef.id;
+    return newLinkRef.key;
     
   } catch (error) {
     console.error('[FIRESTORE] ❌ Error agregando link:', error);
