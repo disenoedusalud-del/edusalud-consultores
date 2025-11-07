@@ -32,6 +32,7 @@ function checkFirebaseStatus() {
 window.addEventListener('firebaseReady', (e) => {
   console.log('[APP] 🔥 Firebase conectado y listo para sincronización en tiempo real');
   console.log('[APP] 📊 Base de datos:', e.detail.db ? 'Firestore activo' : 'No disponible');
+  initFirebaseCustomCoursesRealtime();
 });
 
 // Escuchar evento de error de Firebase
@@ -192,28 +193,64 @@ async function loadRemoteCoursesOnInit(){
   }
 }
 async function addCustomCourse(hex, courseData){
+  const normalizedCourse = {
+    title: courseData?.title || '',
+    meta: courseData?.meta || '',
+    files: Array.isArray(courseData?.files) ? courseData.files : [],
+    card: courseData?.card || {},
+    createdAt: courseData?.createdAt || Date.now(),
+    updatedAt: Date.now()
+  };
+
   const custom = loadCustomCourses();
-  custom[hex] = courseData;
+  custom[hex] = normalizedCourse;
   saveCustomCourses(custom);
-  // ✅ Guardar también en remoto (esperar confirmación)
-  const saveResult = await remoteSaveCourse(hex, courseData).catch(e => {
-    console.error('[ADD COURSE] ❌ Error guardando curso en remoto:', e);
-    alert('⚠️ Error al guardar curso en remoto. El curso está guardado localmente pero no se sincronizará.');
+
+  const db = getFirestoreDB();
+  if (db) {
+    try {
+      const firebasePayload = {
+        ...normalizedCourse,
+        createdAt: normalizedCourse.createdAt || firebase.database.ServerValue.TIMESTAMP,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      };
+      await db.ref(`customCourses/${hex}`).set(firebasePayload);
+      console.log('[ADD COURSE] ✅ Curso guardado en Firebase Realtime Database');
+    } catch (error) {
+      console.error('[ADD COURSE] ❌ Error guardando curso en Firebase:', error);
+      alert('⚠️ Error guardando curso en Firebase. El curso quedó solo localmente.');
+    }
+  } else {
+    console.warn('[ADD COURSE] ⚠️ Firebase no disponible, usando solo almacenamiento local');
+  }
+
+  const saveResult = await remoteSaveCourse(hex, normalizedCourse).catch(e => {
+    console.error('[ADD COURSE] ❌ Error guardando curso en remoto (Sheets):', e);
     return false;
   });
-  
+
   if (saveResult) {
-    console.log('[ADD COURSE] ✅ Curso guardado en remoto correctamente');
-  } else {
-    console.warn('[ADD COURSE] ⚠️ No se pudo guardar en remoto (continuando de todas formas)');
+    console.log('[ADD COURSE] ✅ Curso guardado en Google Sheets como respaldo');
   }
 }
-function removeCustomCourse(hex){
+async function removeCustomCourse(hex){
   const custom = loadCustomCourses();
   delete custom[hex];
   saveCustomCourses(custom);
-  // ✅ Eliminar también en remoto
-  remoteDeleteCourse(hex);
+
+  const db = getFirestoreDB();
+  if (db) {
+    try {
+      await db.ref(`customCourses/${hex}`).remove();
+      console.log('[DELETE COURSE] ✅ Curso eliminado de Firebase');
+    } catch (error) {
+      console.error('[DELETE COURSE] ❌ Error eliminando curso en Firebase:', error);
+    }
+  }
+
+  await remoteDeleteCourse(hex).catch(e => {
+    console.warn('[DELETE COURSE] ⚠️ Error eliminando curso en Google Sheets:', e);
+  });
 }
 function isCustomCourse(hex){
   const custom = loadCustomCourses();
@@ -303,6 +340,71 @@ function getFilesForHex(hex){
 
 // ✅ Almacenar listeners activos por curso (para Master)
 const activeListeners = new Map();
+let customCoursesListener = null;
+let customCoursesRef = null;
+
+function initFirebaseCustomCoursesRealtime() {
+  const db = getFirestoreDB();
+
+  if (!db) {
+    console.log('[FIREBASE COURSES] Firebase no configurado, no se inicia listener de cursos');
+    return;
+  }
+
+  if (customCoursesListener) {
+    return; // Listener ya activo
+  }
+
+  try {
+    customCoursesRef = db.ref('customCourses');
+    customCoursesListener = customCoursesRef.on('value', (snapshot) => {
+      const rawCourses = snapshot.exists() ? snapshot.val() : {};
+      console.log('[FIREBASE COURSES] 📥 Snapshot recibido - Cursos totales:', Object.keys(rawCourses).length);
+
+      // ✅ Guardar cursos en localStorage tal como llegan desde Firebase
+      try {
+        saveCustomCourses(rawCourses || {});
+      } catch (e) {
+        console.warn('[FIREBASE COURSES] ⚠️ No se pudieron guardar cursos en localStorage:', e);
+      }
+
+      if (userInteracting) {
+        console.log('[FIREBASE COURSES] ⏸️ Usuario interactuando, no actualizar vistas');
+        return;
+      }
+
+      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+      const isContentView = document.getElementById('content') && !document.getElementById('content').classList.contains('hidden');
+
+      if (isMasterView) {
+        console.log('[FIREBASE COURSES] ♻️ Re-renderizando grid Master');
+        buildMasterGrid();
+      }
+
+      if (isContentView && currentKeyHex && rawCourses[currentKeyHex]) {
+        console.log('[FIREBASE COURSES] ♻️ Re-renderizando curso personalizado en vista individual');
+        renderCourse(currentKeyHex);
+      }
+    });
+
+    console.log('[FIREBASE COURSES] ✅ Listener de cursos personalizados activo');
+  } catch (error) {
+    console.error('[FIREBASE COURSES] ❌ Error iniciando listener de cursos:', error);
+  }
+}
+
+function teardownFirebaseCustomCoursesRealtime() {
+  if (customCoursesRef && customCoursesListener) {
+    try {
+      customCoursesRef.off('value', customCoursesListener);
+      console.log('[FIREBASE COURSES] 🔕 Listener de cursos desactivado');
+    } catch (error) {
+      console.warn('[FIREBASE COURSES] ⚠️ Error al desactivar listener de cursos:', error);
+    }
+  }
+  customCoursesListener = null;
+  customCoursesRef = null;
+}
 
 /**
  * ✅ FUNCIÓN: Inicializar listeners para TODOS los cursos en Master
@@ -1082,6 +1184,10 @@ async function remoteGetCourses(){
 }
 
 async function refreshCustomCourses(){
+  if (getFirestoreDB()) {
+    console.log('[REFRESH] Firebase maneja cursos personalizados en tiempo real, sin usar JSONP');
+    return false;
+  }
   if (!hasRemote()) {
     console.log('[REFRESH] Sin remoto, saltando...');
     return false;
@@ -1508,6 +1614,9 @@ function buildMasterGrid() {
   grid.innerHTML = '';
 
   const mergedMap = getMergedAccessHashMap();
+
+  initFirebaseCustomCoursesRealtime();
+
   Object.entries(mergedMap).forEach(([hex, data]) => {
     // excluir el master si algún día lo metes en el mismo objeto
     if (hex === MASTER_HASH) return;
@@ -1570,12 +1679,12 @@ function buildMasterGrid() {
         window.showDeleteConfirmModal(data.title, async () => {
           console.log('[DELETE] Eliminando curso:', data.title);
           
-          // ✅ Eliminar curso (local y remoto)
-          removeCustomCourse(hex);
+          // ✅ Eliminar curso (local, Firebase y respaldo)
+          await removeCustomCourse(hex);
           
-          // ✅ Forzar refresh inmediato de cursos para que otros dispositivos vean el cambio
+          // ✅ Firebase sincroniza en tiempo real; fallback remoto solo si Firebase ausente
           await refreshCustomCourses().catch(e => {
-            console.warn('[DELETE] Error refrescando cursos después de eliminar:', e);
+            console.warn('[DELETE] Error refrescando cursos después de eliminar (fallback):', e);
           });
           
           buildMasterGrid();
