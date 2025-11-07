@@ -1728,6 +1728,16 @@ function buildMasterGrid() {
             await window.eliminarLinkFirebase(hex, item.firebaseId);
             console.log('[REMOVE] ✅ Eliminado de Firebase');
             
+            // ✅ CRÍTICO: También eliminar de Google Sheets (sincronización)
+            const currentFiles = getFilesForHex(hex);
+            const updatedFiles = currentFiles.filter(f => f.firebaseId !== item.firebaseId);
+            console.log('[REMOVE] 📊 Actualizando Google Sheets:', currentFiles.length, '→', updatedFiles.length);
+            
+            // Guardar en Google Sheets en segundo plano
+            remoteSaveFiles(hex, updatedFiles).catch(e => {
+              console.warn('[REMOVE] ⚠️ Error actualizando Google Sheets:', e);
+            });
+            
             // ✅ Esperar un momento y luego re-renderizar manualmente
             setTimeout(() => {
               userInteracting = false;
