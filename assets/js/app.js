@@ -1,791 +1,2987 @@
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Content Security Policy: Permite JSONP y scripts necesarios -->
-  <!-- Nota: Si GitHub Pages aplica su propia CSP, esta meta tag podría no tener efecto completo -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://www.gstatic.com https://*.firebaseio.com; connect-src 'self' https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://www.google-analytics.com https://*.firebaseio.com https://www.gstatic.com https://firestore.googleapis.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; frame-src 'self' https://*.google.com https://*.googleusercontent.com;" />
-  <title>Portal de Recursos para Consultores – EduSalud</title>
-  <meta name="description" content="Descarga de toolkits (PPT, logos, manuales de marca, social kit, formatos). Acceso mediante código otorgado por coordinación." />
-  <link rel="icon" type="image/png" href="assets/logo-edusalud.png" />
+/* ===================== FIREBASE FIRESTORE - TIEMPO REAL ===================== */
+// ✅ Firebase se carga dinámicamente desde /src/firebase.js
+// ✅ Compatible con GitHub Pages (sin módulos ES6)
+// ✅ Acceso a Firestore mediante window.firebaseDB
+
+// Variable global para suscripción activa
+let firestoreUnsubscribe = null;
+
+// ✅ Bandera para evitar re-renders durante operaciones del usuario
+let userInteracting = false;
+
+// Función auxiliar para obtener Firestore
+function getFirestoreDB() {
+  return window.firebaseDB || null;
+}
+
+// Verificar si Firebase ya está listo o esperar a que cargue
+function checkFirebaseStatus() {
+  if (window.firebaseDB) {
+    console.log('[APP] ✅ Firebase disponible y listo para usar');
+    return true;
+  } else if (typeof firebase !== 'undefined') {
+    console.log('[APP] ⏳ Firebase cargando, esperando Firestore...');
+    return false;
+  } else {
+    console.log('[APP] ℹ️ Modo sin Firebase (usando solo Google Sheets)');
+    return false;
+  }
+}
+
+// Escuchar evento cuando Firebase esté listo
+window.addEventListener('firebaseReady', (e) => {
+  console.log('[APP] 🔥 Firebase conectado y listo para sincronización en tiempo real');
+  console.log('[APP] 📊 Base de datos:', e.detail.db ? 'Firestore activo' : 'No disponible');
+});
+
+// Escuchar evento de error de Firebase
+window.addEventListener('firebaseError', (e) => {
+  console.log('[APP] ⚠️ Firebase no disponible, usando Google Sheets como backend');
+});
+
+// Verificación inicial
+setTimeout(() => {
+  checkFirebaseStatus();
+}, 1500);
+
+console.log('[APP] Iniciando aplicación con soporte Firebase...');
+
+/* ===================== util ===================== */
+const $ = (s) => document.querySelector(s);
+const toHex = (buffer) =>
+  Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2,'0')).join('');
+
+async function sha256Hex(text) {
+  const data = new TextEncoder().encode(String(text).trim());
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return toHex(hash);
+}
+function setQueryParam(key, value) {
+  const url = new URL(window.location.href);
+  if (value == null) url.searchParams.delete(key); else url.searchParams.set(key, value);
+  history.replaceState({}, '', url);
+}
+function downloadFile(url, label = '') { 
+  window.open(url, '_blank', 'noopener'); 
   
-  <!-- Google Analytics 4 -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TCR727DDDL"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-TCR727DDDL');
-  </script>
-  <!-- /Google Analytics 4 -->
+  // ✅ Google Analytics: Tracking de descarga
+  if (typeof gtag !== 'undefined') {
+    try {
+      const hostname = new URL(url).hostname;
+      gtag('event', 'file_download', {
+        'event_category': 'download',
+        'event_label': label || hostname,
+        'value': 1
+      });
+    } catch(e) {
+      gtag('event', 'file_download', {
+        'event_category': 'download',
+        'event_label': 'unknown'
+      });
+    }
+  }
+}
+
+/* ============ base de cursos (hash -> data) ============ */
+const MASTER_HASH = "7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8"; // EDUMASTER123456987
+
+const ACCESS_HASH_MAP = {
+  "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0": {
+    title: "Diplomado en Gerencia y Administración de Servicios Hospitalarios (GASH) – 3ª Ed. 2025",
+    meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
+    files: [
+      { label: "Logos (PNG)", url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
+      { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/drive/folders/14E42MPlcjsIcc6OWNCYJ2J1HRzcdr21F?usp=sharing" },
+      { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
+      { label: "Social Kit (JPG)", url: "https://drive.google.com/drive/folders/1FbTQSAMZk84de7ykDs9YmMmp7z1Pyufr?usp=sharing" },
+      { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" },
+      { label: "Platform toolkit (web)", url: "https://www.notion.so/Plataformas-para-Docentes-estudiantes-29b7e88eb31a8029a710dc4ec95809f3?source=copy_link" }
+    ],
+    card: { img: "assets/IMG/D_GASH_B1.jpg", tag: "GASH", variant: "dramatic", seed: 7, accent: "#5aa9ff" }
+  },
+
+  "88f62dd4f34bc0c54550634cee859bb2178aa0e69041e1bee3be5a132e1c7456": {
+    title: "Curso Manejo Básico de Fracturas (MBF) – 2ª Ed. 2025",
+    meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
+    files: [
+      { label: "Logos (PNG)", url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
+      { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/drive/folders/1qJqRPO2akiosdJ9BMBXp49gYgrRExcD2?usp=sharing" },
+      { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
+      { label: "Social Kit (JPG)", url: "https://drive.google.com/drive/folders/1msdy6xita4RcTesyg7qV3Q51WGu97qPZ?usp=sharing" },
+      { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" },
+      { label: "Platform toolkit (web)", url: "https://www.notion.so/Plataformas-para-Docentes-estudiantes-29b7e88eb31a8029a710dc4ec95809f3?source=copy_link" }
+    ],
+    card: { img: "assets/IMG/C_MBF_2026_B1.jpg", tag: "MBF", variant: "neon", seed: 11, accent: "#8be9fd" }
+  },
+
+  "4544b187690fbe2b84c7b20f7d9fe3d9330419f6f8fc42998fa7348dc3ae2907": {
+    title: "Curso Abordaje de Hemorragias Gineo-Obstétricas – 2025",
+    meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
+    files: [
+      { label: "Logos (PNG)",             url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
+      { label: "Manual de Marca (PDF)",   url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
+      { label: "Social Kit (JPG)",        url: "https://drive.google.com/drive/folders/1KJkd0InpGNF-iTFObDc4CuC4A8DCGpuF?usp=sharing" },
+      { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" },
+      { label: "Platform toolkit (web)", url: "https://www.notion.so/Plataformas-para-Docentes-estudiantes-29b7e88eb31a8029a710dc4ec95809f3?source=copy_link" }
+    ],
+    card: { img: "assets/IMG/C_CAHGO_2025_B1.jpg", tag: "AHGO2", variant: "neon", seed: 3, accent: "#8be9fd" }
+  }
+};
+
+/* ============ persistencia de cursos personalizados ============ */
+const CUSTOM_COURSES_KEY = 'edusalud_custom_courses';
+function loadCustomCourses(){
+  try {
+    // ✅ Verificar que localStorage está disponible (importante para modo incógnito)
+    if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
+      console.warn('[STORAGE] localStorage no disponible (modo incógnito?)');
+      return {};
+    }
+    const raw = localStorage.getItem(CUSTOM_COURSES_KEY);
+    const obj = raw ? JSON.parse(raw) : null;
+    return typeof obj === 'object' && obj !== null ? obj : {};
+  } catch (e) {
+    console.warn('[STORAGE] Error cargando cursos personalizados:', e);
+    return {};
+  }
+}
+function saveCustomCourses(courses){
+  try {
+    // ✅ Verificar que localStorage está disponible
+    if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
+      console.warn('[STORAGE] localStorage no disponible, no se pueden guardar cursos');
+      return;
+    }
+    localStorage.setItem(CUSTOM_COURSES_KEY, JSON.stringify(courses || {}));
+  } catch (e) {
+    console.warn('[STORAGE] Error guardando cursos personalizados:', e);
+  }
+}
+function getMergedAccessHashMap(){
+  // ✅ Siempre devolver al menos los cursos base, incluso si falla localStorage
+  const base = ACCESS_HASH_MAP || {};
   
-  <style>
-    :root{
-      --bg:#0b1020;
-      --muted:#9fb1d1;
-      --text:#eaf1ff;
-      --accent:#5aa9ff;
-      --accent-2:#8be9fd;
-      --danger:#ff7a7a;
-    }
+  // ✅ Verificar que base tiene contenido (importante para modo incógnito)
+  if (!base || typeof base !== 'object' || Object.keys(base).length === 0) {
+    console.error('[HASHMAP] ⚠️ ACCESS_HASH_MAP está vacío o undefined!');
+    return {}; // Retornar objeto vacío en lugar de fallar
+  }
+  
+  let custom = {};
+  try {
+    custom = loadCustomCourses();
+  } catch (e) {
+    console.warn('[HASHMAP] Error cargando cursos custom, usando solo base:', e);
+  }
+  
+  // Combinar base con custom (base siempre debe existir)
+  const merged = Object.assign({}, base, custom);
+  console.log('[HASHMAP] Cursos base:', Object.keys(base).length, 'Custom:', Object.keys(custom).length, 'Total:', Object.keys(merged).length);
+  
+  return merged;
+}
 
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial;
-      background:
-        radial-gradient(1200px 800px at 80% -10%, rgba(90,169,255,.12), transparent),
-        radial-gradient(900px 700px at -10% 120%, rgba(139,233,253,.06), transparent),
-        var(--bg);
-      color:var(--text);
-      min-height:100vh;
-    }
+// Cargar cursos remotos al inicio
+async function loadRemoteCoursesOnInit(){
+  // Cargar cursos remotos sin sessionStorage para que siempre cargue
+  try {
+    await refreshCustomCourses();
+  } catch (e) {
+    console.warn('[INIT] Error cargando cursos remotos al inicio (continuando):', e);
+    // No bloquear la carga si falla
+  }
+}
+async function addCustomCourse(hex, courseData){
+  const custom = loadCustomCourses();
+  custom[hex] = courseData;
+  saveCustomCourses(custom);
+  // ✅ Guardar también en remoto (esperar confirmación)
+  const saveResult = await remoteSaveCourse(hex, courseData).catch(e => {
+    console.error('[ADD COURSE] ❌ Error guardando curso en remoto:', e);
+    alert('⚠️ Error al guardar curso en remoto. El curso está guardado localmente pero no se sincronizará.');
+    return false;
+  });
+  
+  if (saveResult) {
+    console.log('[ADD COURSE] ✅ Curso guardado en remoto correctamente');
+  } else {
+    console.warn('[ADD COURSE] ⚠️ No se pudo guardar en remoto (continuando de todas formas)');
+  }
+}
+function removeCustomCourse(hex){
+  const custom = loadCustomCourses();
+  delete custom[hex];
+  saveCustomCourses(custom);
+  // ✅ Eliminar también en remoto
+  remoteDeleteCourse(hex);
+}
+function isCustomCourse(hex){
+  const custom = loadCustomCourses();
+  return hex in custom;
+}
 
-    .wrap{ max-width:1100px; margin:0 auto; padding:28px 20px; }
+/* ============ persistencia de enlaces por curso ============ */
+const FILES_STORAGE_PREFIX = 'edusalud_files_';
+const CACHE_VERSION_KEY = 'edusalud_cache_version';
+const CURRENT_CACHE_VERSION = '1.2'; // Incrementar para forzar limpieza
 
-    header{ display:grid; grid-template-columns: 1fr 360px; gap:20px; align-items:center; margin-bottom:18px; }
-    @media (max-width:980px){ header{ grid-template-columns:1fr } .hero{ display:none } }
+function storageKeyFor(hex){ return FILES_STORAGE_PREFIX + hex; }
 
-    .logo {
-      width:56px;
-      height:56px;
-      padding:8px;
-      border-radius:12px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      box-shadow: 0 8px 30px rgba(90,169,255,.25);
-      overflow:hidden;
-      box-sizing:border-box;
-      flex:0 0 auto;
+// ✅ Verificar versión de caché (YA NO limpia automáticamente)
+function checkAndCleanOldCache(){
+  try {
+    const storedVersion = localStorage.getItem(CACHE_VERSION_KEY);
+    if (storedVersion !== CURRENT_CACHE_VERSION) {
+      console.log('[CACHE] ℹ️ Nueva versión detectada:', CURRENT_CACHE_VERSION);
+      // SOLO actualizar versión, NO limpiar datos
+      // Los datos se sincronizarán con remoto automáticamente
+      localStorage.setItem(CACHE_VERSION_KEY, CURRENT_CACHE_VERSION);
+      console.log('[CACHE] ✅ Versión actualizada, datos se sincronizarán automáticamente');
+      return true;
     }
-    .logo-img { max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; display:block; }
+    return false;
+  } catch (e) {
+    console.warn('[CACHE] Error verificando versión:', e);
+    return false;
+  }
+}
 
-    h1{ margin:0; font-size:clamp(20px, 2.6vw, 34px); line-height:1.05; }
-    p.lead{ color:var(--muted); margin:6px 0 0; font-size:14px; max-width:58ch; }
-
-    .hero img{ max-width:50%; height:auto; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.45); display:inline-block }
-
-    .card{
-      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.06));
-      border: 1px solid rgba(255,255,255,.04);
-      border-radius:14px;
-      padding:18px;
-      box-shadow:0 8px 24px rgba(0,0,0,.25);
-      backdrop-filter: blur(4px);
-    }
-
-    .grid{ display:grid; gap:16px; }
-    .grid.cols-2{ grid-template-columns: 1fr; }
-    @media (min-width:900px){ .grid.cols-2 { grid-template-columns: 1fr 1fr; } }
-
-    label{ display:block; font-weight:600; margin-bottom:8px; }
-    .row{ display:flex; gap:10px; align-items:stretch; }
-    .input{
-      flex:1 1 auto;
-      border:1px solid rgba(255,255,255,.08);
-      background:#0e1630;
-      color:var(--text);
-      padding:12px 14px;
-      border-radius:12px;
-      outline:none;
-    }
-    .input:focus{ border-color:var(--accent); box-shadow:0 0 0 4px rgba(90,169,255,.12); }
-
-    .btn{
-      border:none;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      color:#062033;
-      font-weight:800;
-      padding:12px 16px;
-      border-radius:12px;
-      cursor:pointer;
-      transition: transform .06s;
-    }
-    .btn:hover{ transform: translateY(-1px); }
-    .btn.secondary{ background:#19213d; color:var(--text); border:1px solid rgba(255,255,255,.06); }
-
-    .msg{ margin-top:8px; font-size:14px; color:var(--muted); }
-    .msg.error{ color:var(--danger); }
-
-    .filelist{ display:grid; gap:10px; margin-top:12px; }
-    .file{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid rgba(255,255,255,.06); border-radius:12px; background:#0e1630; }
-    .file strong{ font-size:14px; }
-    .meta{ color:var(--muted); font-size:13px; }
-
-    .access-hero{ display:flex; align-items:center; justify-content:center; padding-left:10px; }
-    .access-hero img{
-      width:220px;
-      max-width:100%;
-      height:auto;
-      border-radius:10px;
-      box-shadow:0 8px 28px rgba(0,0,0,.45);
-      transform: translateY(2px);
-    }
-    @media (max-width:900px){ .access-hero{ display:none } }
-
-    .footer{ margin:28px 0 8px; color:var(--muted); font-size:12px; text-align:center; }
-    .hidden{ display:none !important; }
-    .sr-only{ position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden }
-
-    /* Botón flotante de recarga */
-    .reload-fab {
-      position: fixed;
-      bottom: 28px;
-      right: 28px;
-      width: 58px;
-      height: 58px;
-      border: none;
-      border-radius: 50%;
-      display: none; /* ✅ Oculto por defecto hasta autenticación */
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      color: #062033;
-      cursor: pointer;
-      box-shadow: 0 12px 38px rgba(90,169,255,0.36);
-      transition: transform 0.12s ease, box-shadow 0.12s ease;
-      z-index: 999;
-    }
-    .reload-fab.visible {
-      display: flex; /* ✅ Se muestra cuando está autenticado */
-    }
-    .reload-fab:hover {
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 16px 40px rgba(90,169,255,0.42);
-    }
-    .reload-fab:focus-visible {
-      outline: 3px solid rgba(90,169,255,0.65);
-      outline-offset: 4px;
-    }
-    .reload-fab svg {
-      width: 22px;
-      height: 22px;
-    }
-    .reload-fab.loading svg {
-      animation: spin 0.9s linear infinite;
-    }
-    /* Estado: cambios pendientes */
-    .reload-fab.has-changes {
-      background: linear-gradient(135deg, #ffd93d, #f59e0b);
-      box-shadow: 0 12px 38px rgba(255, 217, 61, 0.48);
-      animation: pulse-yellow 2s ease-in-out infinite;
-    }
-    .reload-fab.has-changes:hover {
-      box-shadow: 0 16px 40px rgba(255, 217, 61, 0.6);
-    }
-    @keyframes pulse-yellow {
-      0%, 100% {
-        box-shadow: 0 12px 38px rgba(255, 217, 61, 0.48);
+function loadFilesOverride(hex){
+  try {
+    const raw = localStorage.getItem(storageKeyFor(hex));
+    const arr = raw ? JSON.parse(raw) : null;
+    return Array.isArray(arr) ? arr : null;
+  } catch (e) { return null; }
+}
+function saveFilesOverride(hex, files){
+  try {
+    const key = storageKeyFor(hex);
+    const value = JSON.stringify(files || []);
+    localStorage.setItem(key, value);
+    console.log('[STORAGE] 💾 Guardados', files.length, 'archivos para hex:', hex.substring(0, 8));
+  } catch (e) {
+    console.error('[STORAGE] ❌ Error guardando archivos:', e);
+  }
+}
+function clearFilesOverride(hex){
+  try { localStorage.removeItem(storageKeyFor(hex)); } catch(e) {}
+}
+// ✅ Limpiar TODOS los overrides de archivos
+function clearAllFilesOverrides(){
+  try {
+    const keys = Object.keys(localStorage);
+    let count = 0;
+    keys.forEach(key => {
+      if (key.startsWith(FILES_STORAGE_PREFIX)) {
+        localStorage.removeItem(key);
+        count++;
       }
-      50% {
-        box-shadow: 0 12px 48px rgba(255, 217, 61, 0.7);
-      }
-    }
-    @media (max-width: 640px) {
-      .reload-fab {
-        bottom: 22px;
-        right: 22px;
-        width: 54px;
-        height: 54px;
-      }
-    }
+    });
+    console.log('[CACHE] 🧹 Limpiados', count, 'archivos de localStorage');
+    return count;
+  } catch (e) {
+    console.warn('[CACHE] Error limpiando archivos:', e);
+    return 0;
+  }
+}
+function getBaseFilesForHex(hex){
+  const base = ACCESS_HASH_MAP[hex]?.files;
+  return Array.isArray(base) ? base.slice() : [];
+}
+function getFilesForHex(hex){
+  const override = loadFilesOverride(hex);
+  if (override) {
+    // console.log('[FILES] Usando override para', hex.substring(0,8), ':', override.length, 'archivos');
+    return override;
+  }
+  const base = getBaseFilesForHex(hex);
+  // console.log('[FILES] Usando base para', hex.substring(0,8), ':', base.length, 'archivos');
+  return base;
+}
 
-    /* Loader (original) */
-    .edu-loader {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-      background: linear-gradient(180deg, rgba(2,6,12,0.94), rgba(0,0,0,0.96));
-      color: #fff;
-      z-index: 99999;
-      padding: 18px;
-      text-align: center;
-      font-family: "Roboto Mono", monospace;
-    }
-    .edu-loader.hidden { display: none !important; }
-    .loader-ring {
-      width: 88px;
-      height: 88px;
-      border-radius: 50%;
-      display:grid;
-      place-items:center;
-      box-shadow: 0 8px 40px rgba(90,169,255,0.08), inset 0 0 16px rgba(63,176,255,0.04);
-    }
-    .loader-ring:after{
-      content: "";
-      width: 62px;
-      height: 62px;
-      border-radius:50%;
-      border: 4px solid rgba(255,255,255,0.06);
-      border-top-color: #6ee7ff;
-      animation: spin 900ms linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loader-text { font-weight:700; font-size:15px; letter-spacing:0.6px; color:#dff7ff; }
-    .loader-progress {
-      width: 380px;
-      max-width: calc(100% - 48px);
-      height: 10px;
-      background: rgba(255,255,255,0.04);
-      border-radius: 999px;
-      overflow: hidden;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
-    }
-    .loader-progress > i {
-      display:block; height:100%; width:0%; background: linear-gradient(90deg,#6ee7ff,#7c5cff); border-radius:999px;
-      transition: width .14s linear;
-    }
-    .loader-percent { font-size:13px; color:rgba(255,255,255,0.75); margin-top:6px; }
+/* ===================== FIREBASE FIRESTORE - FUNCIONES EN TIEMPO REAL ===================== */
 
-    /* Layout curso */
-    .course-row { display:flex; gap:18px; align-items:flex-start; }
-    .card-left-wrapper { flex: 0 0 360px; }
-    .card-right { flex: 1 1 auto; }
-    @media (max-width:900px) { .course-row { flex-direction:column } .card-left-wrapper { width:100%; } }
+// ✅ Almacenar listeners activos por curso (para Master)
+const activeListeners = new Map();
 
-    /* Vista Master */
-    #master { margin-top:16px; }
-    .master-grid { display:grid; gap:16px; }
-    .master-card{
-      display:grid;
-      grid-template-columns: 360px 1fr;
-      gap:18px;
-      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.06));
-      border: 1px solid rgba(255,255,255,.04);
-      border-radius:14px;
-      padding:18px;
-      box-shadow:0 8px 24px rgba(0,0,0,.25);
-      backdrop-filter: blur(4px);
+/**
+ * ✅ FUNCIÓN: Inicializar listeners para TODOS los cursos en Master
+ */
+function initFirestoreRealtimeMaster(courseHexes) {
+  const db = getFirestoreDB();
+  
+  if (!db) {
+    console.log('[FIRESTORE] Firebase no configurado para Master');
+    return;
+  }
+  
+  console.log('[FIRESTORE] 🔥 Iniciando listeners para', courseHexes.length, 'cursos en Master');
+  
+  // Limpiar listeners antiguos que ya no están en la lista
+  activeListeners.forEach((unsubscribe, hex) => {
+    if (!courseHexes.includes(hex)) {
+      console.log('[FIRESTORE] Desuscribiendo listener obsoleto:', hex.substring(0, 10));
+      unsubscribe();
+      activeListeners.delete(hex);
     }
-    .master-card .left{ min-height:220px; }
-    .master-card .right .filelist{ margin-top:0; }
-    @media (max-width:900px){
-      .master-card{ grid-template-columns: 1fr; }
-      .master-card .left{ order: -1; }
+  });
+  
+  // Crear listeners para cursos nuevos
+  courseHexes.forEach(courseHex => {
+    if (activeListeners.has(courseHex)) {
+      return; // Ya tiene listener
     }
-    .master-search{
-      display:flex; gap:10px; align-items:center;
-      margin: 6px 0 14px;
-    }
-    .master-search input{
-      flex:1 1 auto;
-      border:1px solid rgba(255,255,255,.08);
-      background:#0e1630; color:var(--text);
-      padding:10px 12px; border-radius:12px; outline:none;
-    }
-    .master-search input:focus{
-      border-color:var(--accent);
-      box-shadow:0 0 0 4px rgba(90,169,255,.12);
-    }
-    .master-search button{
-      border:none; background:#19213d; color:var(--text);
-      border:1px solid rgba(255,255,255,.06);
-      padding:10px 14px; border-radius:12px; cursor:pointer;
-    }
-    .master-search button:hover{ transform: translateY(-1px); }
     
-    /* Modal para agregar curso */
-    .modal {
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0,0,0,0.8);
-      backdrop-filter: blur(4px);
-      z-index: 9999;
-    }
-    .modal.show { display: flex; }
-    .modal-content {
-      background: var(--bg);
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 16px;
-      padding: 24px;
-      max-width: 600px;
-      width: calc(100% - 40px);
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 12px 48px rgba(0,0,0,0.4);
-    }
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    .modal-header h2 { margin: 0; }
-    .modal-close {
-      background: none;
-      border: none;
-      color: var(--text);
-      font-size: 24px;
-      cursor: pointer;
-      padding: 0;
-      width: 32px;
-      height: 32px;
-      line-height: 32px;
-    }
-    .modal-close:hover { color: var(--danger); }
-    .form-group { margin-bottom: 16px; }
-    .form-group label {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: 600;
-      font-size: 14px;
-    }
-    .form-group .input {
-      width: 100%;
-      box-sizing: border-box;
-    }
-    .form-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 24px;
-      justify-content: flex-end;
-    }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <header>
-      <div style="display:flex; gap:16px; align-items:center;">
-        <div class="logo" aria-hidden="false">
-          <img src="assets/logo-edusalud.png" alt="EduSalud" class="logo-img" />
-        </div>
-        <div>
-          <h1>Portal de Recursos para Consultores · EduSalud</h1>
-          <p class="lead">Descargue materiales oficiales (PPT, logos, manual de marca, social kit, formatos). Acceso mediante código otorgado por el departamento de comunicaciones.</p>
-        </div>
-      </div>
-
-      <div class="hero" aria-hidden="true">
-        <img src="assets/static-assets-amico.png" alt="Ilustración consultores EduSalud" />
-      </div>
-    </header>
-
-    <!-- ACCESO -->
-    <section id="access" class="card" aria-labelledby="access-title">
-      <h2 id="access-title" class="sr-only">Acceso restringido</h2>
-      <div class="grid cols-2" style="align-items:center;">
-        <div>
-          <label for="code">Ingrese su código de acceso</label>
-          <div class="row">
-            <input id="code" class="input" type="text" placeholder="Ej. ABC0-0000" autocomplete="one-time-code" aria-label="Código de acceso" />
-            <button id="btn-enter" class="btn" type="button">Entrar</button>
-          </div>
-          <div id="msg" class="msg">Si no tiene código, solicítelo a comunicaciones.</div>
-        </div>
-
-        <div class="access-hero" aria-hidden="true">
-          <img src="assets/asset-selection-cuate.png" alt="Ilustración de consultoría" />
-        </div>
-      </div>
-    </section>
-
-    <!-- CONTENIDO (1 curso) -->
-    <section id="content" class="hidden" style="margin-top:16px;">
-      <div class="card" id="courseCard">
-        <div class="course">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-            <div>
-              <h3 id="courseTitle">Curso / Diplomado</h3>
-              <div class="meta" id="courseMeta">Material oficial para consultoría</div>
-            </div>
-            <div class="row">
-              <button id="btn-copy-code-link" class="btn secondary" type="button" title="Comparte un link que precarga el código">Compartir enlace con código</button>
-              <button id="btn-logout" class="btn secondary" type="button">Salir</button>
-            </div>
-          </div>
-
-          <hr style="border:0; border-top:1px solid rgba(255,255,255,.06);" />
-
-          <div class="course-row" style="margin-top:12px;">
-            <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() coloca la tarjeta aquí --></div>
-            <div class="card-right">
-              <div class="filelist" id="filelist" aria-live="polite"></div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <p class="footer">© <span id="year"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
-    </section>
-
-    <!-- VISTA MAESTRA -->
-    <section id="master" class="hidden">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
-        <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
-        <div class="row">
-          <button id="btn-add-course" class="btn" type="button">➕ Agregar curso</button>
-          <button id="btn-master-copy" class="btn secondary" type="button">Compartir enlace con código</button>
-          <button id="btn-master-exit" class="btn secondary" type="button">Salir</button>
-        </div>
-      </div>
-
-      <!-- Buscador -->
-      <div class="master-search">
-        <input id="masterSearch" type="text" placeholder="Buscar por nombre o tag (ej. GASH, MBF, AHGO2)..." />
-        <button id="masterSearchClear" type="button" title="Limpiar">Limpiar</button>
-      </div>
-
-      <div class="master-grid" id="masterGrid"></div>
-      <p class="footer">© <span id="year_master"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
-    </section>
-  </div>
-
-  <!-- Botón flotante para sincronización manual -->
-  <button id="btn-speed-refresh" class="reload-fab" type="button" aria-label="Sincronizar recursos" title="Sincronizar recursos desde el servidor">
-    <span class="sr-only">Sincronizar recursos</span>
-    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-    </svg>
-  </button>
-
-  <!-- Loader -->
-  <div id="eduLoader" class="edu-loader hidden" aria-hidden="true" role="alert" aria-live="polite">
-    <div class="loader-ring" aria-hidden="true"></div>
-    <div class="loader-text">Cargando recursos...</div>
-    <div class="loader-progress" aria-hidden="true"><i id="loaderBar"></i></div>
-    <div id="loaderPercent" class="loader-percent">0%</div>
-  </div>
-
-  <!-- Modal Agregar Curso -->
-  <div id="modalAddCourse" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>➕ Agregar Nuevo Curso</h2>
-        <button class="modal-close" id="modalAddCourseClose">&times;</button>
-      </div>
-      <form id="formAddCourse">
-        <div class="form-group">
-          <label for="inputCourseTitle">Título del Curso *</label>
-          <input id="inputCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required />
-        </div>
-        <div class="form-group">
-          <label for="inputCourseMeta">Descripción / Meta *</label>
-          <input id="inputCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required />
-        </div>
-        <div class="form-group">
-          <label for="inputCourseImage">URL de la Imagen *</label>
-          <input id="inputCourseImage" class="input" type="url" placeholder="https://..." required />
-          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
-            📁 Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="inputCourseTag">Tag del Curso *</label>
-          <input id="inputCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" />
-        </div>
-        <div class="form-group">
-          <label for="selectCourseVariant">Estilo Visual *</label>
-          <select id="selectCourseVariant" class="input" required>
-            <option value="dramatic">Dramatic (Azul)</option>
-            <option value="neon">Neon (Cian)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="inputCourseAccent">Color Accent</label>
-          <div style="display:flex; gap:10px;">
-            <input id="inputCourseAccent" class="input" type="color" value="#5aa9ff" />
-            <input type="text" class="input" id="inputCourseAccentHex" value="#5aa9ff" maxlength="7" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="inputCourseCode">Código Secreto (se auto-generará) *</label>
-          <input id="inputCourseCode" class="input" type="text" placeholder="Ingresa un código único, ej: CURSO123456" required />
-        </div>
-        <div class="form-actions">
-          <button type="button" class="btn secondary" id="btnCancelAddCourse">Cancelar</button>
-          <button type="submit" class="btn">Crear Curso</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal de confirmación para eliminar curso -->
-  <div id="deleteConfirmModal" class="modal">
-    <div class="modal-overlay"></div>
-    <div class="modal-content" style="max-width: 500px;">
-      <div class="modal-header">
-        <h2>Confirmar Eliminación</h2>
-        <button class="modal-close" id="deleteConfirmClose" aria-label="Cerrar">&times;</button>
-      </div>
+    try {
+      const linksRef = db.ref(`courses/${courseHex}/links`);
       
-      <div style="text-align: center; padding: 20px 0;">
-        <!-- Icono de advertencia -->
-        <div style="width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 50%; background: linear-gradient(135deg, rgba(255,90,90,0.2), rgba(255,90,90,0.1)); display: flex; align-items: center; justify-content: center;">
-          <svg style="width: 40px; height: 40px; color: var(--danger);" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-          </svg>
-        </div>
+      const unsubscribe = linksRef.on('value', (snapshot) => {
+        const firebaseLinks = [];
         
-        <h3 id="deleteCourseName" style="margin-bottom: 12px; font-size: 20px;"></h3>
-        <p style="color: var(--muted); margin-bottom: 24px;">
-          ¿Estás seguro de que deseas eliminar este curso?<br>
-          <strong style="color: var(--danger);">Esta acción no se puede deshacer.</strong>
-        </p>
-      </div>
-      
-      <div style="display: flex; gap: 12px; justify-content: center;">
-        <button id="deleteConfirmCancel" class="btn secondary" type="button">
-          Cancelar
-        </button>
-        <button id="deleteConfirmYes" class="btn" type="button" style="background: linear-gradient(135deg, #ff5555, #cc0000);">
-          Sí, eliminar
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal de éxito -->
-  <div id="successModal" class="modal">
-    <div class="modal-overlay"></div>
-    <div class="modal-content" style="max-width: 450px;">
-      <button class="modal-close" id="successModalClose" aria-label="Cerrar">&times;</button>
-      
-      <div style="text-align: center; padding: 30px 20px;">
-        <!-- Icono de éxito -->
-        <div style="width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 50%; background: linear-gradient(135deg, rgba(74,222,128,0.2), rgba(34,197,94,0.1)); display: flex; align-items: center; justify-content: center;">
-          <svg style="width: 45px; height: 45px; color: #4ade80;" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-          </svg>
-        </div>
-        
-        <h3 id="successModalTitle" style="margin-bottom: 12px; font-size: 22px; color: #4ade80;">¡Éxito!</h3>
-        <p id="successModalMessage" style="color: var(--muted); margin-bottom: 28px; font-size: 16px;">
-          El curso ha sido creado correctamente.
-        </p>
-        
-        <button id="successModalBtn" class="btn" type="button" style="min-width: 140px; background: linear-gradient(135deg, #4ade80, #22c55e);">
-          Continuar
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Scripts -->
-  <!-- Firebase Realtime Database (100% gratis, sin facturación) -->
-  <script src="src/firebase.js?v=3"></script>
-  <!-- App scripts (esperan a que Firebase cargue) -->
-  <script src="assets/js/electric-card.js?v=3" defer></script>
-  <script src="assets/js/app.js?v=35" defer></script>
-  <script>
-    window.addEventListener('DOMContentLoaded', () => {
-      const refreshBtn = document.getElementById('btn-speed-refresh');
-      if (!refreshBtn) return;
-
-      // ✅ Variable global para controlar estado del botón
-      window.btnSyncHasChanges = false;
-      
-      // ✅ Función para actualizar el estado visual del botón
-      window.updateSyncButtonState = (hasChanges) => {
-        if (hasChanges !== window.btnSyncHasChanges) {
-          window.btnSyncHasChanges = hasChanges;
-          if (hasChanges) {
-            refreshBtn.classList.add('has-changes');
-            refreshBtn.setAttribute('title', '🟡 Nuevos recursos disponibles - Click para sincronizar');
-            console.log('[FAB] 🟡 Botón cambió a AMARILLO (cambios detectados)');
-          } else {
-            refreshBtn.classList.remove('has-changes');
-            refreshBtn.setAttribute('title', 'Sincronizar recursos desde el servidor');
-            console.log('[FAB] 🔵 Botón cambió a AZUL (sin cambios)');
-          }
-        }
-      };
-
-      const runRefresh = async () => {
-        if (refreshBtn.disabled) {
-          return;
-        }
-
-        refreshBtn.disabled = true;
-        refreshBtn.classList.add('loading');
-
-        try {
-          console.log('[FAB] 🔄 Forzando sincronización desde servidor...');
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          Object.keys(data).forEach((key) => {
+            firebaseLinks.push({
+              id: key,
+              ...data[key]
+            });
+          });
           
-          // ✅ Llamar a la función global de refresh forzado (sin borrar localStorage)
-          if (typeof window.forzarSincronizacion === 'function') {
-            await window.forzarSincronizacion();
-            console.log('[FAB] ✅ Sincronización completada');
-            
-            // ✅ Resetear estado a azul después de sincronizar
-            window.updateSyncButtonState(false);
-            
-            // ✅ El modal se muestra desde forzarSincronizacion() en app.js
-          } else {
-            console.warn('[FAB] forzarSincronizacion no está disponible. Recargando...');
-            location.reload(true);
+          firebaseLinks.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          console.log('[FIREBASE] 📥 Cambio detectado en', courseHex.substring(0, 10), ':', firebaseLinks.length, 'links');
+        }
+        
+        mergeFirestoreLinks(courseHex, firebaseLinks);
+      });
+      
+      activeListeners.set(courseHex, () => linksRef.off('value', unsubscribe));
+      console.log('[FIRESTORE] ✅ Listener activo para:', courseHex.substring(0, 10));
+      
+    } catch (error) {
+      console.error('[FIRESTORE] ❌ Error iniciando listener para', courseHex.substring(0, 10), ':', error);
+    }
+  });
+}
+
+/**
+ * ✅ FUNCIÓN: Inicializar listeners de Firestore en tiempo real
+ * Se ejecuta cuando se renderiza un curso para escuchar cambios en tiempo real
+ */
+function initFirestoreRealtime(courseHex) {
+  const db = getFirestoreDB();
+  
+  // Verificar que Firebase esté disponible
+  if (!db) {
+    console.log('[FIRESTORE] Firebase no configurado, continuando sin tiempo real');
+    return;
+  }
+
+  // Desuscribir listeners anteriores si existen
+  if (firestoreUnsubscribe) {
+    console.log('[FIRESTORE] Desuscribiendo listener anterior');
+    firestoreUnsubscribe();
+    firestoreUnsubscribe = null;
+  }
+
+  if (!courseHex || courseHex === MASTER_HASH) {
+    console.log('[FIRESTORE] No iniciar listener en vista master');
+    return;
+  }
+
+  console.log('[FIRESTORE] 🔥 Iniciando listener en tiempo real para curso:', courseHex.substring(0, 10) + '...');
+
+  try {
+    // Referencia a la ruta de links de este curso (Realtime Database)
+    const linksRef = db.ref(`courses/${courseHex}/links`);
+
+    // ✅ SUSCRIBIRSE a cambios en tiempo real
+    firestoreUnsubscribe = linksRef.on('value', (snapshot) => {
+      console.log('[FIREBASE] 📥 Evento disparado - Snapshot existe:', snapshot.exists());
+      
+      const firebaseLinks = [];
+      
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const linkCount = Object.keys(data).length;
+        console.log('[FIREBASE] 📥 Links en Firebase:', linkCount);
+        
+        // Convertir objeto a array
+        Object.keys(data).forEach((key) => {
+          firebaseLinks.push({
+            id: key,
+            ...data[key]
+          });
+        });
+        
+        // Ordenar por createdAt descendente
+        firebaseLinks.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        
+        console.log('[FIREBASE] 📥 Cambios detectados - Total de links:', linkCount);
+        console.log('[FIREBASE] 📝 Links:', firebaseLinks.map(l => l.label).join(', '));
+      } else {
+        console.log('[FIREBASE] ℹ️ Sin datos en Firebase (primera carga o curso vacío)');
+      }
+
+      // ✅ Combinar links de Firebase con los de localStorage
+      mergeFirestoreLinks(courseHex, firebaseLinks);
+      
+    }, (error) => {
+      console.error('[FIREBASE] ❌ Error en listener:', error);
+      console.error('[FIREBASE] ❌ Código de error:', error.code);
+      console.error('[FIREBASE] ❌ Mensaje:', error.message);
+    });
+    
+    // Función para desuscribirse (actualizada para Realtime Database)
+    const originalUnsubscribe = firestoreUnsubscribe;
+    firestoreUnsubscribe = () => {
+      if (originalUnsubscribe) {
+        linksRef.off('value', originalUnsubscribe);
+      }
+    };
+    
+  } catch (error) {
+    console.error('[FIREBASE] ❌ Error iniciando listener:', error);
+  }
+}
+
+/**
+ * ✅ FUNCIÓN: Combinar links de Firestore con localStorage y actualizar vista
+ */
+function mergeFirestoreLinks(courseHex, firestoreLinks) {
+  console.log('[FIRESTORE] 🔥 Firebase es la FUENTE DE VERDAD - Total:', firestoreLinks.length, 'links');
+  
+  const firebaseFormatted = firestoreLinks.map(link => ({
+    label: link.label || '',
+    url: link.url || '',
+    firebaseId: link.id,
+    createdAt: link.createdAt
+  }));
+  
+  const baseLinks = ACCESS_HASH_MAP[courseHex]?.files || [];
+  const merged = [];
+  const normalizeUrl = (url = '') => String(url || '').trim();
+  
+  // ✅ Siempre mantener los links base definidos en el código (tarjetas iniciales)
+  baseLinks.forEach(baseLink => {
+    const normalized = normalizeUrl(baseLink.url);
+    const baseEntry = {
+      label: baseLink.label || '',
+      url: baseLink.url || '',
+      firebaseId: baseLink.firebaseId || null,
+      createdAt: baseLink.createdAt || null
+    };
+    merged.push(baseEntry);
+  });
+  
+  // ✅ Combinar Firebase encima de la base (sobrescribe por URL)
+  firebaseFormatted.forEach(fbLink => {
+    const normalized = normalizeUrl(fbLink.url);
+    if (!normalized) {
+      merged.push(fbLink);
+      return;
+    }
+    const existingIndex = merged.findIndex(link => normalizeUrl(link.url) === normalized);
+    if (existingIndex >= 0) {
+      merged[existingIndex] = { ...merged[existingIndex], ...fbLink };
+    } else {
+      merged.push(fbLink);
+    }
+  });
+  
+  saveFilesOverride(courseHex, merged);
+  
+  // ✅ NO re-renderizar si el usuario está interactuando
+  if (userInteracting) {
+    console.log('[FIRESTORE] ⏸️ Usuario interactuando, posponer re-render');
+    return;
+  }
+  
+  // ✅ RE-RENDERIZAR vista actual solo si es necesario
+  const isContentView = document.getElementById('content') && 
+                       !document.getElementById('content').classList.contains('hidden');
+  const isMasterView = document.getElementById('master') && 
+                      !document.getElementById('master').classList.contains('hidden');
+  
+  if (isContentView && window.currentCourseHex === courseHex) {
+    console.log('[FIRESTORE] ♻️ Re-renderizando curso (vista individual)');
+    renderCourse(courseHex);
+  } else if (isMasterView) {
+    console.log('[FIRESTORE] ♻️ Re-renderizando Master grid con nuevos datos');
+    buildMasterGrid();
+  }
+}
+
+/**
+ * ✅ FUNCIÓN GLOBAL: Agregar link a Firebase Firestore
+ * Se puede llamar desde cualquier parte del código
+ */
+window.agregarLinkFirebase = async function(courseHex, label, url) {
+  const db = getFirestoreDB();
+  
+  if (!db) {
+    throw new Error('Firebase no está configurado');
+  }
+
+  try {
+    // Validaciones
+    if (!label || !url) {
+      throw new Error('Etiqueta y URL son requeridos');
+    }
+    
+    // Validar URL
+    try {
+      new URL(url);
+    } catch {
+      throw new Error('URL inválida. Debe empezar con http:// o https://');
+    }
+    
+    console.log('[FIRESTORE] ➕ Agregando link a Firebase:', label);
+    console.log('[FIRESTORE] 📍 Curso:', courseHex.substring(0, 10) + '...');
+    
+    // Referencia a la ruta del curso (Realtime Database)
+    const linksRef = db.ref(`courses/${courseHex}/links`);
+    
+    console.log('[FIRESTORE] 📤 Enviando datos a Realtime Database...');
+    
+    // Generar nuevo ID y agregar link
+    const newLinkRef = linksRef.push();
+    await newLinkRef.set({
+      label: label.trim(),
+      url: url.trim(),
+      createdAt: firebase.database.ServerValue.TIMESTAMP
+    });
+    
+    console.log('[FIRESTORE] ✅ Link agregado con ID:', newLinkRef.key);
+    console.log('[FIRESTORE] ⏳ El cambio se detectará automáticamente en todos los dispositivos...');
+    
+    // Mostrar modal de éxito
+    if (typeof window.showSuccessModal === 'function') {
+      window.showSuccessModal(
+        '¡Link Agregado!',
+        'El enlace se ha sincronizado y aparecerá en todos los dispositivos al instante.'
+      );
+    }
+    
+    return newLinkRef.key;
+    
+  } catch (error) {
+    console.error('[FIRESTORE] ❌ Error agregando link:', error);
+    if (typeof window.showSuccessModal === 'function') {
+      window.showSuccessModal(
+        'Error',
+        error.message || 'No se pudo agregar el enlace'
+      );
+    }
+    throw error;
+  }
+};
+
+/**
+ * ✅ FUNCIÓN GLOBAL: Eliminar link de Firebase Realtime Database
+ */
+window.eliminarLinkFirebase = async function(courseHex, firebaseId) {
+  const db = getFirestoreDB();
+  
+  if (!db) {
+    console.warn('[FIRESTORE] Firebase no configurado');
+    return;
+  }
+
+  try {
+    if (!firebaseId) {
+      throw new Error('No se puede eliminar: link no tiene ID de Firebase');
+    }
+    
+    console.log('[FIRESTORE] 🗑️ Eliminando link de Firebase:', firebaseId);
+    
+    // Referencia al link específico (Realtime Database)
+    const linkRef = db.ref(`courses/${courseHex}/links/${firebaseId}`);
+    await linkRef.remove();
+    
+    console.log('[FIRESTORE] ✅ Link eliminado de Firebase');
+    
+  } catch (error) {
+    console.error('[FIRESTORE] ❌ Error eliminando link:', error);
+    throw error;
+  }
+};
+
+console.log('[FIRESTORE] ✅ Funciones Firebase registradas globalmente');
+
+/* ============ sincronización remota (opcional) ============ */
+const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbzoM4WegVy9eMrl3nmto_WsGtpNNmKI-E_1FLVuJFsJZoxraNTkxb1vKnCBU8yLiprN/exec';
+function hasRemote(){ return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE_URL.startsWith('http'); }
+function stableStringify(obj){ try { return JSON.stringify(obj || []); } catch { return '[]'; } }
+async function remoteGetFiles(hex){
+  if (!hasRemote()) return null;
+  console.log('[GET] Iniciando para hex:', hex.substring(0,8));
+  
+  // Intentar primero con fetch (puede funcionar si el servidor tiene CORS habilitado)
+  try {
+    const url = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex);
+    console.log('[GET] Intentando fetch directo...');
+    const response = await fetch(url, {
+      method: 'GET',
+      mode: 'no-cors', // Intentar con no-cors primero
+      cache: 'no-store'
+    });
+    
+    // Con no-cors no podemos leer la respuesta, así que seguimos con JSONP
+    console.log('[GET] Fetch no-cors enviado, pero no podemos leer respuesta. Intentando JSONP...');
+  } catch (e) {
+    console.log('[GET] Fetch falló, intentando JSONP...');
+  }
+  
+  // Usar JSONP como método principal
+  try {
+    const jsonpResult = await remoteGetFilesJSONP(hex);
+    if (jsonpResult && Array.isArray(jsonpResult)) {
+      console.log('[GET] ✅ JSONP éxito - hex:', hex.substring(0,8), 'files:', jsonpResult.length);
+      return jsonpResult;
+    } else {
+      console.warn('[GET] ⚠️ JSONP retornó null o no es array');
+      // Intentar verificar qué está devolviendo el servidor
+      await testWebAppResponse(hex);
+      return null;
+    }
+  } catch (e) {
+    console.error('[GET] ❌ JSONP falló:', e.message);
+    await testWebAppResponse(hex);
+    return null;
+  }
+}
+
+// Función de diagnóstico para ver qué devuelve el WebApp
+async function testWebAppResponse(hex) {
+  console.log('[DIAG] Probando respuesta del WebApp...');
+  // 🛡️ Cache-buster
+  const testUrl = REMOTE_BASE_URL 
+    + '?hex=' + encodeURIComponent(hex) 
+    + '&callback=test_callback'
+    + '&ts=' + Date.now();
+  
+  // Intentar cargar como imagen para ver si hay redirección
+  const img = new Image();
+  img.onerror = () => {
+    console.log('[DIAG] La URL no se puede cargar como imagen (esperado para script)');
+  };
+  img.src = testUrl;
+  
+  // También mostrar la URL completa para copiar y probar manualmente
+  console.log('[DIAG] URL completa para probar manualmente:', testUrl);
+  console.log('[DIAG] Abre esta URL en tu navegador para ver qué devuelve:', testUrl);
+}
+
+function remoteGetFilesJSONP(hex){
+  return new Promise((resolve) => {
+    const callbackName = '_gas_jsonp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const script = document.createElement('script');
+    // 🛡️ Cache-buster para evitar respuestas viejas del navegador/CDN
+    const url = REMOTE_BASE_URL 
+      + '?hex=' + encodeURIComponent(hex) 
+      + '&callback=' + callbackName
+      + '&ts=' + Date.now();
+    script.src = url;
+    script.async = true;
+    
+    console.log('[JSONP] Intentando GET para hex:', hex.substring(0,8));
+    console.log('[JSONP] URL:', url);
+    console.log('[JSONP] Callback name:', callbackName);
+    
+    let resolved = false;
+    const cleanup = () => {
+      try {
+        if (script.parentNode) document.body.removeChild(script);
+      } catch(e) {}
+      try {
+        if (window[callbackName]) delete window[callbackName];
+      } catch(e) {}
+    };
+    
+    // Crear callback global ANTES de agregar el script
+    window[callbackName] = function(data) {
+      if (resolved) {
+        console.warn('[JSONP] Callback llamado pero ya resuelto');
+        return;
+      }
+      resolved = true;
+      clearTimeout(timeout);
+      console.log('[JSONP] ✅ Callback recibido!', data);
+      
+      let files = null;
+      if (data && Array.isArray(data.files)) {
+        files = data.files;
+        console.log('[JSONP] ✅ Archivos encontrados:', files.length);
+      } else {
+        console.warn('[JSONP] ⚠️ Respuesta inválida - no hay files array:', data);
+      }
+      
+      cleanup();
+      resolve(files);
+    };
+    
+    // Verificar que el callback esté registrado
+    if (typeof window[callbackName] !== 'function') {
+      console.error('[JSONP] ❌ Error: callback no se registró correctamente');
+      resolve(null);
+      return;
+    }
+    
+    script.onerror = (err) => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timeout);
+      
+      // Solo mostrar error completo la primera vez por hex
+      const errorKey = 'jsonp_error_shown_' + hex;
+      if (!sessionStorage.getItem(errorKey)) {
+        sessionStorage.setItem(errorKey, 'true');
+        console.error('[JSONP] ❌ Error: El WebApp no está devolviendo JSONP correctamente.');
+        console.error('[JSONP] URL de prueba:', url);
+        console.error('[JSONP] ⚠️ SOLUCIÓN: Actualiza doGet en Google Apps Script para soportar JSONP.');
+        console.error('[JSONP] Debe devolver:', callbackName + '({"files":[...]});');
+      }
+      
+      cleanup();
+      resolve(null);
+    };
+    
+    script.onload = () => {
+      console.log('[JSONP] Script cargado, esperando callback...');
+      // Si después de 2 segundos no se llamó el callback, algo está mal
+      setTimeout(() => {
+        if (!resolved) {
+          console.warn('[JSONP] ⚠️ Script cargó pero callback no se ejecutó después de 2s');
+        }
+      }, 2000);
+    };
+    
+    // Timeout de 10 segundos (Google Apps Script puede ser lento en primera carga)
+    const timeout = setTimeout(() => {
+      if (resolved) return;
+      resolved = true;
+      console.warn('[JSONP] ⚠️ Timeout después de 10s para hex:', hex.substring(0,8));
+      cleanup();
+      resolve(null);
+    }, 10000);
+    
+    try {
+      document.body.appendChild(script);
+      console.log('[JSONP] Script agregado al DOM');
+    } catch(e) {
+      console.error('[JSONP] Error agregando script:', e);
+      cleanup();
+      resolve(null);
+    }
+  });
+}
+async function remoteSaveFiles(hex, files){
+  if (!hasRemote()) {
+    console.warn('[SAVE] ⚠️ No hay remoto configurado');
+    return false;
+  }
+  try {
+    const filesJson = JSON.stringify(Array.isArray(files) ? files : []);
+    console.log('[SAVE] Enviando a remoto - hex:', hex.substring(0,8), 'archivos:', files.length);
+    console.log('[SAVE] Datos a guardar:', filesJson.substring(0, 100) + '...');
+    console.log('[SAVE] URL remoto:', REMOTE_BASE_URL);
+    
+    // ✅ Validar que tenemos los datos necesarios
+    if (!hex || !filesJson) {
+      console.error('[SAVE] ❌ Datos inválidos: hex o files vacíos');
+      return false;
+    }
+    
+    // Google Apps Script funciona mejor con formularios HTML que con fetch
+    const iframe = document.createElement('iframe');
+    iframe.name = 'hiddenFrame_' + Date.now();
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = REMOTE_BASE_URL;
+    form.target = iframe.name;
+    form.enctype = 'application/x-www-form-urlencoded';
+    
+    const hexInput = document.createElement('input');
+    hexInput.type = 'hidden';
+    hexInput.name = 'hex';
+    hexInput.value = hex;
+    
+    const filesInput = document.createElement('input');
+    filesInput.type = 'hidden';
+    filesInput.name = 'files';
+    filesInput.value = filesJson;
+    
+    form.appendChild(hexInput);
+    form.appendChild(filesInput);
+    document.body.appendChild(form);
+    
+    console.log('[SAVE] Formulario creado, enviando...');
+    form.submit();
+    console.log('[SAVE] ✅ Formulario enviado a:', REMOTE_BASE_URL);
+    
+    // Limpiar después de un breve delay
+    setTimeout(() => {
+      try {
+        if (form.parentNode) document.body.removeChild(form);
+        if (iframe.parentNode) document.body.removeChild(iframe);
+      } catch (e) {
+        console.warn('[SAVE] Error limpiando:', e);
+      }
+    }, 2000);
+    
+    // ✅ Devolver true inmediatamente ya que el formulario se envió
+    // El envío es asíncrono pero la función necesita retornar
+    return true;
+  } catch (e) { 
+    console.error('Error en remoteSaveFiles:', e);
+    return false; 
+  }
+}
+async function refreshFromRemote(hex, context){
+  try {
+    const remote = await remoteGetFiles(hex);
+    if (!remote || !Array.isArray(remote)) return false;
+    const current = getFilesForHex(hex);
+    if (stableStringify(remote) !== stableStringify(current)) {
+      saveFilesOverride(hex, remote);
+      if (context === 'course') {
+        if (currentKeyHex === hex) {
+          renderCourse(hex);
+        }
+      } else {
+        // En master, reconstruir todo el grid
+        buildMasterGrid();
+      }
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.warn('Error en refreshFromRemote:', e);
+    return false;
+  }
+}
+
+// ===== Sincronización remota de cursos personalizados =====
+async function remoteSaveCourse(hex, courseData){
+  if (!hasRemote()) {
+    console.warn('[COURSE SAVE] ⚠️ No hay remoto configurado');
+    return false;
+  }
+  try {
+    const courseJson = JSON.stringify(courseData);
+    console.log('[COURSE SAVE] Enviando curso a remoto - hex:', hex.substring(0,8));
+    console.log('[COURSE SAVE] Datos del curso:', courseJson.substring(0, 100) + '...');
+    console.log('[COURSE SAVE] URL remoto:', REMOTE_BASE_URL);
+    
+    // ✅ Validar que tenemos los datos necesarios
+    if (!hex || !courseJson || courseJson === '{}') {
+      console.error('[COURSE SAVE] ❌ Datos inválidos: hex o courseData vacíos');
+      return false;
+    }
+    
+    const iframe = document.createElement('iframe');
+    iframe.name = 'hiddenFrameCourse_' + Date.now();
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = REMOTE_BASE_URL;
+    form.target = iframe.name;
+    form.enctype = 'application/x-www-form-urlencoded'; // ✅ Agregar enctype
+    
+    const hexInput = document.createElement('input');
+    hexInput.type = 'hidden';
+    hexInput.name = 'hex';
+    hexInput.value = hex;
+    
+    const courseInput = document.createElement('input');
+    courseInput.type = 'hidden';
+    courseInput.name = 'course';
+    courseInput.value = courseJson;
+    
+    form.appendChild(hexInput);
+    form.appendChild(courseInput);
+    document.body.appendChild(form);
+    
+    console.log('[COURSE SAVE] Formulario creado, enviando...');
+    console.log('[COURSE SAVE] Hex:', hex);
+    console.log('[COURSE SAVE] Course JSON length:', courseJson.length);
+    
+    // ✅ Enviar formulario
+    form.submit();
+    console.log('[COURSE SAVE] ✅ Formulario enviado a:', REMOTE_BASE_URL);
+    
+    // ✅ Esperar más tiempo para asegurar que el servidor procesó el envío
+    // No limpiar inmediatamente para no interrumpir el envío
+    await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos
+    
+    // Limpiar formulario después de enviar (iframe se mantiene un poco más)
+    setTimeout(() => {
+      try {
+        if (form.parentNode) document.body.removeChild(form);
+        console.log('[COURSE SAVE] Formulario limpiado');
+      } catch (e) {
+        console.warn('[COURSE SAVE] Error limpiando formulario:', e);
+      }
+    }, 500);
+    
+    // Limpiar iframe después de más tiempo
+    setTimeout(() => {
+      try {
+        if (iframe.parentNode) document.body.removeChild(iframe);
+        console.log('[COURSE SAVE] Iframe limpiado');
+      } catch (e) {
+        console.warn('[COURSE SAVE] Error limpiando iframe:', e);
+      }
+    }, 3000); // 3 segundos total
+    
+    return true;
+  } catch (e) { 
+    console.error('[COURSE SAVE] ❌ Error en remoteSaveCourse:', e);
+    return false; 
+  }
+}
+
+async function remoteDeleteCourse(hex){
+  if (!hasRemote()) return false;
+  try {
+    console.log('[COURSE DELETE] Eliminando curso remoto - hex:', hex.substring(0,8));
+    
+    const iframe = document.createElement('iframe');
+    iframe.name = 'hiddenFrameCourseDel';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = REMOTE_BASE_URL;
+    form.target = 'hiddenFrameCourseDel';
+    
+    const hexInput = document.createElement('input');
+    hexInput.type = 'hidden';
+    hexInput.name = 'hex';
+    hexInput.value = hex;
+    
+    const deleteInput = document.createElement('input');
+    deleteInput.type = 'hidden';
+    deleteInput.name = 'action';
+    deleteInput.value = 'delete_course';
+    
+    form.appendChild(hexInput);
+    form.appendChild(deleteInput);
+    document.body.appendChild(form);
+    
+    form.submit();
+    console.log('[COURSE DELETE] ✅ Formulario de eliminación enviado a:', REMOTE_BASE_URL);
+    
+    // ✅ Limpiar formulario después de enviar
+    setTimeout(() => {
+      try {
+        if (form.parentNode) document.body.removeChild(form);
+        if (iframe.parentNode) document.body.removeChild(iframe);
+      } catch (e) {
+        console.warn('[COURSE DELETE] Error limpiando formulario:', e);
+      }
+      
+      // ✅ Forzar refresh inmediato para que otros dispositivos vean el cambio
+      console.log('[COURSE DELETE] Iniciando refresh para sincronizar eliminación...');
+      const refreshAttempts = [500, 1000, 2000, 4000];
+      refreshAttempts.forEach((delay, index) => {
+        setTimeout(async () => {
+          console.log(`[COURSE DELETE] Refrescando después de eliminar (intento ${index + 1}/${refreshAttempts.length} - ${delay}ms)...`);
+          try {
+            await refreshCustomCourses();
+            console.log('[COURSE DELETE] ✅ Refresh completado');
+          } catch (e) {
+            console.warn('[COURSE DELETE] Error en refresh:', e);
           }
+        }, delay);
+      });
+    }, 2000);
+    
+    return true;
+  } catch (e) { 
+    console.error('Error en remoteDeleteCourse:', e);
+    return false; 
+  }
+}
+
+async function remoteGetCourses(){
+  if (!hasRemote()) return {};
+  try {
+    console.log('[COURSE GET] Obteniendo cursos remotos...');
+    
+    return new Promise((resolve) => {
+      const callbackName = '_gas_jsonp_courses_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      const script = document.createElement('script');
+      // 🛡️ Cache-buster para evitar respuestas viejas
+      script.src = REMOTE_BASE_URL 
+        + '?action=get_courses'
+        + '&callback=' + callbackName
+        + '&ts=' + Date.now();
+      script.async = true;
+      
+      let resolved = false;
+      const cleanup = () => {
+        try {
+          if (script.parentNode) document.body.removeChild(script);
+        } catch(e) {}
+        try {
+          if (window[callbackName]) delete window[callbackName];
+        } catch(e) {}
+      };
+      
+      // ✅ CRÍTICO: Registrar callback ANTES de agregar script al DOM
+      window[callbackName] = function(data) {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeout);
+        
+        let courses = {};
+        if (data && typeof data.courses === 'object') {
+          courses = data.courses;
+          console.log('[COURSE GET] ✅ Cursos remotos obtenidos:', Object.keys(courses).length);
+        } else {
+          console.warn('[COURSE GET] ⚠️ Datos recibidos no tienen formato esperado:', data);
+        }
+        
+        cleanup();
+        resolve(courses);
+      };
+      
+      const timeout = setTimeout(() => {
+        if (resolved) return;
+        resolved = true;
+        console.warn('[COURSE GET] ⚠️ Timeout después de 10s');
+        cleanup();
+        resolve({});
+      }, 10000);
+      
+      script.onerror = () => {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeout);
+        console.error('[COURSE GET] ❌ Error cargando cursos remotos');
+        cleanup();
+        resolve({});
+      };
+      
+      // ✅ Agregar script DESPUÉS de registrar callback
+      console.log('[COURSE GET] Callback registrado:', callbackName);
+      console.log('[COURSE GET] URL completa:', script.src);
+      document.body.appendChild(script);
+    });
+  } catch (e) {
+    console.error('Error en remoteGetCourses:', e);
+    return {};
+  }
+}
+
+async function refreshCustomCourses(){
+  if (!hasRemote()) {
+    console.log('[REFRESH] Sin remoto, saltando...');
+    return false;
+  }
+  try {
+    console.log('[REFRESH] Obteniendo cursos personalizados remotos...');
+    
+    // ✅ Timeout de 10 segundos (Google Apps Script puede ser lento en primera carga)
+    const timeoutPromise = new Promise((resolve) => {
+      setTimeout(() => {
+        console.warn('[REFRESH] ⚠️ Timeout obteniendo cursos remotos después de 10s (continuando con cursos base)');
+        resolve({});
+      }, 10000); // 10 segundos para dar tiempo a Google Apps Script
+    });
+    
+    const remoteCoursesPromise = remoteGetCourses();
+    const remoteCourses = await Promise.race([remoteCoursesPromise, timeoutPromise]);
+    
+    console.log('[REFRESH] Cursos remotos obtenidos:', Object.keys(remoteCourses || {}).length);
+    
+    // ✅ Remoto es la fuente de verdad - sobrescribir completamente
+    let localCourses = {};
+    try {
+      localCourses = loadCustomCourses();
+    } catch (e) {
+      console.warn('[REFRESH] Error cargando cursos locales (modo incógnito?):', e);
+      localCourses = {};
+    }
+    
+    const remoteKeys = Object.keys(remoteCourses || {});
+    
+    console.log('[REFRESH] Comparación - Remoto:', remoteKeys.length, 'Local:', Object.keys(localCourses).length);
+    
+    // Detectar cambios antes de guardar
+    const hadChanges = JSON.stringify(localCourses) !== JSON.stringify(remoteCourses || {});
+    
+    // Guardar solo los cursos remotos (remoto es la fuente de verdad)
+    // ✅ Manejar error de localStorage silenciosamente
+    try {
+      saveCustomCourses(remoteCourses || {});
+      console.log('[REFRESH] ✅ Cursos sincronizados');
+    } catch (e) {
+      console.warn('[REFRESH] ⚠️ No se pudieron guardar cursos (modo incógnito?), continuando...', e);
+    }
+    
+    // ✅ IMPORTANTE: Refrescar archivos SOLO del curso actual si es personalizado
+    // No refrescar todos los cursos personalizados para evitar lentitud
+    // El refresh periódico se encargará de refrescar todos cada 3 segundos
+    if (currentKeyHex && remoteCourses && remoteCourses[currentKeyHex]) {
+      console.log('[REFRESH] Curso actual es personalizado, refrescando sus archivos...');
+      refreshFromRemoteSilent(currentKeyHex).then(updated => {
+        if (updated) {
+          console.log('[REFRESH] ✅ Archivos del curso actual actualizados');
+          // Solo actualizar vista si estamos viendo ese curso
+          if (document.getElementById('content') && !document.getElementById('content').classList.contains('hidden')) {
+            renderCourse(currentKeyHex);
+          }
+        }
+      }).catch(e => {
+        console.warn('[REFRESH] Error refrescando archivos del curso actual:', e);
+      });
+    }
+    
+    // Si estamos en vista master, reconstruir SOLO si hubo cambios
+    if (hadChanges && document.getElementById('master') && !document.getElementById('master').classList.contains('hidden')) {
+      console.log('[REFRESH] ✅ Cambios detectados, reconstruyendo Vista Maestra...');
+      buildMasterGrid();
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.error('[REFRESH] Error en refreshCustomCourses:', e);
+    // ✅ No fallar completamente, siempre devolver false para continuar
+    return false;
+  }
+}
+
+// ===== Exportar / Importar overrides (todas los cursos) =====
+function exportOverrides(){
+  const payload = { version: 1, exportedAt: new Date().toISOString(), overrides: {} };
+  Object.keys(ACCESS_HASH_MAP).forEach(hex => {
+    const arr = loadFilesOverride(hex);
+    if (Array.isArray(arr)) payload.overrides[hex] = arr;
+  });
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'edusalud_overrides.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+async function importOverridesFromFile(file){
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!data || typeof data !== 'object' || typeof data.overrides !== 'object') {
+      alert('Archivo inválido'); return;
+    }
+    let count = 0;
+    Object.entries(data.overrides).forEach(([hex, arr]) => {
+      if (ACCESS_HASH_MAP[hex] && Array.isArray(arr)) { saveFilesOverride(hex, arr); count++; }
+    });
+    buildMasterGrid();
+    alert(`Importado correctamente (${count} cursos)`);
+  } catch (e) {
+    alert('No se pudo importar el archivo');
+  }
+}
+function ensureMasterTools(){
+  const grid = document.getElementById('masterGrid');
+  if (!grid) return;
+  let tools = document.getElementById('masterTools');
+  if (tools) return;
+  tools = document.createElement('div');
+  tools.id = 'masterTools';
+  tools.style.cssText = 'display:flex; gap:10px; align-items:center; margin:10px 0;';
+  const btnExp = document.createElement('button');
+  btnExp.className = 'btn secondary'; btnExp.type = 'button'; btnExp.textContent = 'Exportar cambios';
+  btnExp.addEventListener('click', exportOverrides);
+  const btnImp = document.createElement('button');
+  btnImp.className = 'btn secondary'; btnImp.type = 'button'; btnImp.textContent = 'Importar cambios';
+  const file = document.createElement('input');
+  file.type = 'file'; file.accept = 'application/json'; file.style.display = 'none';
+  btnImp.addEventListener('click', () => file.click());
+  file.addEventListener('change', () => { if (file.files && file.files[0]) importOverridesFromFile(file.files[0]); });
+  tools.appendChild(btnExp); tools.appendChild(btnImp); tools.appendChild(file);
+  grid.parentNode.insertBefore(tools, grid);
+}
+
+/* ============ estado & helpers ============ */
+let currentKeyHex = null;
+const ATTEMPT_KEY = 'edusalud_attempts_session';
+
+function recordAttempt() {
+  try {
+    const raw = sessionStorage.getItem(ATTEMPT_KEY);
+    const n = raw ? Number(raw) : 0;
+    const next = n + 1;
+    sessionStorage.setItem(ATTEMPT_KEY, String(next));
+    return next;
+  } catch (e) { return 0; }
+}
+function clearAttempts() { try { sessionStorage.removeItem(ATTEMPT_KEY); } catch(e) {} }
+function getAttemptsCount() { try { return Number(sessionStorage.getItem(ATTEMPT_KEY) || 0); } catch(e) { return 0; } }
+function maybeShowAttemptsWarning() {
+  const attempts = getAttemptsCount();
+  const msg = $('#msg');
+  if (!msg) return;
+  if (attempts === 0) return;
+  if (attempts >= 8 && attempts < 15) {
+    msg.textContent = `Ha intentado ${attempts} veces. Verifique que el código esté correcto antes de seguir intentando.`;
+    msg.classList.add('error');
+  } else if (attempts >= 15) {
+    msg.textContent = `Ha realizado muchos intentos (${attempts}). Si el problema persiste, solicite el código a comunicaciones.`;
+    msg.classList.add('error');
+  }
+}
+
+/* ============ vistas ============ */
+function showAccess() {
+  $('#access').classList.remove('hidden');
+  $('#content').classList.add('hidden');
+  $('#master').classList.add('hidden');
+  $('#code').focus();
+  // Detener refresh periódico cuando vuelves al acceso
+  stopPeriodicRefresh();
+  // ✅ Ocultar botón flotante en pantalla de login
+  const fabBtn = document.getElementById('btn-speed-refresh');
+  if (fabBtn) fabBtn.classList.remove('visible');
+}
+// Sistema de refresh periódico para sincronización en tiempo real
+let periodicRefreshInterval = null;
+const PERIODIC_REFRESH_INTERVAL_MS = 1200; // 1.2 segundos (sincronización ultra rápida)
+
+function startPeriodicRefresh(currentHex = null) {
+  stopPeriodicRefresh();
+  
+  // ✅ Debug: verificar hasRemote
+  const remoteAvailable = hasRemote();
+  console.log('[PERIODIC] hasRemote():', remoteAvailable);
+  console.log('[PERIODIC] REMOTE_BASE_URL:', typeof REMOTE_BASE_URL !== 'undefined' ? REMOTE_BASE_URL : 'UNDEFINED');
+  
+  if (!remoteAvailable) {
+    console.warn('[PERIODIC] ⚠️ No se puede iniciar: REMOTE_BASE_URL no disponible');
+    return;
+  }
+
+  console.log('[PERIODIC] 🔄 Iniciando refresh AUTOMÁTICO cada', PERIODIC_REFRESH_INTERVAL_MS / 1000, 'segundos');
+  console.log('[PERIODIC] 💡 Los cambios aparecerán AUTOMÁTICAMENTE sin refrescar');
+
+  const runRefresh = async () => {
+    try {
+      const activeElement = document.activeElement;
+      const isInputFocused = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.contentEditable === 'true'
+      );
+      
+      // ✅ CORREGIDO: Solo bloquear si hay un input/textarea enfocado dentro de un form de edición
+      // No bloquear solo porque exista el formulario de "agregar link"
+      const hasEditFormOpen = isInputFocused && activeElement.closest('[data-edit-form]') !== null;
+
+      if (isInputFocused && hasEditFormOpen) {
+        console.log('[PERIODIC] ⏸️ Pausado: usuario escribiendo en formulario');
+        return;
+      }
+
+      // ✅ CORREGIDO: Si currentHex es null o MASTER_HASH, refrescar todos los cursos
+      if (!currentHex || currentHex === MASTER_HASH) {
+        const mergedMap = getMergedAccessHashMap();
+        const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
+        console.log('[PERIODIC] Total cursos a refrescar (base + personalizados):', hexes.length);
+
+        const results = await Promise.allSettled(
+          hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
+            console.warn('[PERIODIC] Error refrescando', h.substring(0, 8), ':', e);
+            return false;
+          }))
+        );
+        const anyUpdated = results.some(r => r.status === 'fulfilled' && r.value === true);
+
+        await refreshCustomCourses();
+
+        // ✅ NO actualizar la vista automáticamente para no interrumpir al usuario
+        // El botón amarillo le avisará que hay cambios, y puede sincronizar manualmente
+        if (anyUpdated) {
+          console.log('[PERIODIC] ✅ Cambios detectados (botón se pondrá amarillo)');
+        }
+        
+        // ✅ Actualizar botón flotante (siempre, incluso cuando NO hay cambios)
+        if (typeof window.updateSyncButtonState === 'function') {
+          console.log('[PERIODIC-MASTER] 🔔 Actualizando botón:', anyUpdated ? 'AMARILLO (cambios)' : 'AZUL (sin cambios)');
+          window.updateSyncButtonState(anyUpdated);
+        } else {
+          console.warn('[PERIODIC-MASTER] ⚠️ updateSyncButtonState no disponible');
+        }
+      } else if (currentHex) {
+        const mergedMap = getMergedAccessHashMap();
+        if (mergedMap[currentHex]) {
+          const updated = await refreshFromRemoteSilent(currentHex).catch(e => {
+            console.warn('[PERIODIC] Error refrescando archivos:', e);
+            return false;
+          });
+
+          // ✅ NO actualizar la vista automáticamente para no interrumpir al usuario
+          // El botón amarillo le avisará que hay cambios, y puede sincronizar manualmente
+          if (updated) {
+            console.log('[PERIODIC] ✅ Cambios detectados (botón se pondrá amarillo)');
+          }
+          
+          // ✅ Actualizar botón flotante
+          if (typeof window.updateSyncButtonState === 'function') {
+            console.log('[PERIODIC-CURSO] 🔔 Actualizando botón:', updated ? 'AMARILLO (cambios)' : 'AZUL (sin cambios)');
+            window.updateSyncButtonState(updated);
+          } else {
+            console.warn('[PERIODIC-CURSO] ⚠️ updateSyncButtonState no disponible');
+          }
+        } else {
+          console.warn('[PERIODIC] ⚠️ Hex no encontrado en mergedMap:', currentHex.substring(0, 8));
+        }
+      }
+    } catch (e) {
+      console.error('[PERIODIC] ❌ Error en refresh:', e);
+    }
+  };
+
+  runRefresh();
+  periodicRefreshInterval = setInterval(runRefresh, PERIODIC_REFRESH_INTERVAL_MS);
+}
+
+function stopPeriodicRefresh() {
+  if (periodicRefreshInterval) {
+    console.log('[PERIODIC] Deteniendo refresh periódico');
+    clearInterval(periodicRefreshInterval);
+    periodicRefreshInterval = null;
+  }
+}
+
+function showContent() {
+  $('#access').classList.add('hidden');
+  $('#content').classList.remove('hidden');
+  $('#master').classList.add('hidden');
+  // No iniciar refresh periódico aquí, se inicia cuando se renderiza el curso
+  // ✅ Mostrar botón flotante cuando está autenticado
+  const fabBtn = document.getElementById('btn-speed-refresh');
+  if (fabBtn) fabBtn.classList.add('visible');
+}
+function showMaster() {
+  $('#access').classList.add('hidden');
+  $('#content').classList.add('hidden');
+  $('#master').classList.remove('hidden');
+  // ❌ NO iniciar polling automático (el usuario sincroniza manualmente con el botón)
+  // startPeriodicRefresh(MASTER_HASH);
+  
+  // ✅ Mostrar botón flotante cuando está autenticado
+  const fabBtn = document.getElementById('btn-speed-refresh');
+  if (fabBtn) fabBtn.classList.add('visible');
+  
+  // Refresh inmediato adicional para limpiar datos obsoletos al abrir
+  if (hasRemote()) {
+    setTimeout(async () => {
+      // ✅ Verificar si hay un input enfocado O un formulario de edición abierto
+      const activeElement = document.activeElement;
+      const isInputFocused = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
+      const hasEditFormOpen = document.querySelector('[data-edit-form]') !== null;
+      
+      if (isInputFocused || hasEditFormOpen) {
+        console.log('[SYNC] ⏭️ Saltando refresh inmediato: usuario escribiendo o editando');
+        return;
+      }
+      
+      console.log('[SYNC] Refresh inmediato adicional al mostrar master...');
+      const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
+      const results = await Promise.allSettled(
+        hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
+          console.warn('[SYNC] Error en refresh inmediato:', e);
+          return false;
+        }))
+      );
+      const anyUpdated = results.some(r => 
+        r.status === 'fulfilled' && r.value === true
+      );
+      
+      // ✅ NUEVO: También refrescar cursos personalizados
+      await refreshCustomCourses();
+      
+      if (anyUpdated) {
+        console.log('[SYNC] ✅ Cambios detectados en refresh inmediato, actualizando...');
+        buildMasterGrid();
+      }
+    }, 500); // Esperar 500ms después de mostrar para no bloquear
+  }
+}
+
+/* ============ loader ============ */
+const loaderEl = document.getElementById('eduLoader');
+const loaderBar = document.getElementById('loaderBar');
+const loaderPercent = document.getElementById('loaderPercent');
+function showLoader() { if (!loaderEl) return; loaderEl.classList.remove('hidden'); loaderEl.setAttribute('aria-hidden', 'false'); }
+function hideLoader() { if (!loaderEl) return; loaderEl.classList.add('hidden'); loaderEl.setAttribute('aria-hidden', 'true'); }
+const LOAD_DURATION_MS = 1600;
+function runLoader(durationMs = LOAD_DURATION_MS) {
+  return new Promise((resolve) => {
+    if (!loaderBar || !loaderPercent) { resolve(); return; }
+    showLoader();
+    loaderBar.style.width = '0%';
+    loaderPercent.textContent = '0%';
+    const start = performance.now();
+    function frame(now) {
+      const t = Math.min(1, (now - start) / durationMs);
+      const ease = t < 0.5 ? (2*t*t) : (-1 + (4-2*t)*t);
+      const percent = Math.round(ease * 100);
+      loaderBar.style.width = percent + '%';
+      loaderPercent.textContent = percent + '%';
+      if (t < 1) { requestAnimationFrame(frame); }
+      else {
+        loaderBar.style.width = '100%';
+        loaderPercent.textContent = '100%';
+        setTimeout(() => { hideLoader(); resolve(); }, 200);
+      }
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+/* ============ render curso (1) ============ */
+function renderCourse(keyHex) {
+  const mergedMap = getMergedAccessHashMap();
+  const data = mergedMap[keyHex];
+  if (!data) return;
+
+  // ✅ Guardar hex globalmente para el botón de sincronización forzada
+  window.currentCourseHex = keyHex;
+
+  // ✅ FIREBASE: Inicializar listener en tiempo real
+  if (typeof initFirestoreRealtime === 'function') {
+    initFirestoreRealtime(keyHex);
+  }
+
+  $('#courseTitle').textContent = data.title;
+  $('#courseMeta').textContent = data.meta || '';
+
+  const list = $('#filelist');
+  list.innerHTML = '';
+  const files = getFilesForHex(keyHex);
+  (files || []).forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'file';
+    let host = '';
+    try { host = new URL(item.url).hostname; } catch { host = ''; }
+    row.innerHTML = `<div><strong>${item.label}</strong><div class="meta">${host}</div></div>`;
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.type = 'button';
+    btn.textContent = 'Ver más';
+    btn.addEventListener('click', () => downloadFile(item.url, item.label));
+    row.appendChild(btn);
+    list.appendChild(row);
+  });
+
+  // Tarjeta imagen
+  try {
+    const left = document.querySelector('#courseCard .card-left-wrapper');
+    if (left) {
+      left.innerHTML = '';
+      let wrapper = null;
+      if (window.insertElectricCard) {
+        wrapper = window.insertElectricCard(left);
+      }
+      if (wrapper && data.card?.img && window.setCardImage) {
+        window.setCardImage(wrapper, `${data.card.img}?v=2`);
+      }
+    }
+  } catch (e) { console.warn('No se pudo insertar la tarjeta:', e); }
+  
+  // ❌ NO iniciar polling automático (el usuario sincroniza manualmente con el botón)
+  // startPeriodicRefresh(keyHex);
+}
+
+/* ============ render master ============ */
+function buildMasterGrid() {
+  const grid = $('#masterGrid');
+  grid.innerHTML = '';
+
+  const mergedMap = getMergedAccessHashMap();
+  Object.entries(mergedMap).forEach(([hex, data]) => {
+    // excluir el master si algún día lo metes en el mismo objeto
+    if (hex === MASTER_HASH) return;
+
+    const cardEl = document.createElement('div');
+    cardEl.className = 'master-card';
+    cardEl.dataset.title = (data.title || '').toLowerCase();
+    cardEl.dataset.tag = (data.card?.tag || '').toLowerCase();
+
+    const left = document.createElement('div');
+    left.className = 'left';
+    const right = document.createElement('div');
+    right.className = 'right';
+
+    // cabecera derecha (título + meta + botón abrir curso)
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;';
+    const t = document.createElement('div');
+    t.innerHTML = `<div style="font-weight:700">${data.title}</div><div class="meta">${data.meta || ''}</div>`;
+    
+    const headerActions = document.createElement('div');
+    headerActions.style.cssText = 'display:flex; gap:8px;';
+    
+    const open = document.createElement('button');
+    open.className = 'btn secondary';
+    open.type = 'button';
+    open.textContent = 'Abrir curso';
+    open.addEventListener('click', async () => {
+      // Mostrar loader inmediatamente
+      showLoader();
+      
+      // ✅ NUEVO: Esperar a que termine el refresh ANTES de cerrar el loader
+      if (hasRemote()) {
+        console.log('[SYNC] Iniciando refresh antes del loader...');
+        await refreshFromRemoteSilent(hex).catch(e => {
+          console.warn('[SYNC] Error en refresh:', e);
+          return false;
+        });
+        console.log('[SYNC] ✅ Refresh completado, cerrando loader...');
+      }
+      
+      // Ejecutar animación de loader ahora que ya tenemos los datos
+      await runLoader();
+      
+      currentKeyHex = hex;
+      renderCourse(hex);
+      showContent();
+    });
+    headerActions.appendChild(open);
+    
+    // Botón eliminar solo para cursos personalizados
+    if (isCustomCourse(hex)) {
+      const btnDelete = document.createElement('button');
+      btnDelete.className = 'btn';
+      btnDelete.type = 'button';
+      btnDelete.textContent = '🗑️ Eliminar';
+      btnDelete.style.background = 'linear-gradient(135deg, #ff4444, #cc0000)';
+      btnDelete.addEventListener('click', async () => {
+        // ✅ Mostrar modal de confirmación elegante
+        window.showDeleteConfirmModal(data.title, async () => {
+          console.log('[DELETE] Eliminando curso:', data.title);
+          
+          // ✅ Eliminar curso (local y remoto)
+          removeCustomCourse(hex);
+          
+          // ✅ Forzar refresh inmediato de cursos para que otros dispositivos vean el cambio
+          await refreshCustomCourses().catch(e => {
+            console.warn('[DELETE] Error refrescando cursos después de eliminar:', e);
+          });
+          
+          buildMasterGrid();
+          console.log('[DELETE] ✅ Curso eliminado exitosamente');
+          
+          // Analytics tracking
+          if (typeof gtag !== 'undefined') {
+            gtag('event', 'course_deleted', {
+              'event_category': 'management',
+              'event_label': data.card?.tag || 'unknown'
+            });
+          }
+        });
+      });
+      headerActions.appendChild(btnDelete);
+    }
+    
+    header.appendChild(t);
+    header.appendChild(headerActions);
+    right.appendChild(header);
+
+    // lista de archivos (editable con DnD)
+    const list = document.createElement('div');
+    list.className = 'filelist';
+    const files = getFilesForHex(hex);
+    (files || []).forEach((item, idx) => {
+      const row = document.createElement('div');
+      row.className = 'file';
+      row.draggable = true;
+      row.dataset.index = String(idx);
+      let host = '';
+      try { host = new URL(item.url).hostname; } catch { host = ''; }
+      const leftInfo = document.createElement('div');
+      leftInfo.innerHTML = `<strong>${item.label}</strong><div class="meta">${host}</div>`;
+
+      const actions = document.createElement('div');
+      actions.style.display = 'flex';
+      actions.style.gap = '8px';
+
+      const btnOpen = document.createElement('button');
+      btnOpen.className = 'btn';
+      btnOpen.type = 'button';
+      btnOpen.textContent = 'Descargar';
+      btnOpen.addEventListener('click', () => downloadFile(item.url, item.label));
+
+      const btnEdit = document.createElement('button');
+      btnEdit.className = 'btn secondary';
+      btnEdit.type = 'button';
+      btnEdit.textContent = 'Editar';
+      btnEdit.addEventListener('click', () => {
+        // ✅ Deshabilitar los 3 botones principales
+        btnOpen.disabled = true;
+        btnEdit.disabled = true;
+        btnRemove.disabled = true;
+        btnOpen.style.opacity = '0.5';
+        btnEdit.style.opacity = '0.5';
+        btnRemove.style.opacity = '0.5';
+        btnOpen.style.cursor = 'not-allowed';
+        btnEdit.style.cursor = 'not-allowed';
+        btnRemove.style.cursor = 'not-allowed';
+        
+        // Crear inputs temporales para editar
+        const editWrap = document.createElement('div');
+        editWrap.dataset.editForm = 'true'; // Marcar para evitar refreshes
+        editWrap.style.cssText = 'display:flex; flex-direction:column; gap:8px; margin-top:8px; padding:12px; background:#0e1630; border:1px solid rgba(255,255,255,.1); border-radius:8px;';
+        
+        const editLabel = document.createElement('input');
+        editLabel.type = 'text';
+        editLabel.value = item.label;
+        editLabel.className = 'input';
+        editLabel.placeholder = 'Etiqueta';
+        
+        const editUrl = document.createElement('input');
+        editUrl.type = 'url';
+        editUrl.value = item.url;
+        editUrl.className = 'input';
+        editUrl.placeholder = 'URL';
+        
+        const editActions = document.createElement('div');
+        editActions.style.cssText = 'display:flex; gap:8px;';
+        
+        const btnSave = document.createElement('button');
+        btnSave.className = 'btn';
+        btnSave.textContent = 'Guardar';
+        btnSave.addEventListener('click', async () => {
+          const newLabel = editLabel.value.trim();
+          const newUrl = editUrl.value.trim();
+          if (!newLabel || !newUrl) {
+            alert('Complete etiqueta y URL');
+            return;
+          }
+          try {
+            new URL(newUrl);
+          } catch {
+            alert('URL inválida');
+            return;
+          }
+          
+          const next = files.slice();
+          next[idx] = { label: newLabel, url: newUrl };
+          saveFilesOverride(hex, next);
+          
+          // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
+          console.log('[EDIT] ✏️ Actualizando vista inmediatamente');
+          const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+          if (isMasterView) {
+            buildMasterGrid();
+          } else {
+            renderCourse(hex);
+          }
+          
+          // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
+          remoteSaveFiles(hex, next).then(editOk => {
+            if (editOk) {
+              console.log('[EDIT] ✅ Guardado en remoto exitoso');
+              // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
+              refreshFromRemoteSilent(hex).catch(() => {});
+            } else {
+              console.warn('[EDIT] ⚠️ Error guardando en remoto');
+            }
+          }).catch(e => {
+            console.error('[EDIT] ❌ Error guardando en remoto:', e);
+          });
+        });
+        
+        const btnCancel = document.createElement('button');
+        btnCancel.className = 'btn secondary';
+        btnCancel.textContent = 'Cancelar';
+        btnCancel.addEventListener('click', () => {
+          // ✅ Restaurar los 3 botones principales
+          btnOpen.disabled = false;
+          btnEdit.disabled = false;
+          btnRemove.disabled = false;
+          btnOpen.style.opacity = '';
+          btnEdit.style.opacity = '';
+          btnRemove.style.opacity = '';
+          btnOpen.style.cursor = '';
+          btnEdit.style.cursor = '';
+          btnRemove.style.cursor = '';
+          
+          row.removeChild(editWrap);
+        });
+        
+        editActions.appendChild(btnSave);
+        editActions.appendChild(btnCancel);
+        editWrap.appendChild(editLabel);
+        editWrap.appendChild(editUrl);
+        editWrap.appendChild(editActions);
+        row.appendChild(editWrap);
+        
+        // Enfocar el primer input
+        setTimeout(() => editLabel.focus(), 100);
+      });
+
+      const btnRemove = document.createElement('button');
+      btnRemove.className = 'btn secondary';
+      btnRemove.type = 'button';
+      btnRemove.textContent = 'Quitar';
+      btnRemove.addEventListener('click', async () => {
+        // ✅ FIREBASE: Eliminar de Firebase primero si tiene firebaseId
+        if (item.firebaseId && typeof window.eliminarLinkFirebase === 'function') {
+          try {
+            // ✅ Bloquear re-renders durante la eliminación
+            userInteracting = true;
+            
+            console.log('[REMOVE] 🔥 Eliminando de Firebase:', item.firebaseId);
+            await window.eliminarLinkFirebase(hex, item.firebaseId);
+            console.log('[REMOVE] ✅ Eliminado de Firebase');
+            
+            // ✅ CRÍTICO: Actualizar localStorage INMEDIATAMENTE
+            const currentFiles = getFilesForHex(hex);
+            const updatedFiles = currentFiles.filter(f => f.firebaseId !== item.firebaseId);
+            saveFilesOverride(hex, updatedFiles);
+            console.log('[REMOVE] 💾 localStorage actualizado:', currentFiles.length, '→', updatedFiles.length);
+            
+            // ✅ También actualizar Google Sheets (sincronización)
+            remoteSaveFiles(hex, updatedFiles).catch(e => {
+              console.warn('[REMOVE] ⚠️ Error actualizando Google Sheets:', e);
+            });
+            
+            // ✅ Desbloquear y re-renderizar inmediatamente
+            userInteracting = false;
+            const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+            if (isMasterView) {
+              console.log('[REMOVE] ♻️ Re-renderizando Master');
+              buildMasterGrid();
+            } else {
+              console.log('[REMOVE] ♻️ Re-renderizando Curso');
+              renderCourse(hex);
+            }
+            
+            return;
+          } catch (error) {
+            console.error('[REMOVE] ❌ Error eliminando de Firebase, usando método local:', error);
+            userInteracting = false;
+            // Continuar con método local si Firebase falla
+          }
+        }
+        
+        // ✅ FALLBACK: Método local si no tiene firebaseId o Firebase falló
+        const next = files.slice();
+        next.splice(idx, 1);
+        saveFilesOverride(hex, next);
+        
+        // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
+        console.log('[REMOVE] 🗑️ Eliminando archivo inmediatamente de la vista');
+        const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+        if (isMasterView) {
+          buildMasterGrid();
+        } else {
+          renderCourse(hex);
+        }
+        
+        // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
+        remoteSaveFiles(hex, next).then(removeOk => {
+          if (removeOk) {
+            console.log('[REMOVE] ✅ Guardado en remoto exitoso');
+            // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
+            refreshFromRemoteSilent(hex).catch(() => {});
+          } else {
+            console.warn('[REMOVE] ⚠️ Error guardando en remoto');
+          }
+        }).catch(e => {
+          console.error('[REMOVE] ❌ Error guardando en remoto:', e);
+        });
+      });
+
+      actions.appendChild(btnOpen);
+      actions.appendChild(btnEdit);
+      actions.appendChild(btnRemove);
+
+      row.appendChild(leftInfo);
+      row.appendChild(actions);
+      list.appendChild(row);
+    });
+    right.appendChild(list);
+
+    // drag & drop reorder
+    list.addEventListener('dragstart', (e) => {
+      const el = e.target instanceof HTMLElement ? e.target.closest('.file') : null;
+      if (!el) return;
+      const idx = el.dataset.index;
+      if (idx != null) { e.dataTransfer?.setData('text/plain', idx); }
+    });
+    list.addEventListener('dragover', (e) => { e.preventDefault(); });
+    list.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      const fromStr = e.dataTransfer?.getData('text/plain');
+      const toEl = e.target instanceof HTMLElement ? e.target.closest('.file') : null;
+      if (!fromStr || !toEl) return;
+      const from = Number(fromStr);
+      const to = Number(toEl.dataset.index || 0);
+      if (Number.isNaN(from) || Number.isNaN(to) || from === to) return;
+      const next = files.slice();
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      saveFilesOverride(hex, next);
+      
+      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
+      console.log('[REORDER] 🔄 Reordenando inmediatamente en la vista');
+      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+      if (isMasterView) {
+        buildMasterGrid();
+      } else {
+        renderCourse(hex);
+      }
+      
+      // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
+      remoteSaveFiles(hex, next).then(reorderOk => {
+        if (reorderOk) {
+          console.log('[REORDER] ✅ Guardado en remoto exitoso');
+          // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
+          refreshFromRemoteSilent(hex).catch(() => {});
+        } else {
+          console.warn('[REORDER] ⚠️ Error guardando en remoto');
+        }
+      }).catch(e => {
+        console.error('[REORDER] ❌ Error guardando en remoto:', e);
+      });
+    });
+
+    // formulario para agregar nuevo link
+    const addWrap = document.createElement('div');
+    addWrap.style.marginTop = '12px';
+    addWrap.setAttribute('data-edit-form', 'add-link'); // ✅ Marcar para que el refresh no interfiera
+    const addLabel = document.createElement('label');
+    addLabel.textContent = 'Agregar nuevo enlace';
+    addLabel.style.display = 'block';
+    addLabel.style.fontWeight = '600';
+    addLabel.style.marginBottom = '8px';
+
+    const addRow = document.createElement('div');
+    addRow.className = 'row';
+
+    const inputLabel = document.createElement('input');
+    inputLabel.className = 'input';
+    inputLabel.type = 'text';
+    inputLabel.placeholder = 'Etiqueta (ej. Manual de Marca)';
+    inputLabel.setAttribute('data-edit-form', 'add-link'); // ✅ Marcar también los inputs
+
+    const inputUrl = document.createElement('input');
+    inputUrl.className = 'input';
+    inputUrl.type = 'url';
+    inputUrl.placeholder = 'URL (https://...)';
+    inputUrl.setAttribute('data-edit-form', 'add-link'); // ✅ Marcar también los inputs
+
+    const btnAdd = document.createElement('button');
+    btnAdd.className = 'btn';
+    btnAdd.type = 'button';
+    btnAdd.textContent = 'Agregar link';
+    btnAdd.addEventListener('click', async () => {
+      const labelVal = (inputLabel.value || '').trim();
+      const urlVal = (inputUrl.value || '').trim();
+      
+      if (!labelVal || !urlVal) {
+        if (typeof window.showSuccessModal === 'function') {
+          window.showSuccessModal('Error', 'Complete etiqueta y URL');
+        } else {
+          alert('Complete etiqueta y URL');
+        }
+        return;
+      }
+      
+      try {
+        new URL(urlVal);
+      } catch {
+        if (typeof window.showSuccessModal === 'function') {
+          window.showSuccessModal('Error', 'URL inválida. Debe empezar con http:// o https://');
+        } else {
+          alert('URL inválida');
+        }
+        return;
+      }
+      
+      // ✅ FIREBASE: Intentar agregar a Firestore primero (sincronización en tiempo real)
+      const db = getFirestoreDB();
+      if (db && typeof window.agregarLinkFirebase === 'function') {
+        try {
+          await window.agregarLinkFirebase(hex, labelVal, urlVal);
+          
+          // Limpiar inputs
+          inputLabel.value = '';
+          inputUrl.value = '';
+          
+          console.log('[ADD] ✅ Link agregado a Firebase, sincronización automática activa');
+          
+          // También guardar en Google Sheets como backup
+          const current = getFilesForHex(hex);
+          const next = current.concat({ label: labelVal, url: urlVal });
+          remoteSaveFiles(hex, next).catch(e => {
+            console.warn('[ADD] ⚠️ No se pudo guardar en Google Sheets (backup):', e);
+          });
+          
+          return; // Salir, Firebase se encarga de actualizar la vista
+          
         } catch (error) {
-          console.error('[FAB] Error forzando sincronización:', error);
-          // ✅ Mostrar modal de error (sin alert)
+          console.error('[ADD] ❌ Error con Firebase, usando método local:', error);
+          // Continuar con método local si Firebase falla
+        }
+      }
+      
+      // ✅ FALLBACK: Método local si Firebase no está disponible
+      console.log('[ADD] Usando método local (Firebase no disponible)');
+      const current = getFilesForHex(hex);
+      console.log('[ADD] Links actuales:', current.length);
+      const next = current.concat({ label: labelVal, url: urlVal });
+      console.log('[ADD] Links después de agregar:', next.length);
+      
+      // Limpiar inputs
+      inputLabel.value = '';
+      inputUrl.value = '';
+      
+      saveFilesOverride(hex, next);
+      
+      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
+      console.log('[ADD] ➕ Agregando link inmediatamente a la vista');
+      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+      
+      if (isMasterView) {
+        buildMasterGrid();
+        console.log('[ADD] ✅ Vista master actualizada');
+      } else {
+        renderCourse(hex);
+        console.log('[ADD] ✅ Vista de curso actualizada');
+      }
+      
+      // ✅ GUARDAR EN REMOTO (Google Sheets)
+      remoteSaveFiles(hex, next).then(saveResult => {
+        if (saveResult) {
+          console.log('[ADD] ✅ Guardado en remoto - POST exitoso');
+          setTimeout(() => {
+            refreshFromRemoteSilent(hex).then(() => {
+              console.log('[ADD] ✅ SINCRONIZACIÓN CONFIRMADA');
+            }).catch(() => {
+              console.log('[ADD] ⚠️ Error en sincronización post-guardado');
+            });
+          }, 500);
+        } else {
+          console.warn('[ADD] ⚠️ No se pudo guardar en remoto');
+        }
+      }).catch(e => {
+        console.error('[ADD] ❌ Error guardando en remoto:', e);
+      });
+    });
+
+    addRow.appendChild(inputLabel);
+    addRow.appendChild(inputUrl);
+    addRow.appendChild(btnAdd);
+    addWrap.appendChild(addLabel);
+    addWrap.appendChild(addRow);
+    right.appendChild(addWrap);
+
+    // restaurar originales
+    const btnRestore = document.createElement('button');
+    btnRestore.className = 'btn secondary';
+    btnRestore.type = 'button';
+    btnRestore.textContent = 'Restaurar enlaces originales';
+    btnRestore.style.marginTop = '10px';
+    btnRestore.addEventListener('click', async () => {
+      if (!confirm('¿Restaurar la lista original de enlaces? Se perderán los cambios locales.')) return;
+      clearFilesOverride(hex);
+      
+      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
+      console.log('[RESTORE] ♻️ Restaurando vista inmediatamente');
+      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+      if (isMasterView) {
+        buildMasterGrid();
+      } else {
+        renderCourse(hex);
+      }
+      
+      // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
+      remoteSaveFiles(hex, getFilesForHex(hex)).then(restoreOk => {
+        if (restoreOk) {
+          console.log('[RESTORE] ✅ Guardado en remoto exitoso');
+          // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
+          refreshFromRemoteSilent(hex).catch(() => {});
+        } else {
+          console.warn('[RESTORE] ⚠️ Error guardando en remoto');
+        }
+      }).catch(e => {
+        console.error('[RESTORE] ❌ Error guardando en remoto:', e);
+      });
+    });
+    right.appendChild(btnRestore);
+
+    // tarjeta izquierda (solo imagen)
+    let wrapper = null;
+    if (window.insertElectricCard) {
+      wrapper = window.insertElectricCard(left);
+    }
+    if (wrapper && data.card?.img && window.setCardImage) {
+      window.setCardImage(wrapper, `${data.card.img}?v=2`);
+    }
+
+    cardEl.appendChild(left);
+    cardEl.appendChild(right);
+    grid.appendChild(cardEl);
+  });
+  
+  // ✅ FIREBASE: Iniciar listeners para todos los cursos en Master
+  const courseHexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
+  initFirestoreRealtimeMaster(courseHexes);
+  
+  // herramientas exportar/importar
+  try { ensureMasterTools(); } catch(e) {}
+}
+
+async function refreshFromRemoteSilent(hex){
+  try {
+    console.log('[REFRESH] 🔄 Consultando remoto para hex:', hex.substring(0, 8));
+    // ✅ Usar JSONP directamente (no fetch que puede fallar)
+    const remote = await remoteGetFilesJSONP(hex);
+    
+    if (!remote) {
+      console.log('[REFRESH] ⚠️ Sin respuesta del remoto');
+      return false;
+    }
+    
+    if (!Array.isArray(remote)) {
+      console.warn('[REFRESH] Datos remotos no son un array:', remote);
+      return false;
+    }
+    
+    console.log('[REFRESH] 📥 Remoto respondió:', remote.length, 'archivos');
+    
+    const current = getFilesForHex(hex);
+    const base = getBaseFilesForHex(hex);
+    
+    // ✅ ESTRATEGIA PROFESIONAL: El remoto SIEMPRE es la verdad
+    // Si hay datos remotos, SIEMPRE los aplicamos (sin comparar)
+    // Esto asegura sincronización perfecta en todos los dispositivos
+    
+    if (remote.length > 0) {
+      // Comparar para detectar cambios REALES
+      const currentStr = stableStringify(current);
+      const remoteStr = stableStringify(remote);
+      const hasChanges = remoteStr !== currentStr || remote.length !== current.length;
+      
+      if (hasChanges) {
+        console.log('[REFRESH] 🔄 CAMBIOS DETECTADOS');
+        console.log('[REFRESH] Remoto:', remote.length, 'archivos | Local:', current.length, 'archivos');
+        console.log('[REFRESH] 📥 Aplicando', remote.length, 'archivos desde remoto');
+        saveFilesOverride(hex, remote);
+        console.log('[REFRESH] ✅ Sincronización completada con cambios');
+        return true;
+      } else {
+        // console.log('[REFRESH] ✅ Sin cambios (datos idénticos)');
+        return false;
+      }
+    }
+    
+    // ✅ Remoto vacío → Verificar si debe usar base o limpiar
+    if (remote.length === 0 && current.length > 0) {
+      if (base.length === 0) {
+        console.log('[REFRESH] 🧹 Remoto vacío y sin base, limpiando local');
+        clearFilesOverride(hex);
+        return true;
+      }
+      console.log('[REFRESH] 🔄 Usando datos base (', base.length, 'archivos)');
+      clearFilesOverride(hex);
+      return true;
+    }
+    
+    // console.log('[REFRESH] ✅ Sin datos remotos ni locales');
+    return false;
+  } catch (e) { 
+    console.error('[REFRESH] Error en refresh silencioso:', e);
+    return false; 
+  }
+}
+
+function setupMasterSearch(){
+  const input = $('#masterSearch');
+  const clear = $('#masterSearchClear');
+  const grid  = $('#masterGrid');
+  if (!input || !grid) return;
+
+  function applyFilter(){
+    const q = (input.value || '').trim().toLowerCase();
+    const cards = grid.querySelectorAll('.master-card');
+    if (!q){
+      cards.forEach(c => c.style.display = '');
+      return;
+    }
+    cards.forEach(c => {
+      const t = c.dataset.title || '';
+      const tg = c.dataset.tag || '';
+      c.style.display = (t.includes(q) || tg.includes(q)) ? '' : 'none';
+    });
+  }
+
+  input.addEventListener('input', applyFilter);
+  clear?.addEventListener('click', () => { input.value=''; applyFilter(); });
+}
+
+/* ============ login ============ */
+async function tryLoginByCode(code) {
+  const msg = $('#msg');
+  msg.textContent = 'Verificando…';
+  msg.classList.remove('error');
+
+  if (!code || String(code).trim().length === 0) {
+    msg.textContent = 'Ingrese un código válido.';
+    msg.classList.add('error');
+    return false;
+  }
+
+  try {
+    const hex = await sha256Hex(code);
+
+    // ✅ Google Analytics: Tracking de intento de login
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'login_attempt', {
+        'event_category': 'authentication',
+        'event_label': 'attempt'
+      });
+    }
+
+    // master
+    if (hex === MASTER_HASH) {
+      // ✅ Refresh en background (no bloquear login) con timeout corto
+      if (hasRemote()) {
+        console.log('[SYNC] Iniciando refresh de todos los cursos en background...');
+        const mergedMap = getMergedAccessHashMap();
+        const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
+        console.log('[SYNC] Total de cursos a refrescar:', hexes.length);
+        
+        // Iniciar refresh en background (no await, con timeout global)
+        Promise.race([
+          Promise.allSettled(hexes.map((h, index) => {
+            const isLast = index === hexes.length - 1;
+            const label = isLast ? `[ÚLTIMO CURSO]` : '';
+            console.log(`${label} [SYNC] Refrescando curso ${index + 1}/${hexes.length}: ${h.substring(0, 8)}...`);
+            return refreshFromRemoteSilent(h)
+              .then(result => {
+                if (isLast) {
+                  console.log(`[ÚLTIMO CURSO] ✅ Refresh completado para ${h.substring(0, 8)}, resultado:`, result);
+                }
+                return result;
+              })
+              .catch(e => {
+                console.error(`[SYNC] ❌ Error refrescando curso ${h.substring(0, 8)}:`, e);
+                return false;
+              });
+          })),
+          new Promise(resolve => setTimeout(() => {
+            console.log('[SYNC] Timeout refresh global, continuando...');
+            resolve({});
+          }, 2000)) // Timeout de 2 segundos máximo para todos los cursos
+        ])
+          .then(results => {
+            if (Array.isArray(results)) {
+              const successful = results.filter(r => r.status === 'fulfilled').length;
+              const failed = results.filter(r => r.status === 'rejected').length;
+              console.log(`[SYNC] Refresh completado: ${successful} exitosos, ${failed} fallidos`);
+            }
+          })
+          .catch(e => {
+            console.warn('[SYNC] Error general en refresh:', e);
+          });
+        
+        console.log('[SYNC] Refresh iniciado en background, continuando con login...');
+      }
+      
+      // Ejecutar animación de loader ahora que ya tenemos los datos
+      try { 
+        await runLoader(); 
+      } catch (e) {}
+      
+      clearAttempts();
+      setQueryParam('code', btoa(code));
+      
+      // ✅ Cargar cursos remotos en background (no bloquear)
+      refreshCustomCourses().catch(e => {
+        console.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
+      });
+      
+      buildMasterGrid();
+      setupMasterSearch();
+      $('#year_master').textContent = new Date().getFullYear();
+      showMaster();
+      
+      // ✅ Google Analytics: Tracking login exitoso Master
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'login_success_master', {
+          'event_category': 'authentication'
+        });
+      }
+      
+      return true;
+    }
+
+    // normal
+    // ✅ CRÍTICO: Cargar cursos personalizados ANTES de validar (por si no están cargados)
+    // Esto asegura que cursos personalizados recién creados estén disponibles
+    if (hasRemote()) {
+      console.log('[LOGIN] Cargando cursos personalizados antes de validar...');
+      await refreshCustomCourses().catch(e => {
+        console.warn('[LOGIN] Error cargando cursos personalizados (continuando):', e);
+      });
+    }
+    
+    // ✅ Obtener mergedMap DESPUÉS de cargar cursos personalizados
+    const mergedMap = getMergedAccessHashMap();
+    console.log('[LOGIN] Validando código, cursos disponibles:', Object.keys(mergedMap).length);
+    console.log('[LOGIN] Hex a buscar:', hex.substring(0, 8) + '...');
+    
+    if (mergedMap && mergedMap[hex]) {
+      console.log('[LOGIN] ✅ Código válido encontrado en hashmap');
+      // Mostrar loader inmediatamente
+      showLoader();
+      
+      // ✅ CRÍTICO: Esperar refresh ANTES de renderizar (igual que cursos base desde master)
+      // Esto asegura que los archivos estén actualizados cuando se muestra el curso
+      if (hasRemote()) {
+        console.log('[SYNC] Iniciando refresh antes de mostrar curso...');
+        await refreshFromRemoteSilent(hex).catch(e => {
+          console.warn('[SYNC] Error en refresh:', e);
+          return false;
+        });
+        console.log('[SYNC] ✅ Refresh completado, renderizando curso...');
+      }
+      
+      // Ejecutar animación de loader después del refresh
+      try { 
+        await runLoader(); 
+      } catch (e) {}
+      
+      currentKeyHex = hex;
+      clearAttempts();
+      setQueryParam('code', btoa(code));
+      renderCourse(hex);
+      showContent();
+      
+      // ✅ Google Analytics: Tracking login exitoso curso
+      if (typeof gtag !== 'undefined') {
+        const courseData = mergedMap[hex];
+        gtag('event', 'login_success_course', {
+          'event_category': 'authentication',
+          'event_label': courseData.card?.tag || 'unknown'
+        });
+      }
+      
+      return true;
+    } else {
+      console.warn('[LOGIN] ❌ Código no encontrado en hashmap');
+      console.warn('[LOGIN] Cursos disponibles:', Object.keys(mergedMap || {}));
+      console.warn('[LOGIN] Hex buscado:', hex.substring(0, 8) + '...');
+      
+      const attempts = recordAttempt();
+      msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
+      msg.classList.add('error');
+      maybeShowAttemptsWarning();
+      
+      // ✅ Google Analytics: Tracking de código inválido
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'login_error', {
+          'event_category': 'authentication',
+          'event_label': 'invalid_code',
+          'value': attempts
+        });
+      }
+      
+      return false;
+    }
+  } catch (e) {
+    console.error(e);
+    msg.textContent = 'Ocurrió un error al verificar el código.';
+    msg.classList.add('error');
+    return false;
+  }
+}
+
+/* ============ eventos ============ */
+$('#btn-enter').addEventListener('click', () => tryLoginByCode($('#code').value));
+$('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#btn-enter').click(); } });
+$('#btn-logout').addEventListener('click', () => { currentKeyHex = null; setQueryParam('code', null); showAccess(); });
+
+$('#btn-copy-code-link').addEventListener('click', async () => {
+  if (!currentKeyHex) return;
+  const url = new URL(location.href);
+  const codeField = $('#code');
+  const encoded = url.searchParams.get('code');
+  const codeVal = (encoded ? atob(encoded) : codeField.value) || '';
+  if (!codeVal) return;
+  url.searchParams.set('code', btoa(codeVal));
+  try {
+    await navigator.clipboard.writeText(url.toString());
+    alert('Enlace copiado al portapapeles');
+  } catch (e) {
+    prompt('Copie este enlace:', url.toString());
+  }
+});
+
+$('#btn-master-exit').addEventListener('click', () => { setQueryParam('code', null); showAccess(); });
+$('#btn-master-copy').addEventListener('click', async () => {
+  const url = new URL(location.href);
+  url.searchParams.set('code', btoa('EDUMASTER123456987'));
+  try {
+    await navigator.clipboard.writeText(url.toString());
+    alert('Enlace de vista maestra copiado');
+  } catch (e) {
+    prompt('Copie este enlace:', url.toString());
+  }
+});
+
+// ✅ FUNCIÓN GLOBAL: Ver qué hay guardado en localStorage
+window.verDatosGuardados = function() {
+  console.log('==========================================');
+  console.log('📦 DATOS EN LOCALSTORAGE:');
+  console.log('==========================================');
+  
+  const keys = Object.keys(localStorage);
+  const fileKeys = keys.filter(k => k.startsWith(FILES_STORAGE_PREFIX));
+  
+  console.log('Total archivos guardados:', fileKeys.length);
+  
+  fileKeys.forEach(key => {
+    const hex = key.replace(FILES_STORAGE_PREFIX, '');
+    try {
+      const data = JSON.parse(localStorage.getItem(key));
+      console.log('\n---');
+      console.log('Hex:', hex.substring(0, 10) + '...');
+      console.log('Archivos:', data.length);
+      data.forEach((file, idx) => {
+        console.log(`  ${idx + 1}. ${file.label}`);
+      });
+    } catch (e) {
+      console.error('Error leyendo:', key);
+    }
+  });
+  
+  console.log('\n==========================================');
+  return fileKeys.length;
+};
+
+// ✅ FUNCIÓN GLOBAL: Forzar sincronización desde servidor (SIN borrar localStorage)
+window.forzarSincronizacion = async function() {
+  console.log('[SYNC FORCE] 🔄 Forzando sincronización desde servidor...');
+  
+  try {
+    // Detectar en qué vista estamos
+    const isMasterView = !$('#master').classList.contains('hidden');
+    const isContentView = !$('#content').classList.contains('hidden');
+    
+    if (isMasterView) {
+      console.log('[SYNC FORCE] 📋 Vista Maestra detectada - Sincronizando todos los cursos...');
+      
+      // Refrescar cursos personalizados
+      await refreshCustomCourses().catch(e => {
+        console.warn('[SYNC FORCE] Error refrescando cursos:', e);
+      });
+      
+      // Refrescar todos los archivos de cada curso
+      const mergedMap = getMergedAccessHashMap();
+      const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
+      
+      console.log('[SYNC FORCE] Total cursos a sincronizar:', hexes.length);
+      
+      const results = await Promise.allSettled(
+        hexes.map(h => refreshFromRemoteSilent(h))
+      );
+      
+      const updated = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+      console.log('[SYNC FORCE] ✅ Sincronizados', updated, 'cursos');
+      
+      // Reconstruir grid
+      buildMasterGrid();
+      
+      // ✅ Mostrar modal de éxito (sin alert)
+      if (typeof window.showSuccessModal === 'function') {
+        window.showSuccessModal(
+          '¡Sincronización Exitosa!',
+          `${updated} curso(s) actualizado(s) desde el servidor.`
+        );
+      }
+      
+    } else if (isContentView) {
+      console.log('[SYNC FORCE] 📄 Vista de curso detectada - Sincronizando curso actual...');
+      
+      // Obtener el hex del curso actual
+      const currentHex = window.currentCourseHex; // Necesitamos guardarlo globalmente
+      
+      if (currentHex) {
+        const updated = await refreshFromRemoteSilent(currentHex);
+        
+        if (updated) {
+          console.log('[SYNC FORCE] ✅ Curso sincronizado, re-renderizando...');
+          renderCourse(currentHex);
+          // ✅ Mostrar modal de éxito (sin alert)
           if (typeof window.showSuccessModal === 'function') {
             window.showSuccessModal(
-              'Error de Sincronización',
-              'No se pudo sincronizar. Intenta nuevamente.'
+              '¡Sincronización Exitosa!',
+              'Los recursos se han actualizado correctamente desde el servidor.'
             );
           }
-        } finally {
-          refreshBtn.disabled = false;
-          refreshBtn.classList.remove('loading');
-        }
-      };
-
-      refreshBtn.addEventListener('click', runRefresh);
-      refreshBtn.addEventListener('keydown', (evt) => {
-        if (evt.key === 'Enter' || evt.key === ' ') {
-          evt.preventDefault();
-          runRefresh();
-        }
-      });
-    });
-  </script>
-  
-  <!-- Service Worker Registration -->
-  <script>
-    // ✅ MODO DESARROLLO: Cambia a false antes de hacer commit a producción
-    // En desarrollo: Los cambios se ven inmediatamente sin limpiar caché
-    // En producción: Usa caché optimizado para mejor rendimiento
-    const IS_DEVELOPMENT = true; // ⚠️ CAMBIAR A false EN PRODUCCIÓN
-    
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        if (IS_DEVELOPMENT) {
-          // En desarrollo: desregistrar cualquier SW existente y registrar nuevo
-          // Esto asegura que siempre se use la versión más reciente
-          navigator.serviceWorker.getRegistrations().then(registrations => {
-            registrations.forEach(reg => reg.unregister());
-          }).then(() => {
-            const swPath = '/edusalud-consultores/sw.js';
-            navigator.serviceWorker.register(swPath)
-              .then((registration) => {
-                console.log('[SW] ✅ Registrado (DESARROLLO):', registration.scope);
-                console.log('[SW] 💡 Los cambios se verán inmediatamente sin limpiar caché');
-                // Forzar actualización inmediata
-                registration.update();
-              })
-              .catch((error) => {
-                console.log('[SW] ❌ Error al registrar:', error);
-              });
-          });
         } else {
-          // En producción: registro normal con caché optimizado
-          const swPath = '/edusalud-consultores/sw.js';
-          navigator.serviceWorker.register(swPath)
-            .then((registration) => {
-              console.log('[SW] ✅ Registrado correctamente:', registration.scope);
-            })
-            .catch((error) => {
-              console.log('[SW] ❌ Error al registrar:', error);
-            });
+          console.log('[SYNC FORCE] ℹ️ No hay cambios nuevos');
+          // ✅ Mostrar modal informativo (sin alert)
+          if (typeof window.showSuccessModal === 'function') {
+            window.showSuccessModal(
+              'Sin Cambios',
+              'Ya estás viendo la última versión disponible.'
+            );
+          }
         }
+      } else {
+        console.warn('[SYNC FORCE] ⚠️ No se detectó hex del curso actual');
+        // ✅ Mostrar modal de advertencia (sin alert)
+        if (typeof window.showSuccessModal === 'function') {
+          window.showSuccessModal(
+            'Error',
+            'No se pudo identificar el curso actual.'
+          );
+        }
+      }
+      
+    } else {
+      console.log('[SYNC FORCE] ℹ️ No hay vista activa para sincronizar');
+      // ✅ Mostrar modal informativo (sin alert)
+      if (typeof window.showSuccessModal === 'function') {
+        window.showSuccessModal(
+          'Información',
+          'Primero ingresa a un curso o a la vista maestra.'
+        );
+      }
+    }
+    
+  } catch (error) {
+    console.error('[SYNC FORCE] ❌ Error:', error);
+    throw error;
+  }
+};
+
+// ✅ FUNCIÓN GLOBAL: Limpiar TODO y recargar
+window.limpiarTodoYRecargar = async function() {
+  console.log('[CLEAN] 🧹 LIMPIANDO TODO...');
+  
+  // 1. Limpiar localStorage de archivos
+  const filesCleared = clearAllFilesOverrides();
+  console.log('[CLEAN] 🧹 Limpiados', filesCleared, 'archivos de localStorage');
+  
+  // 2. Limpiar caché del navegador
+  if ('caches' in window) {
+    const cacheNames = await caches.keys();
+    await Promise.all(
+      cacheNames.map(cacheName => {
+        console.log('[CLEAN] 🧹 Eliminando caché:', cacheName);
+        return caches.delete(cacheName);
+      })
+    );
+  }
+  
+  // 3. Desregistrar Service Worker
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(
+      registrations.map(reg => {
+        console.log('[CLEAN] 🧹 Desregistrando Service Worker');
+        return reg.unregister();
+      })
+    );
+  }
+  
+  console.log('[CLEAN] ✅ TODO LIMPIADO. Recargando...');
+  alert('✅ TODO limpiado. Solo verás datos desde Google Sheets.');
+  
+  // 4. Recargar página
+  setTimeout(() => {
+    location.reload(true);
+  }, 500);
+};
+
+/* ============ init ============ */
+(async function init(){
+  // ✅ NO limpiar archivos al inicio - dejar que la sincronización automática lo maneje
+  console.log('[INIT] 🚀 Iniciando plataforma...');
+  console.log('[INIT] 📦 Archivos locales disponibles:', Object.keys(localStorage).filter(k => k.startsWith(FILES_STORAGE_PREFIX)).length);
+  console.log('[INIT] 🔄 La sincronización automática actualizará los datos cada 1.2s');
+  
+  // Actualizar versión de caché
+  localStorage.setItem(CACHE_VERSION_KEY, CURRENT_CACHE_VERSION);
+  
+  $('#year').textContent = new Date().getFullYear();
+  $('#year_master').textContent = new Date().getFullYear();
+
+  const qp = new URLSearchParams(location.search);
+  const pre = qp.get('code');
+  if (pre) {
+    // ✅ Mostrar loader inmediatamente si hay código pre-cargado
+    showLoader();
+    try {
+      const decoded = atob(pre);
+      if (decoded) {
+        const ok = await tryLoginByCode(decoded);
+        if (ok) { try { $('#code').value = decoded; } catch(e) {} return; }
+        else {
+          hideLoader(); // ✅ Ocultar loader antes de mostrar acceso
+          setQueryParam('code', null);
+          showAccess();
+          $('#msg').textContent = 'El enlace contiene código inválido o expirado.';
+          $('#msg').classList.add('error');
+          return;
+        }
+      }
+    } catch (e) { 
+      hideLoader(); // ✅ Ocultar loader si hay error
+      console.warn('Parámetro code inválido', e); 
+    }
+  }
+  showAccess();
+  maybeShowAttemptsWarning();
+  
+  // ✅ Cargar cursos remotos (no bloquear con await para no demorar carga)
+  loadRemoteCoursesOnInit();
+  
+  // ❌ NO iniciar polling automático para no interrumpir al usuario
+  // El botón manual de sincronización será usado cuando el usuario quiera
+  console.log('[INIT] ✅ Plataforma lista (sin polling automático)');
+})();
+
+/* ============ Modal agregar curso ============ */
+let setupAddCourseModalDone = false;
+
+function setupAddCourseModal() {
+  if (setupAddCourseModalDone) {
+    console.log('[SETUP] Ya configurado, saltando...');
+    return;
+  }
+  setupAddCourseModalDone = true;
+  
+  const modalAddCourse = $('#modalAddCourse');
+  const modalClose = $('#modalAddCourseClose');
+  const btnAddCourse = $('#btn-add-course');
+  const formAddCourse = $('#formAddCourse');
+  const inputCourseAccent = $('#inputCourseAccent');
+  const inputCourseAccentHex = $('#inputCourseAccentHex');
+
+  console.log('[SETUP] Elementos encontrados:', {
+    modalAddCourse: !!modalAddCourse,
+    formAddCourse: !!formAddCourse,
+    btnAddCourse: !!btnAddCourse
+  });
+
+  if (!modalAddCourse || !formAddCourse) {
+    console.error('[SETUP] Faltan elementos del modal');
+    return;
+  }
+
+  // Sincronizar color picker con input hex
+  if (inputCourseAccent && inputCourseAccentHex) {
+    inputCourseAccent.addEventListener('input', (e) => {
+      inputCourseAccentHex.value = e.target.value;
+    });
+    inputCourseAccentHex.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (val.match(/^#[0-9A-Fa-f]{6}$/)) {
+        inputCourseAccent.value = val;
+      }
+    });
+  }
+
+  // Abrir modal
+  if (btnAddCourse) {
+    btnAddCourse.addEventListener('click', () => {
+      modalAddCourse.classList.add('show');
+    });
+  }
+
+  // Cerrar modal
+  if (modalClose) {
+    modalClose.addEventListener('click', () => {
+      modalAddCourse.classList.remove('show');
+    });
+  }
+
+  $('#btnCancelAddCourse')?.addEventListener('click', () => {
+    modalAddCourse.classList.remove('show');
+  });
+
+  // Submit formulario
+  formAddCourse.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const title = $('#inputCourseTitle').value.trim();
+    const meta = $('#inputCourseMeta').value.trim();
+    const imageUrl = $('#inputCourseImage').value.trim();
+    const tag = $('#inputCourseTag').value.trim().toUpperCase();
+    const variant = $('#selectCourseVariant').value;
+    const accent = $('#inputCourseAccent').value;
+    const code = $('#inputCourseCode').value.trim();
+    
+    // Validaciones
+    if (!title || !meta || !imageUrl || !tag || !code) {
+      alert('Complete todos los campos');
+      return;
+    }
+    
+    // Validar URL de imagen
+    try {
+      new URL(imageUrl);
+    } catch {
+      // Si no es una URL absoluta, asumimos que es relativa
+      if (!imageUrl.startsWith('/') && !imageUrl.startsWith('assets/')) {
+        alert('URL de imagen inválida');
+        return;
+      }
+    }
+    
+    // Verificar que el código no exista
+    const existingCourses = getMergedAccessHashMap();
+    const hex = await sha256Hex(code);
+    if (existingCourses[hex]) {
+      alert('Este código ya existe. Use otro.');
+      return;
+    }
+    
+    // Verificar que el tag sea único
+    const tags = Object.values(existingCourses).map(c => c.card?.tag?.toUpperCase());
+    if (tags.includes(tag)) {
+      alert('Este tag ya está en uso. Use otro.');
+      return;
+    }
+    
+    // Crear datos del curso
+    const courseData = {
+      title: title,
+      meta: meta,
+      files: [],
+      card: {
+        img: imageUrl,
+        tag: tag,
+        variant: variant,
+        seed: Math.floor(Math.random() * 100),
+        accent: accent
+      }
+    };
+    
+    // Guardar curso (esperar confirmación)
+    await addCustomCourse(hex, courseData);
+    
+    // ✅ Forzar refresh de cursos para que se vea inmediatamente
+    await refreshCustomCourses().catch(e => {
+      console.warn('[ADD COURSE] Error refrescando cursos después de crear:', e);
+    });
+    
+    // Analytics tracking
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'course_created', {
+        'event_category': 'management',
+        'event_label': tag
       });
     }
-  </script>
+    
+    // Cerrar modal y recargar grid
+    modalAddCourse.classList.remove('show');
+    formAddCourse.reset();
+    inputCourseAccent.value = '#5aa9ff';
+    inputCourseAccentHex.value = '#5aa9ff';
+    
+    // Reconstruir grid
+    buildMasterGrid();
+    
+    // ✅ Mostrar modal de éxito
+    window.showSuccessModal(
+      '¡Curso Creado Exitosamente!',
+      `El curso "${tag}" ha sido creado.\n\nCódigo de acceso: ${code}`
+    );
+  });
 
-  <!-- Script del modal de confirmación de eliminación -->
-  <script>
-  // ✅ Modal de confirmación para eliminar
-  (function() {
-    const modal = document.getElementById('deleteConfirmModal');
-    const btnClose = document.getElementById('deleteConfirmClose');
-    const btnCancel = document.getElementById('deleteConfirmCancel');
-    const btnYes = document.getElementById('deleteConfirmYes');
-    const courseName = document.getElementById('deleteCourseName');
-    
-    let onConfirmCallback = null;
-    
-    // Función global para mostrar el modal
-    window.showDeleteConfirmModal = function(title, onConfirm) {
-      courseName.textContent = title;
-      onConfirmCallback = onConfirm;
-      modal.classList.add('show');
-    };
-    
-    // Cerrar modal
-    function closeModal() {
-      modal.classList.remove('show');
-      onConfirmCallback = null;
+  // Cerrar modal al hacer click fuera
+  modalAddCourse.addEventListener('click', (e) => {
+    if (e.target === modalAddCourse) {
+      modalAddCourse.classList.remove('show');
+    }
+  });
+}
+
+// ✅ Configurar modal cuando DOM está completamente cargado
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupAddCourseModal);
+} else {
+  setupAddCourseModal();
+}
+
+/* ============ FUNCIONES DE PRUEBA Y DIAGNÓSTICO GLOBALES ============ */
+
+// 🧪 TEST DE BOTÓN FLOTANTE (CAMBIO DE COLOR)
+window.testButtonColor = function() {
+  console.log('═══════════════════════════════════════════');
+  console.log('🧪 TEST DE BOTÓN FLOTANTE');
+  console.log('═══════════════════════════════════════════');
+  console.log('');
+  
+  // Test 1: Cambiar a amarillo
+  console.log('Test 1: Cambiando botón a AMARILLO (con cambios)...');
+  if (typeof window.updateSyncButtonState === 'function') {
+    window.updateSyncButtonState(true);
+    console.log('✅ Botón debería estar AMARILLO pulsante ahora');
+    console.log('   Verifica visualmente el botón flotante →');
+  } else {
+    console.error('❌ updateSyncButtonState no está disponible');
+    console.error('   Asegúrate de haber refrescado la página');
+  }
+  
+  // Test 2: Esperar 4 segundos y cambiar a azul
+  setTimeout(() => {
+    console.log('');
+    console.log('Test 2: Cambiando botón a AZUL (sin cambios)...');
+    if (typeof window.updateSyncButtonState === 'function') {
+      window.updateSyncButtonState(false);
+      console.log('✅ Botón debería estar AZUL ahora');
+      console.log('   Verifica visualmente el botón flotante →');
     }
     
-    // Event listeners
-    btnClose.addEventListener('click', closeModal);
-    btnCancel.addEventListener('click', closeModal);
-    
-    btnYes.addEventListener('click', () => {
-      if (onConfirmCallback) {
-        onConfirmCallback();
-      }
-      closeModal();
-    });
-    
-    // Cerrar con Escape
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.classList.contains('show')) {
-        closeModal();
-      }
-    });
-    
-    // Cerrar al hacer click en el overlay
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        closeModal();
-      }
-    });
-  })();
+    console.log('');
+    console.log('═══════════════════════════════════════════');
+    console.log('Si viste el cambio de colores, ¡funciona! 🎉');
+    console.log('═══════════════════════════════════════════');
+  }, 4000);
+};
 
-  // ✅ Modal de éxito
-  (function() {
-    const modal = document.getElementById('successModal');
-    const btnClose = document.getElementById('successModalClose');
-    const btnContinue = document.getElementById('successModalBtn');
-    const modalTitle = document.getElementById('successModalTitle');
-    const modalMessage = document.getElementById('successModalMessage');
+// 🧪 TEST COMPLETO DE SINCRONIZACIÓN
+window.testSyncComplete = async function(hex) {
+  console.log('═══════════════════════════════════════════');
+  console.log('🧪 TEST COMPLETO DE SINCRONIZACIÓN');
+  console.log('═══════════════════════════════════════════');
+  console.log('Hex:', hex);
+  console.log('URL Remoto:', REMOTE_BASE_URL);
+  console.log('');
+  
+  // 1. Ver datos locales actuales
+  console.log('📦 PASO 1: Datos locales actuales');
+  const localFiles = getFilesForHex(hex);
+  console.log('  → Archivos locales:', localFiles.length);
+  console.log('  → Datos:', JSON.stringify(localFiles));
+  console.log('');
+  
+  // 2. Leer desde remoto
+  console.log('📥 PASO 2: Leer desde remoto (JSONP)');
+  const remoteFiles = await remoteGetFilesJSONP(hex);
+  console.log('  → Archivos remotos:', remoteFiles ? remoteFiles.length : 'NULL');
+  console.log('  → Datos:', JSON.stringify(remoteFiles));
+  console.log('');
+  
+  // 3. Agregar un archivo de prueba
+  console.log('✏️ PASO 3: Agregar archivo de prueba');
+  const testFile = {
+    label: 'TEST ' + new Date().toLocaleTimeString(),
+    url: 'https://ejemplo.com/test-' + Date.now()
+  };
+  const newFiles = [...localFiles, testFile];
+  console.log('  → Agregando:', testFile);
+  console.log('  → Total archivos:', newFiles.length);
+  console.log('');
+  
+  // 4. Guardar localmente
+  console.log('💾 PASO 4: Guardar localmente');
+  saveFilesOverride(hex, newFiles);
+  const savedLocal = getFilesForHex(hex);
+  console.log('  → Guardado local exitoso:', savedLocal.length === newFiles.length ? '✅' : '❌');
+  console.log('');
+  
+  // 5. Guardar en remoto
+  console.log('☁️ PASO 5: Guardar en remoto (POST)');
+  const saveOk = await remoteSaveFiles(hex, newFiles);
+  console.log('  → Resultado POST:', saveOk ? '✅ ÉXITO' : '❌ FALLÓ');
+  console.log('');
+  
+  // 6. Esperar 2 segundos para que Google Sheets procese
+  console.log('⏳ PASO 6: Esperando 2 segundos...');
+  await new Promise(r => setTimeout(r, 2000));
+  console.log('');
+  
+  // 7. Verificar que se guardó en remoto
+  console.log('🔍 PASO 7: Verificar en remoto');
+  const remoteCheck = await remoteGetFilesJSONP(hex);
+  console.log('  → Archivos en remoto:', remoteCheck ? remoteCheck.length : 'NULL');
+  console.log('  → Coincide con local:', remoteCheck && remoteCheck.length === newFiles.length ? '✅' : '❌');
+  console.log('  → Datos remotos:', JSON.stringify(remoteCheck));
+  console.log('');
+  
+  // 8. Resumen
+  console.log('═══════════════════════════════════════════');
+  console.log('📊 RESUMEN DEL TEST');
+  console.log('═══════════════════════════════════════════');
+  console.log('✓ Lectura local:', localFiles.length, 'archivos');
+  console.log('✓ Lectura remota inicial:', remoteFiles ? remoteFiles.length : 'NULL', 'archivos');
+  console.log('✓ Guardado local:', savedLocal.length === newFiles.length ? '✅' : '❌');
+  console.log('✓ Guardado remoto:', saveOk ? '✅' : '❌');
+  console.log('✓ Verificación remota:', remoteCheck && remoteCheck.length === newFiles.length ? '✅' : '❌');
+  console.log('');
+  
+  if (remoteCheck && remoteCheck.length === newFiles.length) {
+    console.log('🎉 ¡TEST EXITOSO! La sincronización funciona correctamente');
+    console.log('💡 Abre la página en otro dispositivo/pestaña y ejecuta:');
+    console.log('   verDatosGuardados()');
+  } else {
+    console.log('❌ TEST FALLÓ - La sincronización no está funcionando');
+    console.log('🔧 Posibles causas:');
+    console.log('   1. El POST no llega a Google Sheets');
+    console.log('   2. Google Apps Script tiene un error');
+    console.log('   3. La URL del WebApp es incorrecta');
+    console.log('   4. Hay un delay en el procesamiento');
+  }
+  console.log('═══════════════════════════════════════════');
+};
+
+// 🔍 DIAGNÓSTICO: Ver qué devuelve realmente el servidor
+window.diagnosticarRespuesta = async function(hex = null) {
+  console.log('═══════════════════════════════════════════');
+  console.log('🔍 DIAGNÓSTICO DE RESPUESTA DEL SERVIDOR');
+  console.log('═══════════════════════════════════════════');
+  
+  // Test 1: Sin callback (JSON puro)
+  const testUrl1 = hex 
+    ? `${REMOTE_BASE_URL}?hex=${encodeURIComponent(hex)}&ts=${Date.now()}`
+    : `${REMOTE_BASE_URL}?action=get_courses&ts=${Date.now()}`;
+  
+  // Test 2: Con callback (JSONP)
+  const testUrl2 = hex 
+    ? `${REMOTE_BASE_URL}?hex=${encodeURIComponent(hex)}&callback=testCallback123&ts=${Date.now()}`
+    : `${REMOTE_BASE_URL}?action=get_courses&callback=testCallback123&ts=${Date.now()}`;
+  
+  console.log('');
+  console.log('🧪 TEST 1: Sin parámetro callback');
+  console.log('URL:', testUrl1);
+  console.log('');
+  
+  try {
+    const response1 = await fetch(testUrl1);
+    const text1 = await response1.text();
     
-    // Función global para mostrar el modal de éxito
-    window.showSuccessModal = function(title, message) {
-      if (title) modalTitle.textContent = title;
-      if (message) modalMessage.textContent = message;
-      modal.classList.add('show');
-      
-      // Auto-cerrar después de 3 segundos
-      setTimeout(() => {
-        closeModal();
-      }, 3000);
-    };
+    console.log('Status:', response1.status);
+    console.log('Content-Type:', response1.headers.get('content-type'));
+    console.log('📄 Respuesta:');
+    console.log('─────────────────────────────────────────');
+    console.log(text1);
+    console.log('─────────────────────────────────────────');
+  } catch (error) {
+    console.error('❌ Error:', error);
+  }
+  
+  console.log('');
+  console.log('🧪 TEST 2: Con parámetro callback=testCallback123');
+  console.log('URL:', testUrl2);
+  console.log('');
+  
+  try {
+    const response2 = await fetch(testUrl2);
+    const text2 = await response2.text();
     
-    // Cerrar modal
-    function closeModal() {
-      modal.classList.remove('show');
+    console.log('Status:', response2.status);
+    console.log('Content-Type:', response2.headers.get('content-type'));
+    console.log('📄 Respuesta:');
+    console.log('─────────────────────────────────────────');
+    console.log(text2);
+    console.log('─────────────────────────────────────────');
+    console.log('');
+    
+    // Analizar si es JSONP válido
+    if (text2.includes('testCallback123')) {
+      console.log('✅ El servidor SÍ está usando el callback');
+      if (text2.startsWith('testCallback123(') && text2.includes(')')) {
+        console.log('✅ Formato JSONP CORRECTO');
+        console.log('');
+        console.log('🎉 ¡EL SERVIDOR ESTÁ CONFIGURADO CORRECTAMENTE!');
+      } else {
+        console.log('⚠️ El callback está presente pero el formato es incorrecto');
+      }
+    } else {
+      console.log('❌ El servidor NO está usando el callback');
+      console.log('❌ Problema: Google Apps Script no está devolviendo JSONP');
+      console.log('');
+      console.log('🔧 SOLUCIONES:');
+      console.log('1. Verifica que copiaste el código COMPLETO a Google Apps Script');
+      console.log('2. Verifica que guardaste (Ctrl+S)');
+      console.log('3. Haz una NUEVA implementación (no editar la existente)');
+      console.log('4. Copia la NUEVA URL y actualiza app.js');
     }
     
-    // Event listeners
-    btnClose.addEventListener('click', closeModal);
-    btnContinue.addEventListener('click', closeModal);
+  } catch (error) {
+    console.error('❌ Error:', error);
+  }
+  
+  console.log('═══════════════════════════════════════════');
+};
+
+// 🧪 TEST JSONP SIMPLE
+window.testJSONP = async function(hex) {
+  console.log('🧪 TEST JSONP para hex:', hex);
+  // 🛡️ Cache-buster
+  const url = REMOTE_BASE_URL 
+    + '?hex=' + encodeURIComponent(hex) 
+    + '&callback=test_callback'
+    + '&ts=' + Date.now();
+  console.log('URL:', url);
+  
+  return new Promise((resolve) => {
+    const callbackName = 'test_callback_' + Date.now();
+    const script = document.createElement('script');
+    const testUrl = REMOTE_BASE_URL 
+      + '?hex=' + encodeURIComponent(hex) 
+      + '&callback=' + callbackName
+      + '&ts=' + Date.now();
+    script.src = testUrl;
     
-    // Cerrar con Escape
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.classList.contains('show')) {
-        closeModal();
-      }
-    });
+    window[callbackName] = function(data) {
+      console.log('✅ CALLBACK EJECUTADO!', data);
+      document.body.removeChild(script);
+      delete window[callbackName];
+      resolve(data);
+    };
     
-    // Cerrar al hacer click en el overlay
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        closeModal();
+    script.onerror = (err) => {
+      console.error('❌ ERROR cargando script:', err);
+      if (script.parentNode) document.body.removeChild(script);
+      if (window[callbackName]) delete window[callbackName];
+      resolve(null);
+    };
+    
+    setTimeout(() => {
+      if (window[callbackName]) {
+        console.warn('⏱️ TIMEOUT - callback no se ejecutó después de 10s');
+        if (script.parentNode) document.body.removeChild(script);
+        delete window[callbackName];
+        resolve(null);
       }
-    });
-  })();
-  </script>
-</body>
-</html>
+    }, 10000);
+    
+    document.body.appendChild(script);
+    console.log('📡 Script agregado, esperando respuesta...');
+  });
+};
+
+// Probar GET directo desde la consola
+window.testGET = async function(hex) {
+  console.log('🧪 TEST GET para hex:', hex);
+  try {
+    const result = await remoteGetFiles(hex);
+    console.log('✅ Resultado:', result);
+    return result;
+  } catch(e) {
+    console.error('❌ Error:', e);
+    return null;
+  }
+};
+
