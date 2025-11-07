@@ -411,10 +411,15 @@ function mergeFirestoreLinks(courseHex, firestoreLinks) {
   // ✅ RE-RENDERIZAR vista actual solo si es necesario
   const isContentView = document.getElementById('content') && 
                        !document.getElementById('content').classList.contains('hidden');
+  const isMasterView = document.getElementById('master') && 
+                      !document.getElementById('master').classList.contains('hidden');
   
   if (isContentView && window.currentCourseHex === courseHex) {
-    console.log('[FIRESTORE] ♻️ Re-renderizando curso con nuevos datos');
+    console.log('[FIRESTORE] ♻️ Re-renderizando curso (vista individual)');
     renderCourse(courseHex);
+  } else if (isMasterView) {
+    console.log('[FIRESTORE] ♻️ Re-renderizando Master grid con nuevos datos');
+    buildMasterGrid();
   }
 }
 
