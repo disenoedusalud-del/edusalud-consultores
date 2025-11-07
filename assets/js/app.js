@@ -1709,6 +1709,21 @@ function buildMasterGrid() {
       btnRemove.type = 'button';
       btnRemove.textContent = 'Quitar';
       btnRemove.addEventListener('click', async () => {
+        // ✅ FIREBASE: Eliminar de Firebase primero si tiene firebaseId
+        if (item.firebaseId && typeof window.eliminarLinkFirebase === 'function') {
+          try {
+            console.log('[REMOVE] 🔥 Eliminando de Firebase:', item.firebaseId);
+            await window.eliminarLinkFirebase(hex, item.firebaseId);
+            console.log('[REMOVE] ✅ Eliminado de Firebase, el listener actualizará automáticamente');
+            // No necesitamos hacer nada más, el listener se encargará
+            return;
+          } catch (error) {
+            console.error('[REMOVE] ❌ Error eliminando de Firebase, usando método local:', error);
+            // Continuar con método local si Firebase falla
+          }
+        }
+        
+        // ✅ FALLBACK: Método local si no tiene firebaseId o Firebase falló
         const next = files.slice();
         next.splice(idx, 1);
         saveFilesOverride(hex, next);
