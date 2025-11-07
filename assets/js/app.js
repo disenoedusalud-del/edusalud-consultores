@@ -298,6 +298,68 @@ function getFilesForHex(hex){
 
 /* ===================== FIREBASE FIRESTORE - FUNCIONES EN TIEMPO REAL ===================== */
 
+// ✅ Almacenar listeners activos por curso (para Master)
+const activeListeners = new Map();
+
+/**
+ * ✅ FUNCIÓN: Inicializar listeners para TODOS los cursos en Master
+ */
+function initFirestoreRealtimeMaster(courseHexes) {
+  const db = getFirestoreDB();
+  
+  if (!db) {
+    console.log('[FIRESTORE] Firebase no configurado para Master');
+    return;
+  }
+  
+  console.log('[FIRESTORE] 🔥 Iniciando listeners para', courseHexes.length, 'cursos en Master');
+  
+  // Limpiar listeners antiguos que ya no están en la lista
+  activeListeners.forEach((unsubscribe, hex) => {
+    if (!courseHexes.includes(hex)) {
+      console.log('[FIRESTORE] Desuscribiendo listener obsoleto:', hex.substring(0, 10));
+      unsubscribe();
+      activeListeners.delete(hex);
+    }
+  });
+  
+  // Crear listeners para cursos nuevos
+  courseHexes.forEach(courseHex => {
+    if (activeListeners.has(courseHex)) {
+      return; // Ya tiene listener
+    }
+    
+    try {
+      const linksRef = db.ref(`courses/${courseHex}/links`);
+      
+      const unsubscribe = linksRef.on('value', (snapshot) => {
+        const firebaseLinks = [];
+        
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          Object.keys(data).forEach((key) => {
+            firebaseLinks.push({
+              id: key,
+              ...data[key]
+            });
+          });
+          
+          firebaseLinks.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          console.log('[FIREBASE] 📥 Cambio detectado en', courseHex.substring(0, 10), ':', firebaseLinks.length, 'links');
+        }
+        
+        mergeFirestoreLinks(courseHex, firebaseLinks);
+      });
+      
+      activeListeners.set(courseHex, () => linksRef.off('value', unsubscribe));
+      console.log('[FIRESTORE] ✅ Listener activo para:', courseHex.substring(0, 10));
+      
+    } catch (error) {
+      console.error('[FIRESTORE] ❌ Error iniciando listener para', courseHex.substring(0, 10), ':', error);
+    }
+  });
+}
+
 /**
  * ✅ FUNCIÓN: Inicializar listeners de Firestore en tiempo real
  * Se ejecuta cuando se renderiza un curso para escuchar cambios en tiempo real
@@ -1906,6 +1968,11 @@ function buildMasterGrid() {
     cardEl.appendChild(right);
     grid.appendChild(cardEl);
   });
+  
+  // ✅ FIREBASE: Iniciar listeners para todos los cursos en Master
+  const courseHexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
+  initFirestoreRealtimeMaster(courseHexes);
+  
   // herramientas exportar/importar
   try { ensureMasterTools(); } catch(e) {}
 }
