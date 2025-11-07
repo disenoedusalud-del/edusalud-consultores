@@ -301,6 +301,9 @@ function getFilesForHex(hex){
 // ✅ Almacenar listeners activos por curso (para Master)
 const activeListeners = new Map();
 
+// ✅ Bandera para evitar re-renders durante operaciones del usuario
+let userInteracting = false;
+
 /**
  * ✅ FUNCIÓN: Inicializar listeners para TODOS los cursos en Master
  */
@@ -469,6 +472,12 @@ function mergeFirestoreLinks(courseHex, firestoreLinks) {
   
   // Guardar en localStorage
   saveFilesOverride(courseHex, merged);
+  
+  // ✅ NO re-renderizar si el usuario está interactuando
+  if (userInteracting) {
+    console.log('[FIRESTORE] ⏸️ Usuario interactuando, posponer re-render');
+    return;
+  }
   
   // ✅ RE-RENDERIZAR vista actual solo si es necesario
   const isContentView = document.getElementById('content') && 
@@ -1712,13 +1721,28 @@ function buildMasterGrid() {
         // ✅ FIREBASE: Eliminar de Firebase primero si tiene firebaseId
         if (item.firebaseId && typeof window.eliminarLinkFirebase === 'function') {
           try {
+            // ✅ Bloquear re-renders durante la eliminación
+            userInteracting = true;
+            
             console.log('[REMOVE] 🔥 Eliminando de Firebase:', item.firebaseId);
             await window.eliminarLinkFirebase(hex, item.firebaseId);
-            console.log('[REMOVE] ✅ Eliminado de Firebase, el listener actualizará automáticamente');
-            // No necesitamos hacer nada más, el listener se encargará
+            console.log('[REMOVE] ✅ Eliminado de Firebase');
+            
+            // ✅ Esperar un momento y luego re-renderizar manualmente
+            setTimeout(() => {
+              userInteracting = false;
+              const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+              if (isMasterView) {
+                buildMasterGrid();
+              } else {
+                renderCourse(hex);
+              }
+            }, 300);
+            
             return;
           } catch (error) {
             console.error('[REMOVE] ❌ Error eliminando de Firebase, usando método local:', error);
+            userInteracting = false;
             // Continuar con método local si Firebase falla
           }
         }
