@@ -1728,26 +1728,27 @@ function buildMasterGrid() {
             await window.eliminarLinkFirebase(hex, item.firebaseId);
             console.log('[REMOVE] ✅ Eliminado de Firebase');
             
-            // ✅ CRÍTICO: También eliminar de Google Sheets (sincronización)
+            // ✅ CRÍTICO: Actualizar localStorage INMEDIATAMENTE
             const currentFiles = getFilesForHex(hex);
             const updatedFiles = currentFiles.filter(f => f.firebaseId !== item.firebaseId);
-            console.log('[REMOVE] 📊 Actualizando Google Sheets:', currentFiles.length, '→', updatedFiles.length);
+            saveFilesOverride(hex, updatedFiles);
+            console.log('[REMOVE] 💾 localStorage actualizado:', currentFiles.length, '→', updatedFiles.length);
             
-            // Guardar en Google Sheets en segundo plano
+            // ✅ También actualizar Google Sheets (sincronización)
             remoteSaveFiles(hex, updatedFiles).catch(e => {
               console.warn('[REMOVE] ⚠️ Error actualizando Google Sheets:', e);
             });
             
-            // ✅ Esperar un momento y luego re-renderizar manualmente
-            setTimeout(() => {
-              userInteracting = false;
-              const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
-              if (isMasterView) {
-                buildMasterGrid();
-              } else {
-                renderCourse(hex);
-              }
-            }, 300);
+            // ✅ Desbloquear y re-renderizar inmediatamente
+            userInteracting = false;
+            const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+            if (isMasterView) {
+              console.log('[REMOVE] ♻️ Re-renderizando Master');
+              buildMasterGrid();
+            } else {
+              console.log('[REMOVE] ♻️ Re-renderizando Curso');
+              renderCourse(hex);
+            }
             
             return;
           } catch (error) {
