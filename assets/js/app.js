@@ -560,36 +560,15 @@ function mergeFirestoreLinks(courseHex, firestoreLinks) {
   }));
   
   const baseLinks = ACCESS_HASH_MAP[courseHex]?.files || [];
-  const merged = [];
-  const normalizeUrl = (url = '') => String(url || '').trim();
-  
-  // ✅ Siempre mantener los links base definidos en el código (tarjetas iniciales)
-  baseLinks.forEach(baseLink => {
-    const normalized = normalizeUrl(baseLink.url);
-    const baseEntry = {
-      label: baseLink.label || '',
-      url: baseLink.url || '',
-      firebaseId: baseLink.firebaseId || null,
-      createdAt: baseLink.createdAt || null
-    };
-    merged.push(baseEntry);
-  });
-  
-  // ✅ Combinar Firebase encima de la base (sobrescribe por URL)
-  firebaseFormatted.forEach(fbLink => {
-    const normalized = normalizeUrl(fbLink.url);
-    if (!normalized) {
-      merged.push(fbLink);
-      return;
-    }
-    const existingIndex = merged.findIndex(link => normalizeUrl(link.url) === normalized);
-    if (existingIndex >= 0) {
-      merged[existingIndex] = { ...merged[existingIndex], ...fbLink };
-    } else {
-      merged.push(fbLink);
-    }
-  });
-  
+  const baseEntries = baseLinks.map(baseLink => ({
+    label: baseLink.label || '',
+    url: baseLink.url || '',
+    firebaseId: baseLink.firebaseId || null,
+    createdAt: baseLink.createdAt || null
+  }));
+
+  const merged = baseEntries.concat(firebaseFormatted);
+
   saveFilesOverride(courseHex, merged);
   
   // ✅ NO re-renderizar si el usuario está interactuando
