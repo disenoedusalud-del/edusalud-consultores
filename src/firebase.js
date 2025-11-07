@@ -14,6 +14,7 @@
   const firebaseConfig = {
     apiKey: "AIzaSyDHwP2svgvAumaNg44gie5HxgARtct-ztk",
     authDomain: "edusalud-platfor.firebaseapp.com",
+    databaseURL: "https://edusalud-platfor-default-rtdb.firebaseio.com", // ⚠️ OBLIGATORIO para Realtime Database
     projectId: "edusalud-platfor",
     storageBucket: "edusalud-platfor.firebasestorage.app",
     messagingSenderId: "490035065280",
@@ -26,9 +27,9 @@
     if (typeof firebase === 'undefined') {
       console.log('[FIREBASE] Cargando librerías desde CDN...');
       
-      // Cargar Firebase App
+      // Cargar Firebase App y Realtime Database
       await loadScript('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
-      await loadScript('https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js');
+      await loadScript('https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js');
       
       console.log('[FIREBASE] ✅ Librerías cargadas');
     }
@@ -39,12 +40,13 @@
       console.log('[FIREBASE] ✅ Firebase inicializado correctamente');
     }
 
-    // ✅ Obtener Firestore
-    const db = firebase.firestore();
+    // ✅ Obtener Realtime Database
+    const db = firebase.database();
     window.firebaseDB = db; // Exponer globalmente
     
-    console.log('[FIREBASE] ✅ Firestore listo para sincronización en tiempo real');
+    console.log('[FIREBASE] ✅ Realtime Database listo para sincronización en tiempo real');
     console.log('[FIREBASE] ✅ Proyecto:', firebaseConfig.projectId);
+    console.log('[FIREBASE] 💡 Usando Realtime Database (alternativa gratuita sin facturación)');
     
     // Disparar evento personalizado cuando Firebase esté listo
     window.dispatchEvent(new CustomEvent('firebaseReady', { detail: { db } }));
