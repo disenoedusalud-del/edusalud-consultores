@@ -326,46 +326,56 @@ function initFirestoreRealtime(courseHex) {
   console.log('[FIRESTORE] 🔥 Iniciando listener en tiempo real para curso:', courseHex.substring(0, 10) + '...');
 
   try {
-    // Referencia a la colección de links de este curso (API compat)
-    const linksRef = db.collection('courses').doc(courseHex).collection('links');
-    const q = linksRef.orderBy('createdAt', 'desc');
+    // Referencia a la ruta de links de este curso (Realtime Database)
+    const linksRef = db.ref(`courses/${courseHex}/links`);
 
     // ✅ SUSCRIBIRSE a cambios en tiempo real
-    firestoreUnsubscribe = q.onSnapshot((snapshot) => {
-      console.log('[FIRESTORE] 📥 onSnapshot disparado - Documentos:', snapshot.size);
+    firestoreUnsubscribe = linksRef.on('value', (snapshot) => {
+      console.log('[FIREBASE] 📥 Evento disparado - Snapshot existe:', snapshot.exists());
       
-      // Verificar si hay cambios reales
-      const changes = snapshot.docChanges();
-      if (changes.length > 0) {
-        const changeType = changes.map(c => c.type).join(', ');
-        console.log('[FIRESTORE] 📥 Cambios detectados:', changes.length, '(' + changeType + ')');
+      const firebaseLinks = [];
+      
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const linkCount = Object.keys(data).length;
+        console.log('[FIREBASE] 📥 Links en Firebase:', linkCount);
         
-        // Mostrar detalles de cada cambio
-        changes.forEach((change, idx) => {
-          console.log(`[FIRESTORE]   ${idx + 1}. ${change.type.toUpperCase()}:`, change.doc.data().label);
+        // Convertir objeto a array
+        Object.keys(data).forEach((key) => {
+          firebaseLinks.push({
+            id: key,
+            ...data[key]
+          });
         });
+        
+        // Ordenar por createdAt descendente
+        firebaseLinks.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        
+        console.log('[FIREBASE] 📥 Cambios detectados - Total de links:', linkCount);
+        console.log('[FIREBASE] 📝 Links:', firebaseLinks.map(l => l.label).join(', '));
       } else {
-        console.log('[FIRESTORE] ℹ️ Sin cambios (carga inicial)');
+        console.log('[FIREBASE] ℹ️ Sin datos en Firebase (primera carga o curso vacío)');
       }
-      
-      const firestoreLinks = [];
-      snapshot.forEach((doc) => {
-        firestoreLinks.push({
-          id: doc.id,
-          ...doc.data()
-        });
-      });
 
       // ✅ Combinar links de Firebase con los de localStorage
-      mergeFirestoreLinks(courseHex, firestoreLinks);
+      mergeFirestoreLinks(courseHex, firebaseLinks);
       
     }, (error) => {
-      console.error('[FIRESTORE] ❌ Error en listener:', error);
-      console.error('[FIRESTORE] ❌ Código de error:', error.code);
-      console.error('[FIRESTORE] ❌ Mensaje:', error.message);
+      console.error('[FIREBASE] ❌ Error en listener:', error);
+      console.error('[FIREBASE] ❌ Código de error:', error.code);
+      console.error('[FIREBASE] ❌ Mensaje:', error.message);
     });
+    
+    // Función para desuscribirse (actualizada para Realtime Database)
+    const originalUnsubscribe = firestoreUnsubscribe;
+    firestoreUnsubscribe = () => {
+      if (originalUnsubscribe) {
+        linksRef.off('value', originalUnsubscribe);
+      }
+    };
+    
   } catch (error) {
-    console.error('[FIRESTORE] ❌ Error iniciando listener:', error);
+    console.error('[FIREBASE] ❌ Error iniciando listener:', error);
   }
 }
 
@@ -435,20 +445,21 @@ window.agregarLinkFirebase = async function(courseHex, label, url) {
     console.log('[FIRESTORE] ➕ Agregando link a Firebase:', label);
     console.log('[FIRESTORE] 📍 Curso:', courseHex.substring(0, 10) + '...');
     
-    // Referencia a la colección del curso (API compat)
-    const linksRef = db.collection('courses').doc(courseHex).collection('links');
+    // Referencia a la ruta del curso (Realtime Database)
+    const linksRef = db.ref(`courses/${courseHex}/links`);
     
-    console.log('[FIRESTORE] 📤 Enviando datos a Firestore...');
+    console.log('[FIRESTORE] 📤 Enviando datos a Realtime Database...');
     
-    // Agregar documento con timestamp del servidor
-    const docRef = await linksRef.add({
+    // Generar nuevo ID y agregar link
+    const newLinkRef = linksRef.push();
+    await newLinkRef.set({
       label: label.trim(),
       url: url.trim(),
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      createdAt: firebase.database.ServerValue.TIMESTAMP
     });
     
-    console.log('[FIRESTORE] ✅ Link agregado con ID:', docRef.id);
-    console.log('[FIRESTORE] ⏳ Esperando que onSnapshot detecte el cambio...');
+    console.log('[FIRESTORE] ✅ Link agregado con ID:', newLinkRef.key);
+    console.log('[FIRESTORE] ⏳ El cambio se detectará automáticamente en todos los dispositivos...');
     
     // Mostrar modal de éxito
     if (typeof window.showSuccessModal === 'function') {
@@ -473,7 +484,7 @@ window.agregarLinkFirebase = async function(courseHex, label, url) {
 };
 
 /**
- * ✅ FUNCIÓN GLOBAL: Eliminar link de Firebase Firestore
+ * ✅ FUNCIÓN GLOBAL: Eliminar link de Firebase Realtime Database
  */
 window.eliminarLinkFirebase = async function(courseHex, firebaseId) {
   const db = getFirestoreDB();
@@ -490,9 +501,9 @@ window.eliminarLinkFirebase = async function(courseHex, firebaseId) {
     
     console.log('[FIRESTORE] 🗑️ Eliminando link de Firebase:', firebaseId);
     
-    // Referencia al documento (API compat)
-    const docRef = db.collection('courses').doc(courseHex).collection('links').doc(firebaseId);
-    await docRef.delete();
+    // Referencia al link específico (Realtime Database)
+    const linkRef = db.ref(`courses/${courseHex}/links/${firebaseId}`);
+    await linkRef.remove();
     
     console.log('[FIRESTORE] ✅ Link eliminado de Firebase');
     
