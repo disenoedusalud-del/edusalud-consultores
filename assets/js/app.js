@@ -448,12 +448,10 @@ function initFirestoreRealtime(courseHex) {
  * ✅ FUNCIÓN: Combinar links de Firestore con localStorage y actualizar vista
  */
 function mergeFirestoreLinks(courseHex, firestoreLinks) {
-  console.log('[FIRESTORE] Mergeando', firestoreLinks.length, 'links de Firebase');
+  console.log('[FIRESTORE] 🔥 Firebase es la FUENTE DE VERDAD - Total:', firestoreLinks.length, 'links');
   
-  // Obtener links actuales de localStorage
-  const localLinks = getFilesForHex(courseHex) || [];
-  
-  // Convertir Firebase links al formato esperado
+  // ✅ CRÍTICO: Firebase sobrescribe completamente localStorage
+  // NO mezclar con datos viejos que puedan venir de Sheets
   const firebaseFormatted = firestoreLinks.map(link => ({
     label: link.label || '',
     url: link.url || '',
@@ -461,17 +459,8 @@ function mergeFirestoreLinks(courseHex, firestoreLinks) {
     createdAt: link.createdAt
   }));
   
-  // Combinar: Firebase primero, luego localStorage (sin duplicados por URL)
-  const merged = [...firebaseFormatted];
-  localLinks.forEach(localLink => {
-    const exists = merged.find(m => m.url === localLink.url);
-    if (!exists) {
-      merged.push(localLink);
-    }
-  });
-  
-  // Guardar en localStorage
-  saveFilesOverride(courseHex, merged);
+  // ✅ SOBRESCRIBIR localStorage con SOLO datos de Firebase
+  saveFilesOverride(courseHex, firebaseFormatted);
   
   // ✅ NO re-renderizar si el usuario está interactuando
   if (userInteracting) {
