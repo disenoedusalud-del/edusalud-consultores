@@ -450,17 +450,45 @@ function initFirestoreRealtime(courseHex) {
 function mergeFirestoreLinks(courseHex, firestoreLinks) {
   console.log('[FIRESTORE] 🔥 Firebase es la FUENTE DE VERDAD - Total:', firestoreLinks.length, 'links');
   
-  // ✅ CRÍTICO: Firebase sobrescribe completamente localStorage
-  // NO mezclar con datos viejos que puedan venir de Sheets
   const firebaseFormatted = firestoreLinks.map(link => ({
     label: link.label || '',
     url: link.url || '',
-    firebaseId: link.id, // Guardar ID para poder eliminar después
+    firebaseId: link.id,
     createdAt: link.createdAt
   }));
   
-  // ✅ SOBRESCRIBIR localStorage con SOLO datos de Firebase
-  saveFilesOverride(courseHex, firebaseFormatted);
+  const baseLinks = ACCESS_HASH_MAP[courseHex]?.files || [];
+  const merged = [];
+  const normalizeUrl = (url = '') => String(url || '').trim();
+  
+  // ✅ Siempre mantener los links base definidos en el código (tarjetas iniciales)
+  baseLinks.forEach(baseLink => {
+    const normalized = normalizeUrl(baseLink.url);
+    const baseEntry = {
+      label: baseLink.label || '',
+      url: baseLink.url || '',
+      firebaseId: baseLink.firebaseId || null,
+      createdAt: baseLink.createdAt || null
+    };
+    merged.push(baseEntry);
+  });
+  
+  // ✅ Combinar Firebase encima de la base (sobrescribe por URL)
+  firebaseFormatted.forEach(fbLink => {
+    const normalized = normalizeUrl(fbLink.url);
+    if (!normalized) {
+      merged.push(fbLink);
+      return;
+    }
+    const existingIndex = merged.findIndex(link => normalizeUrl(link.url) === normalized);
+    if (existingIndex >= 0) {
+      merged[existingIndex] = { ...merged[existingIndex], ...fbLink };
+    } else {
+      merged.push(fbLink);
+    }
+  });
+  
+  saveFilesOverride(courseHex, merged);
   
   // ✅ NO re-renderizar si el usuario está interactuando
   if (userInteracting) {
