@@ -314,7 +314,7 @@ function getMergedAccessHashMap(){
     const removedSet = getRemovedBaseCoursesSet();
     removedSet.forEach((hex) => {
       if (base[hex]) {
-        delete merged[hex];
+        merged[hex] = Object.assign({}, base[hex], { hidden: true });
       }
     });
   } catch (e) {
