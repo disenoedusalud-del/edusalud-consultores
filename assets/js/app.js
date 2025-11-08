@@ -101,7 +101,6 @@ const ACCESS_HASH_MAP = {
 
 /* ============ persistencia de cursos personalizados ============ */
 const CUSTOM_COURSES_KEY = 'edusalud_custom_courses';
-const REMOVED_COURSES_KEY = 'edusalud_removed_courses';
 function loadCustomCourses(){
   try {
     // ✅ Verificar que localStorage está disponible (importante para modo incógnito)
@@ -129,55 +128,6 @@ function saveCustomCourses(courses){
     console.warn('[STORAGE] Error guardando cursos personalizados:', e);
   }
 }
-function loadRemovedCourses(){
-  try {
-    if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
-      console.warn('[STORAGE] localStorage no disponible para cursos eliminados');
-      return [];
-    }
-    const raw = localStorage.getItem(REMOVED_COURSES_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed.filter(Boolean);
-    if (parsed && typeof parsed === 'object') return Object.keys(parsed);
-    return [];
-  } catch (e) {
-    console.warn('[STORAGE] Error cargando cursos eliminados:', e);
-    return [];
-  }
-}
-function saveRemovedCourses(list){
-  try {
-    if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
-      return;
-    }
-    const unique = Array.from(new Set((list || []).filter(Boolean)));
-    localStorage.setItem(REMOVED_COURSES_KEY, JSON.stringify(unique));
-  } catch (e) {
-    console.warn('[STORAGE] Error guardando cursos eliminados:', e);
-  }
-}
-function isCourseRemoved(hex){
-  if (!hex) return false;
-  const removed = loadRemovedCourses();
-  return removed.includes(hex);
-}
-function markCourseRemoved(hex){
-  if (!hex) return;
-  const removed = loadRemovedCourses();
-  if (!removed.includes(hex)) {
-    removed.push(hex);
-    saveRemovedCourses(removed);
-  }
-}
-function unmarkCourseRemoved(hex){
-  if (!hex) return;
-  const removed = loadRemovedCourses();
-  const filtered = removed.filter(item => item !== hex);
-  if (filtered.length !== removed.length) {
-    saveRemovedCourses(filtered);
-  }
-}
 function getMergedAccessHashMap(){
   // ✅ Siempre devolver al menos los cursos base, incluso si falla localStorage
   const base = ACCESS_HASH_MAP || {};
@@ -197,21 +147,8 @@ function getMergedAccessHashMap(){
   
   // Combinar base con custom (base siempre debe existir)
   const merged = Object.assign({}, base, custom);
-  console.log('[HASHMAP] Cursos base:', Object.keys(base).length, 'Custom:', Object.keys(custom).length, 'Total (incluyendo ocultos):', Object.keys(merged).length);
+  console.log('[HASHMAP] Cursos base:', Object.keys(base).length, 'Custom:', Object.keys(custom).length, 'Total:', Object.keys(merged).length);
   
-  return merged;
-}
-function getVisibleCoursesMap(){
-  const merged = getMergedAccessHashMap();
-  try {
-    const removedCourses = loadRemovedCourses();
-    if (Array.isArray(removedCourses) && removedCourses.length > 0) {
-      removedCourses.forEach(hex => { if (hex && hex in merged) delete merged[hex]; });
-      console.log('[HASHMAP] Cursos ocultos:', removedCourses.length);
-    }
-  } catch (e) {
-    console.warn('[HASHMAP] Error aplicando cursos eliminados:', e);
-  }
   return merged;
 }
 
@@ -229,7 +166,6 @@ async function addCustomCourse(hex, courseData){
   const custom = loadCustomCourses();
   custom[hex] = courseData;
   saveCustomCourses(custom);
-  unmarkCourseRemoved(hex);
   // ✅ Guardar también en remoto (esperar confirmación)
   const saveResult = await remoteSaveCourse(hex, courseData).catch(e => {
     console.error('[ADD COURSE] ❌ Error guardando curso en remoto:', e);
@@ -247,16 +183,12 @@ function removeCustomCourse(hex){
   const custom = loadCustomCourses();
   delete custom[hex];
   saveCustomCourses(custom);
-  unmarkCourseRemoved(hex);
   // ✅ Eliminar también en remoto
   remoteDeleteCourse(hex);
 }
 function isCustomCourse(hex){
   const custom = loadCustomCourses();
   return hex in custom;
-}
-function isBaseCourse(hex){
-  return !!hex && Object.prototype.hasOwnProperty.call(ACCESS_HASH_MAP, hex);
 }
 
 /* ============ persistencia de enlaces por curso ============ */
@@ -1204,7 +1136,7 @@ function startPeriodicRefresh(currentHex = null) {
 
       // ✅ CORREGIDO: Si currentHex es null o MASTER_HASH, refrescar todos los cursos
       if (!currentHex || currentHex === MASTER_HASH) {
-        const mergedMap = getVisibleCoursesMap();
+        const mergedMap = getMergedAccessHashMap();
         const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
         console.log('[PERIODIC] Total cursos a refrescar (base + personalizados):', hexes.length);
 
@@ -1232,7 +1164,7 @@ function startPeriodicRefresh(currentHex = null) {
           console.warn('[PERIODIC-MASTER] ⚠️ updateSyncButtonState no disponible');
         }
       } else if (currentHex) {
-        const mergedMap = getVisibleCoursesMap();
+        const mergedMap = getMergedAccessHashMap();
         if (mergedMap[currentHex]) {
           const updated = await refreshFromRemoteSilent(currentHex).catch(e => {
             console.warn('[PERIODIC] Error refrescando archivos:', e);
@@ -1419,7 +1351,7 @@ function buildMasterGrid() {
   const grid = $('#masterGrid');
   grid.innerHTML = '';
 
-  const mergedMap = getVisibleCoursesMap();
+  const mergedMap = getMergedAccessHashMap();
   Object.entries(mergedMap).forEach(([hex, data]) => {
     // excluir el master si algún día lo metes en el mismo objeto
     if (hex === MASTER_HASH) return;
@@ -1470,8 +1402,8 @@ function buildMasterGrid() {
     });
     headerActions.appendChild(open);
     
-    // Botón eliminar para cursos base o personalizados
-    if (isCustomCourse(hex) || isBaseCourse(hex)) {
+    // Botón eliminar solo para cursos personalizados
+    if (isCustomCourse(hex)) {
       const btnDelete = document.createElement('button');
       btnDelete.className = 'btn';
       btnDelete.type = 'button';
@@ -1482,19 +1414,13 @@ function buildMasterGrid() {
         window.showDeleteConfirmModal(data.title, async () => {
           console.log('[DELETE] Eliminando curso:', data.title);
           
-          if (isCustomCourse(hex)) {
-            // ✅ Eliminar curso personalizado (local y remoto)
-            removeCustomCourse(hex);
-            
-            // ✅ Forzar refresh inmediato de cursos para que otros dispositivos vean el cambio
-            await refreshCustomCourses().catch(e => {
-              console.warn('[DELETE] Error refrescando cursos después de eliminar:', e);
-            });
-          } else if (isBaseCourse(hex)) {
-            // ✅ Marcar curso base como eliminado (se ocultará)
-            markCourseRemoved(hex);
-            console.log('[DELETE] Curso base marcado como eliminado (oculto):', hex.substring(0, 8));
-          }
+          // ✅ Eliminar curso (local y remoto)
+          removeCustomCourse(hex);
+          
+          // ✅ Forzar refresh inmediato de cursos para que otros dispositivos vean el cambio
+          await refreshCustomCourses().catch(e => {
+            console.warn('[DELETE] Error refrescando cursos después de eliminar:', e);
+          });
           
           buildMasterGrid();
           console.log('[DELETE] ✅ Curso eliminado exitosamente');
@@ -2262,7 +2188,7 @@ window.forzarSincronizacion = async function() {
       });
       
       // Refrescar todos los archivos de cada curso
-      const mergedMap = getVisibleCoursesMap();
+      const mergedMap = getMergedAccessHashMap();
       const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
       
       console.log('[SYNC FORCE] Total cursos a sincronizar:', hexes.length);
