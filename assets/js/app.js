@@ -269,6 +269,7 @@ function markBaseCourseRemoved(hex) {
     set.add(hex);
     persistRemovedBaseCourses();
     console.log('[BASE COURSES] Curso base marcado como eliminado:', hex.substring(0, 8));
+    clearAttempts();
   }
 }
 
@@ -1396,6 +1397,8 @@ function showMaster() {
   const fabBtn = document.getElementById('btn-speed-refresh');
   if (fabBtn) fabBtn.classList.add('visible');
   
+  buildMasterGrid();
+  
   // Refresh inmediato adicional para limpiar datos obsoletos al abrir
   if (hasRemote()) {
     setTimeout(async () => {
@@ -2294,6 +2297,13 @@ async function tryLoginByCode(code) {
     console.log('[LOGIN] Validando código, cursos disponibles:', Object.keys(mergedMap).length);
     console.log('[LOGIN] Hex a buscar:', hex.substring(0, 8) + '...');
     
+    if (isBaseCourse(hex) && isBaseCourseHidden(hex)) {
+      console.warn('[LOGIN] ❌ Código corresponde a curso base oculto:', hex.substring(0, 8));
+      msg.textContent = 'Este curso fue ocultado en la vista maestra. Restaure el curso para volver a acceder.';
+      msg.classList.add('error');
+      return false;
+    }
+
     if (mergedMap && mergedMap[hex]) {
       console.log('[LOGIN] ✅ Código válido encontrado en hashmap');
       // Mostrar loader inmediatamente
