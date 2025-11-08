@@ -1,21 +1,51 @@
 /* ===================== FIREBASE FIRESTORE - TIEMPO REAL ===================== */
-// ✅ Importar Firebase Firestore para sincronización en tiempo real
-import { db } from './src/firebase.js';
-import {
-  collection,
-  addDoc,
-  query,
-  orderBy,
-  onSnapshot,
-  serverTimestamp,
-  deleteDoc,
-  doc
-} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+// ✅ Firebase se carga dinámicamente desde /src/firebase.js
+// ✅ Compatible con GitHub Pages (sin módulos ES6)
+// ✅ Acceso a Firestore mediante window.firebaseDB
 
-// ✅ Variable global para suscripción activa
+// Variable global para suscripción activa
 let firestoreUnsubscribe = null;
 
-console.log('[FIREBASE] Módulo Firebase cargado');
+// ✅ Bandera para evitar re-renders durante operaciones del usuario
+let userInteracting = false;
+
+// Función auxiliar para obtener Firestore
+function getFirestoreDB() {
+  return window.firebaseDB || null;
+}
+
+// Verificar si Firebase ya está listo o esperar a que cargue
+function checkFirebaseStatus() {
+  if (window.firebaseDB) {
+    console.log('[APP] ✅ Firebase disponible y listo para usar');
+    return true;
+  } else if (typeof firebase !== 'undefined') {
+    console.log('[APP] ⏳ Firebase cargando, esperando Firestore...');
+    return false;
+  } else {
+    console.log('[APP] ℹ️ Modo sin Firebase (usando solo Google Sheets)');
+    return false;
+  }
+}
+
+// Escuchar evento cuando Firebase esté listo
+window.addEventListener('firebaseReady', (e) => {
+  console.log('[APP] 🔥 Firebase conectado y listo para sincronización en tiempo real');
+  console.log('[APP] 📊 Base de datos:', e.detail.db ? 'Firestore activo' : 'No disponible');
+  initFirebaseCustomCoursesRealtime();
+});
+
+// Escuchar evento de error de Firebase
+window.addEventListener('firebaseError', (e) => {
+  console.log('[APP] ⚠️ Firebase no disponible, usando Google Sheets como backend');
+});
+
+// Verificación inicial
+setTimeout(() => {
+  checkFirebaseStatus();
+}, 1500);
+
+console.log('[APP] Iniciando aplicación con soporte Firebase...');
 
 /* ===================== util ===================== */
 const $ = (s) => document.querySelector(s);
@@ -120,6 +150,10 @@ async function sha256Hex(text) {
 
   return sha256HexFallback(normalized);
 }
+
+// Exponer utilidades principales al objeto global para diagnósticos y scripts externos
+window.sha256Hex = sha256Hex;
+window.sha256HexFallback = sha256HexFallback;
 function setQueryParam(key, value) {
   const url = new URL(window.location.href);
   if (value == null) url.searchParams.delete(key); else url.searchParams.set(key, value);
@@ -256,28 +290,64 @@ async function loadRemoteCoursesOnInit(){
   }
 }
 async function addCustomCourse(hex, courseData){
+  const normalizedCourse = {
+    title: courseData?.title || '',
+    meta: courseData?.meta || '',
+    files: Array.isArray(courseData?.files) ? courseData.files : [],
+    card: courseData?.card || {},
+    createdAt: courseData?.createdAt || Date.now(),
+    updatedAt: Date.now()
+  };
+
   const custom = loadCustomCourses();
-  custom[hex] = courseData;
+  custom[hex] = normalizedCourse;
   saveCustomCourses(custom);
-  // ✅ Guardar también en remoto (esperar confirmación)
-  const saveResult = await remoteSaveCourse(hex, courseData).catch(e => {
-    console.error('[ADD COURSE] ❌ Error guardando curso en remoto:', e);
-    alert('⚠️ Error al guardar curso en remoto. El curso está guardado localmente pero no se sincronizará.');
+
+  const db = getFirestoreDB();
+  if (db) {
+    try {
+      const firebasePayload = {
+        ...normalizedCourse,
+        createdAt: normalizedCourse.createdAt || firebase.database.ServerValue.TIMESTAMP,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      };
+      await db.ref(`customCourses/${hex}`).set(firebasePayload);
+      console.log('[ADD COURSE] ✅ Curso guardado en Firebase Realtime Database');
+    } catch (error) {
+      console.error('[ADD COURSE] ❌ Error guardando curso en Firebase:', error);
+      alert('⚠️ Error guardando curso en Firebase. El curso quedó solo localmente.');
+    }
+  } else {
+    console.warn('[ADD COURSE] ⚠️ Firebase no disponible, usando solo almacenamiento local');
+  }
+
+  const saveResult = await remoteSaveCourse(hex, normalizedCourse).catch(e => {
+    console.error('[ADD COURSE] ❌ Error guardando curso en remoto (Sheets):', e);
     return false;
   });
-  
+
   if (saveResult) {
-    console.log('[ADD COURSE] ✅ Curso guardado en remoto correctamente');
-  } else {
-    console.warn('[ADD COURSE] ⚠️ No se pudo guardar en remoto (continuando de todas formas)');
+    console.log('[ADD COURSE] ✅ Curso guardado en Google Sheets como respaldo');
   }
 }
-function removeCustomCourse(hex){
+async function removeCustomCourse(hex){
   const custom = loadCustomCourses();
   delete custom[hex];
   saveCustomCourses(custom);
-  // ✅ Eliminar también en remoto
-  remoteDeleteCourse(hex);
+
+  const db = getFirestoreDB();
+  if (db) {
+    try {
+      await db.ref(`customCourses/${hex}`).remove();
+      console.log('[DELETE COURSE] ✅ Curso eliminado de Firebase');
+    } catch (error) {
+      console.error('[DELETE COURSE] ❌ Error eliminando curso en Firebase:', error);
+    }
+  }
+
+  await remoteDeleteCourse(hex).catch(e => {
+    console.warn('[DELETE COURSE] ⚠️ Error eliminando curso en Google Sheets:', e);
+  });
 }
 function isCustomCourse(hex){
   const custom = loadCustomCourses();
@@ -365,11 +435,140 @@ function getFilesForHex(hex){
 
 /* ===================== FIREBASE FIRESTORE - FUNCIONES EN TIEMPO REAL ===================== */
 
+// ✅ Almacenar listeners activos por curso (para Master)
+const activeListeners = new Map();
+let customCoursesListener = null;
+let customCoursesRef = null;
+
+function initFirebaseCustomCoursesRealtime() {
+  const db = getFirestoreDB();
+
+  if (!db) {
+    console.log('[FIREBASE COURSES] Firebase no configurado, no se inicia listener de cursos');
+    return;
+  }
+
+  if (customCoursesListener) {
+    return; // Listener ya activo
+  }
+
+  try {
+    customCoursesRef = db.ref('customCourses');
+    customCoursesListener = customCoursesRef.on('value', (snapshot) => {
+      const rawCourses = snapshot.exists() ? snapshot.val() : {};
+      console.log('[FIREBASE COURSES] 📥 Snapshot recibido - Cursos totales:', Object.keys(rawCourses).length);
+
+      // ✅ Guardar cursos en localStorage tal como llegan desde Firebase
+      try {
+        saveCustomCourses(rawCourses || {});
+      } catch (e) {
+        console.warn('[FIREBASE COURSES] ⚠️ No se pudieron guardar cursos en localStorage:', e);
+      }
+
+      if (userInteracting) {
+        console.log('[FIREBASE COURSES] ⏸️ Usuario interactuando, no actualizar vistas');
+        return;
+      }
+
+      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+      const isContentView = document.getElementById('content') && !document.getElementById('content').classList.contains('hidden');
+
+      if (isMasterView) {
+        console.log('[FIREBASE COURSES] ♻️ Re-renderizando grid Master');
+        buildMasterGrid();
+      }
+
+      if (isContentView && currentKeyHex && rawCourses[currentKeyHex]) {
+        console.log('[FIREBASE COURSES] ♻️ Re-renderizando curso personalizado en vista individual');
+        renderCourse(currentKeyHex);
+      }
+    });
+
+    console.log('[FIREBASE COURSES] ✅ Listener de cursos personalizados activo');
+  } catch (error) {
+    console.error('[FIREBASE COURSES] ❌ Error iniciando listener de cursos:', error);
+  }
+}
+
+function teardownFirebaseCustomCoursesRealtime() {
+  if (customCoursesRef && customCoursesListener) {
+    try {
+      customCoursesRef.off('value', customCoursesListener);
+      console.log('[FIREBASE COURSES] 🔕 Listener de cursos desactivado');
+    } catch (error) {
+      console.warn('[FIREBASE COURSES] ⚠️ Error al desactivar listener de cursos:', error);
+    }
+  }
+  customCoursesListener = null;
+  customCoursesRef = null;
+}
+
+/**
+ * ✅ FUNCIÓN: Inicializar listeners para TODOS los cursos en Master
+ */
+function initFirestoreRealtimeMaster(courseHexes) {
+  const db = getFirestoreDB();
+  
+  if (!db) {
+    console.log('[FIRESTORE] Firebase no configurado para Master');
+    return;
+  }
+  
+  console.log('[FIRESTORE] 🔥 Iniciando listeners para', courseHexes.length, 'cursos en Master');
+  
+  // Limpiar listeners antiguos que ya no están en la lista
+  activeListeners.forEach((unsubscribe, hex) => {
+    if (!courseHexes.includes(hex)) {
+      console.log('[FIRESTORE] Desuscribiendo listener obsoleto:', hex.substring(0, 10));
+      unsubscribe();
+      activeListeners.delete(hex);
+    }
+  });
+  
+  // Crear listeners para cursos nuevos
+  courseHexes.forEach(courseHex => {
+    if (activeListeners.has(courseHex)) {
+      return; // Ya tiene listener
+    }
+    
+    try {
+      const linksRef = db.ref(`courses/${courseHex}/links`);
+      
+      const unsubscribe = linksRef.on('value', (snapshot) => {
+        const firebaseLinks = [];
+        
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          Object.keys(data).forEach((key) => {
+            firebaseLinks.push({
+              id: key,
+              ...data[key]
+            });
+          });
+          
+          firebaseLinks.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          console.log('[FIREBASE] 📥 Cambio detectado en', courseHex.substring(0, 10), ':', firebaseLinks.length, 'links');
+        }
+        
+        mergeFirestoreLinks(courseHex, firebaseLinks);
+      });
+      
+      activeListeners.set(courseHex, () => linksRef.off('value', unsubscribe));
+      console.log('[FIRESTORE] ✅ Listener activo para:', courseHex.substring(0, 10));
+      
+    } catch (error) {
+      console.error('[FIRESTORE] ❌ Error iniciando listener para', courseHex.substring(0, 10), ':', error);
+    }
+  });
+}
+
 /**
  * ✅ FUNCIÓN: Inicializar listeners de Firestore en tiempo real
  * Se ejecuta cuando se renderiza un curso para escuchar cambios en tiempo real
  */
 function initFirestoreRealtime(courseHex) {
+  const db = getFirestoreDB();
+  
   // Verificar que Firebase esté disponible
   if (!db) {
     console.log('[FIRESTORE] Firebase no configurado, continuando sin tiempo real');
@@ -391,31 +590,56 @@ function initFirestoreRealtime(courseHex) {
   console.log('[FIRESTORE] 🔥 Iniciando listener en tiempo real para curso:', courseHex.substring(0, 10) + '...');
 
   try {
-    // Referencia a la colección de links de este curso
-    const linksRef = collection(db, 'courses', courseHex, 'links');
-    const q = query(linksRef, orderBy('createdAt', 'desc'));
+    // Referencia a la ruta de links de este curso (Realtime Database)
+    const linksRef = db.ref(`courses/${courseHex}/links`);
 
     // ✅ SUSCRIBIRSE a cambios en tiempo real
-    firestoreUnsubscribe = onSnapshot(q, (snapshot) => {
-      const changeType = snapshot.docChanges().map(c => c.type).join(', ');
-      console.log('[FIRESTORE] 📥 Cambios detectados:', snapshot.docChanges().length, '(' + changeType + ')');
+    firestoreUnsubscribe = linksRef.on('value', (snapshot) => {
+      console.log('[FIREBASE] 📥 Evento disparado - Snapshot existe:', snapshot.exists());
       
-      const firestoreLinks = [];
-      snapshot.forEach((doc) => {
-        firestoreLinks.push({
-          id: doc.id,
-          ...doc.data()
+      const firebaseLinks = [];
+      
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const linkCount = Object.keys(data).length;
+        console.log('[FIREBASE] 📥 Links en Firebase:', linkCount);
+        
+        // Convertir objeto a array
+        Object.keys(data).forEach((key) => {
+          firebaseLinks.push({
+            id: key,
+            ...data[key]
+          });
         });
-      });
+        
+        // Ordenar por createdAt descendente
+        firebaseLinks.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        
+        console.log('[FIREBASE] 📥 Cambios detectados - Total de links:', linkCount);
+        console.log('[FIREBASE] 📝 Links:', firebaseLinks.map(l => l.label).join(', '));
+      } else {
+        console.log('[FIREBASE] ℹ️ Sin datos en Firebase (primera carga o curso vacío)');
+      }
 
       // ✅ Combinar links de Firebase con los de localStorage
-      mergeFirestoreLinks(courseHex, firestoreLinks);
+      mergeFirestoreLinks(courseHex, firebaseLinks);
       
     }, (error) => {
-      console.error('[FIRESTORE] ❌ Error en listener:', error);
+      console.error('[FIREBASE] ❌ Error en listener:', error);
+      console.error('[FIREBASE] ❌ Código de error:', error.code);
+      console.error('[FIREBASE] ❌ Mensaje:', error.message);
     });
+    
+    // Función para desuscribirse (actualizada para Realtime Database)
+    const originalUnsubscribe = firestoreUnsubscribe;
+    firestoreUnsubscribe = () => {
+      if (originalUnsubscribe) {
+        linksRef.off('value', originalUnsubscribe);
+      }
+    };
+    
   } catch (error) {
-    console.error('[FIRESTORE] ❌ Error iniciando listener:', error);
+    console.error('[FIREBASE] ❌ Error iniciando listener:', error);
   }
 }
 
@@ -423,38 +647,45 @@ function initFirestoreRealtime(courseHex) {
  * ✅ FUNCIÓN: Combinar links de Firestore con localStorage y actualizar vista
  */
 function mergeFirestoreLinks(courseHex, firestoreLinks) {
-  console.log('[FIRESTORE] Mergeando', firestoreLinks.length, 'links de Firebase');
+  console.log('[FIRESTORE] 🔥 Firebase es la FUENTE DE VERDAD - Total:', firestoreLinks.length, 'links');
   
-  // Obtener links actuales de localStorage
-  const localLinks = getFilesForHex(courseHex) || [];
-  
-  // Convertir Firebase links al formato esperado
   const firebaseFormatted = firestoreLinks.map(link => ({
     label: link.label || '',
     url: link.url || '',
-    firebaseId: link.id, // Guardar ID para poder eliminar después
+    firebaseId: link.id,
     createdAt: link.createdAt
   }));
   
-  // Combinar: Firebase primero, luego localStorage (sin duplicados por URL)
-  const merged = [...firebaseFormatted];
-  localLinks.forEach(localLink => {
-    const exists = merged.find(m => m.url === localLink.url);
-    if (!exists) {
-      merged.push(localLink);
-    }
-  });
-  
-  // Guardar en localStorage
+  const baseLinks = ACCESS_HASH_MAP[courseHex]?.files || [];
+  const baseEntries = baseLinks.map(baseLink => ({
+    label: baseLink.label || '',
+    url: baseLink.url || '',
+    firebaseId: baseLink.firebaseId || null,
+    createdAt: baseLink.createdAt || null
+  }));
+
+  const merged = baseEntries.concat(firebaseFormatted);
+
   saveFilesOverride(courseHex, merged);
+  
+  // ✅ NO re-renderizar si el usuario está interactuando
+  if (userInteracting) {
+    console.log('[FIRESTORE] ⏸️ Usuario interactuando, posponer re-render');
+    return;
+  }
   
   // ✅ RE-RENDERIZAR vista actual solo si es necesario
   const isContentView = document.getElementById('content') && 
                        !document.getElementById('content').classList.contains('hidden');
+  const isMasterView = document.getElementById('master') && 
+                      !document.getElementById('master').classList.contains('hidden');
   
   if (isContentView && window.currentCourseHex === courseHex) {
-    console.log('[FIRESTORE] ♻️ Re-renderizando curso con nuevos datos');
+    console.log('[FIRESTORE] ♻️ Re-renderizando curso (vista individual)');
     renderCourse(courseHex);
+  } else if (isMasterView) {
+    console.log('[FIRESTORE] ♻️ Re-renderizando Master grid con nuevos datos');
+    buildMasterGrid();
   }
 }
 
@@ -463,8 +694,10 @@ function mergeFirestoreLinks(courseHex, firestoreLinks) {
  * Se puede llamar desde cualquier parte del código
  */
 window.agregarLinkFirebase = async function(courseHex, label, url) {
+  const db = getFirestoreDB();
+  
   if (!db) {
-    throw new Error('Firebase no está configurado. Edita /src/firebase.js');
+    throw new Error('Firebase no está configurado');
   }
 
   try {
@@ -481,18 +714,23 @@ window.agregarLinkFirebase = async function(courseHex, label, url) {
     }
     
     console.log('[FIRESTORE] ➕ Agregando link a Firebase:', label);
+    console.log('[FIRESTORE] 📍 Curso:', courseHex.substring(0, 10) + '...');
     
-    // Referencia a la colección del curso
-    const linksRef = collection(db, 'courses', courseHex, 'links');
+    // Referencia a la ruta del curso (Realtime Database)
+    const linksRef = db.ref(`courses/${courseHex}/links`);
     
-    // Agregar documento con timestamp del servidor
-    const docRef = await addDoc(linksRef, {
+    console.log('[FIRESTORE] 📤 Enviando datos a Realtime Database...');
+    
+    // Generar nuevo ID y agregar link
+    const newLinkRef = linksRef.push();
+    await newLinkRef.set({
       label: label.trim(),
       url: url.trim(),
-      createdAt: serverTimestamp()
+      createdAt: firebase.database.ServerValue.TIMESTAMP
     });
     
-    console.log('[FIRESTORE] ✅ Link agregado con ID:', docRef.id);
+    console.log('[FIRESTORE] ✅ Link agregado con ID:', newLinkRef.key);
+    console.log('[FIRESTORE] ⏳ El cambio se detectará automáticamente en todos los dispositivos...');
     
     // Mostrar modal de éxito
     if (typeof window.showSuccessModal === 'function') {
@@ -502,7 +740,7 @@ window.agregarLinkFirebase = async function(courseHex, label, url) {
       );
     }
     
-    return docRef.id;
+    return newLinkRef.key;
     
   } catch (error) {
     console.error('[FIRESTORE] ❌ Error agregando link:', error);
@@ -517,9 +755,11 @@ window.agregarLinkFirebase = async function(courseHex, label, url) {
 };
 
 /**
- * ✅ FUNCIÓN GLOBAL: Eliminar link de Firebase Firestore
+ * ✅ FUNCIÓN GLOBAL: Eliminar link de Firebase Realtime Database
  */
 window.eliminarLinkFirebase = async function(courseHex, firebaseId) {
+  const db = getFirestoreDB();
+  
   if (!db) {
     console.warn('[FIRESTORE] Firebase no configurado');
     return;
@@ -532,8 +772,9 @@ window.eliminarLinkFirebase = async function(courseHex, firebaseId) {
     
     console.log('[FIRESTORE] 🗑️ Eliminando link de Firebase:', firebaseId);
     
-    const docRef = doc(db, 'courses', courseHex, 'links', firebaseId);
-    await deleteDoc(docRef);
+    // Referencia al link específico (Realtime Database)
+    const linkRef = db.ref(`courses/${courseHex}/links/${firebaseId}`);
+    await linkRef.remove();
     
     console.log('[FIRESTORE] ✅ Link eliminado de Firebase');
     
@@ -1019,6 +1260,10 @@ async function remoteGetCourses(){
 }
 
 async function refreshCustomCourses(){
+  if (getFirestoreDB()) {
+    console.log('[REFRESH] Firebase maneja cursos personalizados en tiempo real, sin usar JSONP');
+    return false;
+  }
   if (!hasRemote()) {
     console.log('[REFRESH] Sin remoto, saltando...');
     return false;
@@ -1445,6 +1690,9 @@ function buildMasterGrid() {
   grid.innerHTML = '';
 
   const mergedMap = getMergedAccessHashMap();
+
+  initFirebaseCustomCoursesRealtime();
+
   Object.entries(mergedMap).forEach(([hex, data]) => {
     // excluir el master si algún día lo metes en el mismo objeto
     if (hex === MASTER_HASH) return;
@@ -1507,12 +1755,12 @@ function buildMasterGrid() {
         window.showDeleteConfirmModal(data.title, async () => {
           console.log('[DELETE] Eliminando curso:', data.title);
           
-          // ✅ Eliminar curso (local y remoto)
-          removeCustomCourse(hex);
+          // ✅ Eliminar curso (local, Firebase y respaldo)
+          await removeCustomCourse(hex);
           
-          // ✅ Forzar refresh inmediato de cursos para que otros dispositivos vean el cambio
+          // ✅ Firebase sincroniza en tiempo real; fallback remoto solo si Firebase ausente
           await refreshCustomCourses().catch(e => {
-            console.warn('[DELETE] Error refrescando cursos después de eliminar:', e);
+            console.warn('[DELETE] Error refrescando cursos después de eliminar (fallback):', e);
           });
           
           buildMasterGrid();
@@ -1672,6 +1920,47 @@ function buildMasterGrid() {
       btnRemove.type = 'button';
       btnRemove.textContent = 'Quitar';
       btnRemove.addEventListener('click', async () => {
+        // ✅ FIREBASE: Eliminar de Firebase primero si tiene firebaseId
+        if (item.firebaseId && typeof window.eliminarLinkFirebase === 'function') {
+          try {
+            // ✅ Bloquear re-renders durante la eliminación
+            userInteracting = true;
+            
+            console.log('[REMOVE] 🔥 Eliminando de Firebase:', item.firebaseId);
+            await window.eliminarLinkFirebase(hex, item.firebaseId);
+            console.log('[REMOVE] ✅ Eliminado de Firebase');
+            
+            // ✅ CRÍTICO: Actualizar localStorage INMEDIATAMENTE
+            const currentFiles = getFilesForHex(hex);
+            const updatedFiles = currentFiles.filter(f => f.firebaseId !== item.firebaseId);
+            saveFilesOverride(hex, updatedFiles);
+            console.log('[REMOVE] 💾 localStorage actualizado:', currentFiles.length, '→', updatedFiles.length);
+            
+            // ✅ También actualizar Google Sheets (sincronización)
+            remoteSaveFiles(hex, updatedFiles).catch(e => {
+              console.warn('[REMOVE] ⚠️ Error actualizando Google Sheets:', e);
+            });
+            
+            // ✅ Desbloquear y re-renderizar inmediatamente
+            userInteracting = false;
+            const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+            if (isMasterView) {
+              console.log('[REMOVE] ♻️ Re-renderizando Master');
+              buildMasterGrid();
+            } else {
+              console.log('[REMOVE] ♻️ Re-renderizando Curso');
+              renderCourse(hex);
+            }
+            
+            return;
+          } catch (error) {
+            console.error('[REMOVE] ❌ Error eliminando de Firebase, usando método local:', error);
+            userInteracting = false;
+            // Continuar con método local si Firebase falla
+          }
+        }
+        
+        // ✅ FALLBACK: Método local si no tiene firebaseId o Firebase falló
         const next = files.slice();
         next.splice(idx, 1);
         saveFilesOverride(hex, next);
@@ -1807,6 +2096,7 @@ function buildMasterGrid() {
       }
       
       // ✅ FIREBASE: Intentar agregar a Firestore primero (sincronización en tiempo real)
+      const db = getFirestoreDB();
       if (db && typeof window.agregarLinkFirebase === 'function') {
         try {
           await window.agregarLinkFirebase(hex, labelVal, urlVal);
@@ -1930,6 +2220,11 @@ function buildMasterGrid() {
     cardEl.appendChild(right);
     grid.appendChild(cardEl);
   });
+  
+  // ✅ FIREBASE: Iniciar listeners para todos los cursos en Master
+  const courseHexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
+  initFirestoreRealtimeMaster(courseHexes);
+  
   // herramientas exportar/importar
   try { ensureMasterTools(); } catch(e) {}
 }
@@ -2232,6 +2527,10 @@ $('#btn-master-copy').addEventListener('click', async () => {
     prompt('Copie este enlace:', url.toString());
   }
 });
+
+// Exponer funciones clave para pruebas y scripts externos
+window.tryLoginByCode = tryLoginByCode;
+window.renderCourse = renderCourse;
 
 // ✅ FUNCIÓN GLOBAL: Ver qué hay guardado en localStorage
 window.verDatosGuardados = function() {
