@@ -197,20 +197,21 @@ function getMergedAccessHashMap(){
   
   // Combinar base con custom (base siempre debe existir)
   const merged = Object.assign({}, base, custom);
+  console.log('[HASHMAP] Cursos base:', Object.keys(base).length, 'Custom:', Object.keys(custom).length, 'Total (incluyendo ocultos):', Object.keys(merged).length);
   
-  // Remover los cursos marcados como eliminados (aplica para base o custom)
+  return merged;
+}
+function getVisibleCoursesMap(){
+  const merged = getMergedAccessHashMap();
   try {
     const removedCourses = loadRemovedCourses();
-    removedCourses.forEach(hex => {
-      if (hex && hex in merged) {
-        delete merged[hex];
-      }
-    });
+    if (Array.isArray(removedCourses) && removedCourses.length > 0) {
+      removedCourses.forEach(hex => { if (hex && hex in merged) delete merged[hex]; });
+      console.log('[HASHMAP] Cursos ocultos:', removedCourses.length);
+    }
   } catch (e) {
     console.warn('[HASHMAP] Error aplicando cursos eliminados:', e);
   }
-  console.log('[HASHMAP] Cursos base:', Object.keys(base).length, 'Custom:', Object.keys(custom).length, 'Total:', Object.keys(merged).length);
-  
   return merged;
 }
 
@@ -1203,7 +1204,7 @@ function startPeriodicRefresh(currentHex = null) {
 
       // ✅ CORREGIDO: Si currentHex es null o MASTER_HASH, refrescar todos los cursos
       if (!currentHex || currentHex === MASTER_HASH) {
-        const mergedMap = getMergedAccessHashMap();
+        const mergedMap = getVisibleCoursesMap();
         const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
         console.log('[PERIODIC] Total cursos a refrescar (base + personalizados):', hexes.length);
 
@@ -1231,7 +1232,7 @@ function startPeriodicRefresh(currentHex = null) {
           console.warn('[PERIODIC-MASTER] ⚠️ updateSyncButtonState no disponible');
         }
       } else if (currentHex) {
-        const mergedMap = getMergedAccessHashMap();
+        const mergedMap = getVisibleCoursesMap();
         if (mergedMap[currentHex]) {
           const updated = await refreshFromRemoteSilent(currentHex).catch(e => {
             console.warn('[PERIODIC] Error refrescando archivos:', e);
@@ -1418,7 +1419,7 @@ function buildMasterGrid() {
   const grid = $('#masterGrid');
   grid.innerHTML = '';
 
-  const mergedMap = getMergedAccessHashMap();
+  const mergedMap = getVisibleCoursesMap();
   Object.entries(mergedMap).forEach(([hex, data]) => {
     // excluir el master si algún día lo metes en el mismo objeto
     if (hex === MASTER_HASH) return;
@@ -2261,7 +2262,7 @@ window.forzarSincronizacion = async function() {
       });
       
       // Refrescar todos los archivos de cada curso
-      const mergedMap = getMergedAccessHashMap();
+      const mergedMap = getVisibleCoursesMap();
       const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
       
       console.log('[SYNC FORCE] Total cursos a sincronizar:', hexes.length);
