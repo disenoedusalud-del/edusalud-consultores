@@ -255,6 +255,69 @@ function saveCustomCourses(courses){
     console.warn('[STORAGE] Error guardando cursos personalizados:', e);
   }
 }
+
+const REMOVED_BASE_COURSES_KEY = 'edusalud_removed_base_courses';
+let removedBaseCoursesCache = null;
+
+function getRemovedBaseCoursesSet() {
+  if (removedBaseCoursesCache) {
+    return removedBaseCoursesCache;
+  }
+  try {
+    if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
+      removedBaseCoursesCache = new Set();
+      return removedBaseCoursesCache;
+    }
+    const raw = localStorage.getItem(REMOVED_BASE_COURSES_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    removedBaseCoursesCache = new Set(Array.isArray(arr) ? arr : []);
+    return removedBaseCoursesCache;
+  } catch (e) {
+    console.warn('[BASE COURSES] Error cargando cursos base eliminados:', e);
+    removedBaseCoursesCache = new Set();
+    return removedBaseCoursesCache;
+  }
+}
+
+function persistRemovedBaseCourses() {
+  try {
+    if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
+      console.warn('[BASE COURSES] localStorage no disponible; no se persistirá la eliminación de cursos base.');
+      return;
+    }
+    const set = getRemovedBaseCoursesSet();
+    localStorage.setItem(REMOVED_BASE_COURSES_KEY, JSON.stringify(Array.from(set)));
+  } catch (e) {
+    console.warn('[BASE COURSES] Error guardando cursos base eliminados:', e);
+  }
+}
+
+function markBaseCourseRemoved(hex) {
+  if (!hex || !ACCESS_HASH_MAP[hex]) return;
+  const set = getRemovedBaseCoursesSet();
+  if (!set.has(hex)) {
+    set.add(hex);
+    persistRemovedBaseCourses();
+    console.log('[BASE COURSES] Curso base marcado como eliminado:', hex.substring(0, 8));
+  }
+}
+
+function markBaseCourseRestored(hex) {
+  const set = getRemovedBaseCoursesSet();
+  if (set.delete(hex)) {
+    persistRemovedBaseCourses();
+    console.log('[BASE COURSES] Curso base restaurado:', hex.substring(0, 8));
+  }
+}
+
+function isBaseCourse(hex) {
+  return Boolean(ACCESS_HASH_MAP && ACCESS_HASH_MAP[hex]);
+}
+
+function isBaseCourseHidden(hex) {
+  return isBaseCourse(hex) && getRemovedBaseCoursesSet().has(hex);
+}
+
 function getMergedAccessHashMap(){
   // ✅ Siempre devolver al menos los cursos base, incluso si falla localStorage
   const base = ACCESS_HASH_MAP || {};
@@ -275,6 +338,17 @@ function getMergedAccessHashMap(){
   // Combinar base con custom (base siempre debe existir)
   const merged = Object.assign({}, base, custom);
   console.log('[HASHMAP] Cursos base:', Object.keys(base).length, 'Custom:', Object.keys(custom).length, 'Total:', Object.keys(merged).length);
+
+  try {
+    const removedSet = getRemovedBaseCoursesSet();
+    removedSet.forEach((hex) => {
+      if (base[hex]) {
+        delete merged[hex];
+      }
+    });
+  } catch (e) {
+    console.warn('[HASHMAP] Error aplicando filtros de cursos base eliminados:', e);
+  }
   
   return merged;
 }
@@ -1743,7 +1817,7 @@ function buildMasterGrid() {
     });
     headerActions.appendChild(open);
     
-    // Botón eliminar solo para cursos personalizados
+    // Botón eliminar para cursos personalizados y opción de ocultar cursos base
     if (isCustomCourse(hex)) {
       const btnDelete = document.createElement('button');
       btnDelete.className = 'btn';
@@ -1776,6 +1850,29 @@ function buildMasterGrid() {
         });
       });
       headerActions.appendChild(btnDelete);
+    } else if (isBaseCourse(hex)) {
+      const btnHide = document.createElement('button');
+      btnHide.className = 'btn';
+      btnHide.type = 'button';
+      btnHide.textContent = '🗑️ Ocultar';
+      btnHide.style.background = 'linear-gradient(135deg, #ff7a7a, #cc3333)';
+      btnHide.addEventListener('click', () => {
+        window.showDeleteConfirmModal(data.title, async () => {
+          markBaseCourseRemoved(hex);
+          if (window.currentCourseHex === hex) {
+            window.currentCourseHex = null;
+            showAccess();
+          }
+          buildMasterGrid();
+          if (typeof window.showSuccessModal === 'function') {
+            window.showSuccessModal(
+              'Curso oculto',
+              'El curso base se ocultó de la vista maestra. Puedes restaurarlo limpiando los datos locales.'
+            );
+          }
+        });
+      });
+      headerActions.appendChild(btnHide);
     }
     
     header.appendChild(t);
@@ -2633,8 +2730,19 @@ window.limpiarTodoYRecargar = async function() {
   // 1. Limpiar localStorage de archivos
   const filesCleared = clearAllFilesOverrides();
   console.log('[CLEAN] 🧹 Limpiados', filesCleared, 'archivos de localStorage');
+
+  // 2. Restaurar cursos base ocultos
+  try {
+    if (typeof Storage !== 'undefined' && typeof localStorage !== 'undefined') {
+      localStorage.removeItem(REMOVED_BASE_COURSES_KEY);
+      removedBaseCoursesCache = null;
+      console.log('[CLEAN] 🧹 Cursos base restaurados en la vista maestra');
+    }
+  } catch (e) {
+    console.warn('[CLEAN] Error restaurando cursos base ocultos:', e);
+  }
   
-  // 2. Limpiar caché del navegador
+  // 3. Limpiar caché del navegador
   if ('caches' in window) {
     const cacheNames = await caches.keys();
     await Promise.all(
@@ -2645,7 +2753,7 @@ window.limpiarTodoYRecargar = async function() {
     );
   }
   
-  // 3. Desregistrar Service Worker
+  // 4. Desregistrar Service Worker
   if ('serviceWorker' in navigator) {
     const registrations = await navigator.serviceWorker.getRegistrations();
     await Promise.all(
@@ -2659,7 +2767,7 @@ window.limpiarTodoYRecargar = async function() {
   console.log('[CLEAN] ✅ TODO LIMPIADO. Recargando...');
   alert('✅ TODO limpiado. Solo verás datos desde Google Sheets.');
   
-  // 4. Recargar página
+  // 5. Recargar página
   setTimeout(() => {
     location.reload(true);
   }, 500);
