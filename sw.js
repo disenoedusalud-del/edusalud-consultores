@@ -103,6 +103,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // ✅ Compatibilidad: redirigir peticiones a /app.js hacia el bundle actual
+  if (url.pathname === '/app.js' || url.pathname === BASE_PATH + '/app.js') {
+    const targetUrl = BASE_PATH + '/assets/js/app.js' + (url.search || '');
+    console.warn('[SW] 🔁 Redirigiendo a bundle legacy:', url.pathname, '→', targetUrl);
+    event.respondWith(fetch(targetUrl, { cache: 'no-store' }));
+    return;
+  }
+
   // ✅ CRÍTICO: No interceptar requests externos (Google Apps Script, Analytics, etc.)
   // Dejar que el navegador los maneje normalmente
   if (url.origin !== location.origin) {
