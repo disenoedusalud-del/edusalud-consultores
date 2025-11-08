@@ -2173,40 +2173,6 @@ function buildMasterGrid() {
     addWrap.appendChild(addRow);
     right.appendChild(addWrap);
 
-    // restaurar originales
-    const btnRestore = document.createElement('button');
-    btnRestore.className = 'btn secondary';
-    btnRestore.type = 'button';
-    btnRestore.textContent = 'Restaurar enlaces originales';
-    btnRestore.style.marginTop = '10px';
-    btnRestore.addEventListener('click', async () => {
-      if (!confirm('¿Restaurar la lista original de enlaces? Se perderán los cambios locales.')) return;
-      clearFilesOverride(hex);
-      
-      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
-      console.log('[RESTORE] ♻️ Restaurando vista inmediatamente');
-      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
-      if (isMasterView) {
-        buildMasterGrid();
-      } else {
-        renderCourse(hex);
-      }
-      
-      // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
-      remoteSaveFiles(hex, getFilesForHex(hex)).then(restoreOk => {
-        if (restoreOk) {
-          console.log('[RESTORE] ✅ Guardado en remoto exitoso');
-          // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
-          refreshFromRemoteSilent(hex).catch(() => {});
-        } else {
-          console.warn('[RESTORE] ⚠️ Error guardando en remoto');
-        }
-      }).catch(e => {
-        console.error('[RESTORE] ❌ Error guardando en remoto:', e);
-      });
-    });
-    right.appendChild(btnRestore);
-
     // tarjeta izquierda (solo imagen)
     let wrapper = null;
     if (window.insertElectricCard) {
