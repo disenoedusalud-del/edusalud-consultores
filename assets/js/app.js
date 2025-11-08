@@ -183,48 +183,7 @@ function downloadFile(url, label = '') {
 /* ============ base de cursos (hash -> data) ============ */
 const MASTER_HASH = "7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8"; // EDUMASTER123456987
 
-const ACCESS_HASH_MAP = {
-  "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0": {
-    title: "Diplomado en Gerencia y Administración de Servicios Hospitalarios (GASH) – 3ª Ed. 2025",
-    meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
-    files: [
-      { label: "Logos (PNG)", url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
-      { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/drive/folders/14E42MPlcjsIcc6OWNCYJ2J1HRzcdr21F?usp=sharing" },
-      { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
-      { label: "Social Kit (JPG)", url: "https://drive.google.com/drive/folders/1FbTQSAMZk84de7ykDs9YmMmp7z1Pyufr?usp=sharing" },
-      { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" },
-      { label: "Platform toolkit (web)", url: "https://www.notion.so/Plataformas-para-Docentes-estudiantes-29b7e88eb31a8029a710dc4ec95809f3?source=copy_link" }
-    ],
-    card: { img: "assets/IMG/D_GASH_B1.jpg", tag: "GASH", variant: "dramatic", seed: 7, accent: "#5aa9ff" }
-  },
-
-  "88f62dd4f34bc0c54550634cee859bb2178aa0e69041e1bee3be5a132e1c7456": {
-    title: "Curso Manejo Básico de Fracturas (MBF) – 2ª Ed. 2025",
-    meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
-    files: [
-      { label: "Logos (PNG)", url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
-      { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/drive/folders/1qJqRPO2akiosdJ9BMBXp49gYgrRExcD2?usp=sharing" },
-      { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
-      { label: "Social Kit (JPG)", url: "https://drive.google.com/drive/folders/1msdy6xita4RcTesyg7qV3Q51WGu97qPZ?usp=sharing" },
-      { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" },
-      { label: "Platform toolkit (web)", url: "https://www.notion.so/Plataformas-para-Docentes-estudiantes-29b7e88eb31a8029a710dc4ec95809f3?source=copy_link" }
-    ],
-    card: { img: "assets/IMG/C_MBF_2026_B1.jpg", tag: "MBF", variant: "neon", seed: 11, accent: "#8be9fd" }
-  },
-
-  "4544b187690fbe2b84c7b20f7d9fe3d9330419f6f8fc42998fa7348dc3ae2907": {
-    title: "Curso Abordaje de Hemorragias Gineo-Obstétricas – 2025",
-    meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
-    files: [
-      { label: "Logos (PNG)",             url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
-      { label: "Manual de Marca (PDF)",   url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
-      { label: "Social Kit (JPG)",        url: "https://drive.google.com/drive/folders/1KJkd0InpGNF-iTFObDc4CuC4A8DCGpuF?usp=sharing" },
-      { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" },
-      { label: "Platform toolkit (web)", url: "https://www.notion.so/Plataformas-para-Docentes-estudiantes-29b7e88eb31a8029a710dc4ec95809f3?source=copy_link" }
-    ],
-    card: { img: "assets/IMG/C_CAHGO_2025_B1.jpg", tag: "AHGO2", variant: "neon", seed: 3, accent: "#8be9fd" }
-  }
-};
+const ACCESS_HASH_MAP = {};
 
 /* ============ persistencia de cursos personalizados ============ */
 const CUSTOM_COURSES_KEY = 'edusalud_custom_courses';
@@ -256,93 +215,8 @@ function saveCustomCourses(courses){
   }
 }
 
-const REMOVED_BASE_COURSES_KEY = 'edusalud_removed_base_courses';
-let removedBaseCoursesCache = null;
-
-function getRemovedBaseCoursesSet() {
-  if (removedBaseCoursesCache) {
-    return removedBaseCoursesCache;
-  }
-  try {
-    if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
-      removedBaseCoursesCache = new Set();
-      return removedBaseCoursesCache;
-    }
-    const raw = localStorage.getItem(REMOVED_BASE_COURSES_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    removedBaseCoursesCache = new Set(Array.isArray(arr) ? arr : []);
-    return removedBaseCoursesCache;
-  } catch (e) {
-    console.warn('[BASE COURSES] Error cargando cursos base eliminados:', e);
-    removedBaseCoursesCache = new Set();
-    return removedBaseCoursesCache;
-  }
-}
-
-function persistRemovedBaseCourses() {
-  try {
-    if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
-      console.warn('[BASE COURSES] localStorage no disponible; no se persistirá la eliminación de cursos base.');
-      return;
-    }
-    const set = getRemovedBaseCoursesSet();
-    localStorage.setItem(REMOVED_BASE_COURSES_KEY, JSON.stringify(Array.from(set)));
-  } catch (e) {
-    console.warn('[BASE COURSES] Error guardando cursos base eliminados:', e);
-  }
-}
-
-function markBaseCourseRemoved(hex) {
-  if (!hex || !ACCESS_HASH_MAP[hex]) return;
-  const set = getRemovedBaseCoursesSet();
-  if (!set.has(hex)) {
-    set.add(hex);
-    persistRemovedBaseCourses();
-    console.log('[BASE COURSES] Curso base marcado como eliminado:', hex.substring(0, 8));
-    if (window.tryLoginByCode) {
-      console.log('[BASE COURSES] Limpiando intentos fallidos tras ocultar curso base');
-      clearAttempts();
-    }
-  }
-}
-
-function markBaseCourseRestored(hex) {
-  const set = getRemovedBaseCoursesSet();
-  if (set.delete(hex)) {
-    persistRemovedBaseCourses();
-    console.log('[BASE COURSES] Curso base restaurado:', hex.substring(0, 8));
-  }
-}
-
-function isBaseCourse(hex) {
-  return Boolean(ACCESS_HASH_MAP && ACCESS_HASH_MAP[hex]);
-}
-
-function isBaseCourseHidden(hex) {
-  return isBaseCourse(hex) && getRemovedBaseCoursesSet().has(hex);
-}
-
-function getHiddenBaseCourses() {
-  return Array.from(getRemovedBaseCoursesSet()).filter(hex => ACCESS_HASH_MAP[hex]);
-}
-
-function restoreBaseCourse(hex) {
-  if (!isBaseCourse(hex)) {
-    return false;
-  }
-  markBaseCourseRestored(hex);
-  return true;
-}
-
 function getMergedAccessHashMap(){
-  // ✅ Siempre devolver al menos los cursos base, incluso si falla localStorage
   const base = ACCESS_HASH_MAP || {};
-  
-  // ✅ Verificar que base tiene contenido (importante para modo incógnito)
-  if (!base || typeof base !== 'object' || Object.keys(base).length === 0) {
-    console.error('[HASHMAP] ⚠️ ACCESS_HASH_MAP está vacío o undefined!');
-    return {}; // Retornar objeto vacío en lugar de fallar
-  }
   
   let custom = {};
   try {
@@ -351,20 +225,8 @@ function getMergedAccessHashMap(){
     console.warn('[HASHMAP] Error cargando cursos custom, usando solo base:', e);
   }
   
-  // Combinar base con custom (base siempre debe existir)
   const merged = Object.assign({}, base, custom);
   console.log('[HASHMAP] Cursos base:', Object.keys(base).length, 'Custom:', Object.keys(custom).length, 'Total:', Object.keys(merged).length);
-
-  try {
-    const removedSet = getRemovedBaseCoursesSet();
-    removedSet.forEach((hex) => {
-      if (base[hex]) {
-        merged[hex] = Object.assign({}, base[hex], { hidden: true });
-      }
-    });
-  } catch (e) {
-    console.warn('[HASHMAP] Error aplicando filtros de cursos base eliminados:', e);
-  }
   
   return merged;
 }
@@ -1783,99 +1645,6 @@ function buildMasterGrid() {
 
   const mergedMap = getMergedAccessHashMap();
 
-  const masterSection = $('#master');
-  let notice = document.getElementById('hiddenBaseCoursesNotice');
-  const hiddenBaseHexes = getHiddenBaseCourses();
-
-  if (!hiddenBaseHexes.length) {
-    if (notice) {
-      notice.remove();
-    }
-  } else {
-    if (!notice) {
-      notice = document.createElement('div');
-      notice.id = 'hiddenBaseCoursesNotice';
-      notice.className = 'card';
-      notice.style.marginBottom = '12px';
-      if (masterSection) {
-        masterSection.insertBefore(notice, grid);
-      }
-    }
-
-    notice.innerHTML = '';
-
-    const title = document.createElement('div');
-    title.style.cssText = 'display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px;';
-    title.innerHTML = `<strong>Cursos base ocultos (${hiddenBaseHexes.length})</strong><span class="meta">Puedes restaurarlos cuando los necesites nuevamente.</span>`;
-    notice.appendChild(title);
-
-    hiddenBaseHexes.slice(0, 5).forEach((hex) => {
-      const baseData = ACCESS_HASH_MAP[hex];
-      if (!baseData) return;
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px; border:1px solid rgba(255,255,255,.04); border-radius:10px; background:#0e1630; margin-bottom:8px;';
-
-      const info = document.createElement('div');
-      info.innerHTML = `<div style="font-weight:600">${baseData.title}</div><div class="meta">${baseData.card?.tag || ''}</div>`;
-
-      const btnRestore = document.createElement('button');
-      btnRestore.className = 'btn secondary';
-      btnRestore.type = 'button';
-      btnRestore.textContent = 'Restaurar';
-      btnRestore.addEventListener('click', () => {
-        const restored = restoreBaseCourse(hex);
-        if (restored) {
-          buildMasterGrid();
-          if (typeof window.showSuccessModal === 'function') {
-            window.showSuccessModal(
-              'Curso restaurado',
-              `"${baseData.title}" volvió a la Vista Maestra.`
-            );
-          }
-        }
-      });
-
-      row.appendChild(info);
-      row.appendChild(btnRestore);
-      notice.appendChild(row);
-    });
-
-    if (hiddenBaseHexes.length > 5) {
-      const more = document.createElement('div');
-      more.className = 'meta';
-      more.textContent = `Y ${hiddenBaseHexes.length - 5} curso(s) más oculto(s)…`;
-      notice.appendChild(more);
-    }
-
-    const actions = document.createElement('div');
-    actions.style.cssText = 'display:flex; gap:10px; margin-top:8px;';
-
-    const restoreAllBtn = document.createElement('button');
-    restoreAllBtn.className = 'btn';
-    restoreAllBtn.type = 'button';
-    restoreAllBtn.textContent = 'Restaurar todos';
-    restoreAllBtn.addEventListener('click', () => {
-      const hidden = getHiddenBaseCourses();
-      hidden.forEach(markBaseCourseRestored);
-      buildMasterGrid();
-      if (typeof window.showSuccessModal === 'function') {
-        window.showSuccessModal(
-          'Cursos restaurados',
-          'Todos los cursos base volvieron a la Vista Maestra.'
-        );
-      }
-    });
-
-    const helpText = document.createElement('span');
-    helpText.className = 'meta';
-    helpText.style.alignSelf = 'center';
-    helpText.textContent = 'También puedes usar "limpiar todo y recargar" para restaurarlos.';
-
-    actions.appendChild(restoreAllBtn);
-    actions.appendChild(helpText);
-    notice.appendChild(actions);
-  }
-
   initFirebaseCustomCoursesRealtime();
 
   Object.entries(mergedMap).forEach(([hex, data]) => {
@@ -1961,33 +1730,6 @@ function buildMasterGrid() {
         });
       });
       headerActions.appendChild(btnDelete);
-    } else if (isBaseCourse(hex)) {
-      const btnHide = document.createElement('button');
-      btnHide.className = 'btn';
-      btnHide.type = 'button';
-      btnHide.textContent = '🗑️ Ocultar';
-      btnHide.style.background = 'linear-gradient(135deg, #ff7a7a, #cc3333)';
-      btnHide.addEventListener('click', () => {
-        window.showDeleteConfirmModal(data.title, async () => {
-          markBaseCourseRemoved(hex);
-          buildMasterGrid();
-          if (typeof window.showSuccessModal === 'function') {
-            window.showSuccessModal(
-              'Curso oculto',
-              'El curso base se ocultó de la vista maestra. Puedes restaurarlo limpiando los datos locales.'
-            );
-          }
-        });
-      });
-      headerActions.appendChild(btnHide);
-    }
-    
-    if (data.hidden) {
-      const hiddenBadge = document.createElement('span');
-      hiddenBadge.className = 'meta';
-      hiddenBadge.style.color = '#ffb347';
-      hiddenBadge.textContent = 'Oculto';
-      t.appendChild(hiddenBadge);
     }
     
     header.appendChild(t);
@@ -2607,13 +2349,6 @@ async function tryLoginByCode(code) {
     console.log('[LOGIN] Validando código, cursos disponibles:', Object.keys(mergedMap).length);
     console.log('[LOGIN] Hex a buscar:', hex.substring(0, 8) + '...');
     
-    if (isBaseCourse(hex) && isBaseCourseHidden(hex)) {
-      console.warn('[LOGIN] ❌ Código corresponde a curso base oculto:', hex.substring(0, 8));
-      msg.textContent = 'Este curso fue ocultado en la vista maestra. Restaure el curso para volver a acceder.';
-      msg.classList.add('error');
-      return false;
-    }
-
     if (mergedMap && mergedMap[hex]) {
       console.log('[LOGIN] ✅ Código válido encontrado en hashmap');
       // Mostrar loader inmediatamente
@@ -2716,20 +2451,6 @@ $('#btn-master-copy').addEventListener('click', async () => {
 // Exponer funciones clave para pruebas y scripts externos
 window.tryLoginByCode = tryLoginByCode;
 window.renderCourse = renderCourse;
-window.restaurarCursoBase = function(hex) {
-  const restored = restoreBaseCourse(hex);
-  if (restored) {
-    buildMasterGrid();
-  }
-  return restored;
-};
-window.restaurarCursosBase = function() {
-  const hidden = getHiddenBaseCourses();
-  hidden.forEach(markBaseCourseRestored);
-  buildMasterGrid();
-  return hidden.length;
-};
-
 // ✅ FUNCIÓN GLOBAL: Ver qué hay guardado en localStorage
 window.verDatosGuardados = function() {
   console.log('==========================================');
@@ -2866,18 +2587,7 @@ window.limpiarTodoYRecargar = async function() {
   const filesCleared = clearAllFilesOverrides();
   console.log('[CLEAN] 🧹 Limpiados', filesCleared, 'archivos de localStorage');
 
-  // 2. Restaurar cursos base ocultos
-  try {
-    if (typeof Storage !== 'undefined' && typeof localStorage !== 'undefined') {
-      localStorage.removeItem(REMOVED_BASE_COURSES_KEY);
-      removedBaseCoursesCache = null;
-      console.log('[CLEAN] 🧹 Cursos base restaurados en la vista maestra');
-    }
-  } catch (e) {
-    console.warn('[CLEAN] Error restaurando cursos base ocultos:', e);
-  }
-  
-  // 3. Limpiar caché del navegador
+  // 2. Limpiar caché del navegador
   if ('caches' in window) {
     const cacheNames = await caches.keys();
     await Promise.all(
@@ -2888,7 +2598,7 @@ window.limpiarTodoYRecargar = async function() {
     );
   }
   
-  // 4. Desregistrar Service Worker
+  // 3. Desregistrar Service Worker
   if ('serviceWorker' in navigator) {
     const registrations = await navigator.serviceWorker.getRegistrations();
     await Promise.all(
@@ -2902,7 +2612,7 @@ window.limpiarTodoYRecargar = async function() {
   console.log('[CLEAN] ✅ TODO LIMPIADO. Recargando...');
   alert('✅ TODO limpiado. Solo verás datos desde Google Sheets.');
   
-  // 5. Recargar página
+  // 4. Recargar página
   setTimeout(() => {
     location.reload(true);
   }, 500);
