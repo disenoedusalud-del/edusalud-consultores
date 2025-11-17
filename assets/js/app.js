@@ -3319,9 +3319,37 @@ function setupAddCourseModal() {
     const meta = $('#inputCourseMeta').value.trim();
     const imageUrl = $('#inputCourseImage').value.trim();
     const tag = $('#inputCourseTag').value.trim().toUpperCase();
-    const variant = $('#selectCourseVariant').value;
-    const accent = $('#inputCourseAccent').value;
+    
+    // ✅ Leer valores de estilo visual y color accent con validación
+    const selectVariant = $('#selectCourseVariant');
+    const inputAccent = $('#inputCourseAccent');
+    
+    if (!selectVariant) {
+      console.error('[FORM] ⚠️ selectCourseVariant no encontrado');
+      alert('Error: Campo "Estilo Visual" no encontrado');
+      return;
+    }
+    
+    if (!inputAccent) {
+      console.error('[FORM] ⚠️ inputCourseAccent no encontrado');
+      alert('Error: Campo "Color Accent" no encontrado');
+      return;
+    }
+    
+    const variant = selectVariant.value || 'dramatic'; // Valor por defecto
+    const accent = inputAccent.value || '#5aa9ff'; // Valor por defecto
     const code = $('#inputCourseCode').value.trim();
+    
+    // ✅ Debug: mostrar valores capturados
+    console.log('[FORM] 📝 Valores capturados:', {
+      title,
+      meta,
+      imageUrl,
+      tag,
+      variant,
+      accent,
+      code
+    });
     
     // Validaciones
     if (!title || !meta || !imageUrl || !tag || !code) {
@@ -3364,11 +3392,14 @@ function setupAddCourseModal() {
       card: {
         img: imageUrl,
         tag: tag,
-        variant: variant,
+        variant: variant, // ✅ Asegurar que se guarde
         seed: Math.floor(Math.random() * 100),
-        accent: accent
+        accent: accent // ✅ Asegurar que se guarde
       }
     };
+    
+    // ✅ Debug: mostrar datos que se van a guardar
+    console.log('[FORM] 💾 Datos del curso a guardar:', courseData);
     
     // Guardar curso (esperar confirmación)
     await addCustomCourse(hex, courseData);
