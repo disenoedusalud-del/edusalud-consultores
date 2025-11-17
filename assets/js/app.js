@@ -2973,13 +2973,174 @@ function setupMasterSearch(){
   const grid  = $('#masterGrid');
   if (!input || !grid) return;
 
+  // ✅ Contenedor para autocompletado
+  const autocompleteContainer = document.createElement('div');
+  autocompleteContainer.id = 'searchAutocomplete';
+  autocompleteContainer.style.cssText = `
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-top: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  `;
+  
+  // ✅ Posicionar el contenedor relativo al input
+  const searchContainer = input.parentElement;
+  if (searchContainer) {
+    searchContainer.style.position = 'relative';
+    if (!searchContainer.querySelector('#searchAutocomplete')) {
+      searchContainer.appendChild(autocompleteContainer);
+    }
+  }
+
+  // ✅ Función para obtener todas las sugerencias disponibles
+  function getSuggestions() {
+    const mergedMap = getMergedAccessHashMap();
+    const suggestions = new Set();
+    
+    Object.entries(mergedMap).forEach(([hex, data]) => {
+      if (hex === MASTER_HASH) return;
+      
+      // Agregar título
+      if (data.title) {
+        suggestions.add(data.title.toLowerCase());
+      }
+      
+      // Agregar tag
+      if (data.card?.tag) {
+        suggestions.add(data.card.tag.toLowerCase());
+      }
+      
+      // Agregar tipo
+      const type = data.type || 'curso';
+      const typeLabels = {
+        'curso': 'curso',
+        'diplomado': 'diplomado',
+        'webinar': 'webinar',
+        'seminario': 'seminario',
+        'taller': 'taller'
+      };
+      suggestions.add(typeLabels[type] || 'curso');
+    });
+    
+    return Array.from(suggestions);
+  }
+
+  // ✅ Función para mostrar autocompletado
+  function showAutocomplete(query) {
+    if (!query || query.length < 2) {
+      autocompleteContainer.style.display = 'none';
+      return;
+    }
+    
+    const suggestions = getSuggestions();
+    const filtered = suggestions.filter(s => s.includes(query.toLowerCase()));
+    
+    if (filtered.length === 0) {
+      autocompleteContainer.style.display = 'none';
+      return;
+    }
+    
+    // Limitar a 5 sugerencias
+    const limited = filtered.slice(0, 5);
+    
+    autocompleteContainer.innerHTML = '';
+    limited.forEach(suggestion => {
+      const item = document.createElement('div');
+      item.style.cssText = `
+        padding: 10px 14px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border);
+        transition: background 0.2s;
+      `;
+      
+      // ✅ Resaltar parte coincidente
+      const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      item.innerHTML = suggestion.replace(regex, '<mark style="background: var(--accent); color: white; padding: 2px 4px; border-radius: 3px;">$1</mark>');
+      
+      item.addEventListener('mouseenter', () => {
+        item.style.background = 'rgba(90,169,255,0.1)';
+      });
+      item.addEventListener('mouseleave', () => {
+        item.style.background = '';
+      });
+      
+      item.addEventListener('click', () => {
+        input.value = suggestion;
+        autocompleteContainer.style.display = 'none';
+        applyFilter();
+        input.focus();
+      });
+      
+      autocompleteContainer.appendChild(item);
+    });
+    
+    autocompleteContainer.style.display = 'block';
+  }
+
+  // ✅ Función para resaltar texto en elementos
+  function highlightTextInElement(element, query) {
+    if (!element || !query || query.length < 2) return;
+    
+    const walker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+      null,
+      false
+    );
+    
+    const textNodes = [];
+    let node;
+    while (node = walker.nextNode()) {
+      if (node.textContent.trim() && node.parentNode && !node.parentNode.classList.contains('search-highlight')) {
+        textNodes.push(node);
+      }
+    }
+    
+    textNodes.forEach(textNode => {
+      const text = textNode.textContent;
+      const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(${escapedQuery})`, 'gi');
+      
+      if (regex.test(text)) {
+        const highlighted = text.replace(regex, '<mark class="search-highlight" style="background: var(--accent); color: white; padding: 2px 4px; border-radius: 3px; font-weight: 600;">$1</mark>');
+        const wrapper = document.createElement('span');
+        wrapper.innerHTML = highlighted;
+        textNode.parentNode.replaceChild(wrapper, textNode);
+      }
+    });
+  }
+
+  // ✅ Función para remover resaltados
+  function removeHighlights() {
+    const highlights = grid.querySelectorAll('.search-highlight');
+    highlights.forEach(highlight => {
+      const parent = highlight.parentNode;
+      if (parent) {
+        parent.replaceChild(document.createTextNode(highlight.textContent), highlight);
+        parent.normalize();
+      }
+    });
+  }
+
   function applyFilter(){
     const q = (input.value || '').trim().toLowerCase();
     const cards = grid.querySelectorAll('.master-card');
+    
     if (!q){
       cards.forEach(c => c.style.display = '');
+      removeHighlights();
       return;
     }
+    
     // ✅ Búsqueda mejorada: incluye título, tag, y clasificación
     cards.forEach(c => {
       const t = (c.dataset.title || '').toLowerCase();
@@ -2989,11 +3150,91 @@ function setupMasterSearch(){
       // Buscar en título, tag, o tipo
       const match = t.includes(q) || tg.includes(q) || type.includes(q);
       c.style.display = match ? '' : 'none';
+      
+      // ✅ Resaltar texto coincidente en tarjetas visibles
+      if (match) {
+        // Buscar elementos de texto dentro de la tarjeta
+        const rightSection = c.querySelector('.right');
+        if (rightSection) {
+          // Buscar en título (primer div con texto)
+          const titleElements = rightSection.querySelectorAll('div > div:first-child');
+          titleElements.forEach(el => {
+            if (el.textContent && !el.querySelector('.search-highlight')) {
+              highlightTextInElement(el, q);
+            }
+          });
+          
+          // Buscar en meta
+          const metaElements = rightSection.querySelectorAll('.meta');
+          metaElements.forEach(el => {
+            if (el.textContent && !el.querySelector('.search-highlight')) {
+              highlightTextInElement(el, q);
+            }
+          });
+        }
+      }
     });
   }
 
-  input.addEventListener('input', applyFilter);
-  clear?.addEventListener('click', () => { input.value=''; applyFilter(); });
+  // ✅ Event listeners
+  let selectedIndex = -1;
+  
+  input.addEventListener('input', (e) => {
+    const query = e.target.value.trim();
+    selectedIndex = -1;
+    showAutocomplete(query);
+    applyFilter();
+  });
+  
+  input.addEventListener('focus', () => {
+    if (input.value.trim().length >= 2) {
+      showAutocomplete(input.value.trim());
+    }
+  });
+  
+  // ✅ Navegación con teclado en autocompletado
+  input.addEventListener('keydown', (e) => {
+    const items = autocompleteContainer.querySelectorAll('div');
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (items.length > 0) {
+        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+        items.forEach((item, i) => {
+          item.style.background = i === selectedIndex ? 'rgba(90,169,255,0.2)' : '';
+        });
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (items.length > 0) {
+        selectedIndex = Math.max(selectedIndex - 1, -1);
+        items.forEach((item, i) => {
+          item.style.background = i === selectedIndex ? 'rgba(90,169,255,0.2)' : '';
+        });
+      }
+    } else if (e.key === 'Enter' && selectedIndex >= 0 && items[selectedIndex]) {
+      e.preventDefault();
+      items[selectedIndex].click();
+    } else if (e.key === 'Escape') {
+      autocompleteContainer.style.display = 'none';
+      selectedIndex = -1;
+    }
+  });
+  
+  // ✅ Cerrar autocompletado al hacer click fuera
+  document.addEventListener('click', (e) => {
+    if (searchContainer && !searchContainer.contains(e.target)) {
+      autocompleteContainer.style.display = 'none';
+      selectedIndex = -1;
+    }
+  });
+  
+  clear?.addEventListener('click', () => { 
+    input.value = '';
+    autocompleteContainer.style.display = 'none';
+    removeHighlights();
+    applyFilter();
+  });
   
   // ✅ Event listeners para filtro y ordenamiento
   const filterByType = $('#filterByType');
@@ -3006,7 +3247,10 @@ function setupMasterSearch(){
       buildMasterGrid();
       // Re-aplicar búsqueda si hay texto
       if (input.value.trim()) {
-        setTimeout(applyFilter, 100);
+        setTimeout(() => {
+          applyFilter();
+          showAutocomplete(input.value.trim());
+        }, 100);
       }
     });
   }
@@ -3016,7 +3260,10 @@ function setupMasterSearch(){
       buildMasterGrid();
       // Re-aplicar búsqueda si hay texto
       if (input.value.trim()) {
-        setTimeout(applyFilter, 100);
+        setTimeout(() => {
+          applyFilter();
+          showAutocomplete(input.value.trim());
+        }, 100);
       }
     });
   }
