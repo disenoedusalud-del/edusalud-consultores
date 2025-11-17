@@ -188,10 +188,14 @@ async function addCustomCourse(hex, courseData){
       };
       await db.ref(`customCourses/${hex}`).set(firebasePayload);
       console.log('[ADD COURSE] ✅ Curso guardado en Firebase Realtime Database');
-    } catch (error) {
-      console.error('[ADD COURSE] ❌ Error guardando curso en Firebase:', error);
-      alert('⚠️ Error guardando curso en Firebase. El curso quedó solo localmente.');
-    }
+      } catch (error) {
+        console.error('[ADD COURSE] ❌ Error guardando curso en Firebase:', error);
+        if (typeof window.showToast === 'function') {
+          window.showToast('error', 'Error', 'Error guardando curso en Firebase. El curso quedó solo localmente.');
+        } else {
+          alert('⚠️ Error guardando curso en Firebase. El curso quedó solo localmente.');
+        }
+      }
   } else {
     console.warn('[ADD COURSE] ⚠️ Firebase no disponible, usando solo almacenamiento local');
   }
@@ -245,10 +249,14 @@ async function updateCustomCourse(hex, courseData){
       };
       await db.ref(`customCourses/${hex}`).set(firebasePayload);
       console.log('[UPDATE COURSE] ✅ Curso actualizado en Firebase Realtime Database');
-    } catch (error) {
-      console.error('[UPDATE COURSE] ❌ Error actualizando curso en Firebase:', error);
-      alert('⚠️ Error actualizando curso en Firebase. El curso quedó solo localmente.');
-    }
+      } catch (error) {
+        console.error('[UPDATE COURSE] ❌ Error actualizando curso en Firebase:', error);
+        if (typeof window.showToast === 'function') {
+          window.showToast('error', 'Error', 'Error actualizando curso en Firebase. El curso quedó solo localmente.');
+        } else {
+          alert('⚠️ Error actualizando curso en Firebase. El curso quedó solo localmente.');
+        }
+      }
   } else {
     console.warn('[UPDATE COURSE] ⚠️ Firebase no disponible, usando solo almacenamiento local');
   }
@@ -1455,7 +1463,11 @@ async function importOverridesFromFile(file){
     const data = JSON.parse(text);
     
     if (!data || typeof data !== 'object') {
-      alert('Archivo inválido'); 
+      if (typeof window.showToast === 'function') {
+        window.showToast('error', 'Archivo inválido', 'El archivo seleccionado no es válido.');
+      } else {
+        alert('Archivo inválido');
+      } 
       return;
     }
     
@@ -3978,7 +3990,11 @@ function setupEditCourseModal() {
     // Obtener datos actuales del curso para preservar files y createdAt
     const currentCourse = existingCourses[hex];
     if (!currentCourse) {
-      alert('Error: Curso no encontrado');
+        if (typeof window.showToast === 'function') {
+          window.showToast('error', 'Error', 'Curso no encontrado.');
+        } else {
+          alert('Error: Curso no encontrado');
+        }
       return;
     }
     
