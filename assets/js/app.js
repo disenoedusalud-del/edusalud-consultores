@@ -2012,9 +2012,12 @@ function buildMasterGrid() {
           
           console.log('[ADD] ✅ Link agregado a Firebase, sincronización automática activa');
           
-          // También guardar en Google Sheets como backup
+          // ✅ También guardar en Google Sheets como backup
+          // Obtener los archivos actuales y agregar el nuevo link para guardar en Sheets
           const current = getFilesForHex(hex);
-          const next = current.concat({ label: labelVal, url: urlVal });
+          const newLink = { label: labelVal, url: urlVal };
+          const next = current.concat(newLink);
+          console.log('[ADD] 💾 Guardando en Google Sheets como backup:', next.length, 'links');
           remoteSaveFiles(hex, next).catch(e => {
             console.warn('[ADD] ⚠️ No se pudo guardar en Google Sheets (backup):', e);
           });
