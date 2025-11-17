@@ -527,7 +527,7 @@
         </div>
         
         <h3 id="deleteCourseName" style="margin-bottom: 12px; font-size: 20px;"></h3>
-        <p style="color: var(--muted); margin-bottom: 24px;">
+        <p id="deleteConfirmMessage" style="color: var(--muted); margin-bottom: 24px;">
           ¿Estás seguro de que deseas eliminar este curso?<br>
           <strong style="color: var(--danger);">Esta acción no se puede deshacer.</strong>
         </p>
@@ -700,13 +700,22 @@
     const btnCancel = document.getElementById('deleteConfirmCancel');
     const btnYes = document.getElementById('deleteConfirmYes');
     const courseName = document.getElementById('deleteCourseName');
+    const confirmMessage = document.getElementById('deleteConfirmMessage');
     
     let onConfirmCallback = null;
     
     // Función global para mostrar el modal
-    window.showDeleteConfirmModal = function(title, onConfirm) {
+    window.showDeleteConfirmModal = function(title, onConfirm, type = 'curso') {
       courseName.textContent = title;
       onConfirmCallback = onConfirm;
+      
+      // ✅ Cambiar el mensaje según el tipo (curso o enlace)
+      if (type === 'enlace' || title.startsWith('Enlace:')) {
+        confirmMessage.innerHTML = '¿Estás seguro de que deseas eliminar este enlace?<br><strong style="color: var(--danger);">Esta acción no se puede deshacer.</strong>';
+      } else {
+        confirmMessage.innerHTML = '¿Estás seguro de que deseas eliminar este curso?<br><strong style="color: var(--danger);">Esta acción no se puede deshacer.</strong>';
+      }
+      
       modal.classList.add('show');
     };
     
