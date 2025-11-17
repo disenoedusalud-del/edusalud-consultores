@@ -2006,8 +2006,18 @@ function confirmImportBackup() {
   // Cerrar modal de preview
   modal.remove();
   
+  // ✅ Mostrar indicador de carga
+  if (typeof window.showLoading === 'function') {
+    window.showLoading('Importando backup...');
+  }
+  
   // Ejecutar importación
   importOverridesFromFileData(data).finally(() => {
+    // ✅ Ocultar indicador de carga
+    if (typeof window.hideLoading === 'function') {
+      window.hideLoading();
+    }
+    
     // ✅ Desbloquear después de completar
     setTimeout(() => {
       window._isImporting = false;
@@ -2046,17 +2056,21 @@ async function importOverridesFromFileData(data) {
       const db = getFirestoreDB();
       for (const { hex, courseData } of coursesToProcess) {
         try {
-          // Normalizar datos del curso (igual que en addCustomCourse)
+          // Normalizar datos del curso (igual que en addCustomCourse, incluyendo TODOS los campos)
           const normalizedCourse = {
             title: courseData?.title || '',
             meta: courseData?.meta || '',
             files: Array.isArray(courseData?.files) ? courseData.files : [],
             code: courseData?.code || '',
             type: courseData?.type || 'curso',
+            image: courseData?.image || '', // ✅ Incluir image
+            tag: courseData?.tag || '', // ✅ Incluir tag
             card: courseData?.card || {},
             createdAt: courseData?.createdAt || Date.now(),
             updatedAt: Date.now()
           };
+          
+          console.log('[IMPORT] 📤 Guardando curso:', hex.substring(0, 8), '- Título:', normalizedCourse.title);
           
           // ✅ Guardar en Firebase
           if (db) {
@@ -2073,10 +2087,17 @@ async function importOverridesFromFileData(data) {
             }
           }
           
-          // ✅ Guardar en Google Sheets
-          await remoteSaveCourse(hex, normalizedCourse).catch(e => {
-            console.error('[IMPORT] ❌ Error guardando curso en remoto (Sheets):', hex.substring(0, 8), e);
-          });
+          // ✅ Guardar en Google Sheets (esperar a que termine antes de continuar)
+          console.log('[IMPORT] 📤 Enviando curso a Google Sheets:', hex.substring(0, 8));
+          const saveResult = await remoteSaveCourse(hex, normalizedCourse);
+          if (saveResult) {
+            console.log('[IMPORT] ✅ Curso guardado en Google Sheets:', hex.substring(0, 8));
+          } else {
+            console.warn('[IMPORT] ⚠️ No se pudo guardar curso en Google Sheets:', hex.substring(0, 8));
+          }
+          
+          // ✅ Esperar un poco entre cada curso para no saturar el servidor
+          await new Promise(resolve => setTimeout(resolve, 500));
         } catch (courseError) {
           console.error('[IMPORT] ❌ Error procesando curso:', hex.substring(0, 8), courseError);
         }
