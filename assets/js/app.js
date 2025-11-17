@@ -1880,6 +1880,11 @@ function buildMasterGrid() {
       btnRemove.type = 'button';
       btnRemove.textContent = 'Quitar';
       btnRemove.addEventListener('click', async () => {
+        // ✅ ADVERTENCIA: Confirmar antes de eliminar
+        if (!confirm(`¿Estás seguro de que deseas eliminar el enlace "${item.label}"?`)) {
+          return;
+        }
+        
         // ✅ FIREBASE: Eliminar de Firebase primero si tiene firebaseId
         if (item.firebaseId && typeof window.eliminarLinkFirebase === 'function') {
           try {
