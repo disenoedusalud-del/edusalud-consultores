@@ -401,9 +401,39 @@ function initFirebaseCustomCoursesRealtime() {
       const rawCourses = snapshot.exists() ? snapshot.val() : {};
       console.log('[FIREBASE COURSES] 📥 Snapshot recibido - Cursos totales:', Object.keys(rawCourses).length);
 
-      // ✅ Guardar cursos en localStorage tal como llegan desde Firebase
+      // ✅ Preservar códigos locales si Firebase no los tiene
+      const localCourses = loadCustomCourses();
+      const mergedCourses = {};
+      
+      Object.keys(rawCourses || {}).forEach(hex => {
+        const firebaseCourse = rawCourses[hex];
+        const localCourse = localCourses[hex];
+        
+        // Priorizar código de Firebase si existe, sino usar el local
+        const codeToUse = firebaseCourse?.code || localCourse?.code || '';
+        
+        mergedCourses[hex] = {
+          ...firebaseCourse,
+          code: codeToUse // Asegurar que siempre tenga el código (de Firebase o local)
+        };
+        
+        if (codeToUse && !firebaseCourse?.code) {
+          console.log('[FIREBASE COURSES] 🔑 Usando código local para:', hex.substring(0, 8), 'Código:', codeToUse);
+        } else if (codeToUse) {
+          console.log('[FIREBASE COURSES] 🔑 Usando código de Firebase para:', hex.substring(0, 8), 'Código:', codeToUse);
+        }
+      });
+      
+      // También preservar cursos locales que no están en Firebase (por si acaso)
+      Object.keys(localCourses).forEach(hex => {
+        if (!mergedCourses[hex] && localCourses[hex]) {
+          mergedCourses[hex] = localCourses[hex];
+        }
+      });
+
+      // ✅ Guardar cursos fusionados en localStorage
       try {
-        saveCustomCourses(rawCourses || {});
+        saveCustomCourses(mergedCourses);
       } catch (e) {
         console.warn('[FIREBASE COURSES] ⚠️ No se pudieron guardar cursos en localStorage:', e);
       }
@@ -1723,8 +1753,18 @@ function buildMasterGrid() {
     header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;';
     const t = document.createElement('div');
     // ✅ Mostrar código secreto solo en la vista maestra y solo si existe
-    const codeDisplay = data.code ? `<div style="font-size: 11px; color: var(--accent); margin-top: 4px; font-family: monospace; background: rgba(90,169,255,0.1); padding: 4px 8px; border-radius: 4px; display: inline-block;">🔑 Código: ${data.code}</div>` : '';
-    t.innerHTML = `<div style="font-weight:700">${data.title}</div><div class="meta">${data.meta || ''}</div>${codeDisplay}`;
+    // Debug: verificar si el código existe
+    if (isCustomCourse(hex)) {
+      const customCourses = loadCustomCourses();
+      const courseData = customCourses[hex];
+      const codeToShow = courseData?.code || data.code || '';
+      console.log('[MASTER GRID] Curso:', data.title, 'Hex:', hex.substring(0, 8), 'Código en data:', data.code, 'Código en custom:', courseData?.code);
+      
+      const codeDisplay = codeToShow ? `<div style="font-size: 11px; color: var(--accent); margin-top: 4px; font-family: monospace; background: rgba(90,169,255,0.1); padding: 4px 8px; border-radius: 4px; display: inline-block;">🔑 Código: ${codeToShow}</div>` : '';
+      t.innerHTML = `<div style="font-weight:700">${data.title}</div><div class="meta">${data.meta || ''}</div>${codeDisplay}`;
+    } else {
+      t.innerHTML = `<div style="font-weight:700">${data.title}</div><div class="meta">${data.meta || ''}</div>`;
+    }
     
     const headerActions = document.createElement('div');
     headerActions.style.cssText = 'display:flex; gap:8px;';
@@ -2914,10 +2954,11 @@ function setupAddCourseModal() {
     // Guardar curso (esperar confirmación)
     await addCustomCourse(hex, courseData);
     
-    // ✅ Forzar refresh de cursos para que se vea inmediatamente
-    await refreshCustomCourses().catch(e => {
-      console.warn('[ADD COURSE] Error refrescando cursos después de crear:', e);
-    });
+    // ✅ NO hacer refresh de cursos remotos después de crear, porque puede sobrescribir el código
+    // El código se guarda localmente y en Firebase, no necesita refresh desde Google Sheets
+    // await refreshCustomCourses().catch(e => {
+    //   console.warn('[ADD COURSE] Error refrescando cursos después de crear:', e);
+    // });
     
     // Analytics tracking
     if (typeof gtag !== 'undefined') {
