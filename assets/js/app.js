@@ -159,6 +159,10 @@ async function addCustomCourse(hex, courseData){
   const custom = loadCustomCourses();
   custom[hex] = normalizedCourse;
   saveCustomCourses(custom);
+  
+  // ✅ Limpiar localStorage de links para este curso (por si hay datos residuales)
+  clearFilesOverride(hex);
+  console.log('[ADD COURSE] 🧹 localStorage de links limpiado para curso nuevo');
 
   const db = getFirestoreDB();
   if (db) {
@@ -2120,6 +2124,15 @@ function buildMasterGrid() {
 
 async function refreshFromRemoteSilent(hex){
   try {
+    // ✅ FIREBASE ES LA ÚNICA FUENTE DE VERDAD - No consultar Google Sheets si Firebase está disponible
+    const db = getFirestoreDB();
+    if (db) {
+      console.log('[REFRESH] Firebase maneja links en tiempo real, sin usar Google Sheets');
+      // Firebase ya tiene listeners activos que actualizan automáticamente
+      // No necesitamos consultar Google Sheets
+      return false;
+    }
+    
     console.log('[REFRESH] 🔄 Consultando remoto para hex:', hex.substring(0, 8));
     // ✅ Usar JSONP directamente (no fetch que puede fallar)
     const remote = await remoteGetFilesJSONP(hex);
@@ -2178,7 +2191,7 @@ async function refreshFromRemoteSilent(hex){
     return false;
   } catch (e) { 
     console.error('[REFRESH] Error en refresh silencioso:', e);
-    return false; 
+    return false;
   }
 }
 
