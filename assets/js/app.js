@@ -1896,10 +1896,18 @@ function buildMasterGrid() {
             saveFilesOverride(hex, updatedFiles);
             console.log('[REMOVE] 💾 localStorage actualizado:', currentFiles.length, '→', updatedFiles.length);
             
-            // ✅ También actualizar Google Sheets (sincronización)
-            remoteSaveFiles(hex, updatedFiles).catch(e => {
-              console.warn('[REMOVE] ⚠️ Error actualizando Google Sheets:', e);
-            });
+            // ✅ Actualizar Google Sheets (sincronización)
+            // Si no quedan más links, eliminar el hex completamente de la hoja de overrides
+            if (updatedFiles.length === 0) {
+              console.log('[REMOVE] 🧹 No quedan más links, eliminando hex de la hoja de overrides');
+              remoteDeleteFiles(hex).catch(e => {
+                console.warn('[REMOVE] ⚠️ Error eliminando hex de Google Sheets:', e);
+              });
+            } else {
+              remoteSaveFiles(hex, updatedFiles).catch(e => {
+                console.warn('[REMOVE] ⚠️ Error actualizando Google Sheets:', e);
+              });
+            }
             
             // ✅ Desbloquear y re-renderizar inmediatamente
             userInteracting = false;
@@ -1935,17 +1943,31 @@ function buildMasterGrid() {
         }
         
         // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
-        remoteSaveFiles(hex, next).then(removeOk => {
-          if (removeOk) {
-            console.log('[REMOVE] ✅ Guardado en remoto exitoso');
-            // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
-            refreshFromRemoteSilent(hex).catch(() => {});
-          } else {
-            console.warn('[REMOVE] ⚠️ Error guardando en remoto');
-          }
-        }).catch(e => {
-          console.error('[REMOVE] ❌ Error guardando en remoto:', e);
-        });
+        // Si no quedan más links, eliminar el hex completamente de la hoja de overrides
+        if (next.length === 0) {
+          console.log('[REMOVE] 🧹 No quedan más links, eliminando hex de la hoja de overrides');
+          remoteDeleteFiles(hex).then(removeOk => {
+            if (removeOk) {
+              console.log('[REMOVE] ✅ Hex eliminado de la hoja de overrides');
+            } else {
+              console.warn('[REMOVE] ⚠️ Error eliminando hex de la hoja de overrides');
+            }
+          }).catch(e => {
+            console.error('[REMOVE] ❌ Error eliminando hex de la hoja de overrides:', e);
+          });
+        } else {
+          remoteSaveFiles(hex, next).then(removeOk => {
+            if (removeOk) {
+              console.log('[REMOVE] ✅ Guardado en remoto exitoso');
+              // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
+              refreshFromRemoteSilent(hex).catch(() => {});
+            } else {
+              console.warn('[REMOVE] ⚠️ Error guardando en remoto');
+            }
+          }).catch(e => {
+            console.error('[REMOVE] ❌ Error guardando en remoto:', e);
+          });
+        }
       });
 
       actions.appendChild(btnOpen);
