@@ -430,9 +430,18 @@
       </div>
 
       <!-- Estadísticas -->
-      <div id="masterStats" style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 12px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 14px;">
-        <span style="font-weight: 600; color: var(--accent);">📚</span>
-        <span>Cursos: <strong id="statsCoursesCount">0</strong></span>
+      <div id="masterStats" style="margin-bottom: 16px; padding: 16px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 14px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <span style="font-weight: 600; color: var(--accent);">📚</span>
+          <span>Total: <strong id="statsCoursesCount">0</strong></span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px;">
+          <span>📖 Cursos: <strong id="statsTypeCurso">0</strong></span>
+          <span>🎓 Diplomados: <strong id="statsTypeDiplomado">0</strong></span>
+          <span>💻 Webinars: <strong id="statsTypeWebinar">0</strong></span>
+          <span>📝 Seminarios: <strong id="statsTypeSeminario">0</strong></span>
+          <span>🔧 Talleres: <strong id="statsTypeTaller">0</strong></span>
+        </div>
       </div>
 
       <!-- Buscador -->
@@ -490,6 +499,16 @@
           <input id="inputCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (máx. 10 caracteres)" />
         </div>
         <div class="form-group">
+          <label for="selectCourseType" title="Tipo de contenido educativo">Clasificación *</label>
+          <select id="selectCourseType" class="input" required title="Tipo de contenido educativo">
+            <option value="curso">Curso</option>
+            <option value="diplomado">Diplomado</option>
+            <option value="webinar">Webinar</option>
+            <option value="seminario">Seminario</option>
+            <option value="taller">Taller</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label for="selectCourseVariant" title="Estilo visual de la tarjeta del curso">Estilo Visual *</label>
           <select id="selectCourseVariant" class="input" required title="Estilo visual de la tarjeta">
             <option value="dramatic">Dramatic (Azul)</option>
@@ -542,6 +561,16 @@
         <div class="form-group">
           <label for="inputEditCourseTag" title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag del Curso *</label>
           <input id="inputEditCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (máx. 10 caracteres)" />
+        </div>
+        <div class="form-group">
+          <label for="selectEditCourseType" title="Tipo de contenido educativo">Clasificación *</label>
+          <select id="selectEditCourseType" class="input" required title="Tipo de contenido educativo">
+            <option value="curso">Curso</option>
+            <option value="diplomado">Diplomado</option>
+            <option value="webinar">Webinar</option>
+            <option value="seminario">Seminario</option>
+            <option value="taller">Taller</option>
+          </select>
         </div>
         <div class="form-group">
           <label for="selectEditCourseVariant" title="Estilo visual de la tarjeta del curso">Estilo Visual *</label>
@@ -674,7 +703,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=48" defer></script>
+  <script src="assets/js/app.js?v=49" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
