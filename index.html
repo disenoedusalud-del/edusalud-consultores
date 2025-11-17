@@ -273,6 +273,7 @@
     .master-search{
       display:flex; gap:10px; align-items:center;
       margin: 6px 0 14px;
+      position: relative; /* ✅ Para posicionar autocompletado */
     }
     .master-search input{
       flex:1 1 auto;
@@ -731,7 +732,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=53" defer></script>
+  <script src="assets/js/app.js?v=54" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
