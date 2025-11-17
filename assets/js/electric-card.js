@@ -38,6 +38,13 @@
       borderWidth = '3px'; // Borde más grueso
       // Glow MUY intenso y extenso para efecto neon real
       glowEffect = `0 0 40px rgba(139, 233, 253, 0.9), 0 0 80px rgba(139, 233, 253, 0.6), 0 0 120px rgba(139, 233, 253, 0.3), inset 0 0 20px rgba(139, 233, 253, 0.2)`;
+    } else if (variant === 'simple') {
+      // Estilo Simple - Sin efectos, minimalista y limpio
+      bgColor = '#0f1720';
+      defaultBorderColor = `rgba(255, 255, 255, 0.1)`; // Borde muy sutil
+      defaultShadowColor = `rgba(0, 0, 0, 0.3)`; // Sombra simple sin color
+      borderWidth = '1px'; // Borde delgado
+      glowEffect = 'none'; // Sin glow
     } else {
       // Estilo Dramatic (Azul) - Profundo y elegante, sin glow excesivo
       bgColor = '#0e1630';
@@ -63,6 +70,12 @@
         shadowColor = `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.7)`;
         finalBorderWidth = '3px';
         finalGlow = `0 0 40px rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.9), 0 0 80px rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.6), 0 0 120px rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.3), inset 0 0 20px rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.2)`;
+      } else if (variant === 'simple') {
+        // Simple: Sin efectos, solo borde sutil (ignorar color accent para mantener minimalismo)
+        borderColor = defaultBorderColor;
+        shadowColor = defaultShadowColor;
+        finalBorderWidth = borderWidth;
+        finalGlow = 'none';
       } else {
         // Dramatic: Sutil y elegante
         borderColor = `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.5)`;
@@ -72,6 +85,16 @@
       }
     }
     
+    // ✅ Construir box-shadow según el estilo
+    let boxShadowValue;
+    if (finalGlow === 'none') {
+      // Estilo simple: solo sombra básica sin glow
+      boxShadowValue = `0 10px 30px ${shadowColor}`;
+    } else {
+      // Estilos con glow: combinar glow con sombra
+      boxShadowValue = `${finalGlow}, 0 10px 30px ${shadowColor}`;
+    }
+    
     wrapper.style.cssText = `
       position: relative;
       width: 100%;
@@ -79,7 +102,7 @@
       border-radius: 12px;
       overflow: hidden;
       background: ${bgColor};
-      box-shadow: ${finalGlow}, 0 10px 30px ${shadowColor};
+      box-shadow: ${boxShadowValue};
       border: ${finalBorderWidth} solid ${borderColor};
       display:block;
       transition: all 0.3s ease;
@@ -121,4 +144,3 @@
   window.insertElectricCard = window.insertElectricCard || insertElectricCard;
   window.setCardImage = window.setCardImage || setCardImage;
 })();
-
