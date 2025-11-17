@@ -1794,8 +1794,8 @@ function renderCourse(keyHex) {
   };
   const typeLabel = typeLabels[courseType] || '📖 Curso';
   
-  // ✅ Obtener el contenedor del título y agregar badge de clasificación
-  const titleContainer = $('#courseTitle').parentElement;
+  // ✅ Obtener el contenedor del título (el div que contiene courseTitle y courseMeta)
+  const titleContainer = $('#courseTitle')?.parentElement;
   if (titleContainer) {
     // Verificar si ya existe un badge de clasificación y eliminarlo
     const existingBadge = titleContainer.querySelector('.course-type-badge');
@@ -1803,16 +1803,39 @@ function renderCourse(keyHex) {
       existingBadge.remove();
     }
     
-    // Crear y agregar badge de clasificación
+    // Crear y agregar badge de clasificación ANTES del título
     const typeBadge = document.createElement('div');
     typeBadge.className = 'course-type-badge';
-    typeBadge.style.cssText = 'font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;';
+    typeBadge.style.cssText = 'font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; display: block; line-height: 1.4;';
     typeBadge.textContent = typeLabel;
-    titleContainer.insertBefore(typeBadge, $('#courseTitle'));
+    
+    // Insertar antes del título (h3)
+    const titleElement = $('#courseTitle');
+    if (titleElement && titleElement.parentElement === titleContainer) {
+      titleContainer.insertBefore(typeBadge, titleElement);
+    } else {
+      // Si no se puede insertar antes del título, agregarlo al inicio del contenedor
+      if (titleContainer.firstChild) {
+        titleContainer.insertBefore(typeBadge, titleContainer.firstChild);
+      } else {
+        titleContainer.appendChild(typeBadge);
+      }
+    }
+    
+    console.log('[RENDER COURSE] ✅ Badge de clasificación agregado:', typeLabel);
+  } else {
+    console.warn('[RENDER COURSE] ⚠️ No se encontró el contenedor del título');
   }
   
-  $('#courseTitle').textContent = data.title;
-  $('#courseMeta').textContent = data.meta || '';
+  // ✅ Actualizar título y meta
+  const titleEl = $('#courseTitle');
+  if (titleEl) {
+    titleEl.textContent = data.title;
+  }
+  const metaEl = $('#courseMeta');
+  if (metaEl) {
+    metaEl.textContent = data.meta || '';
+  }
 
   const list = $('#filelist');
   list.innerHTML = '';
