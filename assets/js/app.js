@@ -236,9 +236,7 @@ async function removeCustomCourse(hex){
   });
   
   // ✅ Eliminar también los links de la hoja de overrides en Google Sheets
-  // Enviar array vacío para limpiar los links
-  console.log('[DELETE COURSE] 🧹 Eliminando links de la hoja de overrides en Google Sheets');
-  await remoteSaveFiles(hex, []).catch(e => {
+  await remoteDeleteFiles(hex).catch(e => {
     console.warn('[DELETE COURSE] ⚠️ Error eliminando links de Google Sheets:', e);
   });
 }
@@ -1084,6 +1082,55 @@ async function remoteDeleteCourse(hex){
     return true;
   } catch (e) { 
     console.error('Error en remoteDeleteCourse:', e);
+    return false; 
+  }
+}
+
+async function remoteDeleteFiles(hex){
+  if (!hasRemote()) return false;
+  try {
+    console.log('[FILES DELETE] Eliminando links de la hoja de overrides - hex:', hex.substring(0,8));
+    
+    const iframe = document.createElement('iframe');
+    iframe.name = 'hiddenFrameFilesDel_' + Date.now();
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = REMOTE_BASE_URL;
+    form.target = iframe.name;
+    
+    const hexInput = document.createElement('input');
+    hexInput.type = 'hidden';
+    hexInput.name = 'hex';
+    hexInput.value = hex;
+    
+    const deleteInput = document.createElement('input');
+    deleteInput.type = 'hidden';
+    deleteInput.name = 'action';
+    deleteInput.value = 'delete_files';
+    
+    form.appendChild(hexInput);
+    form.appendChild(deleteInput);
+    document.body.appendChild(form);
+    
+    form.submit();
+    console.log('[FILES DELETE] ✅ Formulario de eliminación de links enviado a:', REMOTE_BASE_URL);
+    
+    // ✅ Limpiar formulario después de enviar
+    setTimeout(() => {
+      try {
+        if (form.parentNode) document.body.removeChild(form);
+        if (iframe.parentNode) document.body.removeChild(iframe);
+      } catch (e) {
+        console.warn('[FILES DELETE] Error limpiando formulario:', e);
+      }
+    }, 2000);
+    
+    return true;
+  } catch (e) { 
+    console.error('Error en remoteDeleteFiles:', e);
     return false; 
   }
 }
