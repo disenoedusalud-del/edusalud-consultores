@@ -1882,17 +1882,43 @@ function buildMasterGrid() {
     const right = document.createElement('div');
     right.className = 'right';
 
-    // cabecera derecha (título + meta + código secreto + botón abrir curso)
+    // cabecera derecha (clasificación + título + meta + código secreto + botón abrir curso)
     const header = document.createElement('div');
     header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;';
     const t = document.createElement('div');
+    
+    // ✅ Mostrar clasificación del curso (badge en la parte superior)
+    const courseType = data.type || 'curso';
+    const typeLabels = {
+      'curso': '📖 Curso',
+      'diplomado': '🎓 Diplomado',
+      'webinar': '💻 Webinar',
+      'seminario': '📝 Seminario',
+      'taller': '🔧 Taller'
+    };
+    const typeLabel = typeLabels[courseType] || '📖 Curso';
+    
+    const typeBadge = document.createElement('div');
+    typeBadge.style.cssText = 'font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;';
+    typeBadge.textContent = typeLabel;
+    t.appendChild(typeBadge);
+    
+    // ✅ Crear título y meta
+    const titleDiv = document.createElement('div');
+    titleDiv.style.fontWeight = '700';
+    titleDiv.textContent = data.title;
+    t.appendChild(titleDiv);
+    
+    const metaDiv = document.createElement('div');
+    metaDiv.className = 'meta';
+    metaDiv.textContent = data.meta || '';
+    t.appendChild(metaDiv);
+    
     // ✅ Mostrar código secreto solo en la vista maestra y solo si existe
-    // Debug: verificar si el código existe
     if (isCustomCourse(hex)) {
       const customCourses = loadCustomCourses();
       const courseData = customCourses[hex];
       const codeToShow = courseData?.code || data.code || '';
-      console.log('[MASTER GRID] Curso:', data.title, 'Hex:', hex.substring(0, 8), 'Código en data:', data.code, 'Código en custom:', courseData?.code);
       
       // Crear elemento clickeable para el código
       if (codeToShow) {
@@ -1917,13 +1943,8 @@ function buildMasterGrid() {
             alert('Error al copiar código');
           }
         });
-        t.innerHTML = `<div style="font-weight:700">${data.title}</div><div class="meta">${data.meta || ''}</div>`;
         t.appendChild(codeDiv);
-      } else {
-        t.innerHTML = `<div style="font-weight:700">${data.title}</div><div class="meta">${data.meta || ''}</div>`;
       }
-    } else {
-      t.innerHTML = `<div style="font-weight:700">${data.title}</div><div class="meta">${data.meta || ''}</div>`;
     }
     
     const headerActions = document.createElement('div');
