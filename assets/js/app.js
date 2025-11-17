@@ -86,25 +86,8 @@ function downloadFile(url, label = '') {
 /* ============ base de cursos (hash -> data) ============ */
 const MASTER_HASH = "7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8"; // EDUMASTER123456987
 
-const ACCESS_HASH_MAP = {
-  "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0": {
-    title: "Diplomado en Gerencia y Administración de Servicios Hospitalarios (GASH) – 3ª Ed. 2025",
-    meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
-    card: { img: "assets/IMG/D_GASH_B1.jpg", tag: "GASH", variant: "dramatic", seed: 7, accent: "#5aa9ff" }
-  },
-
-  "88f62dd4f34bc0c54550634cee859bb2178aa0e69041e1bee3be5a132e1c7456": {
-    title: "Curso Manejo Básico de Fracturas (MBF) – 2ª Ed. 2025",
-    meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
-    card: { img: "assets/IMG/C_MBF_2026_B1.jpg", tag: "MBF", variant: "neon", seed: 11, accent: "#8be9fd" }
-  },
-
-  "4544b187690fbe2b84c7b20f7d9fe3d9330419f6f8fc42998fa7348dc3ae2907": {
-    title: "Curso Abordaje de Hemorragias Gineo-Obstétricas – 2025",
-    meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
-    card: { img: "assets/IMG/C_CAHGO_2025_B1.jpg", tag: "AHGO2", variant: "neon", seed: 3, accent: "#8be9fd" }
-  }
-};
+// ✅ CURSOS BASE ELIMINADOS - Todos los cursos ahora vienen de Firebase (customCourses)
+const ACCESS_HASH_MAP = {};
 
 /* ============ persistencia de cursos personalizados ============ */
 const CUSTOM_COURSES_KEY = 'edusalud_custom_courses';
@@ -136,23 +119,17 @@ function saveCustomCourses(courses){
   }
 }
 function getMergedAccessHashMap(){
-  // ✅ Siempre devolver al menos los cursos base, incluso si falla localStorage
+  // ✅ CURSOS BASE ELIMINADOS - Solo usar cursos de Firebase (customCourses)
   const base = ACCESS_HASH_MAP || {};
-  
-  // ✅ Verificar que base tiene contenido (importante para modo incógnito)
-  if (!base || typeof base !== 'object' || Object.keys(base).length === 0) {
-    console.error('[HASHMAP] ⚠️ ACCESS_HASH_MAP está vacío o undefined!');
-    return {}; // Retornar objeto vacío en lugar de fallar
-  }
   
   let custom = {};
   try {
     custom = loadCustomCourses();
   } catch (e) {
-    console.warn('[HASHMAP] Error cargando cursos custom, usando solo base:', e);
+    console.warn('[HASHMAP] Error cargando cursos custom:', e);
   }
   
-  // Combinar base con custom (base siempre debe existir)
+  // ✅ Combinar base (vacío) con custom - Ahora solo custom tiene cursos
   const merged = Object.assign({}, base, custom);
   console.log('[HASHMAP] Cursos base:', Object.keys(base).length, 'Custom:', Object.keys(custom).length, 'Total:', Object.keys(merged).length);
   
