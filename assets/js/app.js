@@ -203,6 +203,55 @@ async function addCustomCourse(hex, courseData){
     console.log('[ADD COURSE] ✅ Curso guardado en Google Sheets como respaldo');
   }
 }
+async function updateCustomCourse(hex, courseData){
+  const custom = loadCustomCourses();
+  const existingCourse = custom[hex];
+  
+  if (!existingCourse) {
+    console.error('[UPDATE COURSE] ❌ Curso no encontrado:', hex);
+    throw new Error('Curso no encontrado');
+  }
+  
+  const normalizedCourse = {
+    title: courseData?.title || existingCourse.title || '',
+    meta: courseData?.meta || existingCourse.meta || '',
+    files: Array.isArray(courseData?.files) ? courseData.files : (existingCourse.files || []),
+    card: courseData?.card || existingCourse.card || {},
+    createdAt: existingCourse.createdAt || Date.now(), // Mantener fecha de creación original
+    updatedAt: Date.now() // Actualizar fecha de modificación
+  };
+
+  custom[hex] = normalizedCourse;
+  saveCustomCourses(custom);
+
+  const db = getFirestoreDB();
+  if (db) {
+    try {
+      const firebasePayload = {
+        ...normalizedCourse,
+        createdAt: existingCourse.createdAt || firebase.database.ServerValue.TIMESTAMP,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      };
+      await db.ref(`customCourses/${hex}`).set(firebasePayload);
+      console.log('[UPDATE COURSE] ✅ Curso actualizado en Firebase Realtime Database');
+    } catch (error) {
+      console.error('[UPDATE COURSE] ❌ Error actualizando curso en Firebase:', error);
+      alert('⚠️ Error actualizando curso en Firebase. El curso quedó solo localmente.');
+    }
+  } else {
+    console.warn('[UPDATE COURSE] ⚠️ Firebase no disponible, usando solo almacenamiento local');
+  }
+
+  const saveResult = await remoteSaveCourse(hex, normalizedCourse).catch(e => {
+    console.error('[UPDATE COURSE] ❌ Error actualizando curso en remoto (Sheets):', e);
+    return false;
+  });
+
+  if (saveResult) {
+    console.log('[UPDATE COURSE] ✅ Curso actualizado en Google Sheets como respaldo');
+  }
+}
+
 async function removeCustomCourse(hex){
   const custom = loadCustomCourses();
   delete custom[hex];
@@ -1703,8 +1752,22 @@ function buildMasterGrid() {
     });
     headerActions.appendChild(open);
     
-    // Botón eliminar solo para cursos personalizados
+    // Botones de editar y eliminar solo para cursos personalizados
     if (isCustomCourse(hex)) {
+      // Botón editar curso
+      const btnEditCourse = document.createElement('button');
+      btnEditCourse.className = 'btn secondary';
+      btnEditCourse.type = 'button';
+      btnEditCourse.textContent = '✏️ Editar';
+      btnEditCourse.addEventListener('click', () => {
+        // Abrir modal de edición con datos del curso
+        if (typeof window.openEditCourseModal === 'function') {
+          window.openEditCourseModal(hex, data);
+        }
+      });
+      headerActions.appendChild(btnEditCourse);
+      
+      // Botón eliminar curso
       const btnDelete = document.createElement('button');
       btnDelete.className = 'btn';
       btnDelete.type = 'button';
@@ -2883,11 +2946,180 @@ function setupAddCourseModal() {
   });
 }
 
+// ✅ Configurar modal de edición de curso
+function setupEditCourseModal() {
+  const modalEditCourse = $('#modalEditCourse');
+  const modalEditClose = $('#modalEditCourseClose');
+  const formEditCourse = $('#formEditCourse');
+  const inputEditCourseAccent = $('#inputEditCourseAccent');
+  const inputEditCourseAccentHex = $('#inputEditCourseAccentHex');
+
+  if (!modalEditCourse || !formEditCourse) {
+    console.error('[SETUP EDIT] Faltan elementos del modal de edición');
+    return;
+  }
+
+  // Sincronizar color picker con input hex
+  if (inputEditCourseAccent && inputEditCourseAccentHex) {
+    inputEditCourseAccent.addEventListener('input', (e) => {
+      inputEditCourseAccentHex.value = e.target.value;
+    });
+    inputEditCourseAccentHex.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (val.match(/^#[0-9A-Fa-f]{6}$/)) {
+        inputEditCourseAccent.value = val;
+      }
+    });
+  }
+
+  // Cerrar modal
+  if (modalEditClose) {
+    modalEditClose.addEventListener('click', () => {
+      modalEditCourse.classList.remove('show');
+    });
+  }
+
+  $('#btnCancelEditCourse')?.addEventListener('click', () => {
+    modalEditCourse.classList.remove('show');
+  });
+
+  // Función global para abrir el modal con datos del curso
+  window.openEditCourseModal = function(hex, courseData) {
+    // Pre-llenar formulario con datos del curso
+    $('#inputEditCourseHex').value = hex;
+    $('#inputEditCourseTitle').value = courseData.title || '';
+    $('#inputEditCourseMeta').value = courseData.meta || '';
+    $('#inputEditCourseImage').value = courseData.card?.img || '';
+    $('#inputEditCourseTag').value = courseData.card?.tag || '';
+    $('#selectEditCourseVariant').value = courseData.card?.variant || 'dramatic';
+    $('#inputEditCourseAccent').value = courseData.card?.accent || '#5aa9ff';
+    $('#inputEditCourseAccentHex').value = courseData.card?.accent || '#5aa9ff';
+    
+    // Obtener el código del curso (necesitamos buscarlo en todos los cursos)
+    const mergedMap = getMergedAccessHashMap();
+    // El código no se puede obtener directamente del hex, así que lo dejamos vacío o mostramos un mensaje
+    $('#inputEditCourseCode').value = 'No se puede cambiar';
+    
+    modalEditCourse.classList.add('show');
+  };
+
+  // Submit formulario
+  formEditCourse.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const hex = $('#inputEditCourseHex').value.trim();
+    if (!hex) {
+      alert('Error: No se encontró el identificador del curso');
+      return;
+    }
+    
+    const title = $('#inputEditCourseTitle').value.trim();
+    const meta = $('#inputEditCourseMeta').value.trim();
+    const imageUrl = $('#inputEditCourseImage').value.trim();
+    const tag = $('#inputEditCourseTag').value.trim().toUpperCase();
+    const variant = $('#selectEditCourseVariant').value;
+    const accent = $('#inputEditCourseAccent').value;
+    
+    // Validaciones
+    if (!title || !meta || !imageUrl || !tag) {
+      alert('Complete todos los campos');
+      return;
+    }
+    
+    // Validar URL de imagen
+    try {
+      new URL(imageUrl);
+    } catch {
+      // Si no es una URL absoluta, asumimos que es relativa
+      if (!imageUrl.startsWith('/') && !imageUrl.startsWith('assets/')) {
+        alert('URL de imagen inválida');
+        return;
+      }
+    }
+    
+    // Verificar que el tag sea único (excepto para el curso actual)
+    const existingCourses = getMergedAccessHashMap();
+    const tagConflict = Object.entries(existingCourses).find(([h, c]) => 
+      h !== hex && c.card?.tag?.toUpperCase() === tag
+    );
+    if (tagConflict) {
+      alert('Este tag ya está en uso por otro curso. Use otro.');
+      return;
+    }
+    
+    // Obtener datos actuales del curso para preservar files y createdAt
+    const currentCourse = existingCourses[hex];
+    if (!currentCourse) {
+      alert('Error: Curso no encontrado');
+      return;
+    }
+    
+    // Crear datos actualizados del curso
+    const courseData = {
+      title: title,
+      meta: meta,
+      files: currentCourse.files || [], // Preservar archivos existentes
+      card: {
+        img: imageUrl,
+        tag: tag,
+        variant: variant,
+        seed: currentCourse.card?.seed || Math.floor(Math.random() * 100), // Preservar seed
+        accent: accent
+      }
+    };
+    
+    // Actualizar curso (esperar confirmación)
+    try {
+      await updateCustomCourse(hex, courseData);
+      
+      // ✅ Forzar refresh de cursos para que se vea inmediatamente
+      await refreshCustomCourses().catch(e => {
+        console.warn('[EDIT COURSE] Error refrescando cursos después de editar:', e);
+      });
+      
+      // Analytics tracking
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'course_updated', {
+          'event_category': 'management',
+          'event_label': tag
+        });
+      }
+      
+      // Cerrar modal y recargar grid
+      modalEditCourse.classList.remove('show');
+      formEditCourse.reset();
+      
+      // Reconstruir grid
+      buildMasterGrid();
+      
+      // ✅ Mostrar modal de éxito
+      window.showSuccessModal(
+        '¡Curso Actualizado Exitosamente!',
+        `El curso "${tag}" ha sido actualizado.`
+      );
+    } catch (error) {
+      console.error('[EDIT COURSE] Error:', error);
+      alert('Error al actualizar el curso: ' + (error.message || 'Error desconocido'));
+    }
+  });
+
+  // Cerrar modal al hacer click fuera
+  modalEditCourse.addEventListener('click', (e) => {
+    if (e.target === modalEditCourse) {
+      modalEditCourse.classList.remove('show');
+    }
+  });
+}
+
 // ✅ Configurar modal cuando DOM está completamente cargado
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', setupAddCourseModal);
+  document.addEventListener('DOMContentLoaded', () => {
+    setupAddCourseModal();
+    setupEditCourseModal();
+  });
 } else {
   setupAddCourseModal();
+  setupEditCourseModal();
 }
 
 /* ============ FUNCIONES DE PRUEBA Y DIAGNÓSTICO GLOBALES ============ */
