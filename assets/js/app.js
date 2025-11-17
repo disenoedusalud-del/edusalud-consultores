@@ -1570,47 +1570,65 @@ async function refreshCustomCourses(){
 // ===== Exportar / Importar overrides (todas los cursos) =====
 // ✅ Exportar backup completo (cursos + overrides)
 function exportOverrides(){
-  const payload = { 
-    version: 2, 
-    exportedAt: new Date().toISOString(), 
-    overrides: {},
-    courses: {} // ✅ NUEVO: Incluir cursos completos
-  };
+  // ✅ PREVENIR MÚLTIPLES EJECUCIONES: Verificar si ya se está exportando
+  if (window._isExporting) {
+    console.warn('[EXPORT] Ya hay una exportación en curso, ignorando...');
+    if (typeof window.showToast === 'function') {
+      window.showToast('warning', 'Exportación en curso', 'Por favor espera a que termine la exportación actual.');
+    }
+    return;
+  }
   
-  // Exportar overrides (links personalizados)
-  Object.keys(ACCESS_HASH_MAP).forEach(hex => {
-    const arr = loadFilesOverride(hex);
-    if (Array.isArray(arr)) payload.overrides[hex] = arr;
-  });
+  // ✅ Marcar como exportando
+  window._isExporting = true;
   
-  // ✅ Exportar cursos personalizados completos
-  const customCourses = loadCustomCourses();
-  Object.keys(customCourses).forEach(hex => {
-    payload.courses[hex] = customCourses[hex];
-  });
-  
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; 
-  a.download = `edusalud_backup_${new Date().toISOString().split('T')[0]}.json`;
-  document.body.appendChild(a); 
-  a.click(); 
-  a.remove();
-  URL.revokeObjectURL(url);
-  
-  // Mostrar confirmación
-  // ✅ Registrar en historial
-  logBackupHistory('export', 'all', Object.keys(payload.courses).length);
-  
-  if (typeof window.showSuccessModal === 'function') {
-    window.showSuccessModal(
-      'Backup Exportado',
-      `Se exportaron ${Object.keys(payload.courses).length} cursos y ${Object.keys(payload.overrides).length} sets de links.`
-    );
-  } else if (typeof window.showToast === 'function') {
-    window.showToast('success', 'Backup Exportado', 
-      `Se exportaron ${Object.keys(payload.courses).length} cursos.`);
+  try {
+    const payload = { 
+      version: 2, 
+      exportedAt: new Date().toISOString(), 
+      overrides: {},
+      courses: {} // ✅ NUEVO: Incluir cursos completos
+    };
+    
+    // Exportar overrides (links personalizados)
+    Object.keys(ACCESS_HASH_MAP).forEach(hex => {
+      const arr = loadFilesOverride(hex);
+      if (Array.isArray(arr)) payload.overrides[hex] = arr;
+    });
+    
+    // ✅ Exportar cursos personalizados completos
+    const customCourses = loadCustomCourses();
+    Object.keys(customCourses).forEach(hex => {
+      payload.courses[hex] = customCourses[hex];
+    });
+    
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; 
+    a.download = `edusalud_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a); 
+    a.click(); 
+    a.remove();
+    URL.revokeObjectURL(url);
+    
+    // ✅ Registrar en historial
+    logBackupHistory('export', 'all', Object.keys(payload.courses).length);
+    
+    if (typeof window.showSuccessModal === 'function') {
+      window.showSuccessModal(
+        'Backup Exportado',
+        `Se exportaron ${Object.keys(payload.courses).length} cursos y ${Object.keys(payload.overrides).length} sets de links.`
+      );
+    } else if (typeof window.showToast === 'function') {
+      window.showToast('success', 'Backup Exportado', 
+        `Se exportaron ${Object.keys(payload.courses).length} cursos.`);
+    }
+  } finally {
+    // ✅ Desbloquear después de un pequeño delay
+    setTimeout(() => {
+      window._isExporting = false;
+    }, 1000);
   }
 }
 // ✅ Importar backup completo (cursos + overrides)
@@ -1691,6 +1709,15 @@ function setupSettingsMenu() {
     return;
   }
   
+  // ✅ PREVENIR MÚLTIPLES REGISTROS: Verificar si ya está configurado
+  if (btnSettings.dataset.settingsConfigured === 'true') {
+    console.log('[SETTINGS] Menú ya configurado, saltando...');
+    return;
+  }
+  
+  // ✅ Marcar como configurado
+  btnSettings.dataset.settingsConfigured = 'true';
+  
   // Toggle del menú al hacer click
   btnSettings.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1743,13 +1770,23 @@ function setupSettingsMenu() {
     dropdown.style.display = 'none';
     showBackupHistory();
   });
+  
+  console.log('[SETTINGS] ✅ Menú de ajustes configurado correctamente');
 }
 
 // ✅ Función para exportar filtrado por tipo
 function showExportFilterModal() {
+  // ✅ PREVENIR MÚLTIPLES MODALES: Verificar si ya hay un modal abierto
+  const existingModal = document.getElementById('exportFilterModal');
+  if (existingModal) {
+    console.warn('[EXPORT FILTER] Ya hay un modal de exportación abierto');
+    return;
+  }
+  
   // Crear modal temporal para seleccionar tipo
   const modal = document.createElement('div');
   modal.className = 'modal show';
+  modal.id = 'exportFilterModal';
   modal.innerHTML = `
     <div class="modal-content" style="max-width: 400px;">
       <div class="modal-header">
@@ -1780,59 +1817,94 @@ function showExportFilterModal() {
 
 // ✅ Función para exportar filtrado
 function exportFilteredByType() {
+  // ✅ PREVENIR MÚLTIPLES EJECUCIONES
+  if (window._isExporting) {
+    console.warn('[EXPORT FILTER] Ya hay una exportación en curso, ignorando...');
+    if (typeof window.showToast === 'function') {
+      window.showToast('warning', 'Exportación en curso', 'Por favor espera a que termine la exportación actual.');
+    }
+    return;
+  }
+  
   const filterType = document.getElementById('exportTypeFilter')?.value || 'all';
   const mergedMap = getMergedAccessHashMap();
   
-  const payload = { 
-    version: 2, 
-    exportedAt: new Date().toISOString(), 
-    filterType: filterType,
-    overrides: {},
-    courses: {}
-  };
+  // ✅ Marcar como exportando
+  window._isExporting = true;
   
-  // Filtrar cursos por tipo
-  Object.entries(mergedMap).forEach(([hex, data]) => {
-    if (hex === MASTER_HASH) return;
+  try {
+    const payload = { 
+      version: 2, 
+      exportedAt: new Date().toISOString(), 
+      filterType: filterType,
+      overrides: {},
+      courses: {}
+    };
     
-    if (filterType === 'all' || (data.type || 'curso') === filterType) {
-      // Exportar links del curso
-      const arr = loadFilesOverride(hex);
-      if (Array.isArray(arr)) payload.overrides[hex] = arr;
+    // Filtrar cursos por tipo
+    Object.entries(mergedMap).forEach(([hex, data]) => {
+      if (hex === MASTER_HASH) return;
       
-      // Exportar curso completo
-      const customCourses = loadCustomCourses();
-      if (customCourses[hex]) {
-        payload.courses[hex] = customCourses[hex];
+      if (filterType === 'all' || (data.type || 'curso') === filterType) {
+        // Exportar links del curso
+        const arr = loadFilesOverride(hex);
+        if (Array.isArray(arr)) payload.overrides[hex] = arr;
+        
+        // Exportar curso completo
+        const customCourses = loadCustomCourses();
+        if (customCourses[hex]) {
+          payload.courses[hex] = customCourses[hex];
+        }
       }
+    });
+    
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; 
+    a.download = `edusalud_backup_${filterType}_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a); 
+    a.click(); 
+    a.remove();
+    URL.revokeObjectURL(url);
+    
+    // Cerrar modal
+    const modal = document.getElementById('exportFilterModal');
+    if (modal) modal.remove();
+    
+    // Registrar en historial
+    logBackupHistory('export', filterType, Object.keys(payload.courses).length);
+    
+    if (typeof window.showToast === 'function') {
+      window.showToast('success', 'Backup Exportado', 
+        `Se exportaron ${Object.keys(payload.courses).length} cursos (${filterType === 'all' ? 'todos' : filterType}).`);
     }
-  });
-  
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; 
-  a.download = `edusalud_backup_${filterType}_${new Date().toISOString().split('T')[0]}.json`;
-  document.body.appendChild(a); 
-  a.click(); 
-  a.remove();
-  URL.revokeObjectURL(url);
-  
-  // Cerrar modal
-  const modal = document.querySelector('.modal.show');
-  if (modal) modal.remove();
-  
-  // Registrar en historial
-  logBackupHistory('export', filterType, Object.keys(payload.courses).length);
-  
-  if (typeof window.showToast === 'function') {
-    window.showToast('success', 'Backup Exportado', 
-      `Se exportaron ${Object.keys(payload.courses).length} cursos (${filterType === 'all' ? 'todos' : filterType}).`);
+  } finally {
+    // ✅ Desbloquear después de un pequeño delay
+    setTimeout(() => {
+      window._isExporting = false;
+    }, 1000);
   }
 }
 
 // ✅ Función para mostrar vista previa antes de importar
 async function showImportPreview(file) {
+  // ✅ PREVENIR MÚLTIPLES MODALES: Verificar si ya hay un modal de preview abierto
+  const existingModal = document.getElementById('importPreviewModal');
+  if (existingModal) {
+    console.warn('[IMPORT] Ya hay un modal de preview abierto, cerrando el anterior...');
+    existingModal.remove();
+  }
+  
+  // ✅ Verificar si ya se está procesando una importación
+  if (window._isImporting) {
+    console.warn('[IMPORT] Ya hay una importación en curso, ignorando...');
+    if (typeof window.showToast === 'function') {
+      window.showToast('warning', 'Importación en curso', 'Por favor espera a que termine la importación actual.');
+    }
+    return;
+  }
+  
   try {
     const text = await file.text();
     const data = JSON.parse(text);
@@ -1890,6 +1962,15 @@ async function showImportPreview(file) {
 
 // ✅ Función para confirmar importación
 function confirmImportBackup() {
+  // ✅ PREVENIR MÚLTIPLES EJECUCIONES
+  if (window._isImporting) {
+    console.warn('[IMPORT] Ya hay una importación en curso, ignorando...');
+    if (typeof window.showToast === 'function') {
+      window.showToast('warning', 'Importación en curso', 'Por favor espera a que termine la importación actual.');
+    }
+    return;
+  }
+  
   // Obtener datos del modal
   const modal = document.getElementById('importPreviewModal');
   if (!modal) {
@@ -1919,11 +2000,19 @@ function confirmImportBackup() {
     return;
   }
   
+  // ✅ Marcar como importando
+  window._isImporting = true;
+  
   // Cerrar modal de preview
   modal.remove();
   
   // Ejecutar importación
-  importOverridesFromFileData(data);
+  importOverridesFromFileData(data).finally(() => {
+    // ✅ Desbloquear después de completar
+    setTimeout(() => {
+      window._isImporting = false;
+    }, 1000);
+  });
   
   // Registrar en historial
   logBackupHistory('import', data.filterType || 'all', Object.keys(data.courses || {}).length);
@@ -1980,10 +2069,18 @@ async function importOverridesFromFileData(data) {
 
 // ✅ Función para mostrar historial de backups
 function showBackupHistory() {
+  // ✅ PREVENIR MÚLTIPLES MODALES: Verificar si ya hay un modal de historial abierto
+  const existingModal = document.getElementById('backupHistoryModal');
+  if (existingModal) {
+    console.warn('[BACKUP HISTORY] Ya hay un modal de historial abierto');
+    return;
+  }
+  
   const history = getBackupHistory();
   
   const modal = document.createElement('div');
   modal.className = 'modal show';
+  modal.id = 'backupHistoryModal';
   modal.innerHTML = `
     <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
       <div class="modal-header">
