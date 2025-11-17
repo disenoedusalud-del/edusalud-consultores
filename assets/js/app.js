@@ -1880,98 +1880,137 @@ function buildMasterGrid() {
       btnRemove.type = 'button';
       btnRemove.textContent = 'Quitar';
       btnRemove.addEventListener('click', async () => {
-        // ✅ ADVERTENCIA: Confirmar antes de eliminar
-        if (!confirm(`¿Estás seguro de que deseas eliminar el enlace "${item.label}"?`)) {
-          return;
-        }
-        
-        // ✅ FIREBASE: Eliminar de Firebase primero si tiene firebaseId
-        if (item.firebaseId && typeof window.eliminarLinkFirebase === 'function') {
-          try {
-            // ✅ Bloquear re-renders durante la eliminación
-            userInteracting = true;
-            
-            console.log('[REMOVE] 🔥 Eliminando de Firebase:', item.firebaseId);
-            await window.eliminarLinkFirebase(hex, item.firebaseId);
-            console.log('[REMOVE] ✅ Eliminado de Firebase');
-            
-            // ✅ CRÍTICO: Actualizar localStorage INMEDIATAMENTE
-            const currentFiles = getFilesForHex(hex);
-            const updatedFiles = currentFiles.filter(f => f.firebaseId !== item.firebaseId);
-            saveFilesOverride(hex, updatedFiles);
-            console.log('[REMOVE] 💾 localStorage actualizado:', currentFiles.length, '→', updatedFiles.length);
-            
-            // ✅ Actualizar Google Sheets (sincronización)
-            // Si no quedan más links, eliminar el hex completamente de la hoja de overrides
-            if (updatedFiles.length === 0) {
-              console.log('[REMOVE] 🧹 No quedan más links, eliminando hex de la hoja de overrides');
-              remoteDeleteFiles(hex).catch(e => {
-                console.warn('[REMOVE] ⚠️ Error eliminando hex de Google Sheets:', e);
-              });
-            } else {
-              remoteSaveFiles(hex, updatedFiles).catch(e => {
-                console.warn('[REMOVE] ⚠️ Error actualizando Google Sheets:', e);
-              });
+        // ✅ ADVERTENCIA: Usar modal de confirmación elegante (igual que al eliminar curso)
+        if (typeof window.showDeleteConfirmModal === 'function') {
+          window.showDeleteConfirmModal(`Enlace: ${item.label}`, async () => {
+            // ✅ FIREBASE: Eliminar de Firebase primero si tiene firebaseId
+            if (item.firebaseId && typeof window.eliminarLinkFirebase === 'function') {
+              try {
+                // ✅ Bloquear re-renders durante la eliminación
+                userInteracting = true;
+                
+                console.log('[REMOVE] 🔥 Eliminando de Firebase:', item.firebaseId);
+                await window.eliminarLinkFirebase(hex, item.firebaseId);
+                console.log('[REMOVE] ✅ Eliminado de Firebase');
+                
+                // ✅ CRÍTICO: Actualizar localStorage INMEDIATAMENTE
+                const currentFiles = getFilesForHex(hex);
+                const updatedFiles = currentFiles.filter(f => f.firebaseId !== item.firebaseId);
+                saveFilesOverride(hex, updatedFiles);
+                console.log('[REMOVE] 💾 localStorage actualizado:', currentFiles.length, '→', updatedFiles.length);
+                
+                // ✅ Actualizar Google Sheets (sincronización)
+                // Si no quedan más links, eliminar el hex completamente de la hoja de overrides
+                if (updatedFiles.length === 0) {
+                  console.log('[REMOVE] 🧹 No quedan más links, eliminando hex de la hoja de overrides');
+                  remoteDeleteFiles(hex).catch(e => {
+                    console.warn('[REMOVE] ⚠️ Error eliminando hex de Google Sheets:', e);
+                  });
+                } else {
+                  remoteSaveFiles(hex, updatedFiles).catch(e => {
+                    console.warn('[REMOVE] ⚠️ Error actualizando Google Sheets:', e);
+                  });
+                }
+                
+                // ✅ Desbloquear y re-renderizar inmediatamente
+                userInteracting = false;
+                const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+                if (isMasterView) {
+                  console.log('[REMOVE] ♻️ Re-renderizando Master');
+                  buildMasterGrid();
+                } else {
+                  console.log('[REMOVE] ♻️ Re-renderizando Curso');
+                  renderCourse(hex);
+                }
+                
+                return;
+              } catch (error) {
+                console.error('[REMOVE] ❌ Error eliminando de Firebase, usando método local:', error);
+                userInteracting = false;
+                // Continuar con método local si Firebase falla
+              }
             }
             
-            // ✅ Desbloquear y re-renderizar inmediatamente
-            userInteracting = false;
+            // ✅ FALLBACK: Método local si no tiene firebaseId o Firebase falló
+            const next = files.slice();
+            next.splice(idx, 1);
+            saveFilesOverride(hex, next);
+            
+            // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
+            console.log('[REMOVE] 🗑️ Eliminando archivo inmediatamente de la vista');
             const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
             if (isMasterView) {
-              console.log('[REMOVE] ♻️ Re-renderizando Master');
               buildMasterGrid();
             } else {
-              console.log('[REMOVE] ♻️ Re-renderizando Curso');
               renderCourse(hex);
             }
             
+            // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
+            // Si no quedan más links, eliminar el hex completamente de la hoja de overrides
+            if (next.length === 0) {
+              console.log('[REMOVE] 🧹 No quedan más links, eliminando hex de la hoja de overrides');
+              remoteDeleteFiles(hex).then(removeOk => {
+                if (removeOk) {
+                  console.log('[REMOVE] ✅ Hex eliminado de la hoja de overrides');
+                } else {
+                  console.warn('[REMOVE] ⚠️ Error eliminando hex de la hoja de overrides');
+                }
+              }).catch(e => {
+                console.error('[REMOVE] ❌ Error eliminando hex de la hoja de overrides:', e);
+              });
+            } else {
+              remoteSaveFiles(hex, next).then(removeOk => {
+                if (removeOk) {
+                  console.log('[REMOVE] ✅ Guardado en remoto exitoso');
+                  // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
+                  refreshFromRemoteSilent(hex).catch(() => {});
+                } else {
+                  console.warn('[REMOVE] ⚠️ Error guardando en remoto');
+                }
+              }).catch(e => {
+                console.error('[REMOVE] ❌ Error guardando en remoto:', e);
+              });
+            }
+          });
+        } else {
+          // Fallback si el modal no está disponible (usar confirm nativo)
+          if (!confirm(`¿Estás seguro de que deseas eliminar el enlace "${item.label}"?`)) {
             return;
-          } catch (error) {
-            console.error('[REMOVE] ❌ Error eliminando de Firebase, usando método local:', error);
-            userInteracting = false;
-            // Continuar con método local si Firebase falla
           }
-        }
-        
-        // ✅ FALLBACK: Método local si no tiene firebaseId o Firebase falló
-        const next = files.slice();
-        next.splice(idx, 1);
-        saveFilesOverride(hex, next);
-        
-        // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
-        console.log('[REMOVE] 🗑️ Eliminando archivo inmediatamente de la vista');
-        const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
-        if (isMasterView) {
-          buildMasterGrid();
-        } else {
-          renderCourse(hex);
-        }
-        
-        // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
-        // Si no quedan más links, eliminar el hex completamente de la hoja de overrides
-        if (next.length === 0) {
-          console.log('[REMOVE] 🧹 No quedan más links, eliminando hex de la hoja de overrides');
-          remoteDeleteFiles(hex).then(removeOk => {
-            if (removeOk) {
-              console.log('[REMOVE] ✅ Hex eliminado de la hoja de overrides');
-            } else {
-              console.warn('[REMOVE] ⚠️ Error eliminando hex de la hoja de overrides');
+          
+          // Código de eliminación (mismo que arriba pero sin modal)
+          if (item.firebaseId && typeof window.eliminarLinkFirebase === 'function') {
+            try {
+              userInteracting = true;
+              await window.eliminarLinkFirebase(hex, item.firebaseId);
+              const currentFiles = getFilesForHex(hex);
+              const updatedFiles = currentFiles.filter(f => f.firebaseId !== item.firebaseId);
+              saveFilesOverride(hex, updatedFiles);
+              if (updatedFiles.length === 0) {
+                remoteDeleteFiles(hex).catch(e => console.warn('[REMOVE] ⚠️ Error:', e));
+              } else {
+                remoteSaveFiles(hex, updatedFiles).catch(e => console.warn('[REMOVE] ⚠️ Error:', e));
+              }
+              userInteracting = false;
+              const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+              if (isMasterView) buildMasterGrid(); else renderCourse(hex);
+              return;
+            } catch (error) {
+              console.error('[REMOVE] ❌ Error:', error);
+              userInteracting = false;
             }
-          }).catch(e => {
-            console.error('[REMOVE] ❌ Error eliminando hex de la hoja de overrides:', e);
-          });
-        } else {
-          remoteSaveFiles(hex, next).then(removeOk => {
-            if (removeOk) {
-              console.log('[REMOVE] ✅ Guardado en remoto exitoso');
-              // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
-              refreshFromRemoteSilent(hex).catch(() => {});
-            } else {
-              console.warn('[REMOVE] ⚠️ Error guardando en remoto');
-            }
-          }).catch(e => {
-            console.error('[REMOVE] ❌ Error guardando en remoto:', e);
-          });
+          }
+          
+          const next = files.slice();
+          next.splice(idx, 1);
+          saveFilesOverride(hex, next);
+          const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+          if (isMasterView) buildMasterGrid(); else renderCourse(hex);
+          if (next.length === 0) {
+            remoteDeleteFiles(hex).catch(e => console.error('[REMOVE] ❌ Error:', e));
+          } else {
+            remoteSaveFiles(hex, next).catch(e => console.error('[REMOVE] ❌ Error:', e));
+          }
         }
       });
 
