@@ -1927,62 +1927,126 @@ function buildMasterGrid() {
       btnDuplicate.type = 'button';
       btnDuplicate.textContent = '📋 Duplicar';
       btnDuplicate.addEventListener('click', async () => {
-        // Generar nuevo código único
-        const newCode = prompt('Ingresa un nuevo código secreto para el curso duplicado:', `${data.card?.tag || 'CURSO'}_${Date.now()}`);
-        if (!newCode || !newCode.trim()) {
-          return;
-        }
+        // Generar código sugerido
+        const suggestedCode = `${data.card?.tag || 'CURSO'}_${Date.now()}`;
         
-        try {
-          // Generar nuevo hex del código
-          const newHex = await sha256Hex(newCode.trim());
-          
-          // Verificar que el código no exista
-          const existingCourses = getMergedAccessHashMap();
-          if (existingCourses[newHex]) {
-            alert('Este código ya existe. Use otro.');
+        // ✅ Usar modal elegante en lugar de prompt
+        if (typeof window.showDuplicateCodeModal === 'function') {
+          window.showDuplicateCodeModal(suggestedCode, async (newCode) => {
+            if (!newCode || !newCode.trim()) {
+              return;
+            }
+            
+            try {
+              // Generar nuevo hex del código
+              const newHex = await sha256Hex(newCode.trim());
+              
+              // Verificar que el código no exista
+              const existingCourses = getMergedAccessHashMap();
+              if (existingCourses[newHex]) {
+                if (typeof window.showSuccessModal === 'function') {
+                  window.showSuccessModal('Error', 'Este código ya existe. Use otro.');
+                } else {
+                  alert('Este código ya existe. Use otro.');
+                }
+                return;
+              }
+              
+              // Crear copia del curso con nuevo código
+              const duplicatedCourse = {
+                title: `${data.title} (Copia)`,
+                meta: data.meta || '',
+                files: [...(data.files || [])], // Copiar array de archivos
+                code: newCode.trim(),
+                card: {
+                  ...data.card,
+                  tag: `${data.card?.tag || 'TAG'}_COPY`,
+                  seed: Math.floor(Math.random() * 100) // Nuevo seed para variación visual
+                }
+              };
+              
+              // Guardar curso duplicado
+              await addCustomCourse(newHex, duplicatedCourse);
+              
+              // Reconstruir grid
+              buildMasterGrid();
+              
+              // Mostrar éxito
+              if (typeof window.showSuccessModal === 'function') {
+                window.showSuccessModal(
+                  '¡Curso Duplicado!',
+                  `El curso ha sido duplicado con el código: ${newCode.trim()}`
+                );
+              } else {
+                alert(`Curso duplicado con código: ${newCode.trim()}`);
+              }
+              
+              // Analytics tracking
+              if (typeof gtag !== 'undefined') {
+                gtag('event', 'course_duplicated', {
+                  'event_category': 'management',
+                  'event_label': data.card?.tag || 'unknown'
+                });
+              }
+            } catch (error) {
+              console.error('[DUPLICATE] Error:', error);
+              if (typeof window.showSuccessModal === 'function') {
+                window.showSuccessModal('Error', 'Error al duplicar el curso: ' + (error.message || 'Error desconocido'));
+              } else {
+                alert('Error al duplicar el curso: ' + (error.message || 'Error desconocido'));
+              }
+            }
+          });
+        } else {
+          // Fallback a prompt si el modal no está disponible
+          const newCode = prompt('Ingresa un nuevo código secreto para el curso duplicado:', suggestedCode);
+          if (!newCode || !newCode.trim()) {
             return;
           }
           
-          // Crear copia del curso con nuevo código
-          const duplicatedCourse = {
-            title: `${data.title} (Copia)`,
-            meta: data.meta || '',
-            files: [...(data.files || [])], // Copiar array de archivos
-            code: newCode.trim(),
-            card: {
-              ...data.card,
-              tag: `${data.card?.tag || 'TAG'}_COPY`,
-              seed: Math.floor(Math.random() * 100) // Nuevo seed para variación visual
+          try {
+            // Generar nuevo hex del código
+            const newHex = await sha256Hex(newCode.trim());
+            
+            // Verificar que el código no exista
+            const existingCourses = getMergedAccessHashMap();
+            if (existingCourses[newHex]) {
+              alert('Este código ya existe. Use otro.');
+              return;
             }
-          };
-          
-          // Guardar curso duplicado
-          await addCustomCourse(newHex, duplicatedCourse);
-          
-          // Reconstruir grid
-          buildMasterGrid();
-          
-          // Mostrar éxito
-          if (typeof window.showSuccessModal === 'function') {
-            window.showSuccessModal(
-              '¡Curso Duplicado!',
-              `El curso ha sido duplicado con el código: ${newCode.trim()}`
-            );
-          } else {
-            alert(`Curso duplicado con código: ${newCode.trim()}`);
+            
+            // Crear copia del curso con nuevo código
+            const duplicatedCourse = {
+              title: `${data.title} (Copia)`,
+              meta: data.meta || '',
+              files: [...(data.files || [])],
+              code: newCode.trim(),
+              card: {
+                ...data.card,
+                tag: `${data.card?.tag || 'TAG'}_COPY`,
+                seed: Math.floor(Math.random() * 100)
+              }
+            };
+            
+            await addCustomCourse(newHex, duplicatedCourse);
+            buildMasterGrid();
+            
+            if (typeof window.showSuccessModal === 'function') {
+              window.showSuccessModal('¡Curso Duplicado!', `El curso ha sido duplicado con el código: ${newCode.trim()}`);
+            } else {
+              alert(`Curso duplicado con código: ${newCode.trim()}`);
+            }
+            
+            if (typeof gtag !== 'undefined') {
+              gtag('event', 'course_duplicated', {
+                'event_category': 'management',
+                'event_label': data.card?.tag || 'unknown'
+              });
+            }
+          } catch (error) {
+            console.error('[DUPLICATE] Error:', error);
+            alert('Error al duplicar el curso: ' + (error.message || 'Error desconocido'));
           }
-          
-          // Analytics tracking
-          if (typeof gtag !== 'undefined') {
-            gtag('event', 'course_duplicated', {
-              'event_category': 'management',
-              'event_label': data.card?.tag || 'unknown'
-            });
-          }
-        } catch (error) {
-          console.error('[DUPLICATE] Error:', error);
-          alert('Error al duplicar el curso: ' + (error.message || 'Error desconocido'));
         }
       });
       headerActions.appendChild(btnDuplicate);
