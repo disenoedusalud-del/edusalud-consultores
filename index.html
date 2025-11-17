@@ -426,6 +426,32 @@
         <div class="row">
           <button id="btn-add-course" class="btn" type="button">➕ Agregar curso</button>
           <button id="btn-master-copy" class="btn secondary" type="button">Compartir enlace con código</button>
+          
+          <!-- ✅ Botón de Ajustes con menú desplegable -->
+          <div style="position: relative;">
+            <button id="btn-settings" class="btn secondary" type="button" title="Ajustes y herramientas">
+              ⚙️ Ajustes
+            </button>
+            
+            <!-- Menú desplegable de ajustes -->
+            <div id="settingsDropdown" class="settings-dropdown" style="display: none;">
+              <div class="settings-menu-item" data-action="export-all">
+                💾 Exportar Backup Completo
+              </div>
+              <div class="settings-menu-item" data-action="export-filtered">
+                📤 Exportar por Tipo...
+              </div>
+              <div class="settings-divider"></div>
+              <div class="settings-menu-item" data-action="import">
+                📥 Importar Backup...
+              </div>
+              <div class="settings-divider"></div>
+              <div class="settings-menu-item" data-action="backup-history">
+                📋 Historial de Backups
+              </div>
+            </div>
+          </div>
+          
           <button id="btn-master-exit" class="btn secondary" type="button">Salir</button>
         </div>
       </div>
@@ -961,6 +987,63 @@
     
     .input:valid {
       border-color: rgba(255,255,255,0.08);
+    }
+    
+    /* ✅ Menú de Ajustes Desplegable */
+    .settings-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      min-width: 220px;
+      z-index: 1000;
+      overflow: hidden;
+      animation: slideDown 0.2s ease-out;
+    }
+    
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .settings-menu-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .settings-menu-item:hover {
+      background: rgba(90,169,255,0.1);
+    }
+    
+    .settings-menu-item:active {
+      background: rgba(90,169,255,0.2);
+    }
+    
+    .settings-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+    
+    /* Botón de ajustes con indicador */
+    #btn-settings {
+      position: relative;
     }
   </style>
 
