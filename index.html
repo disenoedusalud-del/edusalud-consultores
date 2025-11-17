@@ -566,6 +566,40 @@
     </div>
   </div>
 
+  <!-- Modal para ingresar código al duplicar curso -->
+  <div id="modalDuplicateCode" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2>📋 Duplicar Curso</h2>
+        <button class="modal-close" id="modalDuplicateCodeClose" aria-label="Cerrar">&times;</button>
+      </div>
+      
+      <div style="padding: 20px;">
+        <p style="color: var(--muted); margin-bottom: 20px;">
+          Ingresa un nuevo código secreto único para el curso duplicado:
+        </p>
+        
+        <div class="form-group">
+          <label for="inputDuplicateCode">Código Secreto *</label>
+          <input id="inputDuplicateCode" class="input" type="text" placeholder="Ej: CURSO_NUEVO_123" required autofocus />
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
+            ⚠️ Este código debe ser único y no puede estar en uso
+          </div>
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 12px; justify-content: center; padding: 0 20px 20px;">
+        <button id="btnCancelDuplicate" class="btn secondary" type="button">
+          Cancelar
+        </button>
+        <button id="btnConfirmDuplicate" class="btn" type="button">
+          Duplicar Curso
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal de confirmación para eliminar curso -->
   <div id="deleteConfirmModal" class="modal">
     <div class="modal-overlay"></div>
@@ -632,7 +666,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=3" defer></script>
-  <script src="assets/js/app.js?v=42" defer></script>
+  <script src="assets/js/app.js?v=43" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
@@ -819,6 +853,96 @@
     const modalMessage = document.getElementById('successModalMessage');
     
     // Función global para mostrar el modal de éxito
+    // ✅ Modal para ingresar código al duplicar curso
+    (function() {
+      const modal = document.getElementById('modalDuplicateCode');
+      const input = document.getElementById('inputDuplicateCode');
+      const btnCancel = document.getElementById('btnCancelDuplicate');
+      const btnConfirm = document.getElementById('btnConfirmDuplicate');
+      const btnClose = document.getElementById('modalDuplicateCodeClose');
+      
+      let onConfirmCallback = null;
+      
+      const closeModal = () => {
+        modal.classList.remove('show');
+        input.value = '';
+        onConfirmCallback = null;
+      };
+      
+      const handleConfirm = () => {
+        const code = input.value.trim();
+        if (!code) {
+          if (typeof window.showSuccessModal === 'function') {
+            window.showSuccessModal('Error', 'Por favor ingresa un código secreto');
+          } else {
+            alert('Por favor ingresa un código secreto');
+          }
+          return;
+        }
+        if (onConfirmCallback) {
+          onConfirmCallback(code);
+        }
+        closeModal();
+      };
+      
+      // Event listeners (solo una vez)
+      if (btnConfirm) {
+        btnConfirm.addEventListener('click', handleConfirm);
+      }
+      if (btnCancel) {
+        btnCancel.addEventListener('click', closeModal);
+      }
+      if (btnClose) {
+        btnClose.addEventListener('click', closeModal);
+      }
+      
+      // Enter key para confirmar
+      if (input) {
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && modal.classList.contains('show')) {
+            e.preventDefault();
+            handleConfirm();
+          }
+        });
+      }
+      
+      // Cerrar al hacer click fuera
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal || e.target.classList.contains('modal-overlay')) {
+            closeModal();
+          }
+        });
+      }
+      
+      // Cerrar con Escape
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('show')) {
+          closeModal();
+        }
+      });
+      
+      // Función global para mostrar el modal
+      window.showDuplicateCodeModal = function(defaultCode, onConfirm) {
+        if (!modal || !input) {
+          // Fallback a prompt si el modal no está disponible
+          const code = prompt('Ingresa un nuevo código secreto para el curso duplicado:', defaultCode);
+          if (code && code.trim()) {
+            onConfirm(code.trim());
+          }
+          return;
+        }
+        
+        // Pre-llenar con código sugerido
+        input.value = defaultCode || '';
+        onConfirmCallback = onConfirm;
+        
+        // Mostrar modal y enfocar input
+        modal.classList.add('show');
+        setTimeout(() => input.focus(), 100);
+      };
+    })();
+
     window.showSuccessModal = function(title, message) {
       if (title) modalTitle.textContent = title;
       if (message) modalMessage.textContent = message;
