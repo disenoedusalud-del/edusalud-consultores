@@ -1783,6 +1783,34 @@ function renderCourse(keyHex) {
     initFirestoreRealtime(keyHex);
   }
 
+  // ✅ Mostrar clasificación del curso (badge en la parte superior)
+  const courseType = data.type || 'curso';
+  const typeLabels = {
+    'curso': '📖 Curso',
+    'diplomado': '🎓 Diplomado',
+    'webinar': '💻 Webinar',
+    'seminario': '📝 Seminario',
+    'taller': '🔧 Taller'
+  };
+  const typeLabel = typeLabels[courseType] || '📖 Curso';
+  
+  // ✅ Obtener el contenedor del título y agregar badge de clasificación
+  const titleContainer = $('#courseTitle').parentElement;
+  if (titleContainer) {
+    // Verificar si ya existe un badge de clasificación y eliminarlo
+    const existingBadge = titleContainer.querySelector('.course-type-badge');
+    if (existingBadge) {
+      existingBadge.remove();
+    }
+    
+    // Crear y agregar badge de clasificación
+    const typeBadge = document.createElement('div');
+    typeBadge.className = 'course-type-badge';
+    typeBadge.style.cssText = 'font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;';
+    typeBadge.textContent = typeLabel;
+    titleContainer.insertBefore(typeBadge, $('#courseTitle'));
+  }
+  
   $('#courseTitle').textContent = data.title;
   $('#courseMeta').textContent = data.meta || '';
 
