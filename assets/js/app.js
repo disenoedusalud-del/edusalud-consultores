@@ -1815,14 +1815,17 @@ function renderCourse(keyHex) {
     list.appendChild(row);
   });
 
-  // Tarjeta imagen
+  // Tarjeta imagen - ✅ Con estilos variant y accent
   try {
     const left = document.querySelector('#courseCard .card-left-wrapper');
     if (left) {
       left.innerHTML = '';
       let wrapper = null;
       if (window.insertElectricCard) {
-        wrapper = window.insertElectricCard(left);
+        // ✅ Pasar variant y accent al crear la tarjeta
+        const variant = data.card?.variant || 'dramatic';
+        const accent = data.card?.accent || '#5aa9ff';
+        wrapper = window.insertElectricCard(left, variant, accent);
       }
       if (wrapper && data.card?.img && window.setCardImage) {
         window.setCardImage(wrapper, `${data.card.img}?v=2`);
@@ -2602,10 +2605,13 @@ function buildMasterGrid() {
     });
     right.appendChild(btnRestore);
 
-    // tarjeta izquierda (solo imagen) - ✅ Lazy loading
+    // tarjeta izquierda (solo imagen) - ✅ Lazy loading con estilos variant y accent
     let wrapper = null;
     if (window.insertElectricCard) {
-      wrapper = window.insertElectricCard(left);
+      // ✅ Pasar variant y accent al crear la tarjeta
+      const variant = data.card?.variant || 'dramatic';
+      const accent = data.card?.accent || '#5aa9ff';
+      wrapper = window.insertElectricCard(left, variant, accent);
     }
     if (wrapper && data.card?.img && window.setCardImage) {
       // ✅ Lazy loading: usar data-src y cargar solo cuando es visible
