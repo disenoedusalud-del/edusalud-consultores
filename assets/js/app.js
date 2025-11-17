@@ -151,6 +151,7 @@ async function addCustomCourse(hex, courseData){
     title: courseData?.title || '',
     meta: courseData?.meta || '',
     files: Array.isArray(courseData?.files) ? courseData.files : [],
+    code: courseData?.code || '', // ✅ Guardar código secreto
     card: courseData?.card || {},
     createdAt: courseData?.createdAt || Date.now(),
     updatedAt: Date.now()
@@ -216,6 +217,7 @@ async function updateCustomCourse(hex, courseData){
     title: courseData?.title || existingCourse.title || '',
     meta: courseData?.meta || existingCourse.meta || '',
     files: Array.isArray(courseData?.files) ? courseData.files : (existingCourse.files || []),
+    code: existingCourse.code || '', // ✅ Preservar código secreto (no se puede cambiar)
     card: courseData?.card || existingCourse.card || {},
     createdAt: existingCourse.createdAt || Date.now(), // Mantener fecha de creación original
     updatedAt: Date.now() // Actualizar fecha de modificación
@@ -1716,11 +1718,13 @@ function buildMasterGrid() {
     const right = document.createElement('div');
     right.className = 'right';
 
-    // cabecera derecha (título + meta + botón abrir curso)
+    // cabecera derecha (título + meta + código secreto + botón abrir curso)
     const header = document.createElement('div');
     header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;';
     const t = document.createElement('div');
-    t.innerHTML = `<div style="font-weight:700">${data.title}</div><div class="meta">${data.meta || ''}</div>`;
+    // ✅ Mostrar código secreto solo en la vista maestra y solo si existe
+    const codeDisplay = data.code ? `<div style="font-size: 11px; color: var(--accent); margin-top: 4px; font-family: monospace; background: rgba(90,169,255,0.1); padding: 4px 8px; border-radius: 4px; display: inline-block;">🔑 Código: ${data.code}</div>` : '';
+    t.innerHTML = `<div style="font-weight:700">${data.title}</div><div class="meta">${data.meta || ''}</div>${codeDisplay}`;
     
     const headerActions = document.createElement('div');
     headerActions.style.cssText = 'display:flex; gap:8px;';
@@ -2897,6 +2901,7 @@ function setupAddCourseModal() {
       title: title,
       meta: meta,
       files: [],
+      code: code, // ✅ Guardar el código secreto para poder mostrarlo después
       card: {
         img: imageUrl,
         tag: tag,
