@@ -152,6 +152,7 @@ async function addCustomCourse(hex, courseData){
     meta: courseData?.meta || '',
     files: Array.isArray(courseData?.files) ? courseData.files : [],
     code: courseData?.code || '', // ✅ Guardar código secreto
+    type: courseData?.type || 'curso', // ✅ Guardar clasificación
     card: courseData?.card || {},
     createdAt: courseData?.createdAt || Date.now(),
     updatedAt: Date.now()
@@ -225,6 +226,7 @@ async function updateCustomCourse(hex, courseData){
     meta: courseData?.meta || existingCourse.meta || '',
     files: Array.isArray(courseData?.files) ? courseData.files : (existingCourse.files || []),
     code: existingCourse.code || '', // ✅ Preservar código secreto (no se puede cambiar)
+    type: courseData?.type || existingCourse.type || 'curso', // ✅ Actualizar clasificación
     card: courseData?.card || existingCourse.card || {},
     createdAt: existingCourse.createdAt || Date.now(), // Mantener fecha de creación original
     updatedAt: Date.now() // Actualizar fecha de modificación
@@ -2709,14 +2711,49 @@ function updateMasterStats(mergedMap) {
   }
   
   const coursesCount = Object.keys(mergedMap).filter(h => h !== MASTER_HASH).length;
-  const statsCourses = $('#statsCoursesCount');
   
+  // ✅ Contar por tipo de clasificación
+  const typeCounts = {
+    curso: 0,
+    diplomado: 0,
+    webinar: 0,
+    seminario: 0,
+    taller: 0
+  };
+  
+  Object.keys(mergedMap).forEach(hex => {
+    if (hex !== MASTER_HASH) {
+      const course = mergedMap[hex];
+      const type = course?.type || 'curso'; // Por defecto 'curso' si no tiene tipo
+      if (typeCounts.hasOwnProperty(type)) {
+        typeCounts[type]++;
+      } else {
+        // Si hay un tipo desconocido, contarlo como curso
+        typeCounts.curso++;
+      }
+    }
+  });
+  
+  // ✅ Actualizar total
+  const statsCourses = $('#statsCoursesCount');
   if (statsCourses) {
     statsCourses.textContent = coursesCount;
-    console.log('[STATS] 📊 Cursos actualizados:', coursesCount);
-  } else {
-    console.warn('[STATS] ⚠️ Elemento statsCoursesCount no encontrado');
   }
+  
+  // ✅ Actualizar contadores por tipo
+  const statsTypeCurso = $('#statsTypeCurso');
+  const statsTypeDiplomado = $('#statsTypeDiplomado');
+  const statsTypeWebinar = $('#statsTypeWebinar');
+  const statsTypeSeminario = $('#statsTypeSeminario');
+  const statsTypeTaller = $('#statsTypeTaller');
+  
+  if (statsTypeCurso) statsTypeCurso.textContent = typeCounts.curso;
+  if (statsTypeDiplomado) statsTypeDiplomado.textContent = typeCounts.diplomado;
+  if (statsTypeWebinar) statsTypeWebinar.textContent = typeCounts.webinar;
+  if (statsTypeSeminario) statsTypeSeminario.textContent = typeCounts.seminario;
+  if (statsTypeTaller) statsTypeTaller.textContent = typeCounts.taller;
+  
+  console.log('[STATS] 📊 Total:', coursesCount, '| Por tipo:', typeCounts);
 }
 
 // ✅ Historial de cambios: registrar cambios importantes
@@ -3325,6 +3362,7 @@ function setupAddCourseModal() {
     const meta = $('#inputCourseMeta').value.trim();
     const imageUrl = $('#inputCourseImage').value.trim();
     const tag = $('#inputCourseTag').value.trim().toUpperCase();
+    const type = $('#selectCourseType').value || 'curso'; // ✅ Clasificación del curso
     
     // ✅ Leer valores de estilo visual y color accent con validación
     const selectVariant = $('#selectCourseVariant');
@@ -3352,6 +3390,7 @@ function setupAddCourseModal() {
       meta,
       imageUrl,
       tag,
+      type,
       variant,
       accent,
       code
@@ -3395,6 +3434,7 @@ function setupAddCourseModal() {
       meta: meta,
       files: [],
       code: code, // ✅ Guardar el código secreto para poder mostrarlo después
+      type: type, // ✅ Guardar clasificación (curso, diplomado, webinar, etc.)
       card: {
         img: imageUrl,
         tag: tag,
@@ -3493,6 +3533,7 @@ function setupEditCourseModal() {
     $('#inputEditCourseMeta').value = courseData.meta || '';
     $('#inputEditCourseImage').value = courseData.card?.img || '';
     $('#inputEditCourseTag').value = courseData.card?.tag || '';
+    $('#selectEditCourseType').value = courseData.type || 'curso'; // ✅ Pre-llenar clasificación
     $('#selectEditCourseVariant').value = courseData.card?.variant || 'dramatic';
     $('#inputEditCourseAccent').value = courseData.card?.accent || '#5aa9ff';
     $('#inputEditCourseAccentHex').value = courseData.card?.accent || '#5aa9ff';
@@ -3519,6 +3560,7 @@ function setupEditCourseModal() {
     const meta = $('#inputEditCourseMeta').value.trim();
     const imageUrl = $('#inputEditCourseImage').value.trim();
     const tag = $('#inputEditCourseTag').value.trim().toUpperCase();
+    const type = $('#selectEditCourseType').value || 'curso'; // ✅ Clasificación del curso
     const variant = $('#selectEditCourseVariant').value;
     const accent = $('#inputEditCourseAccent').value;
     
@@ -3561,6 +3603,7 @@ function setupEditCourseModal() {
       title: title,
       meta: meta,
       files: currentCourse.files || [], // Preservar archivos existentes
+      type: type, // ✅ Actualizar clasificación
       card: {
         img: imageUrl,
         tag: tag,
