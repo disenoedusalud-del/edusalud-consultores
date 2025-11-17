@@ -195,11 +195,23 @@ async function removeCustomCourse(hex){
   const db = getFirestoreDB();
   if (db) {
     try {
+      // ✅ Eliminar el curso de customCourses
       await db.ref(`customCourses/${hex}`).remove();
       console.log('[DELETE COURSE] ✅ Curso eliminado de Firebase');
+      
+      // ✅ Eliminar también todos los links asociados al curso
+      await db.ref(`courses/${hex}/links`).remove();
+      console.log('[DELETE COURSE] ✅ Links del curso eliminados de Firebase');
+      
+      // ✅ Limpiar también localStorage de los links
+      clearFilesOverride(hex);
+      console.log('[DELETE COURSE] ✅ Links eliminados de localStorage');
     } catch (error) {
       console.error('[DELETE COURSE] ❌ Error eliminando curso en Firebase:', error);
     }
+  } else {
+    // Si no hay Firebase, limpiar localStorage de todas formas
+    clearFilesOverride(hex);
   }
 
   await remoteDeleteCourse(hex).catch(e => {
