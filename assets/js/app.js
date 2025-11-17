@@ -567,7 +567,23 @@ function mergeFirestoreLinks(courseHex, firestoreLinks) {
     createdAt: baseLink.createdAt || null
   }));
 
-  const merged = baseEntries.concat(firebaseFormatted);
+  // ✅ PREVENIR DUPLICADOS: Si un link base ya tiene firebaseId, no agregarlo desde Firebase
+  const baseFirebaseIds = new Set(baseEntries.filter(e => e.firebaseId).map(e => e.firebaseId));
+  const uniqueFirebaseLinks = firebaseFormatted.filter(link => !baseFirebaseIds.has(link.firebaseId));
+  
+  // ✅ También prevenir duplicados por URL+Label en caso de que no haya firebaseId
+  const existingUrls = new Set(baseEntries.map(e => `${e.url}|||${e.label}`));
+  const finalFirebaseLinks = uniqueFirebaseLinks.filter(link => {
+    const key = `${link.url}|||${link.label}`;
+    if (existingUrls.has(key)) {
+      console.log('[MERGE] ⚠️ Duplicado detectado y filtrado:', link.label);
+      return false;
+    }
+    existingUrls.add(key);
+    return true;
+  });
+
+  const merged = baseEntries.concat(finalFirebaseLinks);
 
   saveFilesOverride(courseHex, merged);
   
@@ -1553,7 +1569,20 @@ function renderCourse(keyHex) {
   const list = $('#filelist');
   list.innerHTML = '';
   const files = getFilesForHex(keyHex);
-  (files || []).forEach(item => {
+  
+  // ✅ PREVENIR DUPLICADOS al renderizar: usar Set para identificar únicos por firebaseId o URL+Label
+  const seen = new Set();
+  const uniqueFiles = (files || []).filter(item => {
+    const key = item.firebaseId || `${item.url}|||${item.label}`;
+    if (seen.has(key)) {
+      console.log('[RENDER] ⚠️ Duplicado filtrado al renderizar:', item.label);
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+  
+  uniqueFiles.forEach(item => {
     const row = document.createElement('div');
     row.className = 'file';
     let host = '';
