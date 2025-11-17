@@ -710,7 +710,9 @@
       onConfirmCallback = onConfirm;
       
       // ✅ Cambiar el mensaje según el tipo (curso o enlace)
-      if (type === 'enlace' || title.startsWith('Enlace:')) {
+      // Detectar si es enlace por el título que empieza con "Enlace:" o por el parámetro type
+      const isEnlace = type === 'enlace' || (title && title.trim().startsWith('Enlace:'));
+      if (isEnlace) {
         confirmMessage.innerHTML = '¿Estás seguro de que deseas eliminar este enlace?<br><strong style="color: var(--danger);">Esta acción no se puede deshacer.</strong>';
       } else {
         confirmMessage.innerHTML = '¿Estás seguro de que deseas eliminar este curso?<br><strong style="color: var(--danger);">Esta acción no se puede deshacer.</strong>';
