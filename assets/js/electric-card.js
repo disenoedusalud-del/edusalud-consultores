@@ -1,6 +1,7 @@
 // ---------------------------------------------------------
 // Tarjeta "eléctrica" mínima (solo imagen). Sin textos.
 // Efecto SVG desactivado (namespace comentado intencionalmente).
+// ✅ Soporta variant (dramatic/neon) y color accent personalizado
 // ---------------------------------------------------------
 (function () {
   const SVG_ID = 'electric-card';
@@ -10,20 +11,57 @@
     const ns = '/*http://www.w3.org/2000/svg*/'; // NO CAMBIAR (tu preferencia actual)
     // Para activar en el futuro: usar const ns = 'http://www.w3.org/2000/svg' y crear <svg><defs>...
   }
+  
+  // ✅ Función auxiliar para convertir hex a RGB
+  function hexToRgb(hex) {
+    if (!hex) return null;
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  }
 
-  function createCardDOM() {
+  function createCardDOM(variant = 'dramatic', accent = '#5aa9ff') {
     const wrapper = document.createElement('div');
     wrapper.className = 'ec-wrapper';
+    
+    // ✅ Aplicar estilos según variant
+    let bgColor, defaultBorderColor, defaultShadowColor;
+    if (variant === 'neon') {
+      // Estilo Neon (Cian)
+      bgColor = '#0a1a2e';
+      defaultBorderColor = `rgba(139, 233, 253, 0.3)`; // accent-2 (cian)
+      defaultShadowColor = `rgba(139, 233, 253, 0.4)`;
+    } else {
+      // Estilo Dramatic (Azul) - por defecto
+      bgColor = '#0e1630';
+      defaultBorderColor = `rgba(90, 169, 255, 0.3)`; // accent (azul)
+      defaultShadowColor = `rgba(90, 169, 255, 0.4)`;
+    }
+    
+    // ✅ Usar color accent personalizado si está disponible
+    const accentRgb = hexToRgb(accent);
+    let borderColor = defaultBorderColor;
+    let shadowColor = defaultShadowColor;
+    
+    if (accentRgb) {
+      borderColor = `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.3)`;
+      shadowColor = `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.4)`;
+    }
+    
     wrapper.style.cssText = `
       position: relative;
       width: 100%;
       aspect-ratio: 3/4;
       border-radius: 12px;
       overflow: hidden;
-      background: #0e1630;
-      box-shadow: 0 10px 30px rgba(0,0,0,.35);
-      border: 1px solid rgba(255,255,255,.06);
+      background: ${bgColor};
+      box-shadow: 0 10px 30px ${shadowColor}, 0 0 20px ${shadowColor}40;
+      border: 2px solid ${borderColor};
       display:block;
+      transition: all 0.3s ease;
     `;
 
     const img = document.createElement('img');
@@ -36,17 +74,19 @@
       height: 100%;
       object-fit: contain;   /* encaja al 100% sin recorte */
       display:block;
-      background:#0e1630;
+      background:${bgColor};
     `;
 
     wrapper.appendChild(img);
     return wrapper;
   }
 
-  function insertElectricCard(container) {
+  function insertElectricCard(container, variant = 'dramatic', accent = '#5aa9ff') {
     ensureSVGFilter();
-    const card = createCardDOM();
-    container.appendChild(card);
+    const card = createCardDOM(variant, accent);
+    if (container) {
+      container.appendChild(card);
+    }
     return card;
   }
 
@@ -60,3 +100,4 @@
   window.insertElectricCard = window.insertElectricCard || insertElectricCard;
   window.setCardImage = window.setCardImage || setCardImage;
 })();
+
