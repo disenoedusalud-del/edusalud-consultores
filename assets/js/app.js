@@ -484,6 +484,8 @@ function initFirebaseCustomCoursesRealtime() {
       if (isMasterView) {
         console.log('[FIREBASE COURSES] ♻️ Re-renderizando grid Master (cursos eliminados se quitarán automáticamente)');
         buildMasterGrid();
+        // ✅ Actualizar estadísticas después de re-renderizar (buildMasterGrid ya lo hace, pero por si acaso)
+        setTimeout(() => updateMasterStats(mergedCourses), 100);
       }
 
       if (isContentView && currentKeyHex && rawCourses[currentKeyHex]) {
@@ -1839,10 +1841,10 @@ function buildMasterGrid() {
 
   const mergedMap = getMergedAccessHashMap();
 
-  // ✅ Actualizar estadísticas
-  updateMasterStats(mergedMap);
-
   initFirebaseCustomCoursesRealtime();
+  
+  // ✅ Actualizar estadísticas (después de inicializar Firebase)
+  updateMasterStats(mergedMap);
 
   // ✅ Paginación: solo si hay muchos cursos (más de 12)
   const coursesArray = Object.entries(mergedMap).filter(([hex]) => hex !== MASTER_HASH);
@@ -2122,10 +2124,12 @@ function buildMasterGrid() {
             });
           }
           
-          // ✅ Desbloquear y re-renderizar inmediatamente
-          userInteracting = false;
-          buildMasterGrid();
-          console.log('[DELETE] ✅ Curso eliminado exitosamente');
+                // ✅ Desbloquear y re-renderizar inmediatamente
+                userInteracting = false;
+                buildMasterGrid();
+                // ✅ Actualizar estadísticas después de eliminar
+                setTimeout(() => updateMasterStats(), 100);
+                console.log('[DELETE] ✅ Curso eliminado exitosamente');
           
           // Analytics tracking
           if (typeof gtag !== 'undefined') {
@@ -2694,30 +2698,19 @@ function buildMasterGrid() {
 
 // ✅ Función para actualizar estadísticas en la vista maestra
 function updateMasterStats(mergedMap) {
-  const coursesCount = Object.keys(mergedMap).filter(h => h !== MASTER_HASH).length;
-  let totalLinks = 0;
-  
-  Object.keys(mergedMap).forEach(hex => {
-    if (hex !== MASTER_HASH) {
-      const files = getFilesForHex(hex);
-      if (Array.isArray(files)) {
-        totalLinks += files.length;
-      }
-    }
-  });
-  
-  const statsCourses = $('#statsCoursesCount');
-  const statsLinks = $('#statsLinksCount');
-  const statsLastUpdate = $('#statsLastUpdate');
-  
-  if (statsCourses) statsCourses.textContent = coursesCount;
-  if (statsLinks) statsLinks.textContent = totalLinks;
-  if (statsLastUpdate) {
-    const now = new Date();
-    statsLastUpdate.textContent = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  if (!mergedMap) {
+    mergedMap = getMergedAccessHashMap();
   }
   
-  console.log('[STATS] 📊 Cursos:', coursesCount, 'Links:', totalLinks);
+  const coursesCount = Object.keys(mergedMap).filter(h => h !== MASTER_HASH).length;
+  const statsCourses = $('#statsCoursesCount');
+  
+  if (statsCourses) {
+    statsCourses.textContent = coursesCount;
+    console.log('[STATS] 📊 Cursos actualizados:', coursesCount);
+  } else {
+    console.warn('[STATS] ⚠️ Elemento statsCoursesCount no encontrado');
+  }
 }
 
 // ✅ Historial de cambios: registrar cambios importantes
