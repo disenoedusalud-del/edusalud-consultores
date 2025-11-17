@@ -1370,34 +1370,102 @@ async function refreshCustomCourses(){
 }
 
 // ===== Exportar / Importar overrides (todas los cursos) =====
+// ✅ Exportar backup completo (cursos + overrides)
 function exportOverrides(){
-  const payload = { version: 1, exportedAt: new Date().toISOString(), overrides: {} };
+  const payload = { 
+    version: 2, 
+    exportedAt: new Date().toISOString(), 
+    overrides: {},
+    courses: {} // ✅ NUEVO: Incluir cursos completos
+  };
+  
+  // Exportar overrides (links personalizados)
   Object.keys(ACCESS_HASH_MAP).forEach(hex => {
     const arr = loadFilesOverride(hex);
     if (Array.isArray(arr)) payload.overrides[hex] = arr;
   });
+  
+  // ✅ Exportar cursos personalizados completos
+  const customCourses = loadCustomCourses();
+  Object.keys(customCourses).forEach(hex => {
+    payload.courses[hex] = customCourses[hex];
+  });
+  
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'edusalud_overrides.json';
-  document.body.appendChild(a); a.click(); a.remove();
+  a.href = url; 
+  a.download = `edusalud_backup_${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a); 
+  a.click(); 
+  a.remove();
   URL.revokeObjectURL(url);
+  
+  // Mostrar confirmación
+  if (typeof window.showSuccessModal === 'function') {
+    window.showSuccessModal(
+      'Backup Exportado',
+      `Se exportaron ${Object.keys(payload.courses).length} cursos y ${Object.keys(payload.overrides).length} sets de links.`
+    );
+  }
 }
+// ✅ Importar backup completo (cursos + overrides)
 async function importOverridesFromFile(file){
   try {
     const text = await file.text();
     const data = JSON.parse(text);
-    if (!data || typeof data !== 'object' || typeof data.overrides !== 'object') {
-      alert('Archivo inválido'); return;
+    
+    if (!data || typeof data !== 'object') {
+      alert('Archivo inválido'); 
+      return;
     }
-    let count = 0;
-    Object.entries(data.overrides).forEach(([hex, arr]) => {
-      if (ACCESS_HASH_MAP[hex] && Array.isArray(arr)) { saveFilesOverride(hex, arr); count++; }
-    });
+    
+    let coursesCount = 0;
+    let overridesCount = 0;
+    
+    // ✅ Importar cursos personalizados (versión 2)
+    if (data.courses && typeof data.courses === 'object') {
+      const custom = loadCustomCourses();
+      Object.entries(data.courses).forEach(([hex, courseData]) => {
+        if (courseData && typeof courseData === 'object') {
+          custom[hex] = courseData;
+          coursesCount++;
+        }
+      });
+      saveCustomCourses(custom);
+      console.log('[IMPORT] ✅ Cursos importados:', coursesCount);
+    }
+    
+    // Importar overrides (links personalizados) - Compatible con versión 1
+    if (data.overrides && typeof data.overrides === 'object') {
+      Object.entries(data.overrides).forEach(([hex, arr]) => {
+        if (Array.isArray(arr)) { 
+          saveFilesOverride(hex, arr); 
+          overridesCount++; 
+        }
+      });
+      console.log('[IMPORT] ✅ Overrides importados:', overridesCount);
+    }
+    
+    // Reconstruir grid
     buildMasterGrid();
-    alert(`Importado correctamente (${count} cursos)`);
+    
+    // Mostrar resultado
+    const message = `Importado correctamente:\n- ${coursesCount} cursos\n- ${overridesCount} sets de links`;
+    if (typeof window.showSuccessModal === 'function') {
+      window.showSuccessModal('Backup Importado', message);
+    } else {
+      alert(message);
+    }
+    
+    // Sincronizar con Firebase si está disponible
+    if (getFirestoreDB()) {
+      console.log('[IMPORT] 🔄 Sincronizando cursos importados con Firebase...');
+      // Los cursos se sincronizarán automáticamente con Firebase
+    }
   } catch (e) {
-    alert('No se pudo importar el archivo');
+    console.error('[IMPORT] Error:', e);
+    alert('No se pudo importar el archivo: ' + (e.message || 'Error desconocido'));
   }
 }
 function ensureMasterTools(){
@@ -1409,10 +1477,14 @@ function ensureMasterTools(){
   tools.id = 'masterTools';
   tools.style.cssText = 'display:flex; gap:10px; align-items:center; margin:10px 0;';
   const btnExp = document.createElement('button');
-  btnExp.className = 'btn secondary'; btnExp.type = 'button'; btnExp.textContent = 'Exportar cambios';
+  btnExp.className = 'btn secondary'; 
+  btnExp.type = 'button'; 
+  btnExp.textContent = '💾 Exportar Backup';
   btnExp.addEventListener('click', exportOverrides);
   const btnImp = document.createElement('button');
-  btnImp.className = 'btn secondary'; btnImp.type = 'button'; btnImp.textContent = 'Importar cambios';
+  btnImp.className = 'btn secondary'; 
+  btnImp.type = 'button'; 
+  btnImp.textContent = '📥 Importar Backup';
   const file = document.createElement('input');
   file.type = 'file'; file.accept = 'application/json'; file.style.display = 'none';
   btnImp.addEventListener('click', () => file.click());
@@ -1760,8 +1832,34 @@ function buildMasterGrid() {
       const codeToShow = courseData?.code || data.code || '';
       console.log('[MASTER GRID] Curso:', data.title, 'Hex:', hex.substring(0, 8), 'Código en data:', data.code, 'Código en custom:', courseData?.code);
       
-      const codeDisplay = codeToShow ? `<div style="font-size: 11px; color: var(--accent); margin-top: 4px; font-family: monospace; background: rgba(90,169,255,0.1); padding: 4px 8px; border-radius: 4px; display: inline-block;">🔑 Código: ${codeToShow}</div>` : '';
-      t.innerHTML = `<div style="font-weight:700">${data.title}</div><div class="meta">${data.meta || ''}</div>${codeDisplay}`;
+      // Crear elemento clickeable para el código
+      if (codeToShow) {
+        const codeDiv = document.createElement('div');
+        codeDiv.style.cssText = 'font-size: 11px; color: var(--accent); margin-top: 4px; font-family: monospace; background: rgba(90,169,255,0.1); padding: 4px 8px; border-radius: 4px; display: inline-block; cursor: pointer; transition: all 0.2s;';
+        codeDiv.title = 'Click para copiar código';
+        codeDiv.textContent = `🔑 Código: ${codeToShow} 📋`;
+        codeDiv.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(codeToShow);
+            codeDiv.style.background = 'rgba(90,169,255,0.3)';
+            setTimeout(() => {
+              codeDiv.style.background = 'rgba(90,169,255,0.1)';
+            }, 300);
+            if (typeof window.showSuccessModal === 'function') {
+              window.showSuccessModal('Código copiado', `El código "${codeToShow}" ha sido copiado al portapapeles`);
+            } else {
+              alert(`Código copiado: ${codeToShow}`);
+            }
+          } catch (err) {
+            console.error('Error copiando código:', err);
+            alert('Error al copiar código');
+          }
+        });
+        t.innerHTML = `<div style="font-weight:700">${data.title}</div><div class="meta">${data.meta || ''}</div>`;
+        t.appendChild(codeDiv);
+      } else {
+        t.innerHTML = `<div style="font-weight:700">${data.title}</div><div class="meta">${data.meta || ''}</div>`;
+      }
     } else {
       t.innerHTML = `<div style="font-weight:700">${data.title}</div><div class="meta">${data.meta || ''}</div>`;
     }
@@ -1810,6 +1908,72 @@ function buildMasterGrid() {
         }
       });
       headerActions.appendChild(btnEditCourse);
+      
+      // Botón duplicar curso
+      const btnDuplicate = document.createElement('button');
+      btnDuplicate.className = 'btn secondary';
+      btnDuplicate.type = 'button';
+      btnDuplicate.textContent = '📋 Duplicar';
+      btnDuplicate.addEventListener('click', async () => {
+        // Generar nuevo código único
+        const newCode = prompt('Ingresa un nuevo código secreto para el curso duplicado:', `${data.card?.tag || 'CURSO'}_${Date.now()}`);
+        if (!newCode || !newCode.trim()) {
+          return;
+        }
+        
+        try {
+          // Generar nuevo hex del código
+          const newHex = await sha256Hex(newCode.trim());
+          
+          // Verificar que el código no exista
+          const existingCourses = getMergedAccessHashMap();
+          if (existingCourses[newHex]) {
+            alert('Este código ya existe. Use otro.');
+            return;
+          }
+          
+          // Crear copia del curso con nuevo código
+          const duplicatedCourse = {
+            title: `${data.title} (Copia)`,
+            meta: data.meta || '',
+            files: [...(data.files || [])], // Copiar array de archivos
+            code: newCode.trim(),
+            card: {
+              ...data.card,
+              tag: `${data.card?.tag || 'TAG'}_COPY`,
+              seed: Math.floor(Math.random() * 100) // Nuevo seed para variación visual
+            }
+          };
+          
+          // Guardar curso duplicado
+          await addCustomCourse(newHex, duplicatedCourse);
+          
+          // Reconstruir grid
+          buildMasterGrid();
+          
+          // Mostrar éxito
+          if (typeof window.showSuccessModal === 'function') {
+            window.showSuccessModal(
+              '¡Curso Duplicado!',
+              `El curso ha sido duplicado con el código: ${newCode.trim()}`
+            );
+          } else {
+            alert(`Curso duplicado con código: ${newCode.trim()}`);
+          }
+          
+          // Analytics tracking
+          if (typeof gtag !== 'undefined') {
+            gtag('event', 'course_duplicated', {
+              'event_category': 'management',
+              'event_label': data.card?.tag || 'unknown'
+            });
+          }
+        } catch (error) {
+          console.error('[DUPLICATE] Error:', error);
+          alert('Error al duplicar el curso: ' + (error.message || 'Error desconocido'));
+        }
+      });
+      headerActions.appendChild(btnDuplicate);
       
       // Botón eliminar curso
       const btnDelete = document.createElement('button');
