@@ -429,6 +429,22 @@
         </div>
       </div>
 
+      <!-- Estadísticas -->
+      <div id="masterStats" style="display: flex; gap: 20px; margin-bottom: 16px; padding: 12px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 14px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-weight: 600; color: var(--accent);">📚</span>
+          <span>Cursos: <strong id="statsCoursesCount">0</strong></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-weight: 600; color: var(--accent);">🔗</span>
+          <span>Links: <strong id="statsLinksCount">0</strong></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-weight: 600; color: var(--accent);">🕒</span>
+          <span>Última actualización: <strong id="statsLastUpdate">-</strong></span>
+        </div>
+      </div>
+
       <!-- Buscador -->
       <div class="master-search">
         <input id="masterSearch" type="text" placeholder="Buscar por nombre o tag (ej. GASH, MBF, AHGO2)..." />
@@ -465,41 +481,41 @@
       </div>
       <form id="formAddCourse">
         <div class="form-group">
-          <label for="inputCourseTitle">Título del Curso *</label>
-          <input id="inputCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required />
+          <label for="inputCourseTitle" title="Nombre completo del curso que aparecerá en la plataforma">Título del Curso *</label>
+          <input id="inputCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso" />
         </div>
         <div class="form-group">
-          <label for="inputCourseMeta">Descripción / Meta *</label>
-          <input id="inputCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required />
+          <label for="inputCourseMeta" title="Descripción breve del curso que aparecerá debajo del título">Descripción / Meta *</label>
+          <input id="inputCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso" />
         </div>
         <div class="form-group">
-          <label for="inputCourseImage">URL de la Imagen *</label>
-          <input id="inputCourseImage" class="input" type="url" placeholder="https://..." required />
+          <label for="inputCourseImage" title="URL de la imagen que aparecerá en la tarjeta del curso. Debe ser una URL pública (Google Drive, etc.)">URL de la Imagen *</label>
+          <input id="inputCourseImage" class="input" type="url" placeholder="https://..." required title="URL pública de la imagen" />
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
             📁 Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
           </div>
         </div>
         <div class="form-group">
-          <label for="inputCourseTag">Tag del Curso *</label>
-          <input id="inputCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" />
+          <label for="inputCourseTag" title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag del Curso *</label>
+          <input id="inputCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (máx. 10 caracteres)" />
         </div>
         <div class="form-group">
-          <label for="selectCourseVariant">Estilo Visual *</label>
-          <select id="selectCourseVariant" class="input" required>
+          <label for="selectCourseVariant" title="Estilo visual de la tarjeta del curso">Estilo Visual *</label>
+          <select id="selectCourseVariant" class="input" required title="Estilo visual de la tarjeta">
             <option value="dramatic">Dramatic (Azul)</option>
             <option value="neon">Neon (Cian)</option>
           </select>
         </div>
         <div class="form-group">
-          <label for="inputCourseAccent">Color Accent</label>
+          <label for="inputCourseAccent" title="Color de acento que se usará en la tarjeta del curso">Color Accent</label>
           <div style="display:flex; gap:10px;">
-            <input id="inputCourseAccent" class="input" type="color" value="#5aa9ff" />
-            <input type="text" class="input" id="inputCourseAccentHex" value="#5aa9ff" maxlength="7" />
+            <input id="inputCourseAccent" class="input" type="color" value="#5aa9ff" title="Selector de color" />
+            <input type="text" class="input" id="inputCourseAccentHex" value="#5aa9ff" maxlength="7" title="Código hexadecimal del color (ej: #5aa9ff)" />
           </div>
         </div>
         <div class="form-group">
-          <label for="inputCourseCode">Código Secreto (se auto-generará) *</label>
-          <input id="inputCourseCode" class="input" type="text" placeholder="Ingresa un código único, ej: CURSO123456" required />
+          <label for="inputCourseCode" title="Código secreto único que los usuarios usarán para acceder al curso. Debe ser único y no puede cambiarse después">Código Secreto (se auto-generará) *</label>
+          <input id="inputCourseCode" class="input" type="text" placeholder="Ingresa un código único, ej: CURSO123456" required title="Código secreto único para acceder al curso" />
         </div>
         <div class="form-actions">
           <button type="button" class="btn secondary" id="btnCancelAddCourse">Cancelar</button>
@@ -518,36 +534,36 @@
       </div>
       <form id="formEditCourse">
         <div class="form-group">
-          <label for="inputEditCourseTitle">Título del Curso *</label>
-          <input id="inputEditCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required />
+          <label for="inputEditCourseTitle" title="Nombre completo del curso que aparecerá en la plataforma">Título del Curso *</label>
+          <input id="inputEditCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso" />
         </div>
         <div class="form-group">
-          <label for="inputEditCourseMeta">Descripción / Meta *</label>
-          <input id="inputEditCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required />
+          <label for="inputEditCourseMeta" title="Descripción breve del curso que aparecerá debajo del título">Descripción / Meta *</label>
+          <input id="inputEditCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso" />
         </div>
         <div class="form-group">
-          <label for="inputEditCourseImage">URL de la Imagen *</label>
-          <input id="inputEditCourseImage" class="input" type="url" placeholder="https://..." required />
+          <label for="inputEditCourseImage" title="URL de la imagen que aparecerá en la tarjeta del curso. Debe ser una URL pública (Google Drive, etc.)">URL de la Imagen *</label>
+          <input id="inputEditCourseImage" class="input" type="url" placeholder="https://..." required title="URL pública de la imagen" />
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
             📁 Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
           </div>
         </div>
         <div class="form-group">
-          <label for="inputEditCourseTag">Tag del Curso *</label>
-          <input id="inputEditCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" />
+          <label for="inputEditCourseTag" title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag del Curso *</label>
+          <input id="inputEditCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (máx. 10 caracteres)" />
         </div>
         <div class="form-group">
-          <label for="selectEditCourseVariant">Estilo Visual *</label>
-          <select id="selectEditCourseVariant" class="input" required>
+          <label for="selectEditCourseVariant" title="Estilo visual de la tarjeta del curso">Estilo Visual *</label>
+          <select id="selectEditCourseVariant" class="input" required title="Estilo visual de la tarjeta">
             <option value="dramatic">Dramatic (Azul)</option>
             <option value="neon">Neon (Cian)</option>
           </select>
         </div>
         <div class="form-group">
-          <label for="inputEditCourseAccent">Color Accent</label>
+          <label for="inputEditCourseAccent" title="Color de acento que se usará en la tarjeta del curso">Color Accent</label>
           <div style="display:flex; gap:10px;">
-            <input id="inputEditCourseAccent" class="input" type="color" value="#5aa9ff" />
-            <input type="text" class="input" id="inputEditCourseAccentHex" value="#5aa9ff" maxlength="7" />
+            <input id="inputEditCourseAccent" class="input" type="color" value="#5aa9ff" title="Selector de color" />
+            <input type="text" class="input" id="inputEditCourseAccentHex" value="#5aa9ff" maxlength="7" title="Código hexadecimal del color (ej: #5aa9ff)" />
           </div>
         </div>
         <div class="form-group">
@@ -666,7 +682,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=3" defer></script>
-  <script src="assets/js/app.js?v=43" defer></script>
+  <script src="assets/js/app.js?v=45" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
