@@ -405,6 +405,8 @@ function initFirebaseCustomCoursesRealtime() {
       const localCourses = loadCustomCourses();
       const mergedCourses = {};
       
+      // ✅ CRÍTICO: Firebase es la fuente de verdad para existencia de cursos
+      // Solo procesar cursos que están en Firebase (si Firebase dice que no existe, no existe)
       Object.keys(rawCourses || {}).forEach(hex => {
         const firebaseCourse = rawCourses[hex];
         const localCourse = localCourses[hex];
@@ -424,22 +426,32 @@ function initFirebaseCustomCoursesRealtime() {
         }
       });
       
-      // También preservar cursos locales que no están en Firebase (por si acaso)
-      Object.keys(localCourses).forEach(hex => {
-        if (!mergedCourses[hex] && localCourses[hex]) {
-          mergedCourses[hex] = localCourses[hex];
-        }
-      });
+      // ✅ NO preservar cursos locales que no están en Firebase
+      // Si Firebase no tiene el curso, significa que fue eliminado y debe desaparecer
+      // (Esto asegura sincronización en tiempo real entre dispositivos)
 
-      // ✅ Guardar cursos fusionados en localStorage
+      // ✅ CRÍTICO: Siempre actualizar localStorage con SOLO los cursos de Firebase
+      // Si un curso fue eliminado en Firebase, también debe eliminarse del localStorage
+      const previousCount = Object.keys(localCourses).length;
+      const currentCount = Object.keys(mergedCourses).length;
+      
+      if (previousCount !== currentCount) {
+        console.log('[FIREBASE COURSES] 🔄 Cambio detectado: cursos locales:', previousCount, '→ Firebase:', currentCount);
+        if (currentCount < previousCount) {
+          console.log('[FIREBASE COURSES] 🗑️ Curso(s) eliminado(s) - se actualizará localStorage');
+        }
+      }
+      
       try {
         saveCustomCourses(mergedCourses);
+        console.log('[FIREBASE COURSES] ✅ localStorage actualizado con', currentCount, 'cursos (Firebase es la fuente de verdad)');
       } catch (e) {
         console.warn('[FIREBASE COURSES] ⚠️ No se pudieron guardar cursos en localStorage:', e);
       }
 
       if (userInteracting) {
-        console.log('[FIREBASE COURSES] ⏸️ Usuario interactuando, no actualizar vistas');
+        console.log('[FIREBASE COURSES] ⏸️ Usuario interactuando, actualizará después');
+        // ✅ Aún así actualizar localStorage para mantener sincronización
         return;
       }
 
@@ -447,7 +459,7 @@ function initFirebaseCustomCoursesRealtime() {
       const isContentView = document.getElementById('content') && !document.getElementById('content').classList.contains('hidden');
 
       if (isMasterView) {
-        console.log('[FIREBASE COURSES] ♻️ Re-renderizando grid Master');
+        console.log('[FIREBASE COURSES] ♻️ Re-renderizando grid Master (cursos eliminados se quitarán automáticamente)');
         buildMasterGrid();
       }
 
@@ -1986,14 +1998,25 @@ function buildMasterGrid() {
         window.showDeleteConfirmModal(data.title, async () => {
           console.log('[DELETE] Eliminando curso:', data.title);
           
+          // ✅ Bloquear re-renders durante la eliminación
+          userInteracting = true;
+          
           // ✅ Eliminar curso (local, Firebase y respaldo)
           await removeCustomCourse(hex);
           
-          // ✅ Firebase sincroniza en tiempo real; fallback remoto solo si Firebase ausente
-          await refreshCustomCourses().catch(e => {
-            console.warn('[DELETE] Error refrescando cursos después de eliminar (fallback):', e);
-          });
+          // ✅ NO hacer refreshCustomCourses porque Firebase ya sincroniza en tiempo real
+          // El listener de Firebase actualizará automáticamente la vista en todos los dispositivos
+          // Solo hacer refresh si Firebase no está disponible
+          const db = getFirestoreDB();
+          if (!db) {
+            console.log('[DELETE] Firebase no disponible, usando refresh manual');
+            await refreshCustomCourses().catch(e => {
+              console.warn('[DELETE] Error refrescando cursos después de eliminar (fallback):', e);
+            });
+          }
           
+          // ✅ Desbloquear y re-renderizar inmediatamente
+          userInteracting = false;
           buildMasterGrid();
           console.log('[DELETE] ✅ Curso eliminado exitosamente');
           
