@@ -203,6 +203,13 @@ async function addCustomCourse(hex, courseData){
   if (saveResult) {
     console.log('[ADD COURSE] ✅ Curso guardado en Google Sheets como respaldo');
   }
+  
+  // ✅ Historial de cambios: registrar creación de curso
+  logChangeHistory('course_created', {
+    hex: hex.substring(0, 8),
+    title: normalizedCourse.title,
+    code: normalizedCourse.code
+  });
 }
 async function updateCustomCourse(hex, courseData){
   const custom = loadCustomCourses();
@@ -252,10 +259,19 @@ async function updateCustomCourse(hex, courseData){
   if (saveResult) {
     console.log('[UPDATE COURSE] ✅ Curso actualizado en Google Sheets como respaldo');
   }
+  
+  // ✅ Historial de cambios: registrar actualización de curso
+  logChangeHistory('course_updated', {
+    hex: hex.substring(0, 8),
+    title: normalizedCourse.title,
+    changes: Object.keys(courseData)
+  });
 }
 
 async function removeCustomCourse(hex){
   const custom = loadCustomCourses();
+  // ✅ Guardar información del curso antes de eliminarlo (para historial)
+  const deletedCourse = custom[hex] || {};
   delete custom[hex];
   saveCustomCourses(custom);
 
@@ -289,6 +305,13 @@ async function removeCustomCourse(hex){
   // ✅ Eliminar también los links de la hoja de overrides en Google Sheets
   await remoteDeleteFiles(hex).catch(e => {
     console.warn('[DELETE COURSE] ⚠️ Error eliminando links de Google Sheets:', e);
+  });
+  
+  // ✅ Historial de cambios: registrar eliminación de curso
+  logChangeHistory('course_deleted', {
+    hex: hex.substring(0, 8),
+    title: deletedCourse.title || 'Desconocido',
+    code: deletedCourse.code || ''
   });
 }
 function isCustomCourse(hex){
@@ -1816,9 +1839,29 @@ function buildMasterGrid() {
 
   const mergedMap = getMergedAccessHashMap();
 
+  // ✅ Actualizar estadísticas
+  updateMasterStats(mergedMap);
+
   initFirebaseCustomCoursesRealtime();
 
-  Object.entries(mergedMap).forEach(([hex, data]) => {
+  // ✅ Paginación: solo si hay muchos cursos (más de 12)
+  const coursesArray = Object.entries(mergedMap).filter(([hex]) => hex !== MASTER_HASH);
+  const COURSES_PER_PAGE = 12;
+  const totalPages = Math.ceil(coursesArray.length / COURSES_PER_PAGE);
+  
+  let currentPage = 1;
+  const pageKey = 'masterGridCurrentPage';
+  try {
+    const savedPage = sessionStorage.getItem(pageKey);
+    if (savedPage) currentPage = parseInt(savedPage, 10) || 1;
+  } catch (e) {}
+  
+  // ✅ Si hay más de 12 cursos, implementar paginación
+  const coursesToRender = coursesArray.length > COURSES_PER_PAGE 
+    ? coursesArray.slice((currentPage - 1) * COURSES_PER_PAGE, currentPage * COURSES_PER_PAGE)
+    : coursesArray;
+  
+  coursesToRender.forEach(([hex, data]) => {
     // excluir el master si algún día lo metes en el mismo objeto
     if (hex === MASTER_HASH) return;
 
@@ -2555,13 +2598,42 @@ function buildMasterGrid() {
     });
     right.appendChild(btnRestore);
 
-    // tarjeta izquierda (solo imagen)
+    // tarjeta izquierda (solo imagen) - ✅ Lazy loading
     let wrapper = null;
     if (window.insertElectricCard) {
       wrapper = window.insertElectricCard(left);
     }
     if (wrapper && data.card?.img && window.setCardImage) {
-      window.setCardImage(wrapper, `${data.card.img}?v=2`);
+      // ✅ Lazy loading: usar data-src y cargar solo cuando es visible
+      const imgUrl = `${data.card.img}?v=2`;
+      const imgElement = wrapper.querySelector('img');
+      if (imgElement) {
+        imgElement.setAttribute('data-src', imgUrl);
+        imgElement.setAttribute('loading', 'lazy');
+        imgElement.style.opacity = '0.5'; // Placeholder mientras carga
+        
+        // ✅ Intersection Observer para cargar imagen cuando es visible
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const img = entry.target;
+              const src = img.getAttribute('data-src');
+              if (src) {
+                img.src = src;
+                img.removeAttribute('data-src');
+                img.style.opacity = '1';
+                img.style.transition = 'opacity 0.3s';
+                observer.unobserve(img);
+              }
+            }
+          });
+        }, { rootMargin: '50px' }); // Cargar 50px antes de que sea visible
+        
+        imageObserver.observe(imgElement);
+      } else {
+        // Fallback: cargar inmediatamente si no hay img element
+        window.setCardImage(wrapper, imgUrl);
+      }
     }
 
     cardEl.appendChild(left);
@@ -2569,12 +2641,115 @@ function buildMasterGrid() {
     grid.appendChild(cardEl);
   });
   
+  // ✅ Agregar controles de paginación si hay más de 12 cursos
+  const existingPagination = $('#masterPagination');
+  if (existingPagination) existingPagination.remove();
+  
+  if (coursesArray.length > COURSES_PER_PAGE) {
+    const paginationDiv = document.createElement('div');
+    paginationDiv.id = 'masterPagination';
+    paginationDiv.style.cssText = 'display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 24px; padding: 16px;';
+    
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'btn secondary';
+    prevBtn.textContent = '◀ Anterior';
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        try { sessionStorage.setItem(pageKey, String(currentPage)); } catch (e) {}
+        buildMasterGrid();
+      }
+    });
+    
+    const pageInfo = document.createElement('span');
+    pageInfo.style.cssText = 'color: var(--text); font-size: 14px;';
+    pageInfo.textContent = `Página ${currentPage} de ${totalPages} (${coursesArray.length} cursos)`;
+    
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn secondary';
+    nextBtn.textContent = 'Siguiente ▶';
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        try { sessionStorage.setItem(pageKey, String(currentPage)); } catch (e) {}
+        buildMasterGrid();
+      }
+    });
+    
+    paginationDiv.appendChild(prevBtn);
+    paginationDiv.appendChild(pageInfo);
+    paginationDiv.appendChild(nextBtn);
+    grid.parentNode.insertBefore(paginationDiv, grid.nextSibling);
+  }
+  
   // ✅ FIREBASE: Iniciar listeners para todos los cursos en Master
   const courseHexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
   initFirestoreRealtimeMaster(courseHexes);
   
   // herramientas exportar/importar
   try { ensureMasterTools(); } catch(e) {}
+}
+
+// ✅ Función para actualizar estadísticas en la vista maestra
+function updateMasterStats(mergedMap) {
+  const coursesCount = Object.keys(mergedMap).filter(h => h !== MASTER_HASH).length;
+  let totalLinks = 0;
+  
+  Object.keys(mergedMap).forEach(hex => {
+    if (hex !== MASTER_HASH) {
+      const files = getFilesForHex(hex);
+      if (Array.isArray(files)) {
+        totalLinks += files.length;
+      }
+    }
+  });
+  
+  const statsCourses = $('#statsCoursesCount');
+  const statsLinks = $('#statsLinksCount');
+  const statsLastUpdate = $('#statsLastUpdate');
+  
+  if (statsCourses) statsCourses.textContent = coursesCount;
+  if (statsLinks) statsLinks.textContent = totalLinks;
+  if (statsLastUpdate) {
+    const now = new Date();
+    statsLastUpdate.textContent = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  }
+  
+  console.log('[STATS] 📊 Cursos:', coursesCount, 'Links:', totalLinks);
+}
+
+// ✅ Historial de cambios: registrar cambios importantes
+function logChangeHistory(action, data) {
+  try {
+    let history = JSON.parse(localStorage.getItem('changeHistory') || '[]');
+    const entry = {
+      action: action,
+      data: data,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent.substring(0, 50)
+    };
+    
+    history.unshift(entry); // Agregar al inicio
+    history = history.slice(0, 100); // Mantener solo los últimos 100 cambios
+    
+    localStorage.setItem('changeHistory', JSON.stringify(history));
+    console.log('[HISTORY] 📝 Registrado:', action, data);
+  } catch (e) {
+    console.warn('[HISTORY] ⚠️ Error guardando historial:', e);
+  }
+}
+
+// ✅ Función para obtener historial de cambios (últimos N cambios)
+function getChangeHistory(limit = 20) {
+  try {
+    const history = JSON.parse(localStorage.getItem('changeHistory') || '[]');
+    return history.slice(0, limit);
+  } catch (e) {
+    console.warn('[HISTORY] ⚠️ Error leyendo historial:', e);
+    return [];
+  }
 }
 
 async function refreshFromRemoteSilent(hex){
