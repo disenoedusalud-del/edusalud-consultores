@@ -27,21 +27,25 @@
     const wrapper = document.createElement('div');
     wrapper.className = 'ec-wrapper';
     
-    // ✅ Aplicar estilos según variant - DIFERENCIAS MÁS NOTORIAS
-    let bgColor, defaultBorderColor, defaultShadowColor, glowEffect;
+    // ✅ Aplicar estilos según variant - DIFERENCIAS MUY DRAMÁTICAS
+    let bgColor, defaultBorderColor, defaultShadowColor, glowEffect, borderWidth;
     
     if (variant === 'neon') {
-      // Estilo Neon (Cian) - Más brillante y con efecto glow intenso
-      bgColor = '#0a1a2e';
-      defaultBorderColor = `rgba(139, 233, 253, 0.5)`; // Más visible
-      defaultShadowColor = `rgba(139, 233, 253, 0.5)`;
-      glowEffect = `0 0 30px rgba(139, 233, 253, 0.6), 0 0 60px rgba(139, 233, 253, 0.3)`; // Efecto glow cian intenso
+      // Estilo Neon (Cian) - MUY BRILLANTE con efecto glow MUY INTENSO
+      bgColor = '#051020'; // Más oscuro para que el glow resalte más
+      defaultBorderColor = `rgba(139, 233, 253, 0.8)`; // MUY visible - casi opaco
+      defaultShadowColor = `rgba(139, 233, 253, 0.7)`;
+      borderWidth = '3px'; // Borde más grueso
+      // Glow MUY intenso y extenso para efecto neon real
+      glowEffect = `0 0 40px rgba(139, 233, 253, 0.9), 0 0 80px rgba(139, 233, 253, 0.6), 0 0 120px rgba(139, 233, 253, 0.3), inset 0 0 20px rgba(139, 233, 253, 0.2)`;
     } else {
-      // Estilo Dramatic (Azul) - Más profundo y elegante
+      // Estilo Dramatic (Azul) - Profundo y elegante, sin glow excesivo
       bgColor = '#0e1630';
-      defaultBorderColor = `rgba(90, 169, 255, 0.4)`; // Más visible
-      defaultShadowColor = `rgba(90, 169, 255, 0.5)`;
-      glowEffect = `0 0 25px rgba(90, 169, 255, 0.5), 0 0 50px rgba(90, 169, 255, 0.2)`; // Efecto glow azul sutil
+      defaultBorderColor = `rgba(90, 169, 255, 0.5)`; // Moderado
+      defaultShadowColor = `rgba(90, 169, 255, 0.4)`;
+      borderWidth = '2px'; // Borde normal
+      // Glow sutil y elegante
+      glowEffect = `0 0 20px rgba(90, 169, 255, 0.4), 0 0 40px rgba(90, 169, 255, 0.2)`;
     }
     
     // ✅ Usar color accent personalizado PERO mantener diferencias del variant
@@ -49,15 +53,23 @@
     let borderColor = defaultBorderColor;
     let shadowColor = defaultShadowColor;
     let finalGlow = glowEffect;
+    let finalBorderWidth = borderWidth;
     
     if (accentRgb) {
       // Si hay color personalizado, usarlo pero mantener el estilo del variant
-      borderColor = `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, ${variant === 'neon' ? 0.5 : 0.4})`;
-      shadowColor = `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, ${variant === 'neon' ? 0.5 : 0.5})`;
-      // Glow más intenso para Neon, más sutil para Dramatic
-      finalGlow = variant === 'neon' 
-        ? `0 0 30px rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.6), 0 0 60px rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.3)`
-        : `0 0 25px rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.5), 0 0 50px rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.2)`;
+      if (variant === 'neon') {
+        // Neon: MUY intenso y brillante
+        borderColor = `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.8)`;
+        shadowColor = `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.7)`;
+        finalBorderWidth = '3px';
+        finalGlow = `0 0 40px rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.9), 0 0 80px rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.6), 0 0 120px rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.3), inset 0 0 20px rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.2)`;
+      } else {
+        // Dramatic: Sutil y elegante
+        borderColor = `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.5)`;
+        shadowColor = `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.4)`;
+        finalBorderWidth = '2px';
+        finalGlow = `0 0 20px rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.4), 0 0 40px rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.2)`;
+      }
     }
     
     wrapper.style.cssText = `
@@ -68,7 +80,7 @@
       overflow: hidden;
       background: ${bgColor};
       box-shadow: ${finalGlow}, 0 10px 30px ${shadowColor};
-      border: 2px solid ${borderColor};
+      border: ${finalBorderWidth} solid ${borderColor};
       display:block;
       transition: all 0.3s ease;
     `;
@@ -109,3 +121,4 @@
   window.insertElectricCard = window.insertElectricCard || insertElectricCard;
   window.setCardImage = window.setCardImage || setCardImage;
 })();
+
