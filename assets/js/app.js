@@ -685,7 +685,7 @@ window.eliminarLinkFirebase = async function(courseHex, firebaseId) {
 console.log('[FIRESTORE] ✅ Funciones Firebase registradas globalmente');
 
 /* ============ sincronización remota (opcional) ============ */
-const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbzoM4WegVy9eMrl3nmto_WsGtpNNmKI-E_1FLVuJFsJZoxraNTkxb1vKnCBU8yLiprN/exec';
+const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbztpMUW7wlF_Ikum-sIwGHEVCKblcsGiQhmBaeB-_vJ-uhtSuH9ipd0PjRiBagq8jmM/exec';
 function hasRemote(){ return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE_URL.startsWith('http'); }
 function stableStringify(obj){ try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 async function remoteGetFiles(hex){
