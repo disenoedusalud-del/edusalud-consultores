@@ -167,6 +167,18 @@ async function addCustomCourse(hex, courseData){
   const db = getFirestoreDB();
   if (db) {
     try {
+      // ✅ LIMPIAR DATOS RESIDUALES: Si existe un curso anterior con este hash, eliminar sus links primero
+      try {
+        const linksRef = db.ref(`courses/${hex}/links`);
+        const linksSnapshot = await linksRef.once('value');
+        if (linksSnapshot.exists()) {
+          console.log('[ADD COURSE] 🧹 Eliminando links residuales de Firebase para este hash');
+          await linksRef.remove();
+        }
+      } catch (cleanupError) {
+        console.warn('[ADD COURSE] ⚠️ Error limpiando links residuales (continuando):', cleanupError);
+      }
+      
       const firebasePayload = {
         ...normalizedCourse,
         createdAt: normalizedCourse.createdAt || firebase.database.ServerValue.TIMESTAMP,
