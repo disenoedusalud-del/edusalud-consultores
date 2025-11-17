@@ -364,6 +364,9 @@ async function addCustomCourse(hex, courseData){
     code: normalizedCourse.code
   });
 }
+
+// ✅ Hacer exportOverrides() global para acceso desde el menú
+window.exportOverrides = exportOverrides;
 async function updateCustomCourse(hex, courseData){
   const custom = loadCustomCourses();
   const existingCourse = custom[hex];
@@ -1597,11 +1600,17 @@ function exportOverrides(){
   URL.revokeObjectURL(url);
   
   // Mostrar confirmación
+  // ✅ Registrar en historial
+  logBackupHistory('export', 'all', Object.keys(payload.courses).length);
+  
   if (typeof window.showSuccessModal === 'function') {
     window.showSuccessModal(
       'Backup Exportado',
       `Se exportaron ${Object.keys(payload.courses).length} cursos y ${Object.keys(payload.overrides).length} sets de links.`
     );
+  } else if (typeof window.showToast === 'function') {
+    window.showToast('success', 'Backup Exportado', 
+      `Se exportaron ${Object.keys(payload.courses).length} cursos.`);
   }
 }
 // ✅ Importar backup completo (cursos + overrides)
@@ -1668,28 +1677,379 @@ async function importOverridesFromFile(file){
   }
 }
 function ensureMasterTools(){
-  const grid = document.getElementById('masterGrid');
-  if (!grid) return;
-  let tools = document.getElementById('masterTools');
-  if (tools) return;
-  tools = document.createElement('div');
-  tools.id = 'masterTools';
-  tools.style.cssText = 'display:flex; gap:10px; align-items:center; margin:10px 0;';
-  const btnExp = document.createElement('button');
-  btnExp.className = 'btn secondary'; 
-  btnExp.type = 'button'; 
-  btnExp.textContent = '💾 Exportar Backup';
-  btnExp.addEventListener('click', exportOverrides);
-  const btnImp = document.createElement('button');
-  btnImp.className = 'btn secondary'; 
-  btnImp.type = 'button'; 
-  btnImp.textContent = '📥 Importar Backup';
-  const file = document.createElement('input');
-  file.type = 'file'; file.accept = 'application/json'; file.style.display = 'none';
-  btnImp.addEventListener('click', () => file.click());
-  file.addEventListener('change', () => { if (file.files && file.files[0]) importOverridesFromFile(file.files[0]); });
-  tools.appendChild(btnExp); tools.appendChild(btnImp); tools.appendChild(file);
-  grid.parentNode.insertBefore(tools, grid);
+  // ✅ Ya no crear botones visibles, solo configurar el menú de ajustes
+  setupSettingsMenu();
+}
+
+// ✅ Nueva función para configurar el menú de ajustes
+function setupSettingsMenu() {
+  const btnSettings = document.getElementById('btn-settings');
+  const dropdown = document.getElementById('settingsDropdown');
+  
+  if (!btnSettings || !dropdown) {
+    console.warn('[SETTINGS] Botón de ajustes o dropdown no encontrado');
+    return;
+  }
+  
+  // Toggle del menú al hacer click
+  btnSettings.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isVisible = dropdown.style.display !== 'none';
+    dropdown.style.display = isVisible ? 'none' : 'block';
+  });
+  
+  // Cerrar menú al hacer click fuera
+  document.addEventListener('click', (e) => {
+    if (!btnSettings.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+  
+  // ✅ Exportar Backup Completo
+  dropdown.querySelector('[data-action="export-all"]')?.addEventListener('click', () => {
+    dropdown.style.display = 'none';
+    exportOverrides();
+  });
+  
+  // ✅ Exportar por Tipo (con modal de selección)
+  dropdown.querySelector('[data-action="export-filtered"]')?.addEventListener('click', () => {
+    dropdown.style.display = 'none';
+    showExportFilterModal();
+  });
+  
+  // ✅ Importar Backup (con vista previa)
+  dropdown.querySelector('[data-action="import"]')?.addEventListener('click', () => {
+    dropdown.style.display = 'none';
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'application/json';
+    fileInput.style.display = 'none';
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files && fileInput.files[0]) {
+        showImportPreview(fileInput.files[0]);
+      }
+    });
+    document.body.appendChild(fileInput);
+    fileInput.click();
+    setTimeout(() => {
+      if (fileInput.parentElement) {
+        document.body.removeChild(fileInput);
+      }
+    }, 100);
+  });
+  
+  // ✅ Historial de Backups
+  dropdown.querySelector('[data-action="backup-history"]')?.addEventListener('click', () => {
+    dropdown.style.display = 'none';
+    showBackupHistory();
+  });
+}
+
+// ✅ Función para exportar filtrado por tipo
+function showExportFilterModal() {
+  // Crear modal temporal para seleccionar tipo
+  const modal = document.createElement('div');
+  modal.className = 'modal show';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <h2>📤 Exportar por Tipo</h2>
+        <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+      </div>
+      <div style="padding: 20px;">
+        <p style="color: var(--muted); margin-bottom: 16px;">
+          Selecciona qué tipo de cursos deseas exportar:
+        </p>
+        <select id="exportTypeFilter" class="input" style="width: 100%; margin-bottom: 16px;">
+          <option value="all">Todos los cursos</option>
+          <option value="curso">📖 Solo Cursos</option>
+          <option value="diplomado">🎓 Solo Diplomados</option>
+          <option value="webinar">💻 Solo Webinars</option>
+          <option value="seminario">📝 Solo Seminarios</option>
+          <option value="taller">🔧 Solo Talleres</option>
+        </select>
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button class="btn secondary" onclick="this.closest('.modal').remove()">Cancelar</button>
+          <button class="btn" onclick="exportFilteredByType()">Exportar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+// ✅ Función para exportar filtrado
+function exportFilteredByType() {
+  const filterType = document.getElementById('exportTypeFilter')?.value || 'all';
+  const mergedMap = getMergedAccessHashMap();
+  
+  const payload = { 
+    version: 2, 
+    exportedAt: new Date().toISOString(), 
+    filterType: filterType,
+    overrides: {},
+    courses: {}
+  };
+  
+  // Filtrar cursos por tipo
+  Object.entries(mergedMap).forEach(([hex, data]) => {
+    if (hex === MASTER_HASH) return;
+    
+    if (filterType === 'all' || (data.type || 'curso') === filterType) {
+      // Exportar links del curso
+      const arr = loadFilesOverride(hex);
+      if (Array.isArray(arr)) payload.overrides[hex] = arr;
+      
+      // Exportar curso completo
+      const customCourses = loadCustomCourses();
+      if (customCourses[hex]) {
+        payload.courses[hex] = customCourses[hex];
+      }
+    }
+  });
+  
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; 
+  a.download = `edusalud_backup_${filterType}_${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a); 
+  a.click(); 
+  a.remove();
+  URL.revokeObjectURL(url);
+  
+  // Cerrar modal
+  const modal = document.querySelector('.modal.show');
+  if (modal) modal.remove();
+  
+  // Registrar en historial
+  logBackupHistory('export', filterType, Object.keys(payload.courses).length);
+  
+  if (typeof window.showToast === 'function') {
+    window.showToast('success', 'Backup Exportado', 
+      `Se exportaron ${Object.keys(payload.courses).length} cursos (${filterType === 'all' ? 'todos' : filterType}).`);
+  }
+}
+
+// ✅ Función para mostrar vista previa antes de importar
+async function showImportPreview(file) {
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    
+    if (!data || typeof data !== 'object') {
+      throw new Error('Archivo inválido');
+    }
+    
+    const coursesCount = data.courses ? Object.keys(data.courses).length : 0;
+    const overridesCount = data.overrides ? Object.keys(data.overrides).length : 0;
+    const exportDate = data.exportedAt ? new Date(data.exportedAt).toLocaleString('es-ES') : 'Desconocida';
+    const filterType = data.filterType || 'all';
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.id = 'importPreviewModal';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+          <h2>📥 Vista Previa de Importación</h2>
+          <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+        </div>
+        <div style="padding: 20px;">
+          <div style="background: rgba(90,169,255,0.1); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+            <h3 style="margin: 0 0 12px 0; font-size: 16px;">📋 Contenido del Backup</h3>
+            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
+              <div>📚 Cursos: <strong>${coursesCount}</strong></div>
+              <div>🔗 Sets de links: <strong>${overridesCount}</strong></div>
+              <div>📅 Fecha de exportación: <strong>${exportDate}</strong></div>
+              <div>🏷️ Filtro aplicado: <strong>${filterType === 'all' ? 'Todos' : filterType}</strong></div>
+            </div>
+          </div>
+          <p style="color: var(--muted); margin-bottom: 16px; font-size: 13px;">
+            ⚠️ Esta acción importará los cursos y links del backup. Los cursos existentes con el mismo código serán sobrescritos.
+          </p>
+          <div style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button class="btn secondary" onclick="this.closest('.modal').remove()">Cancelar</button>
+            <button class="btn" onclick="confirmImportBackup()">Importar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Guardar datos en el modal para acceso posterior
+    modal.dataset.importData = JSON.stringify(data);
+  } catch (e) {
+    if (typeof window.showToast === 'function') {
+      window.showToast('error', 'Error', 'No se pudo leer el archivo: ' + (e.message || 'Formato inválido'));
+    } else {
+      alert('Error: ' + (e.message || 'Formato inválido'));
+    }
+  }
+}
+
+// ✅ Función para confirmar importación
+function confirmImportBackup() {
+  // Obtener datos del modal
+  const modal = document.getElementById('importPreviewModal');
+  if (!modal) {
+    console.error('[IMPORT] Modal de preview no encontrado');
+    return;
+  }
+  
+  // Obtener datos del dataset
+  const modalData = modal.dataset.importData;
+  if (!modalData) {
+    console.error('[IMPORT] No se encontraron datos en el modal');
+    if (typeof window.showToast === 'function') {
+      window.showToast('error', 'Error', 'No se pudieron leer los datos del backup');
+    }
+    return;
+  }
+  
+  // Parsear datos
+  let data;
+  try {
+    data = JSON.parse(modalData);
+  } catch (e) {
+    console.error('[IMPORT] Error parseando datos:', e);
+    if (typeof window.showToast === 'function') {
+      window.showToast('error', 'Error', 'No se pudieron leer los datos del backup');
+    }
+    return;
+  }
+  
+  // Cerrar modal de preview
+  modal.remove();
+  
+  // Ejecutar importación
+  importOverridesFromFileData(data);
+  
+  // Registrar en historial
+  logBackupHistory('import', data.filterType || 'all', Object.keys(data.courses || {}).length);
+}
+
+// ✅ Hacer función global para acceso desde onclick
+window.confirmImportBackup = confirmImportBackup;
+
+// ✅ Función auxiliar para importar desde datos (no desde archivo)
+async function importOverridesFromFileData(data) {
+  try {
+    let coursesCount = 0;
+    let overridesCount = 0;
+    
+    // Importar cursos personalizados
+    if (data.courses && typeof data.courses === 'object') {
+      const custom = loadCustomCourses();
+      Object.entries(data.courses).forEach(([hex, courseData]) => {
+        if (courseData && typeof courseData === 'object') {
+          custom[hex] = courseData;
+          coursesCount++;
+        }
+      });
+      saveCustomCourses(custom);
+    }
+    
+    // Importar overrides
+    if (data.overrides && typeof data.overrides === 'object') {
+      Object.entries(data.overrides).forEach(([hex, arr]) => {
+        if (Array.isArray(arr)) { 
+          saveFilesOverride(hex, arr); 
+          overridesCount++; 
+        }
+      });
+    }
+    
+    buildMasterGrid();
+    
+    const message = `Importado correctamente:\n- ${coursesCount} cursos\n- ${overridesCount} sets de links`;
+    if (typeof window.showToast === 'function') {
+      window.showToast('success', 'Backup Importado', message);
+    } else {
+      alert(message);
+    }
+  } catch (e) {
+    console.error('[IMPORT] Error:', e);
+    if (typeof window.showToast === 'function') {
+      window.showToast('error', 'Error', 'No se pudo importar: ' + (e.message || 'Error desconocido'));
+    } else {
+      alert('Error: ' + (e.message || 'Error desconocido'));
+    }
+  }
+}
+
+// ✅ Función para mostrar historial de backups
+function showBackupHistory() {
+  const history = getBackupHistory();
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal show';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2>📋 Historial de Backups</h2>
+        <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+      </div>
+      <div style="padding: 20px;">
+        ${history.length === 0 
+          ? '<p style="color: var(--muted); text-align: center; padding: 40px;">No hay backups registrados aún.</p>'
+          : history.map(entry => {
+              const date = new Date(entry.timestamp);
+              const dateStr = date.toLocaleString('es-ES', { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              });
+              return `
+                <div style="background: rgba(90,169,255,0.05); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 3px solid var(--accent);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <strong>${entry.action === 'export' ? '📤 Exportación' : '📥 Importación'}</strong>
+                    <span style="font-size: 12px; color: var(--muted);">${dateStr}</span>
+                  </div>
+                  <div style="font-size: 13px; color: var(--muted);">
+                    Tipo: ${entry.filterType === 'all' ? 'Todos' : entry.filterType} | 
+                    Cursos: ${entry.coursesCount}
+                  </div>
+                </div>
+              `;
+            }).join('')
+        }
+      </div>
+      <div style="padding: 0 20px 20px; display: flex; justify-content: flex-end;">
+        <button class="btn secondary" onclick="this.closest('.modal').remove()">Cerrar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+// ✅ Funciones para gestionar historial de backups
+function logBackupHistory(action, filterType, coursesCount) {
+  try {
+    let history = JSON.parse(localStorage.getItem('backupHistory') || '[]');
+    history.unshift({
+      action: action,
+      filterType: filterType,
+      coursesCount: coursesCount,
+      timestamp: new Date().toISOString()
+    });
+    history = history.slice(0, 50); // Mantener solo los últimos 50
+    localStorage.setItem('backupHistory', JSON.stringify(history));
+    console.log('[BACKUP HISTORY] ✅ Registrado:', action, filterType, coursesCount, 'cursos');
+  } catch (e) {
+    console.warn('[BACKUP HISTORY] ⚠️ Error guardando historial:', e);
+  }
+}
+
+function getBackupHistory() {
+  try {
+    return JSON.parse(localStorage.getItem('backupHistory') || '[]');
+  } catch (e) {
+    console.warn('[BACKUP HISTORY] ⚠️ Error leyendo historial:', e);
+    return [];
+  }
 }
 
 /* ============ estado & helpers ============ */
