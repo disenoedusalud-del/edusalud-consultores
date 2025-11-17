@@ -509,6 +509,63 @@
     </div>
   </div>
 
+  <!-- Modal de edición de curso -->
+  <div id="modalEditCourse" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>✏️ Editar Curso</h2>
+        <button class="modal-close" id="modalEditCourseClose">&times;</button>
+      </div>
+      <form id="formEditCourse">
+        <div class="form-group">
+          <label for="inputEditCourseTitle">Título del Curso *</label>
+          <input id="inputEditCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required />
+        </div>
+        <div class="form-group">
+          <label for="inputEditCourseMeta">Descripción / Meta *</label>
+          <input id="inputEditCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required />
+        </div>
+        <div class="form-group">
+          <label for="inputEditCourseImage">URL de la Imagen *</label>
+          <input id="inputEditCourseImage" class="input" type="url" placeholder="https://..." required />
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
+            📁 Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="inputEditCourseTag">Tag del Curso *</label>
+          <input id="inputEditCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" />
+        </div>
+        <div class="form-group">
+          <label for="selectEditCourseVariant">Estilo Visual *</label>
+          <select id="selectEditCourseVariant" class="input" required>
+            <option value="dramatic">Dramatic (Azul)</option>
+            <option value="neon">Neon (Cian)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="inputEditCourseAccent">Color Accent</label>
+          <div style="display:flex; gap:10px;">
+            <input id="inputEditCourseAccent" class="input" type="color" value="#5aa9ff" />
+            <input type="text" class="input" id="inputEditCourseAccentHex" value="#5aa9ff" maxlength="7" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="inputEditCourseCode">Código Secreto (no se puede cambiar)</label>
+          <input id="inputEditCourseCode" class="input" type="text" readonly style="background: rgba(255,255,255,0.05); cursor: not-allowed;" />
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
+            ⚠️ El código no se puede cambiar una vez creado el curso
+          </div>
+        </div>
+        <input type="hidden" id="inputEditCourseHex" />
+        <div class="form-actions">
+          <button type="button" class="btn secondary" id="btnCancelEditCourse">Cancelar</button>
+          <button type="submit" class="btn">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Modal de confirmación para eliminar curso -->
   <div id="deleteConfirmModal" class="modal">
     <div class="modal-overlay"></div>
@@ -575,7 +632,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=3" defer></script>
-  <script src="assets/js/app.js?v=37" defer></script>
+  <script src="assets/js/app.js?v=38" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
