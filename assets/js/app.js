@@ -230,8 +230,16 @@ async function removeCustomCourse(hex){
     clearFilesOverride(hex);
   }
 
+  // ✅ Eliminar curso de Google Sheets
   await remoteDeleteCourse(hex).catch(e => {
     console.warn('[DELETE COURSE] ⚠️ Error eliminando curso en Google Sheets:', e);
+  });
+  
+  // ✅ Eliminar también los links de la hoja de overrides en Google Sheets
+  // Enviar array vacío para limpiar los links
+  console.log('[DELETE COURSE] 🧹 Eliminando links de la hoja de overrides en Google Sheets');
+  await remoteSaveFiles(hex, []).catch(e => {
+    console.warn('[DELETE COURSE] ⚠️ Error eliminando links de Google Sheets:', e);
   });
 }
 function isCustomCourse(hex){
