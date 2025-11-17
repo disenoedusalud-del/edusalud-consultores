@@ -2030,20 +2030,70 @@ async function importOverridesFromFileData(data) {
     // Importar cursos personalizados
     if (data.courses && typeof data.courses === 'object') {
       const custom = loadCustomCourses();
+      const coursesToProcess = [];
+      
+      // Primero, guardar en localStorage
       Object.entries(data.courses).forEach(([hex, courseData]) => {
         if (courseData && typeof courseData === 'object') {
           custom[hex] = courseData;
+          coursesToProcess.push({ hex, courseData });
           coursesCount++;
         }
       });
       saveCustomCourses(custom);
+      
+      // ✅ Luego, guardar cada curso en Firebase y Google Sheets
+      const db = getFirestoreDB();
+      for (const { hex, courseData } of coursesToProcess) {
+        try {
+          // Normalizar datos del curso (igual que en addCustomCourse)
+          const normalizedCourse = {
+            title: courseData?.title || '',
+            meta: courseData?.meta || '',
+            files: Array.isArray(courseData?.files) ? courseData.files : [],
+            code: courseData?.code || '',
+            type: courseData?.type || 'curso',
+            card: courseData?.card || {},
+            createdAt: courseData?.createdAt || Date.now(),
+            updatedAt: Date.now()
+          };
+          
+          // ✅ Guardar en Firebase
+          if (db) {
+            try {
+              const firebasePayload = {
+                ...normalizedCourse,
+                createdAt: normalizedCourse.createdAt || firebase.database.ServerValue.TIMESTAMP,
+                updatedAt: firebase.database.ServerValue.TIMESTAMP
+              };
+              await db.ref(`customCourses/${hex}`).set(firebasePayload);
+              console.log('[IMPORT] ✅ Curso guardado en Firebase:', hex.substring(0, 8));
+            } catch (firebaseError) {
+              console.error('[IMPORT] ❌ Error guardando curso en Firebase:', hex.substring(0, 8), firebaseError);
+            }
+          }
+          
+          // ✅ Guardar en Google Sheets
+          await remoteSaveCourse(hex, normalizedCourse).catch(e => {
+            console.error('[IMPORT] ❌ Error guardando curso en remoto (Sheets):', hex.substring(0, 8), e);
+          });
+        } catch (courseError) {
+          console.error('[IMPORT] ❌ Error procesando curso:', hex.substring(0, 8), courseError);
+        }
+      }
     }
     
-    // Importar overrides
+    // Importar overrides (links)
     if (data.overrides && typeof data.overrides === 'object') {
       Object.entries(data.overrides).forEach(([hex, arr]) => {
         if (Array.isArray(arr)) { 
-          saveFilesOverride(hex, arr); 
+          saveFilesOverride(hex, arr);
+          
+          // ✅ También guardar links en Google Sheets como respaldo
+          remoteSaveFiles(hex, arr).catch(e => {
+            console.error('[IMPORT] ❌ Error guardando links en remoto (Sheets):', hex.substring(0, 8), e);
+          });
+          
           overridesCount++; 
         }
       });
