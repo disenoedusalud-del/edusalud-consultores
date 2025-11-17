@@ -47,6 +47,154 @@ setTimeout(() => {
 
 console.log('[APP] Iniciando aplicación con soporte Firebase...');
 
+/* ===================== VALIDACIONES MEJORADAS ===================== */
+
+/**
+ * ✅ Valida formato de URL con protocolos permitidos
+ */
+function validateURL(url, allowedProtocols = ['http:', 'https:']) {
+  if (!url || typeof url !== 'string') {
+    return { valid: false, error: 'URL no puede estar vacía' };
+  }
+  
+  url = url.trim();
+  
+  // Verificar protocolo
+  try {
+    const urlObj = new URL(url);
+    if (!allowedProtocols.includes(urlObj.protocol)) {
+      return { 
+        valid: false, 
+        error: `Protocolo no permitido. Use: ${allowedProtocols.join(' o ')}` 
+      };
+    }
+    
+    // Verificar que tenga hostname
+    if (!urlObj.hostname) {
+      return { valid: false, error: 'URL debe tener un dominio válido' };
+    }
+    
+    return { valid: true, url: urlObj.href };
+  } catch (e) {
+    // Si no es URL absoluta, verificar si es relativa válida
+    if (url.startsWith('/') || url.startsWith('assets/') || url.startsWith('./')) {
+      return { valid: true, url: url };
+    }
+    return { valid: false, error: 'Formato de URL inválido' };
+  }
+}
+
+/**
+ * ✅ Verifica si una imagen existe (sin bloquear la UI)
+ */
+async function verifyImageExists(imageUrl) {
+  return new Promise((resolve) => {
+    if (!imageUrl) {
+      resolve({ exists: false, error: 'URL vacía' });
+      return;
+    }
+    
+    const img = new Image();
+    let resolved = false;
+    
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        resolve({ exists: false, error: 'Timeout: La imagen no respondió' });
+      }
+    }, 5000); // 5 segundos timeout
+    
+    img.onload = () => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        resolve({ exists: true, width: img.width, height: img.height });
+      }
+    };
+    
+    img.onerror = () => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        resolve({ exists: false, error: 'La imagen no se pudo cargar' });
+      }
+    };
+    
+    // Intentar cargar la imagen
+    img.src = imageUrl;
+  });
+}
+
+/**
+ * ✅ Genera sugerencias de código basadas en el título
+ */
+function generateCodeSuggestions(title) {
+  if (!title) return [];
+  
+  const suggestions = [];
+  
+  // Sugerencia 1: Iniciales + año
+  const words = title.split(/\s+/).filter(w => w.length > 0);
+  if (words.length >= 2) {
+    const initials = words.slice(0, 3).map(w => w[0].toUpperCase()).join('');
+    suggestions.push(`${initials}${new Date().getFullYear()}`);
+  }
+  
+  // Sugerencia 2: Primeras letras + número
+  const firstLetters = words.slice(0, 4).map(w => w.substring(0, 2).toUpperCase()).join('');
+  suggestions.push(`${firstLetters}${Math.floor(Math.random() * 1000)}`);
+  
+  // Sugerencia 3: Acrónimo corto
+  if (words.length >= 2) {
+    const acronym = words.map(w => w[0].toUpperCase()).join('').substring(0, 6);
+    suggestions.push(`${acronym}-${new Date().getFullYear()}`);
+  }
+  
+  return suggestions.filter((v, i, a) => a.indexOf(v) === i).slice(0, 3); // Únicos, máximo 3
+}
+
+/**
+ * ✅ Valida límites de caracteres y muestra contador
+ */
+function setupCharacterCounter(input, maxLength, minLength = 0) {
+  if (!input) return;
+  
+  // Crear contador si no existe
+  let counter = input.parentElement.querySelector('.char-counter');
+  if (!counter) {
+    counter = document.createElement('div');
+    counter.className = 'char-counter';
+    counter.style.cssText = `
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      text-align: right;
+      transition: color 0.2s;
+    `;
+    input.parentElement.appendChild(counter);
+  }
+  
+  function updateCounter() {
+    const length = input.value.length;
+    const remaining = maxLength - length;
+    
+    counter.textContent = `${length}/${maxLength} caracteres`;
+    
+    if (length < minLength) {
+      counter.style.color = '#ff5555';
+      counter.textContent += ` (mínimo ${minLength})`;
+    } else if (remaining < 10) {
+      counter.style.color = remaining < 0 ? '#ff5555' : '#fbbf24';
+    } else {
+      counter.style.color = 'var(--muted)';
+    }
+  }
+  
+  input.addEventListener('input', updateCounter);
+  input.addEventListener('blur', updateCounter);
+  updateCounter();
+}
+
 /* ===================== util ===================== */
 const $ = (s) => document.querySelector(s);
 const toHex = (buffer) =>
@@ -2599,16 +2747,23 @@ function buildMasterGrid() {
         return;
       }
       
-      try {
-        new URL(urlVal);
-      } catch {
-        if (typeof window.showSuccessModal === 'function') {
-          window.showSuccessModal('Error', 'URL inválida. Debe empezar con http:// o https://');
+      // ✅ Validación mejorada de URL
+      const urlValidation = validateURL(urlVal);
+      if (!urlValidation.valid) {
+        if (typeof window.showToast === 'function') {
+          window.showToast('error', 'URL inválida', urlValidation.error);
+        } else if (typeof window.showSuccessModal === 'function') {
+          window.showSuccessModal('Error', urlValidation.error);
         } else {
-          alert('URL inválida');
+          alert(urlValidation.error);
         }
+        inputUrl.focus();
+        inputUrl.style.borderColor = '#ff5555';
         return;
       }
+      
+      // Restaurar borde normal
+      inputUrl.style.borderColor = '';
       
       // ✅ FIREBASE: Intentar agregar a Firestore primero (sincronización en tiempo real)
       const db = getFirestoreDB();
@@ -3719,6 +3874,115 @@ function setupAddCourseModal() {
     return;
   }
 
+  // ✅ Configurar contadores de caracteres
+  const inputTitle = $('#inputCourseTitle');
+  const inputMeta = $('#inputCourseMeta');
+  const inputTag = $('#inputCourseTag');
+  const inputCode = $('#inputCourseCode');
+
+  if (inputTitle) setupCharacterCounter(inputTitle, 100, 5);
+  if (inputMeta) setupCharacterCounter(inputMeta, 200, 10);
+  if (inputTag) setupCharacterCounter(inputTag, 10, 2);
+  if (inputCode) setupCharacterCounter(inputCode, 50, 5);
+
+  // ✅ Sugerencias automáticas de código basadas en el título
+  if (inputTitle && inputCode) {
+    let lastTitle = '';
+    inputTitle.addEventListener('blur', () => {
+      const currentTitle = inputTitle.value.trim();
+      if (currentTitle && currentTitle !== lastTitle && !inputCode.value.trim()) {
+        const suggestions = generateCodeSuggestions(currentTitle);
+        if (suggestions.length > 0) {
+          // Mostrar sugerencias como tooltip o pequeño dropdown
+          const suggestionText = `💡 Sugerencias: ${suggestions.join(', ')}`;
+          if (typeof window.showToast === 'function') {
+            window.showToast('info', 'Sugerencias de código', suggestionText, 3000);
+          }
+        }
+      }
+      lastTitle = currentTitle;
+    });
+  }
+
+  // ✅ Validación en tiempo real de URL de imagen
+  const inputImage = $('#inputCourseImage');
+  if (inputImage) {
+    let imageCheckTimeout = null;
+    let lastValidatedUrl = '';
+    
+    inputImage.addEventListener('blur', async () => {
+      const imageUrl = inputImage.value.trim();
+      
+      if (!imageUrl) return;
+      if (imageUrl === lastValidatedUrl) return;
+      
+      // Validar formato primero
+      const urlValidation = validateURL(imageUrl);
+      if (!urlValidation.valid) {
+        inputImage.style.borderColor = '#ff5555';
+        if (inputImage.parentElement) {
+          let errorMsg = inputImage.parentElement.querySelector('.url-error');
+          if (!errorMsg) {
+            errorMsg = document.createElement('div');
+            errorMsg.className = 'url-error';
+            errorMsg.style.cssText = 'font-size: 12px; color: #ff5555; margin-top: 4px; padding: 4px 8px; border-radius: 4px; background: rgba(255,85,85,0.1); border-left: 3px solid #ff5555;';
+            inputImage.parentElement.appendChild(errorMsg);
+          }
+          errorMsg.textContent = `⚠️ ${urlValidation.error}`;
+        }
+        return;
+      }
+      
+      // Verificar existencia de imagen (con indicador de carga)
+      const loadingMsg = inputImage.parentElement.querySelector('.image-checking');
+      if (!loadingMsg && inputImage.parentElement) {
+        const msg = document.createElement('div');
+        msg.className = 'image-checking';
+        msg.style.cssText = 'font-size: 12px; color: var(--accent); margin-top: 4px; padding: 4px 8px; border-radius: 4px; background: rgba(90,169,255,0.1); border-left: 3px solid var(--accent);';
+        msg.textContent = '🔄 Verificando imagen...';
+        inputImage.parentElement.appendChild(msg);
+      }
+      
+      const imageCheck = await verifyImageExists(urlValidation.url);
+      
+      // Remover mensaje de carga
+      const checkingMsg = inputImage.parentElement.querySelector('.image-checking');
+      if (checkingMsg) checkingMsg.remove();
+      
+      // Remover error anterior
+      const errorMsg = inputImage.parentElement.querySelector('.url-error');
+      if (errorMsg) errorMsg.remove();
+      
+      if (imageCheck.exists) {
+        inputImage.style.borderColor = '#4ade80';
+        if (inputImage.parentElement) {
+          const successMsg = document.createElement('div');
+          successMsg.className = 'image-success';
+          successMsg.style.cssText = 'font-size: 12px; color: #4ade80; margin-top: 4px; padding: 4px 8px; border-radius: 4px; background: rgba(74,222,128,0.1); border-left: 3px solid #4ade80;';
+          successMsg.textContent = `✅ Imagen válida (${imageCheck.width}x${imageCheck.height}px)`;
+          inputImage.parentElement.appendChild(successMsg);
+          
+          // Remover después de 3 segundos
+          setTimeout(() => {
+            if (successMsg.parentElement) {
+              successMsg.remove();
+            }
+          }, 3000);
+        }
+        lastValidatedUrl = imageUrl;
+      } else {
+        inputImage.style.borderColor = '#fbbf24';
+        if (inputImage.parentElement) {
+          const warningMsg = document.createElement('div');
+          warningMsg.className = 'image-warning';
+          warningMsg.style.cssText = 'font-size: 12px; color: #fbbf24; margin-top: 4px; padding: 4px 8px; border-radius: 4px; background: rgba(251,191,36,0.1); border-left: 3px solid #fbbf24;';
+          warningMsg.textContent = `⚠️ No se pudo verificar la imagen: ${imageCheck.error}`;
+          inputImage.parentElement.appendChild(warningMsg);
+        }
+      }
+    });
+  }
+
   // Sincronizar color picker con input hex
   if (inputCourseAccent && inputCourseAccentHex) {
     inputCourseAccent.addEventListener('input', (e) => {
@@ -3798,13 +4062,24 @@ function setupAddCourseModal() {
       return;
     }
     
-    // Validar URL de imagen
-    try {
-      new URL(imageUrl);
-    } catch {
-      // Si no es una URL absoluta, asumimos que es relativa
-      if (!imageUrl.startsWith('/') && !imageUrl.startsWith('assets/')) {
-        alert('URL de imagen inválida');
+    // ✅ Validación mejorada de URL de imagen
+    const imageValidation = validateURL(imageUrl);
+    if (!imageValidation.valid) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('error', 'URL inválida', imageValidation.error);
+      } else {
+        alert(imageValidation.error);
+      }
+      $('#inputCourseImage').focus();
+      return;
+    }
+    
+    // ✅ Verificar imagen (opcional, no bloquea)
+    const imageCheck = await verifyImageExists(imageValidation.url);
+    if (!imageCheck.exists) {
+      const proceed = confirm(`⚠️ No se pudo verificar la imagen: ${imageCheck.error}\n\n¿Desea continuar de todas formas?`);
+      if (!proceed) {
+        $('#inputCourseImage').focus();
         return;
       }
     }
@@ -3966,13 +4241,24 @@ function setupEditCourseModal() {
       return;
     }
     
-    // Validar URL de imagen
-    try {
-      new URL(imageUrl);
-    } catch {
-      // Si no es una URL absoluta, asumimos que es relativa
-      if (!imageUrl.startsWith('/') && !imageUrl.startsWith('assets/')) {
-        alert('URL de imagen inválida');
+    // ✅ Validación mejorada de URL de imagen
+    const imageValidation = validateURL(imageUrl);
+    if (!imageValidation.valid) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('error', 'URL inválida', imageValidation.error);
+      } else {
+        alert(imageValidation.error);
+      }
+      $('#inputEditCourseImage').focus();
+      return;
+    }
+    
+    // ✅ Verificar imagen (opcional, no bloquea)
+    const imageCheck = await verifyImageExists(imageValidation.url);
+    if (!imageCheck.exists) {
+      const proceed = confirm(`⚠️ No se pudo verificar la imagen: ${imageCheck.error}\n\n¿Desea continuar de todas formas?`);
+      if (!proceed) {
+        $('#inputEditCourseImage').focus();
         return;
       }
     }
