@@ -509,12 +509,12 @@
       </div>
       <form id="formAddCourse">
         <div class="form-group">
-          <label for="inputCourseTitle" title="Nombre completo del curso que aparecerá en la plataforma">Título del Curso *</label>
-          <input id="inputCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso" />
+          <label for="inputCourseTitle" title="Nombre completo del curso que aparecerá en la plataforma">Título del Curso * (5-100 caracteres)</label>
+          <input id="inputCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso (mínimo 5, máximo 100 caracteres)" maxlength="100" />
         </div>
         <div class="form-group">
-          <label for="inputCourseMeta" title="Descripción breve del curso que aparecerá debajo del título">Descripción / Meta *</label>
-          <input id="inputCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso" />
+          <label for="inputCourseMeta" title="Descripción breve del curso que aparecerá debajo del título">Descripción / Meta * (10-200 caracteres)</label>
+          <input id="inputCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso (mínimo 10, máximo 200 caracteres)" maxlength="200" />
         </div>
         <div class="form-group">
           <label for="inputCourseImage" title="URL de la imagen que aparecerá en la tarjeta del curso. Debe ser una URL pública (Google Drive, etc.)">URL de la Imagen *</label>
@@ -524,8 +524,8 @@
           </div>
         </div>
         <div class="form-group">
-          <label for="inputCourseTag" title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag del Curso *</label>
-          <input id="inputCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (máx. 10 caracteres)" />
+          <label for="inputCourseTag" title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag del Curso * (2-10 caracteres)</label>
+          <input id="inputCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (mínimo 2, máximo 10 caracteres)" />
         </div>
         <div class="form-group">
           <label for="selectCourseType" title="Tipo de contenido educativo">Clasificación *</label>
@@ -553,8 +553,8 @@
           </div>
         </div>
         <div class="form-group">
-          <label for="inputCourseCode" title="Código secreto único que los usuarios usarán para acceder al curso. Debe ser único y no puede cambiarse después">Código Secreto (se auto-generará) *</label>
-          <input id="inputCourseCode" class="input" type="text" placeholder="Ingresa un código único, ej: CURSO123456" required title="Código secreto único para acceder al curso" />
+          <label for="inputCourseCode" title="Código secreto único que los usuarios usarán para acceder al curso. Debe ser único y no puede cambiarse después">Código Secreto (se auto-generará) * (5-50 caracteres)</label>
+          <input id="inputCourseCode" class="input" type="text" placeholder="Ingresa un código único, ej: CURSO123456" required title="Código secreto único para acceder al curso (mínimo 5, máximo 50 caracteres)" maxlength="50" />
         </div>
         <div class="form-actions">
           <button type="button" class="btn secondary" id="btnCancelAddCourse">Cancelar</button>
@@ -573,12 +573,12 @@
       </div>
       <form id="formEditCourse">
         <div class="form-group">
-          <label for="inputEditCourseTitle" title="Nombre completo del curso que aparecerá en la plataforma">Título del Curso *</label>
-          <input id="inputEditCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso" />
+          <label for="inputEditCourseTitle" title="Nombre completo del curso que aparecerá en la plataforma">Título del Curso * (5-100 caracteres)</label>
+          <input id="inputEditCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso (mínimo 5, máximo 100 caracteres)" maxlength="100" />
         </div>
         <div class="form-group">
-          <label for="inputEditCourseMeta" title="Descripción breve del curso que aparecerá debajo del título">Descripción / Meta *</label>
-          <input id="inputEditCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso" />
+          <label for="inputEditCourseMeta" title="Descripción breve del curso que aparecerá debajo del título">Descripción / Meta * (10-200 caracteres)</label>
+          <input id="inputEditCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso (mínimo 10, máximo 200 caracteres)" maxlength="200" />
         </div>
         <div class="form-group">
           <label for="inputEditCourseImage" title="URL de la imagen que aparecerá en la tarjeta del curso. Debe ser una URL pública (Google Drive, etc.)">URL de la Imagen *</label>
@@ -588,8 +588,8 @@
           </div>
         </div>
         <div class="form-group">
-          <label for="inputEditCourseTag" title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag del Curso *</label>
-          <input id="inputEditCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (máx. 10 caracteres)" />
+          <label for="inputEditCourseTag" title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag del Curso * (2-10 caracteres)</label>
+          <input id="inputEditCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (mínimo 2, máximo 10 caracteres)" />
         </div>
         <div class="form-group">
           <label for="selectEditCourseType" title="Tipo de contenido educativo">Clasificación *</label>
@@ -901,6 +901,67 @@
         opacity: 0.7;
       }
     }
+    
+    /* Contadores de caracteres */
+    .char-counter {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      text-align: right;
+      transition: color 0.2s;
+    }
+    
+    .char-counter.warning {
+      color: #fbbf24;
+    }
+    
+    .char-counter.danger {
+      color: #ff5555;
+    }
+    
+    /* Mensajes de validación */
+    .url-error,
+    .image-checking,
+    .image-success,
+    .image-warning {
+      font-size: 12px;
+      margin-top: 4px;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    
+    .url-error {
+      color: #ff5555;
+      border-left: 3px solid #ff5555;
+      background: rgba(255,85,85,0.1);
+    }
+    
+    .image-checking {
+      color: var(--accent);
+      border-left: 3px solid var(--accent);
+      background: rgba(90,169,255,0.1);
+    }
+    
+    .image-success {
+      color: #4ade80;
+      border-left: 3px solid #4ade80;
+      background: rgba(74,222,128,0.1);
+    }
+    
+    .image-warning {
+      color: #fbbf24;
+      border-left: 3px solid #fbbf24;
+      background: rgba(251,191,36,0.1);
+    }
+    
+    /* Inputs con validación */
+    .input:invalid {
+      border-color: #ff5555;
+    }
+    
+    .input:valid {
+      border-color: rgba(255,255,255,0.08);
+    }
   </style>
 
   <!-- Scripts -->
@@ -908,7 +969,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=55" defer></script>
+  <script src="assets/js/app.js?v=56" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
