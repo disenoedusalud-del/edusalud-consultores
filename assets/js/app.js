@@ -52,108 +52,11 @@ const $ = (s) => document.querySelector(s);
 const toHex = (buffer) =>
   Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2,'0')).join('');
 
-function sha256HexFallback(value) {
-  function rightRotate(v, amount) {
-    return (v >>> amount) | (v << (32 - amount));
-  }
-
-  var ascii = unescape(encodeURIComponent(String(value)));
-  var mathPow = Math.pow;
-  var maxWord = mathPow(2, 32);
-  var lengthProperty = 'length';
-  var i, j;
-  var result = '';
-  var words = [];
-  var asciiBitLength = ascii[lengthProperty] * 8;
-
-  var hash = sha256HexFallback._hash = sha256HexFallback._hash || [];
-  var k = sha256HexFallback._k = sha256HexFallback._k || [];
-  var primeCounter = k[lengthProperty];
-  var isComposite = {};
-
-  for (var candidate = 2; primeCounter < 64; candidate++) {
-    if (!isComposite[candidate]) {
-      for (i = 0; i < 313; i += candidate) {
-        isComposite[i] = candidate;
-      }
-      hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
-      k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
-    }
-  }
-
-  ascii += '\x80';
-  while (ascii[lengthProperty] % 64 - 56) ascii += '\x00';
-  for (i = 0; i < ascii[lengthProperty]; i++) {
-    j = ascii.charCodeAt(i);
-    words[i >> 2] |= j << ((3 - i) % 4) * 8;
-  }
-  words[words[lengthProperty]] = ((asciiBitLength / maxWord) | 0);
-  words[words[lengthProperty]] = asciiBitLength;
-
-  for (j = 0; j < words[lengthProperty];) {
-    var w = words.slice(j, j += 16);
-    var oldHash = hash;
-    hash = hash.slice(0, 8);
-
-    for (i = 0; i < 64; i++) {
-      var w15 = w[i - 15], w2 = w[i - 2];
-      var a = hash[0], e = hash[4];
-      var temp1 = hash[7]
-        + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
-        + ((e & hash[5]) ^ ((~e) & hash[6]))
-        + k[i]
-        + (w[i] = (i < 16) ? w[i] : (
-            w[i - 16]
-            + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
-            + w[i - 7]
-            + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
-          ) | 0
-        );
-      var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
-        + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
-      hash = [(temp1 + temp2) | 0].concat(hash);
-      hash[4] = (hash[4] + temp1) | 0;
-    }
-
-    for (i = 0; i < 8; i++) {
-      hash[i] = (hash[i] + oldHash[i]) | 0;
-    }
-  }
-
-  for (i = 0; i < 8; i++) {
-    for (j = 3; j + 1; j--) {
-      var b = (hash[i] >> (j * 8)) & 255;
-      result += ((b < 16) ? 0 : '') + b.toString(16);
-    }
-  }
-  return result;
-}
-
 async function sha256Hex(text) {
-  const normalized = String(text).trim();
-
-  if (window.crypto && window.crypto.subtle && typeof TextEncoder !== 'undefined' && window.isSecureContext !== false) {
-    try {
-      const data = new TextEncoder().encode(normalized);
-      const hash = await window.crypto.subtle.digest('SHA-256', data);
-      return toHex(hash);
-    } catch (err) {
-      if (!sha256Hex._fallbackWarned) {
-        console.warn('[HASH] crypto.subtle.digest falló, usando fallback SHA-256:', err);
-        sha256Hex._fallbackWarned = true;
-      }
-    }
-  } else if (!sha256Hex._fallbackWarned) {
-    console.warn('[HASH] crypto.subtle no disponible, usando fallback SHA-256.');
-    sha256Hex._fallbackWarned = true;
-  }
-
-  return sha256HexFallback(normalized);
+  const data = new TextEncoder().encode(String(text).trim());
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return toHex(hash);
 }
-
-// Exponer utilidades principales al objeto global para diagnósticos y scripts externos
-window.sha256Hex = sha256Hex;
-window.sha256HexFallback = sha256HexFallback;
 function setQueryParam(key, value) {
   const url = new URL(window.location.href);
   if (value == null) url.searchParams.delete(key); else url.searchParams.set(key, value);
@@ -183,7 +86,48 @@ function downloadFile(url, label = '') {
 /* ============ base de cursos (hash -> data) ============ */
 const MASTER_HASH = "7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8"; // EDUMASTER123456987
 
-const ACCESS_HASH_MAP = {};
+const ACCESS_HASH_MAP = {
+  "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0": {
+    title: "Diplomado en Gerencia y Administración de Servicios Hospitalarios (GASH) – 3ª Ed. 2025",
+    meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
+    files: [
+      { label: "Logos (PNG)", url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
+      { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/drive/folders/14E42MPlcjsIcc6OWNCYJ2J1HRzcdr21F?usp=sharing" },
+      { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
+      { label: "Social Kit (JPG)", url: "https://drive.google.com/drive/folders/1FbTQSAMZk84de7ykDs9YmMmp7z1Pyufr?usp=sharing" },
+      { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" },
+      { label: "Platform toolkit (web)", url: "https://www.notion.so/Plataformas-para-Docentes-estudiantes-29b7e88eb31a8029a710dc4ec95809f3?source=copy_link" }
+    ],
+    card: { img: "assets/IMG/D_GASH_B1.jpg", tag: "GASH", variant: "dramatic", seed: 7, accent: "#5aa9ff" }
+  },
+
+  "88f62dd4f34bc0c54550634cee859bb2178aa0e69041e1bee3be5a132e1c7456": {
+    title: "Curso Manejo Básico de Fracturas (MBF) – 2ª Ed. 2025",
+    meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
+    files: [
+      { label: "Logos (PNG)", url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
+      { label: "Plantilla PPT (PPTX)", url: "https://drive.google.com/drive/folders/1qJqRPO2akiosdJ9BMBXp49gYgrRExcD2?usp=sharing" },
+      { label: "Manual de Marca (PDF)", url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
+      { label: "Social Kit (JPG)", url: "https://drive.google.com/drive/folders/1msdy6xita4RcTesyg7qV3Q51WGu97qPZ?usp=sharing" },
+      { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" },
+      { label: "Platform toolkit (web)", url: "https://www.notion.so/Plataformas-para-Docentes-estudiantes-29b7e88eb31a8029a710dc4ec95809f3?source=copy_link" }
+    ],
+    card: { img: "assets/IMG/C_MBF_2026_B1.jpg", tag: "MBF", variant: "neon", seed: 11, accent: "#8be9fd" }
+  },
+
+  "4544b187690fbe2b84c7b20f7d9fe3d9330419f6f8fc42998fa7348dc3ae2907": {
+    title: "Curso Abordaje de Hemorragias Gineo-Obstétricas – 2025",
+    meta: "Material oficial para docentes/consultores (logos, PPT, manual de marca, social kit)",
+    files: [
+      { label: "Logos (PNG)",             url: "https://drive.google.com/drive/folders/1ooz6Z0YICAqP7PP5UgmPq1v1DFIkv9pi?usp=sharing" },
+      { label: "Manual de Marca (PDF)",   url: "https://drive.google.com/file/d/100O3Xp4CzybPdo-uEJqjNLpvbPMUeB-S/view?usp=sharing" },
+      { label: "Social Kit (JPG)",        url: "https://drive.google.com/drive/folders/1KJkd0InpGNF-iTFObDc4CuC4A8DCGpuF?usp=sharing" },
+      { label: "Papel Membretado (DOCX)", url: "https://drive.google.com/drive/folders/1RXj1Mv0t1azJoiWMOhEldfMNfbwclXXm?usp=sharing" },
+      { label: "Platform toolkit (web)", url: "https://www.notion.so/Plataformas-para-Docentes-estudiantes-29b7e88eb31a8029a710dc4ec95809f3?source=copy_link" }
+    ],
+    card: { img: "assets/IMG/C_CAHGO_2025_B1.jpg", tag: "AHGO2", variant: "neon", seed: 3, accent: "#8be9fd" }
+  }
+};
 
 /* ============ persistencia de cursos personalizados ============ */
 const CUSTOM_COURSES_KEY = 'edusalud_custom_courses';
@@ -214,9 +158,15 @@ function saveCustomCourses(courses){
     console.warn('[STORAGE] Error guardando cursos personalizados:', e);
   }
 }
-
 function getMergedAccessHashMap(){
+  // ✅ Siempre devolver al menos los cursos base, incluso si falla localStorage
   const base = ACCESS_HASH_MAP || {};
+  
+  // ✅ Verificar que base tiene contenido (importante para modo incógnito)
+  if (!base || typeof base !== 'object' || Object.keys(base).length === 0) {
+    console.error('[HASHMAP] ⚠️ ACCESS_HASH_MAP está vacío o undefined!');
+    return {}; // Retornar objeto vacío en lugar de fallar
+  }
   
   let custom = {};
   try {
@@ -225,6 +175,7 @@ function getMergedAccessHashMap(){
     console.warn('[HASHMAP] Error cargando cursos custom, usando solo base:', e);
   }
   
+  // Combinar base con custom (base siempre debe existir)
   const merged = Object.assign({}, base, custom);
   console.log('[HASHMAP] Cursos base:', Object.keys(base).length, 'Custom:', Object.keys(custom).length, 'Total:', Object.keys(merged).length);
   
@@ -1515,8 +1466,6 @@ function showMaster() {
   const fabBtn = document.getElementById('btn-speed-refresh');
   if (fabBtn) fabBtn.classList.add('visible');
   
-  buildMasterGrid();
-  
   // Refresh inmediato adicional para limpiar datos obsoletos al abrir
   if (hasRemote()) {
     setTimeout(async () => {
@@ -1697,7 +1646,7 @@ function buildMasterGrid() {
     });
     headerActions.appendChild(open);
     
-    // Botón eliminar para cursos personalizados y opción de ocultar cursos base
+    // Botón eliminar solo para cursos personalizados
     if (isCustomCourse(hex)) {
       const btnDelete = document.createElement('button');
       btnDelete.className = 'btn';
@@ -2127,6 +2076,40 @@ function buildMasterGrid() {
     addWrap.appendChild(addRow);
     right.appendChild(addWrap);
 
+    // restaurar originales
+    const btnRestore = document.createElement('button');
+    btnRestore.className = 'btn secondary';
+    btnRestore.type = 'button';
+    btnRestore.textContent = 'Restaurar enlaces originales';
+    btnRestore.style.marginTop = '10px';
+    btnRestore.addEventListener('click', async () => {
+      if (!confirm('¿Restaurar la lista original de enlaces? Se perderán los cambios locales.')) return;
+      clearFilesOverride(hex);
+      
+      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
+      console.log('[RESTORE] ♻️ Restaurando vista inmediatamente');
+      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+      if (isMasterView) {
+        buildMasterGrid();
+      } else {
+        renderCourse(hex);
+      }
+      
+      // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
+      remoteSaveFiles(hex, getFilesForHex(hex)).then(restoreOk => {
+        if (restoreOk) {
+          console.log('[RESTORE] ✅ Guardado en remoto exitoso');
+          // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
+          refreshFromRemoteSilent(hex).catch(() => {});
+        } else {
+          console.warn('[RESTORE] ⚠️ Error guardando en remoto');
+        }
+      }).catch(e => {
+        console.error('[RESTORE] ❌ Error guardando en remoto:', e);
+      });
+    });
+    right.appendChild(btnRestore);
+
     // tarjeta izquierda (solo imagen)
     let wrapper = null;
     if (window.insertElectricCard) {
@@ -2420,22 +2403,6 @@ $('#btn-enter').addEventListener('click', () => tryLoginByCode($('#code').value)
 $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#btn-enter').click(); } });
 $('#btn-logout').addEventListener('click', () => { currentKeyHex = null; setQueryParam('code', null); showAccess(); });
 
-$('#btn-copy-code-link').addEventListener('click', async () => {
-  if (!currentKeyHex) return;
-  const url = new URL(location.href);
-  const codeField = $('#code');
-  const encoded = url.searchParams.get('code');
-  const codeVal = (encoded ? atob(encoded) : codeField.value) || '';
-  if (!codeVal) return;
-  url.searchParams.set('code', btoa(codeVal));
-  try {
-    await navigator.clipboard.writeText(url.toString());
-    alert('Enlace copiado al portapapeles');
-  } catch (e) {
-    prompt('Copie este enlace:', url.toString());
-  }
-});
-
 $('#btn-master-exit').addEventListener('click', () => { setQueryParam('code', null); showAccess(); });
 $('#btn-master-copy').addEventListener('click', async () => {
   const url = new URL(location.href);
@@ -2448,9 +2415,6 @@ $('#btn-master-copy').addEventListener('click', async () => {
   }
 });
 
-// Exponer funciones clave para pruebas y scripts externos
-window.tryLoginByCode = tryLoginByCode;
-window.renderCourse = renderCourse;
 // ✅ FUNCIÓN GLOBAL: Ver qué hay guardado en localStorage
 window.verDatosGuardados = function() {
   console.log('==========================================');
@@ -2586,7 +2550,7 @@ window.limpiarTodoYRecargar = async function() {
   // 1. Limpiar localStorage de archivos
   const filesCleared = clearAllFilesOverrides();
   console.log('[CLEAN] 🧹 Limpiados', filesCleared, 'archivos de localStorage');
-
+  
   // 2. Limpiar caché del navegador
   if ('caches' in window) {
     const cacheNames = await caches.keys();
