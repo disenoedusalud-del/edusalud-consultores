@@ -1882,6 +1882,7 @@ function buildMasterGrid() {
       btnRemove.addEventListener('click', async () => {
         // ✅ ADVERTENCIA: Usar modal de confirmación elegante (igual que al eliminar curso)
         // Siempre usar el modal, nunca el confirm nativo del navegador
+        // Pasar 'enlace' como tercer parámetro para que muestre el mensaje correcto
         window.showDeleteConfirmModal(`Enlace: ${item.label}`, async () => {
           // ✅ FIREBASE: Eliminar de Firebase primero si tiene firebaseId
           if (item.firebaseId && typeof window.eliminarLinkFirebase === 'function') {
@@ -1971,7 +1972,7 @@ function buildMasterGrid() {
               console.error('[REMOVE] ❌ Error guardando en remoto:', e);
             });
           }
-        });
+        }, 'enlace'); // ✅ Tercer parámetro para que muestre "eliminar enlace" en lugar de "eliminar curso"
       });
 
       actions.appendChild(btnOpen);
