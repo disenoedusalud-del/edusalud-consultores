@@ -550,8 +550,9 @@ function initFirestoreRealtime(courseHex) {
  * ✅ FUNCIÓN: Combinar links de Firestore con localStorage y actualizar vista
  */
 function mergeFirestoreLinks(courseHex, firestoreLinks) {
-  console.log('[FIRESTORE] 🔥 Firebase es la FUENTE DE VERDAD - Total:', firestoreLinks.length, 'links');
+  console.log('[FIRESTORE] 🔥 Firebase es la ÚNICA FUENTE DE VERDAD - Total:', firestoreLinks.length, 'links');
   
+  // ✅ FIREBASE ES LA ÚNICA FUENTE: Solo usar links de Firebase, ignorar ACCESS_HASH_MAP
   const firebaseFormatted = firestoreLinks.map(link => ({
     label: link.label || '',
     url: link.url || '',
@@ -559,31 +560,20 @@ function mergeFirestoreLinks(courseHex, firestoreLinks) {
     createdAt: link.createdAt
   }));
   
-  const baseLinks = ACCESS_HASH_MAP[courseHex]?.files || [];
-  const baseEntries = baseLinks.map(baseLink => ({
-    label: baseLink.label || '',
-    url: baseLink.url || '',
-    firebaseId: baseLink.firebaseId || null,
-    createdAt: baseLink.createdAt || null
-  }));
-
-  // ✅ PREVENIR DUPLICADOS: Si un link base ya tiene firebaseId, no agregarlo desde Firebase
-  const baseFirebaseIds = new Set(baseEntries.filter(e => e.firebaseId).map(e => e.firebaseId));
-  const uniqueFirebaseLinks = firebaseFormatted.filter(link => !baseFirebaseIds.has(link.firebaseId));
-  
-  // ✅ También prevenir duplicados por URL+Label en caso de que no haya firebaseId
-  const existingUrls = new Set(baseEntries.map(e => `${e.url}|||${e.label}`));
-  const finalFirebaseLinks = uniqueFirebaseLinks.filter(link => {
-    const key = `${link.url}|||${link.label}`;
-    if (existingUrls.has(key)) {
-      console.log('[MERGE] ⚠️ Duplicado detectado y filtrado:', link.label);
+  // ✅ PREVENIR DUPLICADOS dentro de Firebase (por si hay duplicados en la BD)
+  const seen = new Set();
+  const uniqueFirebaseLinks = firebaseFormatted.filter(link => {
+    const key = link.firebaseId || `${link.url}|||${link.label}`;
+    if (seen.has(key)) {
+      console.log('[MERGE] ⚠️ Duplicado en Firebase detectado y filtrado:', link.label);
       return false;
     }
-    existingUrls.add(key);
+    seen.add(key);
     return true;
   });
 
-  const merged = baseEntries.concat(finalFirebaseLinks);
+  // ✅ SOLO LINKS DE FIREBASE - No incluir links base de ACCESS_HASH_MAP
+  const merged = uniqueFirebaseLinks;
 
   saveFilesOverride(courseHex, merged);
   
