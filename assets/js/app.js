@@ -6253,6 +6253,14 @@ function setupAuthStateListener() {
   }
 
   window.firebaseAuth.onAuthStateChanged(async (user) => {
+    console.log('[AUTH] 🔔 onAuthStateChanged disparado, usuario:', user?.email || 'null');
+    
+    // ✅ Si ya se está procesando un redirect, no hacer nada aquí
+    if (sessionStorage.getItem('pendingGoogleAuth') === 'true') {
+      console.log('[AUTH] ⏸️ Redirect pendiente, omitiendo listener de estado');
+      return;
+    }
+    
     if (user) {
       console.log('[AUTH] ✅ Usuario autenticado:', user.email);
       const userEmail = user.email.toLowerCase().trim();
@@ -6263,24 +6271,41 @@ function setupAuthStateListener() {
       const masterEl = document.getElementById('master');
       const userViewEl = document.getElementById('user-view');
       const contentEl = document.getElementById('content');
+      const accessEl = document.getElementById('access');
       const isInMaster = currentKeyHex === MASTER_HASH || (masterEl && !masterEl.classList.contains('hidden'));
       const isInUserView = userViewEl && !userViewEl.classList.contains('hidden');
       const isInContent = contentEl && !contentEl.classList.contains('hidden');
+      const isInAccess = accessEl && !accessEl.classList.contains('hidden');
       
-      // Si no hay código en URL y no estamos en ninguna vista, verificar si es usuario con email
+      console.log('[AUTH] Estado de vistas - Master:', isInMaster, 'UserView:', isInUserView, 'Content:', isInContent, 'Access:', isInAccess);
+      
+      // Si no hay código en URL y estamos en la vista de acceso o no estamos en ninguna vista, verificar si es usuario con email
       if (!urlParams.has('code') && !isInMaster && !isInUserView && !isInContent) {
+        console.log('[AUTH] 🔍 Verificando cursos para usuario con email...');
         // Verificar si tiene cursos permitidos (es usuario con email)
         const allowedCourses = await getCoursesForEmail(userEmail);
+        console.log('[AUTH] 📚 Cursos encontrados en listener:', allowedCourses.length);
+        
         if (allowedCourses.length > 0) {
           // Es usuario con email, mostrar vista de usuario
+          console.log('[AUTH] ✅ Mostrando vista de usuario desde listener');
           window.currentUserEmail = userEmail;
           window.allowedCoursesForUser = allowedCourses;
+          
+          // Ocultar vista de acceso si está visible
+          if (isInAccess && accessEl) {
+            accessEl.classList.add('hidden');
+            console.log('[AUTH] ✅ Vista de acceso ocultada desde listener');
+          }
+          
           await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
         } else {
           // No tiene cursos, podría ser master (pero no debería llegar aquí sin código)
           // Por seguridad, no dar acceso automático
-          console.log('[AUTH] Usuario autenticado pero sin cursos asignados');
+          console.log('[AUTH] ⚠️ Usuario autenticado pero sin cursos asignados');
         }
+      } else {
+        console.log('[AUTH] ⏭️ Omitiendo procesamiento - ya en una vista o hay código en URL');
       }
     } else {
       console.log('[AUTH] Usuario no autenticado');
@@ -6318,7 +6343,21 @@ async function handleGoogleRedirectResult() {
     }
     
     console.log('[AUTH] 🔄 Verificando resultado de redirect...');
+    console.log('[AUTH] sessionStorage pendingGoogleAuth:', sessionStorage.getItem('pendingGoogleAuth'));
+    
+    // ✅ OCULTAR VISTA DE ACCESO INMEDIATAMENTE si hay un redirect pendiente
+    const hasPendingAuth = sessionStorage.getItem('pendingGoogleAuth') === 'true';
+    if (hasPendingAuth) {
+      console.log('[AUTH] ⏳ Redirect pendiente detectado, ocultando vista de acceso...');
+      const accessEl = $('#access');
+      if (accessEl) {
+        accessEl.classList.add('hidden');
+      }
+    }
+    
     const result = await window.firebaseAuth.getRedirectResult();
+    console.log('[AUTH] Resultado de getRedirectResult:', result);
+    console.log('[AUTH] Usuario en result:', result?.user?.email);
     
     if (result.user) {
       console.log('[AUTH] ✅ Login con redirect exitoso:', result.user.email);
@@ -6329,29 +6368,74 @@ async function handleGoogleRedirectResult() {
       sessionStorage.removeItem('pendingGoogleAuth');
       sessionStorage.removeItem('redirectUrl');
       
-      // Mostrar mensaje de carga
+      // ✅ OCULTAR VISTA DE ACCESO INMEDIATAMENTE
+      const accessEl = $('#access');
+      if (accessEl) {
+        accessEl.classList.add('hidden');
+        console.log('[AUTH] ✅ Vista de acceso ocultada');
+      }
+      
+      // Mostrar mensaje de carga (si existe el elemento)
       const msgEl = $('#msg-auth');
       if (msgEl) {
         showAuthMessage('msg-auth', 'Verificando cursos disponibles…', false);
       }
       
+      console.log('[AUTH] 🔍 Buscando cursos permitidos para:', userEmail);
       const allowedCourses = await getCoursesForEmail(userEmail);
+      console.log('[AUTH] 📚 Cursos encontrados:', allowedCourses.length, allowedCourses);
       
       if (allowedCourses.length === 0) {
+        console.log('[AUTH] ⚠️ Usuario sin cursos asignados');
         showAuthMessage('msg-auth', 'No tienes acceso a ningún curso. Contacta al administrador para solicitar acceso.', true);
+        // Mostrar vista de acceso nuevamente si no tiene cursos
+        if (accessEl) {
+          accessEl.classList.remove('hidden');
+        }
         return true; // Se manejó, pero sin acceso
       }
       
+      console.log('[AUTH] ✅ Mostrando vista de usuario con', allowedCourses.length, 'cursos');
       await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
+      console.log('[AUTH] ✅ Vista de usuario mostrada correctamente');
       return true; // Se manejó exitosamente
     } else {
       console.log('[AUTH] No hay resultado de redirect (usuario no autenticado)');
+      // Si había un redirect pendiente pero no hay resultado, puede ser que ya se procesó antes
+      const hasPendingAuth = sessionStorage.getItem('pendingGoogleAuth') === 'true';
+      if (hasPendingAuth) {
+        console.log('[AUTH] ⚠️ Había redirect pendiente pero no hay resultado, verificando estado de auth...');
+        // Verificar si el usuario está autenticado de otra forma
+        const currentUser = window.firebaseAuth.currentUser;
+        if (currentUser) {
+          console.log('[AUTH] ✅ Usuario ya está autenticado:', currentUser.email);
+          const userEmail = currentUser.email.toLowerCase().trim();
+          window.currentUserEmail = userEmail;
+          
+          // Limpiar estado pendiente
+          sessionStorage.removeItem('pendingGoogleAuth');
+          sessionStorage.removeItem('redirectUrl');
+          
+          // Ocultar vista de acceso
+          const accessEl = $('#access');
+          if (accessEl) {
+            accessEl.classList.add('hidden');
+          }
+          
+          const allowedCourses = await getCoursesForEmail(userEmail);
+          if (allowedCourses.length > 0) {
+            await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
+            return true;
+          }
+        }
+      }
       return false; // No se manejó redirect
     }
   } catch (error) {
     console.error('[AUTH] ❌ Error en redirect result:', error);
     console.error('[AUTH] Código de error:', error.code);
     console.error('[AUTH] Mensaje:', error.message);
+    console.error('[AUTH] Stack:', error.stack);
     
     // Limpiar estado pendiente incluso si hay error
     sessionStorage.removeItem('pendingGoogleAuth');
