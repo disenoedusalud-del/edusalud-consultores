@@ -1,1 +1,2055 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Content Security Policy: Permite JSONP y scripts necesarios -->
+  <!-- Nota: Si GitHub Pages aplica su propia CSP, esta meta tag podría no tener efecto completo -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://www.gstatic.com https://*.firebaseio.com; connect-src 'self' https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://www.google-analytics.com https://*.firebaseio.com https://www.gstatic.com https://firestore.googleapis.com wss://*.firebaseio.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; frame-src 'self' https://*.google.com https://*.googleusercontent.com https://*.firebaseio.com https://*.firebaseapp.com;" />
+  <title>Portal de Recursos para Consultores – EduSalud</title>
+  <meta name="description" content="Descarga de toolkits (PPT, logos, manuales de marca, social kit, formatos). Acceso mediante código otorgado por coordinación." />
+  <link rel="icon" type="image/png" href="assets/logo-edusalud.png" />
+  
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TCR727DDDL"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-TCR727DDDL');
+  </script>
+  <!-- /Google Analytics 4 -->
+  
+  <style>
+    :root{
+      --bg:#0b1020;
+      --muted:#b8c8e0; /* ✅ Mejorado: contraste WCAG AA (antes: #9fb1d1) */
+      --text:#eaf1ff;
+      --accent:#5aa9ff;
+      --accent-2:#8be9fd;
+      --danger:#ff7a7a;
+    }
 
+    /* ✅ Tema Claro */
+    :root[data-theme="light"]{
+      --bg:#f5f7fa;
+      --muted:#64748b;
+      --text:#1e293b;
+      --accent:#3b82f6;
+      --accent-2:#60a5fa;
+      --danger:#ef4444;
+    }
+
+    :root[data-theme="light"] body{
+      background:
+        radial-gradient(1200px 800px at 80% -10%, rgba(59,130,246,.08), transparent),
+        radial-gradient(900px 700px at -10% 120%, rgba(96,165,250,.04), transparent),
+        var(--bg);
+    }
+
+    :root[data-theme="light"] .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.8), rgba(255,255,255,.6));
+      border: 1px solid rgba(0,0,0,.08);
+      box-shadow: 0 8px 24px rgba(0,0,0,.1);
+    }
+
+    :root[data-theme="light"] .input{
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,.12);
+      color:var(--text);
+    }
+
+    :root[data-theme="light"] .input:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 4px rgba(59,130,246,.1);
+    }
+
+    :root[data-theme="light"] .btn.secondary{
+      background:#ffffff;
+      color:var(--text);
+      border:1px solid rgba(0,0,0,.12);
+    }
+
+    :root[data-theme="light"] .file{
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,.08);
+    }
+
+    :root[data-theme="light"] .master-card{
+      background: linear-gradient(180deg, rgba(255,255,255,.8), rgba(255,255,255,.6));
+      border: 1px solid rgba(0,0,0,.08);
+    }
+
+    :root[data-theme="light"] .master-search input{
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,.12);
+    }
+
+    :root[data-theme="light"] .master-search button{
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,.12);
+    }
+
+    :root[data-theme="light"] .settings-dropdown{
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,.12);
+      box-shadow:0 8px 24px rgba(0,0,0,.15);
+    }
+
+    :root[data-theme="light"] .settings-menu-item:hover{
+      background:rgba(59,130,246,.1);
+    }
+
+    :root[data-theme="light"] .modal-content{
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,.12);
+    }
+
+    :root[data-theme="light"] .toast{
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,.12);
+      box-shadow:0 4px 12px rgba(0,0,0,.15);
+    }
+
+    :root[data-theme="light"] .autocomplete-item:hover{
+      background:rgba(59,130,246,.1);
+    }
+
+    :root[data-theme="light"] .autocomplete-item.selected{
+      background:rgba(59,130,246,.2);
+    }
+
+    :root[data-theme="light"] .master-card:hover{
+      transform: translateY(-4px) scale(1.01);
+      box-shadow:0 12px 32px rgba(0,0,0,.15);
+      border-color: rgba(59,130,246,.15);
+    }
+
+    :root[data-theme="light"] .reload-fab{
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 12px 38px rgba(59,130,246,0.3);
+    }
+
+    :root[data-theme="light"] .loader-overlay{
+      background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(245,247,250,0.98));
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial;
+      background:
+        radial-gradient(1200px 800px at 80% -10%, rgba(90,169,255,.12), transparent),
+        radial-gradient(900px 700px at -10% 120%, rgba(139,233,253,.06), transparent),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+
+    /* ✅ Transiciones suaves al cambiar de vista */
+    #access, #content, #master {
+      transition: opacity 0.4s ease, transform 0.4s ease, visibility 0.4s ease;
+      opacity: 1;
+      transform: translateY(0);
+      visibility: visible;
+      /* ✅ Las secciones principales NO usan display:none para permitir transiciones */
+    }
+    #access.hidden, #content.hidden, #master.hidden {
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      visibility: hidden;
+      /* ✅ NO usar display:none aquí para permitir transiciones CSS */
+      /* Los elementos ocultos serán invisibles pero permitirán transiciones suaves */
+    }
+
+    .wrap{ max-width:1100px; margin:0 auto; padding:28px 20px; }
+
+    header{ display:grid; grid-template-columns: 1fr 360px; gap:20px; align-items:center; margin-bottom:18px; }
+    @media (max-width:980px){ header{ grid-template-columns:1fr } .hero{ display:none } }
+
+    .logo {
+      width:56px;
+      height:56px;
+      padding:8px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 8px 30px rgba(90,169,255,.25);
+      overflow:hidden;
+      box-sizing:border-box;
+      flex:0 0 auto;
+    }
+    .logo-img { max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; display:block; }
+
+    h1{ margin:0; font-size:clamp(20px, 2.6vw, 34px); line-height:1.05; }
+    p.lead{ color:var(--muted); margin:6px 0 0; font-size:14px; max-width:58ch; }
+
+    .hero img{ max-width:50%; height:auto; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.45); display:inline-block }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.06));
+      border: 1px solid rgba(255,255,255,.04);
+      border-radius:14px;
+      padding:18px;
+      box-shadow:0 8px 24px rgba(0,0,0,.25);
+      backdrop-filter: blur(4px);
+    }
+
+    .grid{ display:grid; gap:16px; }
+    .grid.cols-2{ grid-template-columns: 1fr; }
+    @media (min-width:900px){ .grid.cols-2 { grid-template-columns: 1fr 1fr; } }
+
+    label{ display:block; font-weight:600; margin-bottom:8px; }
+    .row{ display:flex; gap:10px; align-items:stretch; }
+    .input{
+      flex:1 1 auto;
+      border:1px solid rgba(255,255,255,.08);
+      background:#0e1630;
+      color:var(--text);
+      padding:12px 14px;
+      border-radius:12px;
+      outline:none;
+    }
+    .input:focus{ border-color:var(--accent); box-shadow:0 0 0 4px rgba(90,169,255,.12); }
+    .input.error{ 
+      border-color:var(--danger) !important; 
+      box-shadow:0 0 0 4px rgba(255,122,122,.2) !important;
+      background-color:rgba(255,122,122,.05) !important;
+    }
+    .input.error:focus{ 
+      border-color:var(--danger) !important; 
+      box-shadow:0 0 0 4px rgba(255,122,122,.3) !important;
+      background-color:rgba(255,122,122,.08) !important;
+    }
+
+    .btn{
+      border:none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color:#062033;
+      font-weight:800;
+      padding:12px 16px;
+      border-radius:12px;
+      cursor:pointer;
+      transition: transform .06s;
+    }
+    .btn:hover{ transform: translateY(-1px); }
+    .btn.secondary{ background:#19213d; color:var(--text); border:1px solid rgba(255,255,255,.06); }
+
+    .msg{ margin-top:8px; font-size:14px; color:var(--muted); }
+    .msg.error{ color:var(--danger); }
+
+    /* Pestañas de autenticación */
+    .auth-tabs{ display:flex; gap:12px; margin-bottom:24px; border-bottom:1px solid rgba(255,255,255,.08); }
+    .auth-tab{
+      background:none;
+      border:none;
+      border-bottom:2px solid transparent;
+      padding:10px 16px;
+      color:var(--muted);
+      cursor:pointer;
+      font-size:15px;
+      transition:all 0.2s ease;
+      font-family:inherit;
+    }
+    .auth-tab:hover{ color:var(--text); }
+    .auth-tab.active{
+      color:var(--accent);
+      border-bottom-color:var(--accent);
+    }
+    .auth-form{ min-height:200px; }
+    .btn-link{
+      background:none;
+      border:none;
+      color:var(--accent);
+      cursor:pointer;
+      text-decoration:underline;
+      font-size:14px;
+      padding:0;
+      font-family:inherit;
+    }
+    .btn-link:hover{ color:var(--accent-2); }
+
+    /* Botón de Google Sign-In */
+    .btn-google:hover{
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+      transform: translateY(-1px);
+    }
+    .btn-google:active{
+      transform: translateY(0);
+    }
+    :root[data-theme="light"] .btn-google{
+      background:#ffffff !important;
+      border:1px solid #dadce0 !important;
+    }
+
+    .filelist{ display:grid; gap:10px; margin-top:12px; }
+    .file{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid rgba(255,255,255,.06); border-radius:12px; background:#0e1630; }
+    .file strong{ font-size:14px; }
+    .meta{ color:var(--muted); font-size:13px; }
+
+    .access-hero{ display:flex; align-items:center; justify-content:center; padding-left:10px; }
+    .access-hero img{
+      width:220px;
+      max-width:100%;
+      height:auto;
+      border-radius:10px;
+      box-shadow:0 8px 28px rgba(0,0,0,.45);
+      transform: translateY(2px);
+    }
+    @media (max-width:900px){ .access-hero{ display:none } }
+
+    .footer{ margin:28px 0 8px; color:var(--muted); font-size:12px; text-align:center; }
+    .hidden{ display:none !important; }
+    .sr-only{ position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden }
+
+    /* Botón flotante de recarga */
+    .reload-fab {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 58px;
+      height: 58px;
+      border: none;
+      border-radius: 50%;
+      display: none; /* ✅ Oculto por defecto hasta autenticación */
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #062033;
+      cursor: pointer;
+      box-shadow: 0 12px 38px rgba(90,169,255,0.36);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      z-index: 999;
+    }
+    .reload-fab.visible {
+      display: flex; /* ✅ Se muestra cuando está autenticado */
+    }
+    .reload-fab:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 16px 40px rgba(90,169,255,0.42);
+    }
+    .reload-fab:focus-visible {
+      outline: 3px solid rgba(90,169,255,0.65);
+      outline-offset: 4px;
+    }
+    .reload-fab svg {
+      width: 22px;
+      height: 22px;
+    }
+    .reload-fab.loading svg {
+      animation: spin 0.9s linear infinite;
+    }
+    /* Estado: cambios pendientes */
+    .reload-fab.has-changes {
+      background: linear-gradient(135deg, #ffd93d, #f59e0b);
+      box-shadow: 0 12px 38px rgba(255, 217, 61, 0.48);
+      animation: pulse-yellow 2s ease-in-out infinite;
+    }
+    .reload-fab.has-changes:hover {
+      box-shadow: 0 16px 40px rgba(255, 217, 61, 0.6);
+    }
+    @keyframes pulse-yellow {
+      0%, 100% {
+        box-shadow: 0 12px 38px rgba(255, 217, 61, 0.48);
+      }
+      50% {
+        box-shadow: 0 12px 48px rgba(255, 217, 61, 0.7);
+      }
+    }
+    @media (max-width: 640px) {
+      .reload-fab {
+        bottom: 22px;
+        right: 22px;
+        width: 54px;
+        height: 54px;
+      }
+    }
+
+    /* Loader (original) */
+    .edu-loader {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: linear-gradient(180deg, rgba(2,6,12,0.94), rgba(0,0,0,0.96));
+      color: #fff;
+      z-index: 99999;
+      padding: 18px;
+      text-align: center;
+      font-family: "Roboto Mono", monospace;
+    }
+    .edu-loader.hidden { display: none !important; }
+    .loader-ring {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      display:grid;
+      place-items:center;
+      box-shadow: 0 8px 40px rgba(90,169,255,0.08), inset 0 0 16px rgba(63,176,255,0.04);
+    }
+    .loader-ring:after{
+      content: "";
+      width: 62px;
+      height: 62px;
+      border-radius:50%;
+      border: 4px solid rgba(255,255,255,0.06);
+      border-top-color: #6ee7ff;
+      animation: spin 900ms linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-text { font-weight:700; font-size:15px; letter-spacing:0.6px; color:#dff7ff; }
+    .loader-progress {
+      width: 380px;
+      max-width: calc(100% - 48px);
+      height: 10px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 999px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+    }
+    .loader-progress > i {
+      display:block; height:100%; width:0%; background: linear-gradient(90deg,#6ee7ff,#7c5cff); border-radius:999px;
+      transition: width .14s linear;
+    }
+    .loader-percent { font-size:13px; color:rgba(255,255,255,0.75); margin-top:6px; }
+
+    /* Layout curso */
+    .course-row { display:flex; gap:18px; align-items:flex-start; }
+    .card-left-wrapper { flex: 0 0 360px; max-width:360px; }
+    .card-right { flex: 1 1 auto; }
+    
+    /* ✅ Responsive mejorado - Mobile First - Layout horizontal siempre */
+    @media (max-width: 600px) {
+      .course-row { 
+        flex-direction: row; /* ✅ Mantener horizontal en móvil */
+        gap: 12px;
+        align-items: flex-start; /* ✅ Cambiar a flex-start para mejor alineación */
+      }
+      .card-left-wrapper { 
+        flex: 0 0 120px; /* ✅ Imagen pequeña en móvil */
+        max-width: 120px;
+        min-width: 120px;
+        height: 160px; /* ✅ Altura fija para la tarjeta */
+        min-height: 160px;
+        overflow: visible; /* ✅ Cambiar a visible para ver la imagen */
+        position: relative; /* ✅ Para posicionamiento correcto */
+      }
+      .card-left-wrapper img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        display: block !important;
+      }
+      .card-right {
+        flex: 1 1 auto;
+        min-width: 0; /* ✅ Permite que se ajuste */
+      }
+    }
+    
+    @media (max-width: 900px) and (min-width: 601px) { 
+      .course-row { 
+        flex-direction: row; /* ✅ Mantener horizontal en tablet */
+        gap: 16px;
+        align-items: flex-start;
+      }
+      .card-left-wrapper { 
+        flex: 0 0 200px; /* ✅ Tamaño medio en tablet */
+        max-width: 200px;
+        height: 250px; /* ✅ Altura fija para la tarjeta */
+        min-height: 250px;
+        overflow: visible; /* ✅ Cambiar a visible */
+        position: relative;
+      }
+      .card-left-wrapper img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        display: block !important;
+      }
+    } 
+    
+    @media (max-width: 1200px) and (min-width: 901px) {
+      .card-left-wrapper { 
+        flex: 0 0 300px; 
+        max-width: 300px;
+        height: 350px; /* ✅ Altura fija para la tarjeta */
+        min-height: 350px;
+        overflow: visible; /* ✅ Cambiar a visible */
+        position: relative;
+      }
+      .card-left-wrapper img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        display: block !important;
+      }
+    }
+
+    /* Vista Master */
+    #master { margin-top:16px; }
+    .master-grid { display:grid; gap:16px; }
+    .master-card{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.06));
+      border: 1px solid rgba(255,255,255,.04);
+      border-radius:14px;
+      padding:18px;
+      box-shadow:0 8px 24px rgba(0,0,0,.25);
+      backdrop-filter: blur(4px);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      cursor: pointer;
+    }
+    .master-card:hover {
+      transform: translateY(-4px) scale(1.01);
+      box-shadow: 0 12px 32px rgba(0,0,0,.35);
+      border-color: rgba(90,169,255,.2);
+    }
+    .master-card .left{ min-height:220px; }
+    .master-card .right .filelist{ margin-top:0; }
+    @media (max-width:900px){
+      .master-card{ grid-template-columns: 1fr; }
+      .master-card .left{ order: -1; }
+    }
+    .master-search{
+      display:flex; gap:10px; align-items:center;
+      margin: 6px 0 14px;
+      position: relative; /* ✅ Para posicionar autocompletado */
+    }
+    .master-search input{
+      flex:1 1 auto;
+      border:1px solid rgba(255,255,255,.08);
+      background:#0e1630; color:var(--text);
+      padding:10px 12px; border-radius:12px; outline:none;
+    }
+    .master-search input:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 4px rgba(90,169,255,.12);
+    }
+    .master-search button{
+      border:none; background:#19213d; color:var(--text);
+      border:1px solid rgba(255,255,255,.06);
+      padding:10px 14px; border-radius:12px; cursor:pointer;
+    }
+    .master-search button:hover{ transform: translateY(-1px); }
+    
+    /* Modal para agregar curso */
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .modal.show { 
+      display: flex;
+      opacity: 1;
+    }
+    .modal-content {
+      background: var(--bg);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 600px;
+      width: calc(100% - 40px);
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.4);
+      transform: translateY(-20px) scale(0.95);
+      opacity: 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    .modal.show .modal-content {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .modal-header h2 { margin: 0; }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 24px;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      line-height: 32px;
+    }
+    .modal-close:hover { color: var(--danger); }
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .form-group .input {
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+      justify-content: flex-end;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div style="display:flex; gap:16px; align-items:center;">
+        <div class="logo" aria-hidden="false">
+          <img src="assets/logo-edusalud.png" alt="EduSalud" class="logo-img" />
+        </div>
+        <div>
+          <h1>Portal de Recursos para Consultores · EduSalud</h1>
+          <p class="lead">Descargue materiales oficiales (PPT, logos, manual de marca, social kit, formatos). Acceso mediante código otorgado por el departamento de comunicaciones.</p>
+        </div>
+      </div>
+
+      <div class="hero" aria-hidden="true">
+        <img src="assets/static-assets-amico.png" alt="Ilustración consultores EduSalud" />
+      </div>
+    </header>
+
+    <!-- ACCESO -->
+    <section id="access" class="card" aria-labelledby="access-title">
+      <h2 id="access-title" class="sr-only">Acceso restringido</h2>
+      
+      <!-- Pestañas de método de acceso -->
+      <div class="auth-tabs" style="display:flex; gap:12px; margin-bottom:24px; border-bottom:1px solid rgba(255,255,255,.08);">
+        <button id="tab-code" class="auth-tab active" type="button" data-tab="code">🔑 Código</button>
+        <button id="tab-account" class="auth-tab" type="button" data-tab="account">👤 Cuenta</button>
+      </div>
+
+      <div class="grid cols-2" style="align-items:center;">
+        <div>
+          <!-- Formulario de acceso por código -->
+          <div id="form-code" class="auth-form">
+            <label for="code">Ingrese su código de acceso</label>
+            <div class="row">
+              <input id="code" class="input" type="text" placeholder="Ej. ABC0-0000" autocomplete="one-time-code" aria-label="Código de acceso" aria-describedby="msg" />
+              <button id="btn-enter" class="btn" type="button" aria-label="Entrar al curso con el código ingresado">Entrar</button>
+            </div>
+            <div id="msg" class="msg" role="alert" aria-live="polite">Si no tiene código, solicítelo a comunicaciones.</div>
+          </div>
+
+          <!-- Formulario de acceso por cuenta (Email/Password) -->
+          <div id="form-account" class="auth-form hidden">
+            <!-- Formulario de Login -->
+            <div id="form-login">
+              <h3 style="margin:0 0 8px 0; font-size:20px; font-weight:600;">Iniciar sesión</h3>
+              <p style="color:var(--muted); font-size:14px; margin-bottom:24px;">
+                Accede con tu correo y contraseña
+              </p>
+              
+              <div style="margin-bottom:16px;">
+                <label for="input-email" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Correo electrónico</label>
+                <input id="input-email" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" style="width:100%;" />
+              </div>
+              
+              <div style="margin-bottom:16px;">
+                <label for="input-password" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Contraseña</label>
+                <input id="input-password" class="input" type="password" placeholder="••••••••" autocomplete="current-password" style="width:100%;" />
+              </div>
+              
+              <div style="margin-bottom:16px;">
+                <button id="btn-login" class="btn" type="button" style="width:100%;">Iniciar sesión</button>
+              </div>
+              
+              <div style="text-align:center; margin-top:16px;">
+                <button id="btn-show-register" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">¿No tienes cuenta? Regístrate</button>
+                <span style="color:var(--muted); margin:0 8px;">•</span>
+                <button id="btn-show-reset" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">¿Olvidaste tu contraseña?</button>
+              </div>
+              
+              <div id="msg-auth" class="msg" role="alert" aria-live="polite"></div>
+            </div>
+
+            <!-- Formulario de Registro -->
+            <div id="form-register" class="hidden">
+              <h3 style="margin:0 0 8px 0; font-size:20px; font-weight:600;">Crear cuenta</h3>
+              <p style="color:var(--muted); font-size:14px; margin-bottom:24px;">
+                Ingresa tu correo para verificar si estás autorizado
+              </p>
+              
+              <!-- Paso 1: Verificar correo -->
+              <div id="register-step-1">
+                <div style="margin-bottom:16px;">
+                  <label for="input-register-email" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Correo electrónico</label>
+                  <input id="input-register-email" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" style="width:100%;" />
+                </div>
+                
+                <div style="margin-bottom:16px;">
+                  <button id="btn-verify-email" class="btn" type="button" style="width:100%;">Verificar correo</button>
+                </div>
+                
+                <div style="text-align:center; margin-top:16px;">
+                  <button id="btn-show-login" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">¿Ya tienes cuenta? Inicia sesión</button>
+                </div>
+                
+                <div id="msg-register" class="msg" role="alert" aria-live="polite"></div>
+              </div>
+              
+              <!-- Paso 2: Crear contraseña (oculto inicialmente) -->
+              <div id="register-step-2" style="display:none;">
+                <div style="margin-bottom:12px; padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; font-size:14px;">
+                  <span style="color:var(--accent); font-weight:600;">✓ Correo verificado:</span>
+                  <span id="verified-email-display" style="margin-left:8px;"></span>
+                </div>
+                
+                <div style="margin-bottom:16px;">
+                  <label for="input-register-password" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Contraseña</label>
+                  <input id="input-register-password" class="input" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" style="width:100%;" />
+                </div>
+                
+                <div style="margin-bottom:16px;">
+                  <label for="input-register-password-confirm" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Confirmar contraseña</label>
+                  <input id="input-register-password-confirm" class="input" type="password" placeholder="Repite la contraseña" autocomplete="new-password" style="width:100%;" />
+                </div>
+                
+                <div style="margin-bottom:16px;">
+                  <button id="btn-register" class="btn" type="button" style="width:100%;">Crear cuenta</button>
+                </div>
+                
+                <div style="text-align:center; margin-top:16px;">
+                  <button id="btn-back-to-verify" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">← Volver a verificar correo</button>
+                </div>
+                
+                <div id="msg-register-step2" class="msg" role="alert" aria-live="polite"></div>
+              </div>
+            </div>
+
+            <!-- Formulario de Reset Password -->
+            <div id="form-reset" class="hidden">
+              <h3 style="margin:0 0 8px 0; font-size:20px; font-weight:600;">Restablecer contraseña</h3>
+              <p style="color:var(--muted); font-size:14px; margin-bottom:24px;">
+                Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña
+              </p>
+              
+              <div style="margin-bottom:16px;">
+                <label for="input-reset-email" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Correo electrónico</label>
+                <input id="input-reset-email" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" style="width:100%;" />
+              </div>
+              
+              <div style="margin-bottom:16px;">
+                <button id="btn-reset" class="btn" type="button" style="width:100%;">Enviar enlace de restablecimiento</button>
+              </div>
+              
+              <div style="text-align:center; margin-top:16px;">
+                <button id="btn-back-to-login" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">Volver al inicio de sesión</button>
+              </div>
+              
+              <div id="msg-reset" class="msg" role="alert" aria-live="polite"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="access-hero" aria-hidden="true">
+          <img src="assets/asset-selection-cuate.png" alt="Ilustración de consultoría" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Vista de Usuario (para usuarios con email) -->
+    <section id="user-view" class="hidden">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+        <h3 style="margin:0">Mis Cursos</h3>
+        <div class="row">
+          <button id="btn-user-logout" class="btn secondary" type="button" aria-label="Cerrar sesión" title="Cerrar sesión">Cerrar sesión</button>
+        </div>
+      </div>
+
+      <!-- Información del usuario -->
+      <div id="userInfo" style="margin-bottom: 16px; padding: 16px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 14px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-weight: 600; color: var(--accent);">👤</span>
+          <span id="userEmailDisplay">Cargando...</span>
+        </div>
+      </div>
+
+      <!-- Grid de cursos -->
+      <div id="userGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:20px; width:100%;">
+        <!-- Se llenará dinámicamente -->
+      </div>
+
+      <div id="userEmptyState" style="text-align:center; padding:60px 20px; color:var(--muted); display:none;">
+        <p style="font-size:18px; margin-bottom:8px;">No tienes cursos asignados</p>
+        <p style="font-size:14px;">Contacta al administrador para solicitar acceso a cursos.</p>
+      </div>
+    </section>
+
+    <!-- CONTENIDO (1 curso) -->
+    <section id="content" class="hidden" style="margin-top:16px;">
+      <div class="card" id="courseCard">
+        <div class="course">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <div>
+              <h3 id="courseTitle">Curso / Diplomado</h3>
+              <div class="meta" id="courseMeta">Material oficial para consultoría</div>
+            </div>
+            <div class="row">
+              <!-- ✅ Botón Volver (solo visible cuando viene de vista de usuario) -->
+              <button id="btn-back-to-user" class="btn secondary hidden" type="button" aria-label="Volver a mis cursos" title="Volver a mis cursos">
+                ← Volver
+              </button>
+              
+              <!-- ✅ Botón de Ajustes para consultores -->
+              <div style="position: relative;">
+                <button id="btn-settings-content" class="btn secondary" type="button" aria-label="Abrir menú de ajustes" aria-expanded="false" aria-haspopup="true" title="Ajustes">
+                  ⚙️ Ajustes
+                </button>
+                
+                <!-- Menú desplegable de ajustes para consultores -->
+                <div id="settingsDropdownContent" class="settings-dropdown" style="display: none;" role="menu" aria-label="Menú de ajustes">
+                  <!-- Categoría: Apariencia -->
+                  <div class="settings-category" data-category="appearance" role="menuitem" tabindex="0" aria-expanded="false">
+                    <span class="settings-category-icon">🎨</span>
+                    <span class="settings-category-label">Apariencia</span>
+                    <span class="settings-category-arrow">▶</span>
+                  </div>
+                  <div class="settings-submenu" data-submenu="appearance" style="display: none;">
+                    <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0" title="Alternar entre modo claro y oscuro">
+                      <span id="theme-toggle-icon-content">☀️</span> <span id="theme-toggle-text-content">Cambiar a Modo Claro</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <button id="btn-logout" class="btn secondary" type="button" aria-label="Salir del curso y volver al inicio" title="Volver a la pantalla de acceso">Salir</button>
+            </div>
+          </div>
+
+          <hr style="border:0; border-top:1px solid rgba(255,255,255,.06);" />
+
+          <div class="course-row" style="margin-top:12px;">
+            <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() coloca la tarjeta aquí --></div>
+            <div class="card-right">
+              <div class="filelist" id="filelist" aria-live="polite" role="list" aria-label="Lista de archivos del curso"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <p class="footer">© <span id="year"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
+    </section>
+
+    <!-- VISTA MAESTRA -->
+    <section id="master" class="hidden">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+        <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
+        <div class="row">
+          <button id="btn-add-course" class="btn" type="button" aria-label="Agregar nuevo curso" title="Agregar nuevo curso (Ctrl+N)">➕ Agregar curso</button>
+          
+          <!-- ✅ Botón de Ajustes con menú desplegable -->
+          <div style="position: relative;">
+            <button id="btn-settings" class="btn secondary" type="button" aria-label="Abrir menú de ajustes y herramientas" aria-expanded="false" aria-haspopup="true" title="Ajustes y herramientas">
+              ⚙️ Ajustes
+            </button>
+            
+            <!-- Menú desplegable de ajustes -->
+            <div id="settingsDropdown" class="settings-dropdown" style="display: none;" role="menu" aria-label="Menú de ajustes">
+              <!-- Categoría: Backups -->
+              <div class="settings-category" data-category="backups" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de backup">
+                <span class="settings-category-icon">📦</span>
+                <span class="settings-category-label">Backups</span>
+                <span class="settings-category-arrow">▶</span>
+              </div>
+              <div class="settings-submenu" data-submenu="backups" style="display: none;">
+                  <div class="settings-menu-item" data-action="export-all" role="menuitem" tabindex="0" title="Exportar todos los cursos y enlaces como archivo JSON">
+                💾 Exportar Backup Completo
+              </div>
+              <div class="settings-menu-item" data-action="export-filtered" role="menuitem" tabindex="0" title="Exportar solo cursos de un tipo específico (Cursos, Diplomados, Webinars)">
+                📤 Exportar por Tipo...
+              </div>
+              <div class="settings-divider" role="separator"></div>
+              <div class="settings-menu-item" data-action="import" role="menuitem" tabindex="0" title="Importar un backup anterior desde un archivo JSON">
+                📥 Importar Backup...
+              </div>
+              <div class="settings-divider" role="separator"></div>
+              <div class="settings-menu-item" data-action="backup-history" role="menuitem" tabindex="0" title="Ver historial de backups guardados anteriormente">
+                📋 Historial de Backups
+              </div>
+              </div>
+              
+              <!-- Categoría: Gestión de Correos -->
+              <div class="settings-category" data-category="emails" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de gestión de correos">
+                <span class="settings-category-icon">📧</span>
+                <span class="settings-category-label">Gestión de Correos</span>
+                <span class="settings-category-arrow">▶</span>
+              </div>
+              <div class="settings-submenu" data-submenu="emails" style="display: none;">
+                  <div class="settings-menu-item" data-action="manage-emails" role="menuitem" tabindex="0" title="Gestionar correos permitidos para todos los cursos">
+                📋 Gestión General de Correos
+              </div>
+              </div>
+              
+              <!-- Categoría: Apariencia -->
+              <div class="settings-category" data-category="appearance" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de apariencia">
+                <span class="settings-category-icon">🎨</span>
+                <span class="settings-category-label">Apariencia</span>
+                <span class="settings-category-arrow">▶</span>
+              </div>
+              <div class="settings-submenu" data-submenu="appearance" style="display: none;">
+                    <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0" title="Alternar entre modo claro y oscuro">
+                      <span id="theme-toggle-icon">☀️</span> <span id="theme-toggle-text">Cambiar a Modo Claro</span>
+                    </div>
+              </div>
+            </div>
+          </div>
+          
+          <button id="btn-master-exit" class="btn secondary" type="button" aria-label="Salir de la vista maestra" title="Volver a la pantalla de acceso">Salir</button>
+        </div>
+      </div>
+
+      <!-- Estadísticas -->
+      <div id="masterStats" style="margin-bottom: 16px; padding: 16px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 14px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <span style="font-weight: 600; color: var(--accent);">📚</span>
+          <span>Total: <strong id="statsCoursesCount">0</strong></span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px;">
+          <span>📖 Cursos: <strong id="statsTypeCurso">0</strong></span>
+          <span>🎓 Diplomados: <strong id="statsTypeDiplomado">0</strong></span>
+          <span>💻 Webinars: <strong id="statsTypeWebinar">0</strong></span>
+          <span>📝 Seminarios: <strong id="statsTypeSeminario">0</strong></span>
+          <span>🔧 Talleres: <strong id="statsTypeTaller">0</strong></span>
+        </div>
+      </div>
+
+      <!-- Filtros y Ordenamiento -->
+      <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
+        <!-- Filtro por clasificación -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label for="filterByType" style="font-size: 13px; color: var(--muted);">Filtrar:</label>
+          <select id="filterByType" class="input" style="min-width: 150px; font-size: 13px;" title="Filtrar cursos por tipo">
+            <option value="all">Todos</option>
+            <option value="curso">📖 Cursos</option>
+            <option value="diplomado">🎓 Diplomados</option>
+            <option value="webinar">💻 Webinars</option>
+            <option value="seminario">📝 Seminarios</option>
+            <option value="taller">🔧 Talleres</option>
+          </select>
+        </div>
+        
+        <!-- Ordenamiento -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label for="sortBy" style="font-size: 13px; color: var(--muted);">Ordenar:</label>
+          <select id="sortBy" class="input" style="min-width: 150px; font-size: 13px;" title="Ordenar cursos">
+            <option value="title-asc">Nombre (A-Z)</option>
+            <option value="title-desc">Nombre (Z-A)</option>
+            <option value="type-asc">Tipo (A-Z)</option>
+            <option value="date-desc">Más recientes</option>
+            <option value="date-asc">Más antiguos</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Buscador -->
+      <div class="master-search">
+        <input id="masterSearch" type="text" placeholder="Buscar por nombre, tag o clasificación (ej. GASH, MBF, diplomado)..." aria-label="Buscar cursos" title="Buscar cursos (Ctrl+F)" />
+        <button id="masterSearchClear" type="button" aria-label="Limpiar búsqueda" title="Limpiar búsqueda">Limpiar</button>
+      </div>
+
+      <div class="master-grid" id="masterGrid" role="list" aria-label="Lista de cursos disponibles"></div>
+      <p class="footer">© <span id="year_master"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
+    </section>
+  </div>
+
+  <!-- Botón flotante para sincronización manual -->
+  <button id="btn-speed-refresh" class="reload-fab" type="button" aria-label="Sincronizar recursos" title="Sincronizar recursos desde el servidor">
+    <span class="sr-only">Sincronizar recursos</span>
+    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    </svg>
+  </button>
+
+  <!-- Loader -->
+  <div id="eduLoader" class="edu-loader hidden" aria-hidden="true" role="alert" aria-live="polite">
+    <div class="loader-ring" aria-hidden="true"></div>
+    <div class="loader-text">Cargando recursos...</div>
+    <div class="loader-progress" aria-hidden="true"><i id="loaderBar"></i></div>
+    <div id="loaderPercent" class="loader-percent">0%</div>
+  </div>
+
+  <!-- Modal Agregar Curso -->
+  <div id="modalAddCourse" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>➕ Agregar Nuevo Curso</h2>
+        <button class="modal-close" id="modalAddCourseClose" aria-label="Cerrar formulario de nuevo curso" title="Cerrar (Escape)">&times;</button>
+      </div>
+      <form id="formAddCourse">
+        <div class="form-group">
+          <label for="inputCourseTitle" title="Nombre completo del curso que aparecerá en la plataforma">Título del Curso * (5-100 caracteres)</label>
+          <input id="inputCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso (mínimo 5, máximo 100 caracteres)" maxlength="100" tabindex="1" aria-required="true" />
+        </div>
+        <div class="form-group">
+          <label for="inputCourseMeta" title="Descripción breve del curso que aparecerá debajo del título">Descripción / Meta * (10-200 caracteres)</label>
+          <input id="inputCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso (mínimo 10, máximo 200 caracteres)" maxlength="200" tabindex="2" aria-required="true" />
+        </div>
+        <div class="form-group">
+          <label for="inputCourseImage" title="URL de la imagen que aparecerá en la tarjeta del curso. Debe ser una URL pública (Google Drive, etc.)">URL de la Imagen *</label>
+          <input id="inputCourseImage" class="input" type="url" placeholder="https://..." required title="URL pública de la imagen" tabindex="3" aria-required="true" />
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
+            📁 Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="inputCourseTag" title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag del Curso * (2-10 caracteres)</label>
+          <input id="inputCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (mínimo 2, máximo 10 caracteres)" tabindex="4" aria-required="true" />
+        </div>
+        <div class="form-group">
+          <label for="selectCourseType" title="Tipo de contenido educativo">Clasificación *</label>
+          <select id="selectCourseType" class="input" required title="Tipo de contenido educativo" tabindex="5" aria-required="true">
+            <option value="curso">Curso</option>
+            <option value="diplomado">Diplomado</option>
+            <option value="webinar">Webinar</option>
+            <option value="seminario">Seminario</option>
+            <option value="taller">Taller</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="selectCourseVariant" title="Estilo visual de la tarjeta del curso">Estilo Visual *</label>
+          <select id="selectCourseVariant" class="input" required title="Estilo visual de la tarjeta" tabindex="6" aria-required="true">
+            <option value="dramatic">Dramatic (Azul)</option>
+            <option value="neon">Neon (Cian)</option>
+            <option value="simple">Simple (Sin efectos)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="inputCourseAccent" title="Color de acento que se usará en la tarjeta del curso">Color Accent</label>
+          <div style="display:flex; gap:10px;">
+            <input id="inputCourseAccent" class="input" type="color" value="#5aa9ff" title="Selector de color" tabindex="7" aria-label="Color de acento" />
+            <input type="text" class="input" id="inputCourseAccentHex" value="#5aa9ff" maxlength="7" title="Código hexadecimal del color (ej: #5aa9ff)" tabindex="8" aria-label="Código hexadecimal del color" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="inputCourseCode" title="Código secreto único que los usuarios usarán para acceder al curso. Debe ser único y no puede cambiarse después">Código Secreto (se auto-generará) * (5-50 caracteres)</label>
+          <input id="inputCourseCode" class="input" type="text" placeholder="Ingresa un código único, ej: CURSO123456" required title="Código secreto único para acceder al curso (mínimo 5, máximo 50 caracteres)" maxlength="50" tabindex="9" aria-required="true" />
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn secondary" id="btnCancelAddCourse" tabindex="10" aria-label="Cancelar creación de curso">Cancelar</button>
+          <button type="submit" class="btn" tabindex="11" aria-label="Crear nuevo curso">Crear Curso</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de edición de curso -->
+  <div id="modalEditCourse" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>✏️ Editar Curso</h2>
+        <button class="modal-close" id="modalEditCourseClose" aria-label="Cerrar formulario de edición" title="Cerrar (Escape)">&times;</button>
+      </div>
+      <form id="formEditCourse">
+        <div class="form-group">
+          <label for="inputEditCourseTitle" title="Nombre completo del curso que aparecerá en la plataforma">Título del Curso * (5-100 caracteres)</label>
+          <input id="inputEditCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso (mínimo 5, máximo 100 caracteres)" maxlength="100" tabindex="1" aria-required="true" />
+        </div>
+        <div class="form-group">
+          <label for="inputEditCourseMeta" title="Descripción breve del curso que aparecerá debajo del título">Descripción / Meta * (10-200 caracteres)</label>
+          <input id="inputEditCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso (mínimo 10, máximo 200 caracteres)" maxlength="200" tabindex="2" aria-required="true" />
+        </div>
+        <div class="form-group">
+          <label for="inputEditCourseImage" title="URL de la imagen que aparecerá en la tarjeta del curso. Debe ser una URL pública (Google Drive, etc.)">URL de la Imagen *</label>
+          <input id="inputEditCourseImage" class="input" type="url" placeholder="https://..." required title="URL pública de la imagen" tabindex="3" aria-required="true" />
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
+            📁 Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="inputEditCourseTag" title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag del Curso * (2-10 caracteres)</label>
+          <input id="inputEditCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (mínimo 2, máximo 10 caracteres)" tabindex="4" aria-required="true" />
+        </div>
+        <div class="form-group">
+          <label for="selectEditCourseType" title="Tipo de contenido educativo">Clasificación *</label>
+          <select id="selectEditCourseType" class="input" required title="Tipo de contenido educativo" tabindex="5" aria-required="true">
+            <option value="curso">Curso</option>
+            <option value="diplomado">Diplomado</option>
+            <option value="webinar">Webinar</option>
+            <option value="seminario">Seminario</option>
+            <option value="taller">Taller</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="selectEditCourseVariant" title="Estilo visual de la tarjeta del curso">Estilo Visual *</label>
+          <select id="selectEditCourseVariant" class="input" required title="Estilo visual de la tarjeta" tabindex="6" aria-required="true">
+            <option value="dramatic">Dramatic (Azul)</option>
+            <option value="neon">Neon (Cian)</option>
+            <option value="simple">Simple (Sin efectos)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="inputEditCourseAccent" title="Color de acento que se usará en la tarjeta del curso">Color Accent</label>
+          <div style="display:flex; gap:10px;">
+            <input id="inputEditCourseAccent" class="input" type="color" value="#5aa9ff" title="Selector de color" tabindex="7" aria-label="Color de acento" />
+            <input type="text" class="input" id="inputEditCourseAccentHex" value="#5aa9ff" maxlength="7" title="Código hexadecimal del color (ej: #5aa9ff)" tabindex="8" aria-label="Código hexadecimal del color" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="inputEditCourseCode">Código Secreto (no se puede cambiar)</label>
+          <input id="inputEditCourseCode" class="input" type="text" readonly style="background: rgba(255,255,255,0.05); cursor: not-allowed;" />
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
+            ⚠️ El código no se puede cambiar una vez creado el curso
+          </div>
+        </div>
+        <input type="hidden" id="inputEditCourseHex" />
+        <div class="form-actions">
+          <button type="button" class="btn secondary" id="btnCancelEditCourse" tabindex="9" aria-label="Cancelar edición de curso">Cancelar</button>
+          <button type="submit" class="btn" tabindex="10" aria-label="Guardar cambios del curso">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal para ingresar código al duplicar curso -->
+  <div id="modalDuplicateCode" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2>📋 Duplicar Curso</h2>
+        <button class="modal-close" id="modalDuplicateCodeClose" aria-label="Cerrar formulario de duplicar curso" title="Cerrar (Escape)">&times;</button>
+      </div>
+      
+      <div style="padding: 20px;">
+        <p style="color: var(--muted); margin-bottom: 20px;">
+          Ingresa un nuevo código secreto único para el curso duplicado:
+        </p>
+        
+        <div class="form-group">
+          <label for="inputDuplicateCode">Código Secreto *</label>
+          <input id="inputDuplicateCode" class="input" type="text" placeholder="Ej: CURSO_NUEVO_123" required autofocus />
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
+            ⚠️ Este código debe ser único y no puede estar en uso
+          </div>
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 12px; justify-content: center; padding: 0 20px 20px;">
+        <button id="btnCancelDuplicate" class="btn secondary" type="button">
+          Cancelar
+        </button>
+        <button id="btnConfirmDuplicate" class="btn" type="button">
+          Duplicar Curso
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de confirmación para eliminar curso -->
+  <div id="deleteConfirmModal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2>Confirmar Eliminación</h2>
+        <button class="modal-close" id="deleteConfirmClose" aria-label="Cerrar confirmación de eliminación" title="Cerrar (Escape)">&times;</button>
+      </div>
+      
+      <div style="text-align: center; padding: 20px 0;">
+        <!-- Icono de advertencia -->
+        <div style="width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 50%; background: linear-gradient(135deg, rgba(255,90,90,0.2), rgba(255,90,90,0.1)); display: flex; align-items: center; justify-content: center;">
+          <svg style="width: 40px; height: 40px; color: var(--danger);" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+          </svg>
+        </div>
+        
+        <h3 id="deleteCourseName" style="margin-bottom: 12px; font-size: 20px;"></h3>
+        <p id="deleteConfirmMessage" style="color: var(--muted); margin-bottom: 24px;">
+          ¿Estás seguro de que deseas eliminar este curso?<br>
+          <strong style="color: var(--danger);">Esta acción no se puede deshacer.</strong>
+        </p>
+      </div>
+      
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button id="deleteConfirmCancel" class="btn secondary" type="button">
+          Cancelar
+        </button>
+        <button id="deleteConfirmYes" class="btn" type="button" style="background: linear-gradient(135deg, #ff5555, #cc0000);">
+          Sí, eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de éxito -->
+  <div id="successModal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content" style="max-width: 450px;">
+      <button class="modal-close" id="successModalClose" aria-label="Cerrar mensaje de éxito" title="Cerrar (Escape)">&times;</button>
+      
+      <div style="text-align: center; padding: 30px 20px;">
+        <!-- Icono de éxito -->
+        <div style="width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 50%; background: linear-gradient(135deg, rgba(74,222,128,0.2), rgba(34,197,94,0.1)); display: flex; align-items: center; justify-content: center;">
+          <svg style="width: 45px; height: 45px; color: #4ade80;" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+          </svg>
+        </div>
+        
+        <h3 id="successModalTitle" style="margin-bottom: 12px; font-size: 22px; color: #4ade80;">¡Éxito!</h3>
+        <p id="successModalMessage" style="color: var(--muted); margin-bottom: 28px; font-size: 16px;">
+          El curso ha sido creado correctamente.
+        </p>
+        
+        <button id="successModalBtn" class="btn" type="button" style="min-width: 140px; background: linear-gradient(135deg, #4ade80, #22c55e);">
+          Continuar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para gestionar correos permitidos por curso -->
+  <div id="modalCourseEmails" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h2 id="modalCourseEmailsTitle">📧 Correos Permitidos</h2>
+        <button class="modal-close" id="modalCourseEmailsClose" aria-label="Cerrar modal de correos" title="Cerrar (Escape)">&times;</button>
+      </div>
+      <div style="padding: 20px;">
+        <!-- Formulario para agregar correo -->
+        <div style="display:flex; gap:8px; margin-bottom:20px;">
+          <input 
+            id="input-course-email" 
+            class="input" 
+            type="email" 
+            placeholder="correo@ejemplo.com" 
+            style="flex:1;"
+            aria-label="Correo electrónico a autorizar para este curso"
+          />
+          <button id="btn-add-course-email" class="btn" type="button">
+            ➕ Agregar
+          </button>
+        </div>
+        
+        <!-- Lista de correos -->
+        <div id="course-emails-list" style="display:grid; gap:8px; min-height:60px; max-height:400px; overflow-y:auto;">
+          <p style="color:var(--muted); text-align:center; padding:20px; margin:0;">Cargando correos autorizados...</p>
+        </div>
+        
+        <div id="msg-course-emails" class="msg" style="margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Gestión General de Correos -->
+  <div id="modalGeneralEmails" class="modal">
+    <div class="modal-content" style="max-width: 900px; max-height: 90vh;">
+      <div class="modal-header">
+        <h2>📧 Gestión General de Correos</h2>
+        <button class="modal-close" id="modalGeneralEmailsClose" aria-label="Cerrar modal de gestión de correos" title="Cerrar (Escape)">&times;</button>
+      </div>
+      <div style="padding: 20px; overflow-y: auto; max-height: calc(90vh - 100px);">
+        <!-- Búsqueda y filtros -->
+        <div style="margin-bottom: 20px;">
+          <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <input 
+              id="input-search-course-emails" 
+              class="input" 
+              type="text" 
+              placeholder="Buscar curso o correo..." 
+              style="flex:1;"
+              aria-label="Buscar curso o correo"
+            />
+            <select id="filter-course-type-emails" class="input" style="min-width: 150px;">
+              <option value="all">Todos los tipos</option>
+              <option value="curso">📖 Cursos</option>
+              <option value="diplomado">🎓 Diplomados</option>
+              <option value="webinar">💻 Webinars</option>
+              <option value="seminario">📝 Seminarios</option>
+              <option value="taller">🔧 Talleres</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Lista de cursos con sus correos -->
+        <div id="general-emails-list" style="display:grid; gap:16px;">
+          <p style="color:var(--muted); text-align:center; padding:40px; margin:0;">Cargando cursos y correos...</p>
+        </div>
+        
+        <div id="msg-general-emails" class="msg" style="margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sistema de Notificaciones Toast -->
+  <div id="toastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 12px; pointer-events: none;"></div>
+
+  <style>
+    .toast {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      min-width: 300px;
+      max-width: 400px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      pointer-events: auto;
+      animation: toastSlideIn 0.3s ease-out;
+      backdrop-filter: blur(10px);
+    }
+    
+    .toast.success {
+      border-left: 4px solid #4ade80;
+    }
+    
+    .toast.error {
+      border-left: 4px solid #ff5555;
+    }
+    
+    .toast.warning {
+      border-left: 4px solid #fbbf24;
+    }
+    
+    .toast.info {
+      border-left: 4px solid var(--accent);
+    }
+    
+    .toast-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+    
+    .toast-content {
+      flex: 1;
+    }
+    
+    .toast-title {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+    
+    .toast-message {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    
+    .toast-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 20px;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: color 0.2s;
+    }
+    
+    .toast-close:hover {
+      color: var(--text);
+    }
+    
+    @keyframes toastSlideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes toastSlideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+    }
+    
+    .toast.hiding {
+      animation: toastSlideOut 0.3s ease-in forwards;
+    }
+    
+    /* Indicadores de carga */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.2s ease-out;
+    }
+    
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255,255,255,0.1);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    .loading-text {
+      margin-top: 16px;
+      color: var(--text);
+      font-size: 14px;
+      text-align: center;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Animaciones sutiles */
+    .fade-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+    
+    .slide-up {
+      animation: slideUp 0.3s ease-out;
+    }
+    
+    @keyframes slideUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    .pulse {
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.7;
+      }
+    }
+    
+    /* Contadores de caracteres */
+    .char-counter {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      text-align: right;
+      transition: color 0.2s;
+    }
+    
+    .char-counter.warning {
+      color: #fbbf24;
+    }
+    
+    .char-counter.danger {
+      color: #ff5555;
+    }
+    
+    /* Mensajes de validación */
+    .url-error,
+    .image-checking,
+    .image-success,
+    .image-warning {
+      font-size: 12px;
+      margin-top: 4px;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    
+    .url-error {
+      color: #ff5555;
+      border-left: 3px solid #ff5555;
+      background: rgba(255,85,85,0.1);
+    }
+    
+    .image-checking {
+      color: var(--accent);
+      border-left: 3px solid var(--accent);
+      background: rgba(90,169,255,0.1);
+    }
+    
+    .image-success {
+      color: #4ade80;
+      border-left: 3px solid #4ade80;
+      background: rgba(74,222,128,0.1);
+    }
+    
+    .image-warning {
+      color: #fbbf24;
+      border-left: 3px solid #fbbf24;
+      background: rgba(251,191,36,0.1);
+    }
+    
+    /* Inputs con validación */
+    .input:invalid {
+      border-color: #ff5555;
+    }
+    
+    .input:valid {
+      border-color: rgba(255,255,255,0.08);
+    }
+    
+    /* ✅ Menú de Ajustes Desplegable */
+    .settings-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      min-width: 220px;
+      z-index: 1000;
+      overflow: hidden;
+      animation: slideDown 0.2s ease-out;
+    }
+    
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .settings-menu-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .settings-menu-item:hover {
+      background: rgba(90,169,255,0.1);
+    }
+    
+    .settings-menu-item:active {
+      background: rgba(90,169,255,0.2);
+    }
+    
+    /* ✅ Categorías principales del menú */
+    .settings-category {
+      padding: 12px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+    }
+    
+    .settings-category:hover {
+      background: rgba(90,169,255,0.15);
+    }
+    
+    .settings-category-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    
+    .settings-category-label {
+      flex: 1;
+    }
+    
+    .settings-category-arrow {
+      font-size: 10px;
+      transition: transform 0.2s ease;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    
+    .settings-category[aria-expanded="true"] .settings-category-arrow {
+      transform: rotate(90deg);
+    }
+    
+    /* ✅ Submenús (opciones dentro de cada categoría) */
+    .settings-submenu {
+      background: rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.2s ease;
+      max-height: 0;
+      opacity: 0;
+      padding: 0;
+    }
+    
+    .settings-submenu.expanded {
+      max-height: 500px;
+      opacity: 1;
+      padding: 4px 0;
+    }
+    
+    .settings-submenu .settings-menu-item {
+      padding-left: 40px;
+      font-size: 13px;
+      font-weight: normal;
+    }
+    
+    .settings-submenu .settings-divider {
+      margin-left: 40px;
+    }
+    
+    :root[data-theme="light"] .settings-submenu {
+      background: rgba(0,0,0,0.03);
+    }
+    
+    .settings-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+    
+    /* Botón de ajustes con indicador */
+    #btn-settings {
+      position: relative;
+    }
+
+    /* ✅ Animación para spinner de carga */
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+
+  <!-- Scripts -->
+  <!-- Firebase Realtime Database (100% gratis, sin facturación) -->
+  <script src="src/firebase.js?v=3"></script>
+  <!-- App scripts (esperan a que Firebase cargue) -->
+  <script src="assets/js/electric-card.js?v=7" defer></script>
+  <script src="assets/js/app.js?v=88" defer></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const refreshBtn = document.getElementById('btn-speed-refresh');
+      if (!refreshBtn) return;
+
+      // ✅ Variable global para controlar estado del botón
+      window.btnSyncHasChanges = false;
+      
+      // ✅ Función para actualizar el estado visual del botón
+      window.updateSyncButtonState = (hasChanges) => {
+        if (hasChanges !== window.btnSyncHasChanges) {
+          window.btnSyncHasChanges = hasChanges;
+          if (hasChanges) {
+            refreshBtn.classList.add('has-changes');
+            refreshBtn.setAttribute('title', '🟡 Nuevos recursos disponibles - Click para sincronizar');
+            console.log('[FAB] 🟡 Botón cambió a AMARILLO (cambios detectados)');
+          } else {
+            refreshBtn.classList.remove('has-changes');
+            refreshBtn.setAttribute('title', 'Sincronizar recursos desde el servidor');
+            console.log('[FAB] 🔵 Botón cambió a AZUL (sin cambios)');
+          }
+        }
+      };
+
+      const runRefresh = async () => {
+        if (refreshBtn.disabled) {
+          return;
+        }
+
+        refreshBtn.disabled = true;
+        refreshBtn.classList.add('loading');
+
+        try {
+          console.log('[FAB] 🔄 Forzando sincronización desde servidor...');
+          
+          // ✅ Llamar a la función global de refresh forzado (sin borrar localStorage)
+          if (typeof window.forzarSincronizacion === 'function') {
+            await window.forzarSincronizacion();
+            console.log('[FAB] ✅ Sincronización completada');
+            
+            // ✅ Resetear estado a azul después de sincronizar
+            window.updateSyncButtonState(false);
+            
+            // ✅ El modal se muestra desde forzarSincronizacion() en app.js
+          } else {
+            console.warn('[FAB] forzarSincronizacion no está disponible. Recargando...');
+            location.reload(true);
+          }
+        } catch (error) {
+          console.error('[FAB] Error forzando sincronización:', error);
+          // ✅ Mostrar modal de error (sin alert)
+          if (typeof window.showSuccessModal === 'function') {
+            window.showSuccessModal(
+              'Error de Sincronización',
+              'No se pudo sincronizar. Intenta nuevamente.'
+            );
+          }
+        } finally {
+          refreshBtn.disabled = false;
+          refreshBtn.classList.remove('loading');
+        }
+      };
+
+      refreshBtn.addEventListener('click', runRefresh);
+      refreshBtn.addEventListener('keydown', (evt) => {
+        if (evt.key === 'Enter' || evt.key === ' ') {
+          evt.preventDefault();
+          runRefresh();
+        }
+      });
+    });
+  </script>
+  
+  <!-- Service Worker Registration -->
+  <script>
+    // ✅ MODO DESARROLLO: Cambia a false antes de hacer commit a producción
+    // En desarrollo: Los cambios se ven inmediatamente sin limpiar caché
+    // En producción: Usa caché optimizado para mejor rendimiento
+    const IS_DEVELOPMENT = true; // ⚠️ CAMBIAR A false EN PRODUCCIÓN
+    
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        if (IS_DEVELOPMENT) {
+          // En desarrollo: desregistrar cualquier SW existente y registrar nuevo
+          // Esto asegura que siempre se use la versión más reciente
+          navigator.serviceWorker.getRegistrations().then(registrations => {
+            registrations.forEach(reg => reg.unregister());
+          }).then(() => {
+            const swPath = '/edusalud-consultores/sw.js';
+            navigator.serviceWorker.register(swPath)
+              .then((registration) => {
+                console.log('[SW] ✅ Registrado (DESARROLLO):', registration.scope);
+                console.log('[SW] 💡 Los cambios se verán inmediatamente sin limpiar caché');
+                // Forzar actualización inmediata
+                registration.update();
+              })
+              .catch((error) => {
+                console.log('[SW] ❌ Error al registrar:', error);
+              });
+          });
+        } else {
+          // En producción: registro normal con caché optimizado
+          const swPath = '/edusalud-consultores/sw.js';
+          navigator.serviceWorker.register(swPath)
+            .then((registration) => {
+              console.log('[SW] ✅ Registrado correctamente:', registration.scope);
+            })
+            .catch((error) => {
+              console.log('[SW] ❌ Error al registrar:', error);
+            });
+        }
+      });
+    }
+  </script>
+
+  <!-- Script del modal de confirmación de eliminación -->
+  <script>
+  // ✅ Modal de confirmación para eliminar
+  (function() {
+    const modal = document.getElementById('deleteConfirmModal');
+    const btnClose = document.getElementById('deleteConfirmClose');
+    const btnCancel = document.getElementById('deleteConfirmCancel');
+    const btnYes = document.getElementById('deleteConfirmYes');
+    const courseName = document.getElementById('deleteCourseName');
+    const confirmMessage = document.getElementById('deleteConfirmMessage');
+    
+    let onConfirmCallback = null;
+    
+    // Función global para mostrar el modal
+    window.showDeleteConfirmModal = function(title, onConfirm, type = 'curso') {
+      courseName.textContent = title;
+      onConfirmCallback = onConfirm;
+      
+      // ✅ Cambiar el mensaje según el tipo (curso o enlace)
+      // Detectar si es enlace por el título que empieza con "Enlace:" o por el parámetro type
+      const isEnlace = type === 'enlace' || (title && title.trim().startsWith('Enlace:'));
+      if (isEnlace) {
+        confirmMessage.innerHTML = '¿Estás seguro de que deseas eliminar este enlace?<br><strong style="color: var(--danger);">Esta acción no se puede deshacer.</strong>';
+      } else {
+        confirmMessage.innerHTML = '¿Estás seguro de que deseas eliminar este curso?<br><strong style="color: var(--danger);">Esta acción no se puede deshacer.</strong>';
+      }
+      
+      modal.classList.add('show');
+    };
+    
+    // Cerrar modal
+    function closeModal() {
+      modal.classList.remove('show');
+      onConfirmCallback = null;
+    }
+    
+    // Event listeners
+    btnClose.addEventListener('click', closeModal);
+    btnCancel.addEventListener('click', closeModal);
+    
+    btnYes.addEventListener('click', () => {
+      if (onConfirmCallback) {
+        onConfirmCallback();
+      }
+      closeModal();
+    });
+    
+    // Cerrar con Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('show')) {
+        closeModal();
+      }
+    });
+    
+    // Cerrar al hacer click en el overlay
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+  })();
+
+  // ✅ Modal de éxito
+  (function() {
+    const modal = document.getElementById('successModal');
+    const btnClose = document.getElementById('successModalClose');
+    const btnContinue = document.getElementById('successModalBtn');
+    const modalTitle = document.getElementById('successModalTitle');
+    const modalMessage = document.getElementById('successModalMessage');
+    
+    // Función global para mostrar el modal de éxito
+    // ✅ Modal para ingresar código al duplicar curso
+    (function() {
+      const modal = document.getElementById('modalDuplicateCode');
+      const input = document.getElementById('inputDuplicateCode');
+      const btnCancel = document.getElementById('btnCancelDuplicate');
+      const btnConfirm = document.getElementById('btnConfirmDuplicate');
+      const btnClose = document.getElementById('modalDuplicateCodeClose');
+      
+      let onConfirmCallback = null;
+      
+      const closeModal = () => {
+        modal.classList.remove('show');
+        input.value = '';
+        onConfirmCallback = null;
+      };
+      
+      const handleConfirm = () => {
+        const code = input.value.trim();
+        if (!code) {
+          if (typeof window.showSuccessModal === 'function') {
+            window.showSuccessModal('Error', 'Por favor ingresa un código secreto');
+          } else {
+            alert('Por favor ingresa un código secreto');
+          }
+          return;
+        }
+        if (onConfirmCallback) {
+          onConfirmCallback(code);
+        }
+        closeModal();
+      };
+      
+      // Event listeners (solo una vez)
+      if (btnConfirm) {
+        btnConfirm.addEventListener('click', handleConfirm);
+      }
+      if (btnCancel) {
+        btnCancel.addEventListener('click', closeModal);
+      }
+      if (btnClose) {
+        btnClose.addEventListener('click', closeModal);
+      }
+      
+      // Enter key para confirmar
+      if (input) {
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && modal.classList.contains('show')) {
+            e.preventDefault();
+            handleConfirm();
+          }
+        });
+      }
+      
+      // Cerrar al hacer click fuera
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal || e.target.classList.contains('modal-overlay')) {
+            closeModal();
+          }
+        });
+      }
+      
+      // Cerrar con Escape
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('show')) {
+          closeModal();
+        }
+      });
+      
+      // Función global para mostrar el modal
+      window.showDuplicateCodeModal = function(defaultCode, onConfirm) {
+        if (!modal || !input) {
+          // Fallback a prompt si el modal no está disponible
+          const code = prompt('Ingresa un nuevo código secreto para el curso duplicado:', defaultCode);
+          if (code && code.trim()) {
+            onConfirm(code.trim());
+          }
+          return;
+        }
+        
+        // Pre-llenar con código sugerido
+        input.value = defaultCode || '';
+        onConfirmCallback = onConfirm;
+        
+        // Mostrar modal y enfocar input
+        modal.classList.add('show');
+        setTimeout(() => input.focus(), 100);
+      };
+    })();
+
+    window.showSuccessModal = function(title, message) {
+      if (title) modalTitle.textContent = title;
+      if (message) modalMessage.textContent = message;
+      modal.classList.add('show');
+      
+      // Auto-cerrar después de 3 segundos
+      setTimeout(() => {
+        closeModal();
+      }, 3000);
+    };
+    
+    // ✅ Sistema de Toast Notifications
+    window.showToast = function(type, title, message, duration = 4000) {
+      const container = document.getElementById('toastContainer');
+      if (!container) {
+        // Fallback a alert si no hay contenedor
+        alert(`${title}: ${message}`);
+        return;
+      }
+      
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      
+      const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+      };
+      
+      toast.innerHTML = `
+        <span class="toast-icon">${icons[type] || icons.info}</span>
+        <div class="toast-content">
+          <div class="toast-title">${title || ''}</div>
+          <div class="toast-message">${message || ''}</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()" aria-label="Cerrar notificación" title="Cerrar">&times;</button>
+      `;
+      
+      container.appendChild(toast);
+      
+      // Auto-remover después de duration
+      setTimeout(() => {
+        toast.classList.add('hiding');
+        setTimeout(() => {
+          if (toast.parentElement) {
+            toast.remove();
+          }
+        }, 300);
+      }, duration);
+      
+      return toast;
+    };
+    
+    // ✅ Indicador de carga global
+    window.showLoading = function(message = 'Cargando...') {
+      const overlay = document.createElement('div');
+      overlay.className = 'loading-overlay';
+      overlay.id = 'globalLoadingOverlay';
+      overlay.innerHTML = `
+        <div style="text-align: center;">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">${message}</div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      return overlay;
+    };
+    
+    window.hideLoading = function() {
+      const overlay = document.getElementById('globalLoadingOverlay');
+      if (overlay) {
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+          if (overlay.parentElement) {
+            overlay.remove();
+          }
+        }, 200);
+      }
+    };
+    
+    // Cerrar modal
+    function closeModal() {
+      modal.classList.remove('show');
+    }
+    
+    // Event listeners
+    btnClose.addEventListener('click', closeModal);
+    btnContinue.addEventListener('click', closeModal);
+    
+    // Cerrar con Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('show')) {
+        closeModal();
+      }
+    });
+    
+    // Cerrar al hacer click en el overlay
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+  })();
+  </script>
+</body>
+</html>
