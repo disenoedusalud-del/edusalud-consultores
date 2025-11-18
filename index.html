@@ -120,7 +120,9 @@
     }
 
     :root[data-theme="light"] .master-card:hover{
-      box-shadow:0 12px 32px rgba(0,0,0,.12);
+      transform: translateY(-4px) scale(1.01);
+      box-shadow:0 12px 32px rgba(0,0,0,.15);
+      border-color: rgba(59,130,246,.15);
     }
 
     :root[data-theme="light"] .reload-fab{
@@ -142,6 +144,23 @@
         var(--bg);
       color:var(--text);
       min-height:100vh;
+    }
+
+    /* ✅ Transiciones suaves al cambiar de vista */
+    #access, #content, #master {
+      transition: opacity 0.4s ease, transform 0.4s ease, visibility 0.4s ease;
+      opacity: 1;
+      transform: translateY(0);
+      visibility: visible;
+      /* ✅ Las secciones principales NO usan display:none para permitir transiciones */
+    }
+    #access.hidden, #content.hidden, #master.hidden {
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      visibility: hidden;
+      /* ✅ NO usar display:none aquí para permitir transiciones CSS */
+      /* Los elementos ocultos serán invisibles pero permitirán transiciones suaves */
     }
 
     .wrap{ max-width:1100px; margin:0 auto; padding:28px 20px; }
@@ -365,6 +384,13 @@
       padding:18px;
       box-shadow:0 8px 24px rgba(0,0,0,.25);
       backdrop-filter: blur(4px);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      cursor: pointer;
+    }
+    .master-card:hover {
+      transform: translateY(-4px) scale(1.01);
+      box-shadow: 0 12px 32px rgba(0,0,0,.35);
+      border-color: rgba(90,169,255,.2);
     }
     .master-card .left{ min-height:220px; }
     .master-card .right .filelist{ margin-top:0; }
@@ -404,8 +430,13 @@
       background: rgba(0,0,0,0.8);
       backdrop-filter: blur(4px);
       z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
-    .modal.show { display: flex; }
+    .modal.show { 
+      display: flex;
+      opacity: 1;
+    }
     .modal-content {
       background: var(--bg);
       border: 1px solid rgba(255,255,255,.1);
@@ -416,6 +447,13 @@
       max-height: 90vh;
       overflow-y: auto;
       box-shadow: 0 12px 48px rgba(0,0,0,0.4);
+      transform: translateY(-20px) scale(0.95);
+      opacity: 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    .modal.show .modal-content {
+      transform: translateY(0) scale(1);
+      opacity: 1;
     }
     .modal-header {
       display: flex;
