@@ -54,10 +54,23 @@ console.log('[APP] Iniciando aplicación con soporte Firebase...');
  * Convierte caracteres especiales en entidades HTML
  */
 function escapeHTML(str) {
-  if (typeof str !== 'string') return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+  if (typeof str !== 'string') {
+    if (str == null) return '';
+    return String(str);
+  }
+  try {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  } catch (e) {
+    // Fallback si document.createElement falla (no debería pasar)
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
 }
 
 /**
@@ -3848,12 +3861,15 @@ function setupMasterSearch(){
       `;
       
       // ✅ Resaltar parte coincidente (sanitizado)
+      // IMPORTANTE: No escapar el query para el regex, solo para mostrar
       const escapedSuggestion = escapeHTML(suggestion);
-      const escapedQuery = escapeHTML(query);
-      const regex = new RegExp(`(${escapedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      const regexQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escapar solo para regex
+      const regex = new RegExp(`(${regexQuery})`, 'gi');
       
       // Crear mark de forma segura usando DOM
-      const parts = escapedSuggestion.split(regex);
+      // Usar el texto original para el split, pero mostrar solo texto escapado
+      const originalSuggestion = suggestion; // Texto original sin escapar
+      const parts = originalSuggestion.split(regex);
       parts.forEach((part, index) => {
         if (index % 2 === 1) {
           // Es la parte coincidente
@@ -4734,7 +4750,7 @@ function setupAddCourseModal() {
     
     const variant = selectVariant.value || 'dramatic'; // Valor por defecto
     const accent = inputAccent.value || '#5aa9ff'; // Valor por defecto
-    const code = $('#inputCourseCode').value.trim();
+    // code ya está definido arriba (línea 4720)
     
     // ✅ Debug: mostrar valores capturados
     console.log('[FORM] 📝 Valores capturados:', {
