@@ -5472,7 +5472,16 @@ async function tryLoginByGoogle() {
     
     // ✅ OBTENER CURSOS PERMITIDOS PARA ESTE CORREO
     showAuthMessage('msg-auth', 'Verificando cursos disponibles…', false);
-    const allowedCourses = await getCoursesForEmail(userEmail);
+    console.log('[AUTH] 🔄 Iniciando búsqueda de cursos para:', userEmail);
+    
+    let allowedCourses;
+    try {
+      allowedCourses = await getCoursesForEmail(userEmail);
+    } catch (error) {
+      console.error('[AUTH] ❌ Error crítico obteniendo cursos:', error);
+      showAuthMessage('msg-auth', 'Error al verificar cursos. Por favor, intente nuevamente.', true);
+      return false;
+    }
     
     console.log('[AUTH] Cursos permitidos para', userEmail, ':', allowedCourses.length);
     
@@ -5674,22 +5683,33 @@ async function getCourseAllowedEmails(courseHex) {
   }
 }
 
-// ✅ Obtener cursos a los que un correo tiene acceso
+// ✅ Obtener cursos a los que un correo tiene acceso (con timeout y mejor manejo de errores)
 async function getCoursesForEmail(email) {
   try {
     const db = getFirebaseDB();
     if (!db) {
+      console.warn('[AUTH] Firebase DB no disponible, retornando array vacío');
       return [];
     }
     
+    console.log('[AUTH] 🔍 Buscando cursos para:', email);
     const courseEmailsRef = db.ref(COURSE_EMAILS_PATH);
-    const snapshot = await courseEmailsRef.once('value');
+    
+    // ✅ Agregar timeout de 10 segundos
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout: La consulta a Firebase tardó demasiado')), 10000);
+    });
+    
+    const snapshotPromise = courseEmailsRef.once('value');
+    const snapshot = await Promise.race([snapshotPromise, timeoutPromise]);
     
     if (!snapshot.exists()) {
+      console.log('[AUTH] ✅ No hay cursos configurados aún');
       return [];
     }
     
     const emailKey = normalizeEmailKey(email);
+    console.log('[AUTH] 🔑 Email key normalizado:', emailKey);
     const allowedCourses = [];
     
     snapshot.forEach((courseSnapshot) => {
@@ -5697,13 +5717,24 @@ async function getCoursesForEmail(email) {
       const emailData = courseSnapshot.child(emailKey).val();
       
       if (emailData && emailData.active !== false) {
+        console.log('[AUTH] ✅ Encontrado acceso para curso:', courseHex.substring(0, 8));
         allowedCourses.push(courseHex);
       }
     });
     
+    console.log('[AUTH] ✅ Total de cursos permitidos:', allowedCourses.length);
     return allowedCourses;
   } catch (error) {
-    console.error('[AUTH] Error obteniendo cursos para correo:', error);
+    console.error('[AUTH] ❌ Error obteniendo cursos para correo:', error);
+    console.error('[AUTH] Tipo de error:', error.name);
+    console.error('[AUTH] Mensaje:', error.message);
+    
+    // ✅ Si es timeout, retornar array vacío pero loguear
+    if (error.message && error.message.includes('Timeout')) {
+      console.warn('[AUTH] ⚠️ Timeout en consulta, retornando array vacío');
+      return [];
+    }
+    
     return [];
   }
 }
