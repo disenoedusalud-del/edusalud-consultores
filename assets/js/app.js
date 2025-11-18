@@ -1975,6 +1975,106 @@ function ensureMasterTools(){
   setupSettingsMenu();
 }
 
+/* ===================== GESTIÓN DE TEMA (CLARO/OSCURO) ===================== */
+
+/**
+ * ✅ Obtiene el tema actual guardado en localStorage
+ * @returns {string} 'light' o 'dark' (por defecto 'dark')
+ */
+function getTheme() {
+  try {
+    const saved = localStorage.getItem('edusalud-theme');
+    return saved === 'light' ? 'light' : 'dark';
+  } catch (e) {
+    console.warn('[THEME] Error obteniendo tema:', e);
+    return 'dark';
+  }
+}
+
+/**
+ * ✅ Guarda la preferencia de tema en localStorage
+ * @param {string} theme - 'light' o 'dark'
+ */
+function saveTheme(theme) {
+  try {
+    localStorage.setItem('edusalud-theme', theme);
+    console.log('[THEME] ✅ Tema guardado:', theme);
+  } catch (e) {
+    console.warn('[THEME] Error guardando tema:', e);
+  }
+}
+
+/**
+ * ✅ Aplica el tema al documento
+ * @param {string} theme - 'light' o 'dark'
+ */
+function applyTheme(theme) {
+  const root = document.documentElement;
+  if (theme === 'light') {
+    root.setAttribute('data-theme', 'light');
+  } else {
+    root.removeAttribute('data-theme');
+  }
+  console.log('[THEME] ✅ Tema aplicado:', theme);
+}
+
+/**
+ * ✅ Cambia el tema (toggle entre claro y oscuro)
+ * @returns {string} El nuevo tema aplicado
+ */
+function toggleTheme() {
+  const current = getTheme();
+  const newTheme = current === 'dark' ? 'light' : 'dark';
+  applyTheme(newTheme);
+  saveTheme(newTheme);
+  updateThemeToggleUI(newTheme);
+  
+  // Mostrar notificación toast
+  if (typeof window.showToast === 'function') {
+    window.showToast(
+      'success',
+      'Tema cambiado',
+      `Modo ${newTheme === 'light' ? 'Claro' : 'Oscuro'} activado`
+    );
+  }
+  
+  return newTheme;
+}
+
+/**
+ * ✅ Actualiza el texto e icono del toggle en el menú
+ * @param {string} theme - 'light' o 'dark'
+ */
+function updateThemeToggleUI(theme) {
+  const icon = document.getElementById('theme-toggle-icon');
+  const text = document.getElementById('theme-toggle-text');
+  
+  if (icon && text) {
+    if (theme === 'light') {
+      icon.textContent = '☀️';
+      text.textContent = 'Modo Claro';
+    } else {
+      icon.textContent = '🌙';
+      text.textContent = 'Modo Oscuro';
+    }
+  }
+}
+
+/**
+ * ✅ Inicializa el tema al cargar la página
+ */
+function initTheme() {
+  const theme = getTheme();
+  applyTheme(theme);
+  updateThemeToggleUI(theme);
+  console.log('[THEME] ✅ Tema inicializado:', theme);
+}
+
+// ✅ Exponer funciones globalmente para debugging
+window.getTheme = getTheme;
+window.toggleTheme = toggleTheme;
+window.applyTheme = applyTheme;
+
 // ✅ Nueva función para configurar el menú de ajustes
 function setupSettingsMenu() {
   const btnSettings = document.getElementById('btn-settings');
@@ -2094,6 +2194,17 @@ function setupSettingsMenu() {
     btnSettings.setAttribute('aria-expanded', 'false');
     showBackupHistory();
   });
+  
+  // ✅ Toggle de Tema (Claro/Oscuro)
+  dropdown.querySelector('[data-action="toggle-theme"]')?.addEventListener('click', () => {
+    dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
+    toggleTheme();
+  });
+  
+  // ✅ Actualizar UI del toggle según el tema actual
+  const currentTheme = getTheme();
+  updateThemeToggleUI(currentTheme);
   
   console.log('[SETTINGS] ✅ Menú de ajustes configurado correctamente');
 }
@@ -4764,6 +4875,9 @@ window.limpiarTodoYRecargar = async function() {
 
 /* ============ init ============ */
 (async function init(){
+  // ✅ Inicializar tema (claro/oscuro) ANTES de cualquier renderizado
+  initTheme();
+  
   // ✅ NO limpiar archivos al inicio - dejar que la sincronización automática lo maneje
   console.log('[INIT] 🚀 Iniciando plataforma...');
   console.log('[INIT] 📦 Archivos locales disponibles:', Object.keys(localStorage).filter(k => k.startsWith(FILES_STORAGE_PREFIX)).length);
