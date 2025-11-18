@@ -30,6 +30,108 @@
       --danger:#ff7a7a;
     }
 
+    /* ✅ Tema Claro */
+    :root[data-theme="light"]{
+      --bg:#f5f7fa;
+      --muted:#64748b;
+      --text:#1e293b;
+      --accent:#3b82f6;
+      --accent-2:#60a5fa;
+      --danger:#ef4444;
+    }
+
+    :root[data-theme="light"] body{
+      background:
+        radial-gradient(1200px 800px at 80% -10%, rgba(59,130,246,.08), transparent),
+        radial-gradient(900px 700px at -10% 120%, rgba(96,165,250,.04), transparent),
+        var(--bg);
+    }
+
+    :root[data-theme="light"] .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.8), rgba(255,255,255,.6));
+      border: 1px solid rgba(0,0,0,.08);
+      box-shadow: 0 8px 24px rgba(0,0,0,.1);
+    }
+
+    :root[data-theme="light"] .input{
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,.12);
+      color:var(--text);
+    }
+
+    :root[data-theme="light"] .input:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 4px rgba(59,130,246,.1);
+    }
+
+    :root[data-theme="light"] .btn.secondary{
+      background:#ffffff;
+      color:var(--text);
+      border:1px solid rgba(0,0,0,.12);
+    }
+
+    :root[data-theme="light"] .file{
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,.08);
+    }
+
+    :root[data-theme="light"] .master-card{
+      background: linear-gradient(180deg, rgba(255,255,255,.8), rgba(255,255,255,.6));
+      border: 1px solid rgba(0,0,0,.08);
+    }
+
+    :root[data-theme="light"] .master-search input{
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,.12);
+    }
+
+    :root[data-theme="light"] .master-search button{
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,.12);
+    }
+
+    :root[data-theme="light"] .settings-dropdown{
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,.12);
+      box-shadow:0 8px 24px rgba(0,0,0,.15);
+    }
+
+    :root[data-theme="light"] .settings-menu-item:hover{
+      background:rgba(59,130,246,.1);
+    }
+
+    :root[data-theme="light"] .modal-content{
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,.12);
+    }
+
+    :root[data-theme="light"] .toast{
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,.12);
+      box-shadow:0 4px 12px rgba(0,0,0,.15);
+    }
+
+    :root[data-theme="light"] .autocomplete-item:hover{
+      background:rgba(59,130,246,.1);
+    }
+
+    :root[data-theme="light"] .autocomplete-item.selected{
+      background:rgba(59,130,246,.2);
+    }
+
+    :root[data-theme="light"] .master-card:hover{
+      box-shadow:0 12px 32px rgba(0,0,0,.12);
+    }
+
+    :root[data-theme="light"] .reload-fab{
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 12px 38px rgba(59,130,246,0.3);
+    }
+
+    :root[data-theme="light"] .loader-overlay{
+      background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(245,247,250,0.98));
+    }
+
     *{box-sizing:border-box}
     body{
       margin:0;
@@ -435,6 +537,10 @@
             
             <!-- Menú desplegable de ajustes -->
             <div id="settingsDropdown" class="settings-dropdown" style="display: none;" role="menu" aria-label="Menú de ajustes">
+              <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0">
+                <span id="theme-toggle-icon">🌙</span> <span id="theme-toggle-text">Modo Oscuro</span>
+              </div>
+              <div class="settings-divider" role="separator"></div>
               <div class="settings-menu-item" data-action="export-all" role="menuitem" tabindex="0">
                 💾 Exportar Backup Completo
               </div>
