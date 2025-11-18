@@ -5900,6 +5900,8 @@ async function checkEmailAllowedForCourse(email, courseHex) {
 // ✅ Agregar correo a un curso específico
 async function addEmailToCourse(email, courseHex) {
   try {
+    console.log('[AUTH] 🔄 Intentando agregar correo:', email, 'al curso:', courseHex?.substring(0, 8));
+    
     if (!email || !email.includes('@')) {
       throw new Error('Correo inválido');
     }
@@ -5908,16 +5910,26 @@ async function addEmailToCourse(email, courseHex) {
       throw new Error('Hex de curso inválido');
     }
     
+    // ✅ Verificar que Firebase esté disponible
+    console.log('[AUTH] Verificando Firebase DB...');
+    console.log('[AUTH] window.firebaseDB existe:', !!window.firebaseDB);
+    
     const db = getFirebaseDB();
     if (!db) {
-      throw new Error('Firebase no disponible');
+      console.error('[AUTH] ❌ Firebase DB no disponible');
+      console.error('[AUTH] window.firebaseDB:', window.firebaseDB);
+      throw new Error('Firebase no disponible. Asegúrate de que Firebase esté cargado.');
     }
     
+    console.log('[AUTH] ✅ Firebase DB disponible');
+    
     const emailKey = normalizeEmailKey(email);
+    console.log('[AUTH] Email key normalizado:', emailKey);
     
     // Obtener usuario actual (si está autenticado)
     const currentUser = window.firebaseAuth?.currentUser;
     const addedBy = currentUser?.email || 'master';
+    console.log('[AUTH] Agregado por:', addedBy);
     
     const emailData = {
       email: email.toLowerCase().trim(),
@@ -5926,12 +5938,38 @@ async function addEmailToCourse(email, courseHex) {
       active: true
     };
     
-    await db.ref(`${COURSE_EMAILS_PATH}/${courseHex}/${emailKey}`).set(emailData);
-    console.log('[AUTH] ✅ Correo agregado al curso:', email, courseHex.substring(0, 8));
+    console.log('[AUTH] Datos a guardar:', emailData);
+    console.log('[AUTH] Ruta completa:', `${COURSE_EMAILS_PATH}/${courseHex}/${emailKey}`);
+    
+    // ✅ Intentar guardar en Firebase
+    const ref = db.ref(`${COURSE_EMAILS_PATH}/${courseHex}/${emailKey}`);
+    console.log('[AUTH] 🔄 Guardando en Firebase...');
+    
+    await ref.set(emailData);
+    
+    console.log('[AUTH] ✅ Correo agregado exitosamente al curso:', email, courseHex.substring(0, 8));
+    
+    // ✅ Verificar que se guardó correctamente
+    const verifySnapshot = await ref.once('value');
+    if (verifySnapshot.exists()) {
+      console.log('[AUTH] ✅ Verificación: Correo guardado correctamente en Firebase');
+      console.log('[AUTH] Datos verificados:', verifySnapshot.val());
+    } else {
+      console.error('[AUTH] ⚠️ ADVERTENCIA: El correo no se encontró después de guardarlo');
+    }
     
     return true;
   } catch (error) {
-    console.error('[AUTH] Error agregando correo al curso:', error);
+    console.error('[AUTH] ❌ Error agregando correo al curso:', error);
+    console.error('[AUTH] Tipo de error:', error.name);
+    console.error('[AUTH] Mensaje:', error.message);
+    console.error('[AUTH] Stack:', error.stack);
+    
+    // ✅ Si es un error de permisos, dar mensaje más claro
+    if (error.code === 'PERMISSION_DENIED' || error.message?.includes('PERMISSION_DENIED')) {
+      throw new Error('Permisos denegados. Verifica las reglas de Firebase Realtime Database para permitir escritura en "courseEmails".');
+    }
+    
     throw error;
   }
 }
@@ -6154,6 +6192,9 @@ async function renderCourseEmailsList(courseHex) {
 async function addCourseEmailUI() {
   if (!currentCourseEmailsHex) {
     console.error('[AUTH] No hay curso seleccionado');
+    if (typeof window.showToast === 'function') {
+      window.showToast('Error', 'No hay curso seleccionado', 'error');
+    }
     return;
   }
   
@@ -6180,6 +6221,8 @@ async function addCourseEmailUI() {
   }
   
   try {
+    console.log('[AUTH] 🔄 Iniciando proceso de agregar correo...');
+    
     // Verificar si ya existe
     const existingEmails = await getCourseAllowedEmails(currentCourseEmailsHex);
     if (existingEmails.some(e => e.email.toLowerCase() === email.toLowerCase())) {
@@ -6190,7 +6233,14 @@ async function addCourseEmailUI() {
       return;
     }
     
+    // ✅ Mostrar indicador de carga
+    if (msgEl) {
+      msgEl.textContent = 'Agregando correo...';
+      msgEl.classList.remove('error');
+    }
+    
     await addEmailToCourse(email, currentCourseEmailsHex);
+    
     input.value = '';
     if (msgEl) {
       msgEl.textContent = `✅ Correo "${email}" agregado exitosamente.`;
@@ -6199,6 +6249,8 @@ async function addCourseEmailUI() {
     if (typeof window.showToast === 'function') {
       window.showToast('Correo agregado', `"${email}" ahora tiene acceso a este curso`, 'success');
     }
+    
+    // ✅ Refrescar la lista
     await renderCourseEmailsList(currentCourseEmailsHex);
     
     // Limpiar mensaje después de 3 segundos
@@ -6206,12 +6258,16 @@ async function addCourseEmailUI() {
       if (msgEl) msgEl.textContent = '';
     }, 3000);
   } catch (error) {
+    console.error('[AUTH] ❌ Error en addCourseEmailUI:', error);
+    
+    const errorMessage = error.message || 'No se pudo agregar el correo.';
+    
     if (msgEl) {
-      msgEl.textContent = `❌ Error: ${error.message || 'No se pudo agregar el correo.'}`;
+      msgEl.textContent = `❌ Error: ${errorMessage}`;
       msgEl.classList.add('error');
     }
     if (typeof window.showToast === 'function') {
-      window.showToast('Error', `No se pudo agregar: ${error.message}`, 'error');
+      window.showToast('Error', errorMessage, 'error');
     }
   }
 }
