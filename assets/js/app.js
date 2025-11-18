@@ -5557,25 +5557,34 @@ function switchAuthTab(tab) {
   const formAccount = $('#form-account');
   
   if (tab === 'code') {
-    tabCode.classList.add('active');
-    tabAccount.classList.remove('active');
-    formCode.classList.remove('hidden');
-    formAccount.classList.add('hidden');
+    if (tabCode) tabCode.classList.add('active');
+    if (tabAccount) tabAccount.classList.remove('active');
+    if (formCode) formCode.classList.remove('hidden');
+    if (formAccount) formAccount.classList.add('hidden');
   } else {
-    tabCode.classList.remove('active');
-    tabAccount.classList.add('active');
-    formCode.classList.add('hidden');
-    formAccount.classList.remove('hidden');
+    if (tabCode) tabCode.classList.remove('active');
+    if (tabAccount) tabAccount.classList.add('active');
+    if (formCode) formCode.classList.add('hidden');
+    if (formAccount) formAccount.classList.remove('hidden');
     // Mostrar formulario de login por defecto
     showLoginForm();
   }
 }
 
-// ✅ Función para mostrar formulario de login (solo Google ahora)
+// ✅ Función para mostrar formulario de login
 function showLoginForm() {
   const formLogin = $('#form-login');
+  const formRegister = $('#form-register');
+  const formReset = $('#form-reset');
+  
   if (formLogin) {
     formLogin.classList.remove('hidden');
+  }
+  if (formRegister) {
+    formRegister.classList.add('hidden');
+  }
+  if (formReset) {
+    formReset.classList.add('hidden');
   }
 }
 
@@ -5597,170 +5606,261 @@ function showAuthMessage(elementId, message, isError = false) {
   }
 }
 
-// ✅ Funciones de validación de campos eliminadas (ya no se usan con Google Sign-In)
+// ✅ Funciones de autenticación con email/password
 
-// ✅ Función para login con Google (mejorada con fallback a redirect)
-async function tryLoginByGoogle() {
-  const msgEl = $('#msg-auth');
-  showAuthMessage('msg-auth', 'Iniciando sesión con Google…', false);
+// ✅ Función para login con email/password
+async function tryLoginByEmail() {
+  const email = $('#input-email').value.trim();
+  const password = $('#input-password').value;
+  
+  if (!email || !password) {
+    showAuthMessage('msg-auth', 'Por favor, completa todos los campos.', true);
+    return false;
+  }
+  
+  if (!email.includes('@')) {
+    showAuthMessage('msg-auth', 'Por favor, ingresa un correo válido.', true);
+    markFieldError('input-email');
+    return false;
+  }
+  
+  clearFieldErrors();
+  showAuthMessage('msg-auth', 'Iniciando sesión…', false);
   
   try {
-    // ✅ Verificar que Firebase esté completamente cargado
     if (!window.firebaseAuth) {
       showAuthMessage('msg-auth', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
-      console.error('[AUTH] ❌ Firebase Auth no disponible');
       return false;
     }
-
-    // ✅ Verificar que Firebase esté inicializado
-    if (typeof firebase === 'undefined') {
-      showAuthMessage('msg-auth', 'Firebase no está cargado. Por favor, recargue la página.', true);
-      console.error('[AUTH] ❌ Firebase no está definido');
-      return false;
-    }
-
-    // ✅ Crear proveedor de Google
-    const provider = new firebase.auth.GoogleAuthProvider();
     
-    // ✅ Configurar la URL de redirección explícitamente
-    const currentOrigin = window.location.origin;
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    
-    console.log('[AUTH] 🔄 Iniciando autenticación con Google...');
-    console.log('[AUTH] Firebase Auth disponible:', !!window.firebaseAuth);
-    console.log('[AUTH] Dominio actual:', window.location.hostname);
-    console.log('[AUTH] Origin completo:', currentOrigin);
-    console.log('[AUTH] Es localhost:', isLocalhost);
-    
-    // ✅ Usar redirect directamente si no es localhost (más confiable)
-    // O usar popup solo en localhost
-    if (!isLocalhost) {
-      console.log('[AUTH] 🔄 Usando redirect (no es localhost)...');
-      showAuthMessage('msg-auth', 'Redirigiendo a Google para iniciar sesión…', false);
-      
-      // Guardar estado para cuando regrese
-      sessionStorage.setItem('pendingGoogleAuth', 'true');
-      sessionStorage.setItem('redirectUrl', currentOrigin + window.location.pathname);
-      
-      // Usar redirect directamente
-      await window.firebaseAuth.signInWithRedirect(provider);
-      return false; // No continuar, se redirigirá
-    }
-    
-    // ✅ Solo usar popup en localhost
-    let result;
-    try {
-      console.log('[AUTH] 🔄 Intentando popup (localhost)...');
-      result = await window.firebaseAuth.signInWithPopup(provider);
-    } catch (popupError) {
-      console.error('[AUTH] ❌ Error con popup:', popupError);
-      console.error('[AUTH] Código de error:', popupError.code);
-      
-      // ✅ Si el popup falla, usar redirect como fallback
-      console.log('[AUTH] 🔄 Popup falló, usando redirect...');
-      showAuthMessage('msg-auth', 'Redirigiendo a Google para iniciar sesión…', false);
-      
-      // Guardar estado para cuando regrese
-      sessionStorage.setItem('pendingGoogleAuth', 'true');
-      sessionStorage.setItem('redirectUrl', currentOrigin + window.location.pathname);
-      
-      // Usar redirect con configuración explícita
-      await window.firebaseAuth.signInWithRedirect(provider);
-      return false; // No continuar, se redirigirá
-    }
-    
-    const user = result.user;
-    
+    const userCredential = await window.firebaseAuth.signInWithEmailAndPassword(email.toLowerCase().trim(), password);
+    const user = userCredential.user;
     const userEmail = user.email.toLowerCase().trim();
-    console.log('[AUTH] ✅ Login con Google exitoso:', userEmail);
-    console.log('[AUTH] Usuario:', user.displayName);
-    console.log('[AUTH] Foto:', user.photoURL);
     
-    // ✅ Limpiar estado pendiente si existe
-    sessionStorage.removeItem('pendingGoogleAuth');
-    sessionStorage.removeItem('redirectUrl');
+    console.log('[AUTH] ✅ Login exitoso:', userEmail);
     
-    // ✅ OBTENER CURSOS PERMITIDOS PARA ESTE CORREO
+    // ✅ OBTENER CURSOS PERMITIDOS PARA ESTE CORREO (LÓGICA EXISTENTE)
     showAuthMessage('msg-auth', 'Verificando cursos disponibles…', false);
-    console.log('[AUTH] 🔄 Iniciando búsqueda de cursos para:', userEmail);
     
     let allowedCourses;
     try {
       allowedCourses = await getCoursesForEmail(userEmail);
     } catch (error) {
-      console.error('[AUTH] ❌ Error crítico obteniendo cursos:', error);
+      console.error('[AUTH] ❌ Error obteniendo cursos:', error);
       showAuthMessage('msg-auth', 'Error al verificar cursos. Por favor, intente nuevamente.', true);
       return false;
     }
     
     console.log('[AUTH] Cursos permitidos para', userEmail, ':', allowedCourses.length);
     
-    // ✅ Guardar correo del usuario en una variable global para usar después
     window.currentUserEmail = userEmail;
     
-    // ✅ Google Analytics: Tracking de login exitoso
-    if (typeof gtag !== 'undefined') {
-      gtag('event', 'login_success_google', {
-        'event_category': 'authentication',
-        'event_label': 'google',
-        'value': allowedCourses.length
-      });
-    }
-    
-    // ✅ Si tiene acceso a cursos, mostrar vista master filtrada
-    // Si no tiene acceso a ningún curso, mostrar mensaje
     if (allowedCourses.length === 0) {
       showAuthMessage('msg-auth', 'No tienes acceso a ningún curso. Contacta al administrador para solicitar acceso.', true);
-      // No cerrar sesión, permitir que el usuario vea el mensaje
       return false;
     }
     
-    // ✅ Mostrar vista master con cursos filtrados
+    // ✅ USAR LA FUNCIÓN EXISTENTE (LÓGICA INTACTA)
     await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
-    
     showAuthMessage('msg-auth', `¡Bienvenido! Tienes acceso a ${allowedCourses.length} curso(s).`, false);
     return true;
     
   } catch (error) {
-    console.error('[AUTH] ❌ Error en login con Google:', error);
-    console.error('[AUTH] Código de error:', error.code);
-    console.error('[AUTH] Mensaje de error:', error.message);
-    console.error('[AUTH] Stack:', error.stack);
+    console.error('[AUTH] ❌ Error en login:', error);
+    let errorMessage = 'Error al iniciar sesión.';
     
-    let errorMessage = 'Error al iniciar sesión con Google.';
-    if (error.code === 'auth/popup-closed-by-user') {
-      errorMessage = 'La ventana de Google se cerró. Intente nuevamente.';
-    } else if (error.code === 'auth/popup-blocked') {
-      errorMessage = 'La ventana emergente fue bloqueada. Permita ventanas emergentes para este sitio o use el botón nuevamente para redirigir.';
-    } else if (error.code === 'auth/unauthorized-domain') {
-      errorMessage = 'Este dominio no está autorizado. Contacta al administrador.';
-      console.error('[AUTH] ⚠️ Dominio no autorizado. Agrega este dominio en Firebase Console → Authentication → Settings → Dominios autorizados:', window.location.hostname);
-    } else if (error.code === 'auth/cancelled-popup-request') {
-      errorMessage = 'Solo se puede abrir una ventana de inicio de sesión a la vez.';
-    } else if (error.code === 'auth/account-exists-with-different-credential') {
-      errorMessage = 'Ya existe una cuenta con este correo usando otro método de autenticación.';
+    if (error.code === 'auth/user-not-found') {
+      errorMessage = 'No existe una cuenta con este correo.';
+      markFieldError('input-email');
+    } else if (error.code === 'auth/wrong-password') {
+      errorMessage = 'Contraseña incorrecta.';
+      markFieldError('input-password');
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = 'Correo electrónico inválido.';
+      markFieldError('input-email');
+    } else if (error.code === 'auth/user-disabled') {
+      errorMessage = 'Esta cuenta ha sido deshabilitada.';
+    } else if (error.code === 'auth/too-many-requests') {
+      errorMessage = 'Demasiados intentos fallidos. Intenta más tarde.';
     } else {
-      errorMessage = `Error: ${error.message || 'No se pudo iniciar sesión con Google.'}`;
+      errorMessage = `Error: ${error.message || 'No se pudo iniciar sesión.'}`;
     }
     
     showAuthMessage('msg-auth', errorMessage, true);
-    
-    // ✅ Google Analytics: Tracking de error
-    if (typeof gtag !== 'undefined') {
-      gtag('event', 'login_error', {
-        'event_category': 'authentication',
-        'event_label': 'google',
-        'value': error.code
-      });
-    }
-    
     return false;
   }
 }
 
-// ✅ Funciones de registro y recuperación eliminadas (ya no se usan con Google Sign-In)
-// Los usuarios se registran automáticamente al iniciar sesión con Google por primera vez
-// Los usuarios pueden recuperar su contraseña directamente desde Google
+// ✅ Función para registro con email/password
+async function tryRegister() {
+  const email = $('#input-register-email').value.trim();
+  const password = $('#input-register-password').value;
+  const passwordConfirm = $('#input-register-password-confirm').value;
+  
+  if (!email || !password || !passwordConfirm) {
+    showAuthMessage('msg-register', 'Por favor, completa todos los campos.', true);
+    return false;
+  }
+  
+  if (!email.includes('@')) {
+    showAuthMessage('msg-register', 'Por favor, ingresa un correo válido.', true);
+    markFieldError('input-register-email');
+    return false;
+  }
+  
+  if (password.length < 6) {
+    showAuthMessage('msg-register', 'La contraseña debe tener al menos 6 caracteres.', true);
+    markFieldError('input-register-password');
+    return false;
+  }
+  
+  if (password !== passwordConfirm) {
+    showAuthMessage('msg-register', 'Las contraseñas no coinciden.', true);
+    markFieldError('input-register-password-confirm');
+    return false;
+  }
+  
+  clearFieldErrors();
+  showAuthMessage('msg-register', 'Creando cuenta…', false);
+  
+  try {
+    if (!window.firebaseAuth) {
+      showAuthMessage('msg-register', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
+      return false;
+    }
+    
+    const userCredential = await window.firebaseAuth.createUserWithEmailAndPassword(email.toLowerCase().trim(), password);
+    const user = userCredential.user;
+    
+    console.log('[AUTH] ✅ Registro exitoso:', user.email);
+    
+    showAuthMessage('msg-register', '¡Cuenta creada exitosamente! Verificando cursos…', false);
+    
+    // ✅ DESPUÉS DE REGISTRARSE, VERIFICAR CURSOS (LÓGICA EXISTENTE)
+    setTimeout(async () => {
+      const userEmail = user.email.toLowerCase().trim();
+      const allowedCourses = await getCoursesForEmail(userEmail);
+      
+      if (allowedCourses.length === 0) {
+        showAuthMessage('msg-register', 'Cuenta creada. Contacta al administrador para solicitar acceso a cursos.', false);
+        $('#form-register').classList.add('hidden');
+        $('#form-login').classList.remove('hidden');
+        return;
+      }
+      
+      window.currentUserEmail = userEmail;
+      // ✅ USAR LA FUNCIÓN EXISTENTE (LÓGICA INTACTA)
+      await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
+    }, 1000);
+    
+    return true;
+    
+  } catch (error) {
+    console.error('[AUTH] ❌ Error en registro:', error);
+    let errorMessage = 'Error al crear la cuenta.';
+    
+    if (error.code === 'auth/email-already-in-use') {
+      errorMessage = 'Este correo ya está registrado. Inicia sesión en su lugar.';
+      markFieldError('input-register-email');
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = 'Correo electrónico inválido.';
+      markFieldError('input-register-email');
+    } else if (error.code === 'auth/weak-password') {
+      errorMessage = 'La contraseña es muy débil. Usa al menos 6 caracteres.';
+      markFieldError('input-register-password');
+    } else {
+      errorMessage = `Error: ${error.message || 'No se pudo crear la cuenta.'}`;
+    }
+    
+    showAuthMessage('msg-register', errorMessage, true);
+    return false;
+  }
+}
+
+// ✅ Función para reset de contraseña
+async function tryPasswordReset() {
+  const email = $('#input-reset-email').value.trim();
+  
+  if (!email || !email.includes('@')) {
+    showAuthMessage('msg-reset', 'Por favor, ingresa un correo válido.', true);
+    markFieldError('input-reset-email');
+    return false;
+  }
+  
+  clearFieldErrors();
+  showAuthMessage('msg-reset', 'Enviando enlace de restablecimiento…', false);
+  
+  try {
+    if (!window.firebaseAuth) {
+      showAuthMessage('msg-reset', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
+      return false;
+    }
+    
+    await window.firebaseAuth.sendPasswordResetEmail(email.toLowerCase().trim());
+    
+    showAuthMessage('msg-reset', '✅ Se ha enviado un enlace de restablecimiento a tu correo. Revisa tu bandeja de entrada (y spam).', false);
+    
+    setTimeout(() => {
+      $('#input-reset-email').value = '';
+    }, 3000);
+    
+    return true;
+    
+  } catch (error) {
+    console.error('[AUTH] ❌ Error en reset:', error);
+    let errorMessage = 'Error al enviar el enlace.';
+    
+    if (error.code === 'auth/user-not-found') {
+      errorMessage = 'No existe una cuenta con este correo.';
+      markFieldError('input-reset-email');
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = 'Correo electrónico inválido.';
+      markFieldError('input-reset-email');
+    } else {
+      errorMessage = `Error: ${error.message || 'No se pudo enviar el enlace.'}`;
+    }
+    
+    showAuthMessage('msg-reset', errorMessage, true);
+    return false;
+  }
+}
+
+// ✅ Funciones auxiliares para manejo de errores de campos
+function clearFieldErrors() {
+  const fields = ['input-email', 'input-password', 'input-register-email', 'input-register-password', 'input-register-password-confirm', 'input-reset-email'];
+  fields.forEach(id => {
+    const field = $(`#${id}`);
+    if (field) {
+      field.style.borderColor = '';
+      field.style.backgroundColor = '';
+    }
+  });
+}
+
+function markFieldError(fieldId) {
+  const field = $(`#${fieldId}`);
+  if (field) {
+    field.style.borderColor = '#ff7a7a';
+    field.style.backgroundColor = 'rgba(255, 122, 122, 0.1)';
+  }
+}
+
+function showAuthMessage(elementId, message, isError) {
+  const msgEl = $(`#${elementId}`);
+  if (!msgEl) return;
+  
+  msgEl.textContent = message;
+  msgEl.className = isError ? 'msg error' : 'msg';
+  msgEl.style.display = 'block';
+  
+  if (msgEl.scrollIntoView) {
+    msgEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+// ✅ Funciones de Google Sign-In eliminadas (ahora se usa email/password)
+
+// ✅ Funciones de registro y recuperación implementadas arriba (tryRegister, tryPasswordReset)
 
 /* ============ Gestión de Correos Permitidos por Curso ============ */
 
@@ -6255,18 +6355,10 @@ function setupAuthStateListener() {
   window.firebaseAuth.onAuthStateChanged(async (user) => {
     console.log('[AUTH] 🔔 onAuthStateChanged disparado, usuario:', user?.email || 'null');
     
-    // ✅ Si ya se está procesando un redirect, no hacer nada aquí
-    if (sessionStorage.getItem('pendingGoogleAuth') === 'true') {
-      console.log('[AUTH] ⏸️ Redirect pendiente, omitiendo listener de estado');
-      return;
-    }
-    
     if (user) {
       console.log('[AUTH] ✅ Usuario autenticado:', user.email);
       const userEmail = user.email.toLowerCase().trim();
       
-      // ✅ Si el usuario está autenticado con email, verificar cursos y mostrar vista de usuario
-      // Solo dar acceso master si no hay código en URL y no estamos ya en una vista
       const urlParams = new URLSearchParams(window.location.search);
       const masterEl = document.getElementById('master');
       const userViewEl = document.getElementById('user-view');
@@ -6277,39 +6369,25 @@ function setupAuthStateListener() {
       const isInContent = contentEl && !contentEl.classList.contains('hidden');
       const isInAccess = accessEl && !accessEl.classList.contains('hidden');
       
-      console.log('[AUTH] Estado de vistas - Master:', isInMaster, 'UserView:', isInUserView, 'Content:', isInContent, 'Access:', isInAccess);
-      
-      // Si no hay código en URL y estamos en la vista de acceso o no estamos en ninguna vista, verificar si es usuario con email
       if (!urlParams.has('code') && !isInMaster && !isInUserView && !isInContent) {
         console.log('[AUTH] 🔍 Verificando cursos para usuario con email...');
-        // Verificar si tiene cursos permitidos (es usuario con email)
         const allowedCourses = await getCoursesForEmail(userEmail);
         console.log('[AUTH] 📚 Cursos encontrados en listener:', allowedCourses.length);
         
         if (allowedCourses.length > 0) {
-          // Es usuario con email, mostrar vista de usuario
           console.log('[AUTH] ✅ Mostrando vista de usuario desde listener');
           window.currentUserEmail = userEmail;
           window.allowedCoursesForUser = allowedCourses;
           
-          // Ocultar vista de acceso si está visible
           if (isInAccess && accessEl) {
             accessEl.classList.add('hidden');
-            console.log('[AUTH] ✅ Vista de acceso ocultada desde listener');
           }
           
           await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
-        } else {
-          // No tiene cursos, podría ser master (pero no debería llegar aquí sin código)
-          // Por seguridad, no dar acceso automático
-          console.log('[AUTH] ⚠️ Usuario autenticado pero sin cursos asignados');
         }
-      } else {
-        console.log('[AUTH] ⏭️ Omitiendo procesamiento - ya en una vista o hay código en URL');
       }
     } else {
       console.log('[AUTH] Usuario no autenticado');
-      // Si el usuario cierra sesión, volver a la pantalla de acceso
       window.currentUserEmail = null;
       window.allowedCoursesForUser = null;
       if (currentKeyHex === MASTER_HASH || (document.getElementById('user-view') && !document.getElementById('user-view').classList.contains('hidden'))) {
@@ -6321,146 +6399,9 @@ function setupAuthStateListener() {
   });
 }
 
-// ✅ Listener de estado con delay (para evitar conflictos con redirect)
-function setupAuthStateListenerDelayed() {
-  if (!window.firebaseAuth) {
-    console.log('[AUTH] Firebase Auth no disponible, omitiendo listener de estado');
-    return;
-  }
-
-  // Esperar un poco antes de configurar el listener para que el redirect se procese
-  setTimeout(() => {
-    setupAuthStateListener();
-  }, 1000);
-}
-
-// ✅ Manejar resultado de redirect cuando el usuario regrese
-async function handleGoogleRedirectResult() {
-  try {
-    if (!window.firebaseAuth) {
-      console.log('[AUTH] Firebase Auth no disponible para redirect result');
-      return false;
-    }
-    
-    console.log('[AUTH] 🔄 Verificando resultado de redirect...');
-    console.log('[AUTH] sessionStorage pendingGoogleAuth:', sessionStorage.getItem('pendingGoogleAuth'));
-    
-    // ✅ OCULTAR VISTA DE ACCESO INMEDIATAMENTE si hay un redirect pendiente
-    const hasPendingAuth = sessionStorage.getItem('pendingGoogleAuth') === 'true';
-    if (hasPendingAuth) {
-      console.log('[AUTH] ⏳ Redirect pendiente detectado, ocultando vista de acceso...');
-      const accessEl = $('#access');
-      if (accessEl) {
-        accessEl.classList.add('hidden');
-      }
-    }
-    
-    const result = await window.firebaseAuth.getRedirectResult();
-    console.log('[AUTH] Resultado de getRedirectResult:', result);
-    console.log('[AUTH] Usuario en result:', result?.user?.email);
-    
-    if (result.user) {
-      console.log('[AUTH] ✅ Login con redirect exitoso:', result.user.email);
-      const userEmail = result.user.email.toLowerCase().trim();
-      window.currentUserEmail = userEmail;
-      
-      // Limpiar estado pendiente
-      sessionStorage.removeItem('pendingGoogleAuth');
-      sessionStorage.removeItem('redirectUrl');
-      
-      // ✅ OCULTAR VISTA DE ACCESO INMEDIATAMENTE
-      const accessEl = $('#access');
-      if (accessEl) {
-        accessEl.classList.add('hidden');
-        console.log('[AUTH] ✅ Vista de acceso ocultada');
-      }
-      
-      // Mostrar mensaje de carga (si existe el elemento)
-      const msgEl = $('#msg-auth');
-      if (msgEl) {
-        showAuthMessage('msg-auth', 'Verificando cursos disponibles…', false);
-      }
-      
-      console.log('[AUTH] 🔍 Buscando cursos permitidos para:', userEmail);
-      const allowedCourses = await getCoursesForEmail(userEmail);
-      console.log('[AUTH] 📚 Cursos encontrados:', allowedCourses.length, allowedCourses);
-      
-      if (allowedCourses.length === 0) {
-        console.log('[AUTH] ⚠️ Usuario sin cursos asignados');
-        showAuthMessage('msg-auth', 'No tienes acceso a ningún curso. Contacta al administrador para solicitar acceso.', true);
-        // Mostrar vista de acceso nuevamente si no tiene cursos
-        if (accessEl) {
-          accessEl.classList.remove('hidden');
-        }
-        return true; // Se manejó, pero sin acceso
-      }
-      
-      console.log('[AUTH] ✅ Mostrando vista de usuario con', allowedCourses.length, 'cursos');
-      await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
-      console.log('[AUTH] ✅ Vista de usuario mostrada correctamente');
-      return true; // Se manejó exitosamente
-    } else {
-      console.log('[AUTH] No hay resultado de redirect (usuario no autenticado)');
-      // Si había un redirect pendiente pero no hay resultado, puede ser que ya se procesó antes
-      const hasPendingAuth = sessionStorage.getItem('pendingGoogleAuth') === 'true';
-      if (hasPendingAuth) {
-        console.log('[AUTH] ⚠️ Había redirect pendiente pero no hay resultado, verificando estado de auth...');
-        // Verificar si el usuario está autenticado de otra forma
-        const currentUser = window.firebaseAuth.currentUser;
-        if (currentUser) {
-          console.log('[AUTH] ✅ Usuario ya está autenticado:', currentUser.email);
-          const userEmail = currentUser.email.toLowerCase().trim();
-          window.currentUserEmail = userEmail;
-          
-          // Limpiar estado pendiente
-          sessionStorage.removeItem('pendingGoogleAuth');
-          sessionStorage.removeItem('redirectUrl');
-          
-          // Ocultar vista de acceso
-          const accessEl = $('#access');
-          if (accessEl) {
-            accessEl.classList.add('hidden');
-          }
-          
-          const allowedCourses = await getCoursesForEmail(userEmail);
-          if (allowedCourses.length > 0) {
-            await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
-            return true;
-          }
-        }
-      }
-      return false; // No se manejó redirect
-    }
-  } catch (error) {
-    console.error('[AUTH] ❌ Error en redirect result:', error);
-    console.error('[AUTH] Código de error:', error.code);
-    console.error('[AUTH] Mensaje:', error.message);
-    console.error('[AUTH] Stack:', error.stack);
-    
-    // Limpiar estado pendiente incluso si hay error
-    sessionStorage.removeItem('pendingGoogleAuth');
-    sessionStorage.removeItem('redirectUrl');
-    
-    showAuthMessage('msg-auth', 'Error al completar el inicio de sesión. Intente nuevamente.', true);
-    return false; // No se manejó correctamente
-  }
-}
-
 // ✅ Inicializar listener de estado cuando Firebase esté listo
-window.addEventListener('firebaseReady', async () => {
-  // ✅ PRIMERO: Manejar resultado de redirect (si existe)
-  // Esto debe ejecutarse ANTES del listener de estado para evitar conflictos
-  const redirectHandled = await handleGoogleRedirectResult();
-  
-  // ✅ SEGUNDO: Configurar listener de estado
-  // Si se manejó redirect, usar delay para evitar conflictos
-  if (redirectHandled) {
-    // Si se manejó redirect, configurar listener pero con delay
-    setupAuthStateListenerDelayed();
-  } else {
-    // Si no hubo redirect, configurar listener inmediatamente
-    setupAuthStateListener();
-  }
+window.addEventListener('firebaseReady', () => {
+  setupAuthStateListener();
 });
 
 /* ============ eventos ============ */
@@ -6472,17 +6413,126 @@ $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preve
 // ✅ Logout del master se maneja más abajo
 
 // ✅ Event listeners para pestañas de autenticación
-$('#tab-code').addEventListener('click', () => switchAuthTab('code'));
-$('#tab-account').addEventListener('click', () => switchAuthTab('account'));
+const tabCode = $('#tab-code');
+const tabAccount = $('#tab-account');
+if (tabCode) {
+  tabCode.addEventListener('click', () => switchAuthTab('code'));
+}
+if (tabAccount) {
+  tabAccount.addEventListener('click', () => switchAuthTab('account'));
+}
 
-// ✅ Event listener para botón de Google Sign-In
-const btnLoginGoogle = $('#btn-login-google');
-if (btnLoginGoogle) {
-  btnLoginGoogle.addEventListener('click', () => {
-    tryLoginByGoogle();
-  });
+// ✅ Función para configurar event listeners de autenticación email/password
+function setupEmailPasswordListeners() {
+  // Event listeners para autenticación email/password
+  const btnLogin = $('#btn-login');
+  if (btnLogin) {
+    btnLogin.addEventListener('click', () => {
+      tryLoginByEmail();
+    });
+  }
+
+  // Enter en campos de login
+  const inputEmail = $('#input-email');
+  const inputPassword = $('#input-password');
+  if (inputEmail) {
+    inputEmail.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (inputPassword) inputPassword.focus();
+      }
+    });
+  }
+  if (inputPassword) {
+    inputPassword.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (btnLogin) btnLogin.click();
+      }
+    });
+  }
+
+  // Registro
+  const btnRegister = $('#btn-register');
+  if (btnRegister) {
+    btnRegister.addEventListener('click', () => {
+      tryRegister();
+    });
+  }
+
+  // Reset password
+  const btnReset = $('#btn-reset');
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      tryPasswordReset();
+    });
+  }
+
+  // Navegación entre formularios
+  const btnShowRegister = $('#btn-show-register');
+  const btnShowLogin = $('#btn-show-login');
+  const btnShowReset = $('#btn-show-reset');
+  const btnBackToLogin = $('#btn-back-to-login');
+
+  if (btnShowRegister) {
+    btnShowRegister.addEventListener('click', () => {
+      $('#form-login').classList.add('hidden');
+      $('#form-register').classList.remove('hidden');
+      $('#form-reset').classList.add('hidden');
+      clearFieldErrors();
+    });
+  }
+
+  if (btnShowLogin) {
+    btnShowLogin.addEventListener('click', () => {
+      $('#form-register').classList.add('hidden');
+      $('#form-reset').classList.add('hidden');
+      $('#form-login').classList.remove('hidden');
+      clearFieldErrors();
+    });
+  }
+
+  if (btnShowReset) {
+    btnShowReset.addEventListener('click', () => {
+      $('#form-login').classList.add('hidden');
+      $('#form-register').classList.add('hidden');
+      $('#form-reset').classList.remove('hidden');
+      clearFieldErrors();
+    });
+  }
+
+  if (btnBackToLogin) {
+    btnBackToLogin.addEventListener('click', () => {
+      $('#form-reset').classList.add('hidden');
+      $('#form-register').classList.add('hidden');
+      $('#form-login').classList.remove('hidden');
+      clearFieldErrors();
+    });
+  }
+
+  // Limpiar errores al escribir
+  if (inputEmail) {
+    inputEmail.addEventListener('input', () => {
+      if (inputEmail.style.borderColor === '#ff7a7a') {
+        clearFieldErrors();
+      }
+    });
+  }
+  if (inputPassword) {
+    inputPassword.addEventListener('input', () => {
+      if (inputPassword.style.borderColor === '#ff7a7a') {
+        clearFieldErrors();
+      }
+    });
+  }
+}
+
+// ✅ Configurar listeners cuando el DOM esté listo
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupEmailPasswordListeners);
 } else {
-  console.warn('[AUTH] No se encontró el botón btn-login-google');
+  // DOM ya está listo
+  setupEmailPasswordListeners();
 }
 
 // ✅ Event listeners para modal de correos por curso
