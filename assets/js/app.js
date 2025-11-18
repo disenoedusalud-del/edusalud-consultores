@@ -2046,6 +2046,7 @@ function toggleTheme() {
  * @param {string} theme - 'light' o 'dark'
  */
 function updateThemeToggleUI(theme) {
+  // ✅ Actualizar toggle de la vista maestra
   const icon = document.getElementById('theme-toggle-icon');
   const text = document.getElementById('theme-toggle-text');
   
@@ -2059,6 +2060,20 @@ function updateThemeToggleUI(theme) {
       // Si está en modo oscuro (default), el botón debe permitir cambiar a claro
       icon.textContent = '☀️';
       text.textContent = 'Cambiar a Modo Claro';
+    }
+  }
+  
+  // ✅ Actualizar toggle de la vista de consultores
+  const iconContent = document.getElementById('theme-toggle-icon-content');
+  const textContent = document.getElementById('theme-toggle-text-content');
+  
+  if (iconContent && textContent) {
+    if (theme === 'light') {
+      iconContent.textContent = '🌙';
+      textContent.textContent = 'Cambiar a Modo Oscuro';
+    } else {
+      iconContent.textContent = '☀️';
+      textContent.textContent = 'Cambiar a Modo Claro';
     }
   }
 }
@@ -2294,6 +2309,126 @@ function setupSettingsMenu() {
   updateThemeToggleUI(currentTheme);
   
   console.log('[SETTINGS] ✅ Menú de ajustes configurado correctamente');
+}
+
+// ✅ Función para configurar el menú de ajustes en la vista de consultores
+function setupSettingsMenuContent() {
+  const btnSettings = document.getElementById('btn-settings-content');
+  const dropdown = document.getElementById('settingsDropdownContent');
+  
+  if (!btnSettings || !dropdown) {
+    console.warn('[SETTINGS CONTENT] Botón de ajustes o dropdown no encontrado');
+    return;
+  }
+  
+  // ✅ PREVENIR MÚLTIPLES REGISTROS: Verificar si ya está configurado
+  if (btnSettings.dataset.settingsConfigured === 'true') {
+    console.log('[SETTINGS CONTENT] Menú ya configurado, saltando...');
+    return;
+  }
+  
+  // ✅ Marcar como configurado
+  btnSettings.dataset.settingsConfigured = 'true';
+  
+  // ✅ Obtener todas las categorías
+  const categories = dropdown.querySelectorAll('.settings-category');
+  
+  // ✅ Función para colapsar todas las categorías
+  function collapseAllCategories() {
+    categories.forEach((category) => {
+      const categoryName = category.dataset.category;
+      const submenu = dropdown.querySelector(`[data-submenu="${categoryName}"]`);
+      if (submenu) {
+        category.setAttribute('aria-expanded', 'false');
+        submenu.classList.remove('expanded');
+        setTimeout(() => {
+          if (!submenu.classList.contains('expanded')) {
+            submenu.style.display = 'none';
+          }
+        }, 100);
+      }
+    });
+  }
+  
+  // Toggle del menú al hacer click
+  btnSettings.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isVisible = dropdown.style.display !== 'none';
+    if (isVisible) {
+      // Cerrar: colapsar todas las categorías
+      collapseAllCategories();
+    }
+    dropdown.style.display = isVisible ? 'none' : 'block';
+    // ✅ Actualizar aria-expanded para accesibilidad
+    btnSettings.setAttribute('aria-expanded', isVisible ? 'false' : 'true');
+  });
+  
+  // Cerrar menú al hacer click fuera
+  document.addEventListener('click', (e) => {
+    if (!btnSettings.contains(e.target) && !dropdown.contains(e.target)) {
+      collapseAllCategories();
+      dropdown.style.display = 'none';
+      // ✅ Actualizar aria-expanded cuando se cierra
+      btnSettings.setAttribute('aria-expanded', 'false');
+    }
+  });
+  
+  // ✅ Función para expandir/colapsar categorías
+  function toggleCategory(categoryElement) {
+    const categoryName = categoryElement.dataset.category;
+    const submenu = dropdown.querySelector(`[data-submenu="${categoryName}"]`);
+    
+    if (!submenu) return;
+    
+    const isExpanded = categoryElement.getAttribute('aria-expanded') === 'true';
+    
+    if (isExpanded) {
+      // Colapsar
+      categoryElement.setAttribute('aria-expanded', 'false');
+      submenu.classList.remove('expanded');
+      // Esperar a que termine la animación antes de ocultar
+      setTimeout(() => {
+        if (!submenu.classList.contains('expanded')) {
+          submenu.style.display = 'none';
+        }
+      }, 300);
+    } else {
+      // Expandir
+      submenu.style.display = 'block';
+      // Pequeño delay para que el navegador calcule el max-height
+      setTimeout(() => {
+        categoryElement.setAttribute('aria-expanded', 'true');
+        submenu.classList.add('expanded');
+      }, 10);
+    }
+  }
+  
+  // ✅ Configurar categorías (expandir/colapsar)
+  categories.forEach((category) => {
+    category.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleCategory(category);
+    });
+    
+    category.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleCategory(category);
+      }
+    });
+  });
+  
+  // ✅ Toggle de Tema (Claro/Oscuro) - NO cerrar el menú, solo cambiar el tema
+  dropdown.querySelector('[data-action="toggle-theme"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleTheme();
+  });
+  
+  // ✅ Actualizar UI del toggle según el tema actual
+  const currentTheme = getTheme();
+  updateThemeToggleUI(currentTheme);
+  
+  console.log('[SETTINGS CONTENT] ✅ Menú de ajustes de consultores configurado correctamente');
 }
 
 // ✅ Función para exportar filtrado por tipo
@@ -2900,6 +3035,8 @@ function showContent() {
   // ✅ Mostrar botón flotante cuando está autenticado
   const fabBtn = document.getElementById('btn-speed-refresh');
   if (fabBtn) fabBtn.classList.add('visible');
+  // ✅ Configurar menú de ajustes para consultores
+  setupSettingsMenuContent();
 }
 function showMaster() {
   $('#access').classList.add('hidden');
