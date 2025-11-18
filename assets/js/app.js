@@ -512,7 +512,10 @@ function loadCustomCourses(){
     const obj = raw ? JSON.parse(raw) : null;
     return typeof obj === 'object' && obj !== null ? obj : {};
   } catch (e) {
-    console.warn('[STORAGE] Error cargando cursos personalizados:', e);
+    trackError(e, {
+      operation: 'loadCustomCourses',
+      source: 'localStorage'
+    });
     return {};
   }
 }
@@ -525,7 +528,11 @@ function saveCustomCourses(courses){
     }
     localStorage.setItem(CUSTOM_COURSES_KEY, JSON.stringify(courses || {}));
   } catch (e) {
-    console.warn('[STORAGE] Error guardando cursos personalizados:', e);
+    trackError(e, {
+      operation: 'saveCustomCourses',
+      source: 'localStorage',
+      coursesCount: Object.keys(courses || {}).length
+    });
   }
 }
 function getMergedAccessHashMap(){
@@ -602,7 +609,11 @@ async function addCustomCourse(hex, courseData){
         window.showToast('success', 'Curso creado', `"${courseData.card?.tag || 'Curso'}" creado exitosamente`);
       }
       } catch (error) {
-        console.error('[ADD COURSE] ❌ Error guardando curso en Firebase:', error);
+        trackError(error, {
+          operation: 'addCourse',
+          source: 'Firebase',
+          courseHex: hex
+        });
         if (typeof window.showToast === 'function') {
           window.showToast('error', 'Error', 'Error guardando curso en Firebase. El curso quedó solo localmente.');
         } else {
@@ -614,7 +625,11 @@ async function addCustomCourse(hex, courseData){
   }
 
   const saveResult = await remoteSaveCourse(hex, normalizedCourse).catch(e => {
-    console.error('[ADD COURSE] ❌ Error guardando curso en remoto (Sheets):', e);
+    trackError(e, {
+      operation: 'addCourse',
+      source: 'Google Sheets',
+      courseHex: hex
+    });
     return false;
   });
 
@@ -669,7 +684,11 @@ async function updateCustomCourse(hex, courseData){
         window.showToast('success', 'Curso actualizado', `"${courseData.card?.tag || 'Curso'}" actualizado exitosamente`);
       }
       } catch (error) {
-        console.error('[UPDATE COURSE] ❌ Error actualizando curso en Firebase:', error);
+        trackError(error, {
+          operation: 'updateCourse',
+          source: 'Firebase',
+          courseHex: hex
+        });
         if (typeof window.showToast === 'function') {
           window.showToast('error', 'Error', 'Error actualizando curso en Firebase. El curso quedó solo localmente.');
         } else {
@@ -1850,7 +1869,10 @@ async function refreshCustomCourses(){
     
     return hadChanges;
   } catch (e) {
-    console.error('[REFRESH] Error en refreshCustomCourses:', e);
+    trackError(e, {
+      operation: 'refreshCustomCourses',
+      view: getCurrentView()
+    });
     // ✅ Finalizar medición con error
     endPerformanceMeasure('Sincronización', syncStart, { metodo: 'Error' });
     // ✅ No fallar completamente, siempre devolver false para continuar
@@ -1981,7 +2003,10 @@ async function importOverridesFromFile(file){
       // Los cursos se sincronizarán automáticamente con Firebase
     }
   } catch (e) {
-    console.error('[IMPORT] Error:', e);
+    trackError(e, {
+      operation: 'importOverridesFromFile',
+      fileType: file?.type || 'unknown'
+    });
     alert('No se pudo importar el archivo: ' + (e.message || 'Error desconocido'));
   }
 }
@@ -2063,6 +2088,172 @@ function logPerformanceMetric(label, value) {
 window.startPerformanceMeasure = startPerformanceMeasure;
 window.endPerformanceMeasure = endPerformanceMeasure;
 window.logPerformanceMetric = logPerformanceMetric;
+
+/* ===================== TRACKING DE ERRORES MEJORADO ===================== */
+
+/**
+ * ✅ Sistema centralizado de tracking de errores
+ * Captura, registra y envía errores a Google Analytics con contexto completo
+ */
+
+// Almacenar errores localmente para estadísticas
+const errorLog = [];
+const errorStats = {};
+
+// Configuración
+const ERROR_LOG_MAX_SIZE = 100; // Máximo de errores a guardar en memoria
+
+/**
+ * ✅ Función centralizada para trackear errores
+ * @param {Error|string} error - El error a trackear (puede ser Error object o string)
+ * @param {object} context - Contexto adicional del error (opcional)
+ * @param {boolean} fatal - Si el error es fatal (default: false)
+ */
+function trackError(error, context = {}, fatal = false) {
+  try {
+    // Normalizar el error
+    const errorObj = error instanceof Error 
+      ? error 
+      : new Error(String(error));
+    
+    const errorType = errorObj.name || 'UnknownError';
+    const errorMessage = errorObj.message || String(error);
+    const errorStack = errorObj.stack || '';
+    
+    // Agregar contexto adicional
+    const fullContext = {
+      ...context,
+      timestamp: new Date().toISOString(),
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      view: getCurrentView(),
+      userId: currentKeyHex || 'anonymous'
+    };
+    
+    // 1. Registrar en consola con formato mejorado
+    console.error('[ERROR TRACKER]', {
+      type: errorType,
+      message: errorMessage,
+      context: fullContext,
+      stack: errorStack,
+      fatal: fatal
+    });
+    
+    // 2. Agregar a estadísticas
+    if (!errorStats[errorType]) {
+      errorStats[errorType] = 0;
+    }
+    errorStats[errorType]++;
+    
+    // 3. Agregar a log local (limitado a ERROR_LOG_MAX_SIZE)
+    errorLog.push({
+      type: errorType,
+      message: errorMessage,
+      context: fullContext,
+      stack: errorStack,
+      fatal: fatal,
+      timestamp: Date.now()
+    });
+    
+    // Limitar tamaño del log
+    if (errorLog.length > ERROR_LOG_MAX_SIZE) {
+      errorLog.shift(); // Eliminar el más antiguo
+    }
+    
+    // 4. Enviar a Google Analytics
+    if (typeof gtag !== 'undefined') {
+      try {
+        gtag('event', 'exception', {
+          description: errorMessage,
+          fatal: fatal,
+          error_type: errorType,
+          error_context: JSON.stringify(fullContext).substring(0, 500) // Limitar tamaño
+        });
+      } catch (analyticsError) {
+        console.warn('[ERROR TRACKER] No se pudo enviar a Analytics:', analyticsError);
+      }
+    }
+    
+    // 5. Log adicional para debugging
+    console.log(`[ERROR TRACKER] 📊 Total de errores ${errorType}: ${errorStats[errorType]}`);
+    
+  } catch (trackingError) {
+    // Fallback si el tracking mismo falla
+    console.error('[ERROR TRACKER] Error crítico en tracking:', trackingError);
+    console.error('[ERROR TRACKER] Error original:', error);
+  }
+}
+
+/**
+ * ✅ Obtener la vista actual
+ * @returns {string} Nombre de la vista actual
+ */
+function getCurrentView() {
+  if (document.getElementById('access') && !document.getElementById('access').classList.contains('hidden')) {
+    return 'access';
+  }
+  if (document.getElementById('content') && !document.getElementById('content').classList.contains('hidden')) {
+    return 'content';
+  }
+  if (document.getElementById('master') && !document.getElementById('master').classList.contains('hidden')) {
+    return 'master';
+  }
+  return 'unknown';
+}
+
+/**
+ * ✅ Obtener estadísticas de errores
+ * @returns {object} Estadísticas de errores
+ */
+function getErrorStats() {
+  const stats = {
+    total: errorLog.length,
+    byType: { ...errorStats },
+    recent: errorLog.slice(-10), // Últimos 10 errores
+    fatal: errorLog.filter(e => e.fatal).length
+  };
+  
+  console.log('[ERROR STATS] 📊 Estadísticas de errores:', stats);
+  return stats;
+}
+
+/**
+ * ✅ Limpiar log de errores
+ */
+function clearErrorLog() {
+  errorLog.length = 0;
+  Object.keys(errorStats).forEach(key => delete errorStats[key]);
+  console.log('[ERROR TRACKER] ✅ Log de errores limpiado');
+}
+
+// ✅ Captura global de errores no manejados
+window.addEventListener('error', (event) => {
+  trackError(event.error || new Error(event.message), {
+    source: 'unhandled_error',
+    filename: event.filename,
+    lineno: event.lineno,
+    colno: event.colno
+  }, true); // Errores no manejados son considerados fatales
+});
+
+// ✅ Captura de promesas rechazadas no manejadas
+window.addEventListener('unhandledrejection', (event) => {
+  const error = event.reason instanceof Error 
+    ? event.reason 
+    : new Error(String(event.reason));
+  
+  trackError(error, {
+    source: 'unhandled_promise_rejection',
+    reason: String(event.reason)
+  }, false);
+});
+
+// ✅ Exponer funciones globalmente para debugging
+window.trackError = trackError;
+window.getErrorStats = getErrorStats;
+window.clearErrorLog = clearErrorLog;
+
+console.log('[ERROR TRACKER] ✅ Sistema de tracking de errores inicializado');
 
 /* ===================== INDICADORES DE CARGA EN BOTONES ===================== */
 
