@@ -5383,13 +5383,35 @@ function markFieldError(fieldId, hasError) {
   const field = $(fieldId);
   if (field) {
     if (hasError) {
+      // ✅ Agregar clase de error
       field.classList.add('error');
       console.log('[AUTH] 🔴 Campo marcado con error:', fieldId);
-      // Forzar re-render para asegurar que el estilo se aplique
-      field.style.borderColor = '';
+      
+      // ✅ Forzar aplicación del estilo con !important mediante style inline
+      // Esto asegura que el estilo se aplique incluso si hay conflictos
+      field.style.setProperty('border-color', 'var(--danger)', 'important');
+      field.style.setProperty('box-shadow', '0 0 0 4px rgba(255,122,122,.2)', 'important');
+      field.style.setProperty('background-color', 'rgba(255,122,122,.05)', 'important');
+      
+      // ✅ Forzar re-render
       void field.offsetWidth; // Trigger reflow
+      
+      // ✅ Verificar que se aplicó
+      setTimeout(() => {
+        const hasErrorClass = field.classList.contains('error');
+        console.log('[AUTH] Verificación después de 100ms - tiene clase error?', hasErrorClass);
+        if (!hasErrorClass) {
+          console.warn('[AUTH] ⚠️ La clase error se perdió, reaplicando...');
+          field.classList.add('error');
+          field.style.setProperty('border-color', 'var(--danger)', 'important');
+        }
+      }, 100);
     } else {
       field.classList.remove('error');
+      // ✅ Limpiar estilos inline
+      field.style.removeProperty('border-color');
+      field.style.removeProperty('box-shadow');
+      field.style.removeProperty('background-color');
       console.log('[AUTH] ✅ Campo sin error:', fieldId);
     }
   } else {
@@ -5442,17 +5464,22 @@ async function tryLoginByEmail(email, password) {
     
   } catch (error) {
     console.error('[AUTH] ❌ Error en login:', error);
+    console.error('[AUTH] Código de error:', error.code);
+    console.error('[AUTH] Mensaje de error:', error.message);
     
     let errorMessage = 'Error al iniciar sesión.';
     let markPasswordError = false;
     let markEmailError = false;
     
+    // ✅ Firebase puede devolver diferentes códigos de error según la versión
     if (error.code === 'auth/user-not-found') {
       errorMessage = 'No existe una cuenta con este correo.';
       markEmailError = true;
-    } else if (error.code === 'auth/wrong-password') {
+    } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      // ✅ 'auth/invalid-credential' es el nuevo código en Firebase v9+
       errorMessage = 'Contraseña incorrecta.';
       markPasswordError = true;
+      console.log('[AUTH] 🔴 Marcando campo de contraseña con error');
     } else if (error.code === 'auth/invalid-email') {
       errorMessage = 'Correo electrónico inválido.';
       markEmailError = true;
@@ -5462,10 +5489,26 @@ async function tryLoginByEmail(email, password) {
     } else if (error.code === 'auth/too-many-requests') {
       errorMessage = 'Demasiados intentos fallidos. Intente más tarde.';
       markPasswordError = true;
+    } else if (error.code === 'auth/invalid-login-credentials') {
+      // ✅ Otro código posible para credenciales inválidas
+      errorMessage = 'Correo o contraseña incorrectos.';
+      markPasswordError = true;
+      markEmailError = true;
     }
     
-    // ✅ Marcar campos con error
-    if (markPasswordError) markFieldError('password-login', true);
+    // ✅ Marcar campos con error (siempre ejecutar, incluso si no hay match específico)
+    console.log('[AUTH] markPasswordError:', markPasswordError, 'markEmailError:', markEmailError);
+    if (markPasswordError) {
+      console.log('[AUTH] 🔴 Intentando marcar password-login con error...');
+      markFieldError('password-login', true);
+      // ✅ Verificar que se aplicó
+      const passwordField = $('#password-login');
+      if (passwordField) {
+        console.log('[AUTH] Campo password-login encontrado, tiene clase error?', passwordField.classList.contains('error'));
+      } else {
+        console.error('[AUTH] ❌ No se encontró el campo password-login');
+      }
+    }
     if (markEmailError) markFieldError('email-login', true);
     
     showAuthMessage('msg-auth', errorMessage, true);
@@ -5786,8 +5829,12 @@ $('#email-login').addEventListener('input', () => {
   markFieldError('email-login', false);
 });
 
+// ✅ Limpiar errores cuando el usuario empieza a escribir (con pequeño delay para no interferir)
 $('#password-login').addEventListener('input', () => {
-  markFieldError('password-login', false);
+  // ✅ Pequeño delay para asegurar que el error se haya mostrado primero
+  setTimeout(() => {
+    markFieldError('password-login', false);
+  }, 50);
 });
 
 $('#btn-register').addEventListener('click', () => {
