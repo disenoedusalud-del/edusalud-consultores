@@ -3690,11 +3690,11 @@ function buildUserGrid() {
     
     const cardEl = document.createElement('div');
     cardEl.className = 'master-card';
-    cardEl.style.cssText = 'position:relative; overflow:visible;';
+    cardEl.style.cssText = 'position:relative; overflow:hidden; width:100%; display:flex; flex-direction:column;';
     
     // ✅ Contenedor para imagen
     const cardContent = document.createElement('div');
-    cardContent.style.cssText = 'position:relative; width:100%;';
+    cardContent.style.cssText = 'position:relative; width:100%; flex-shrink:0;';
     
     // ✅ Badge de tipo en la parte superior izquierda
     const courseType = data.type || 'curso';
@@ -3708,7 +3708,7 @@ function buildUserGrid() {
     const typeLabel = typeLabels[courseType] || '📖 Curso';
     
     const typeBadge = document.createElement('div');
-    typeBadge.style.cssText = 'position:absolute; top:12px; left:12px; z-index:10; padding:6px 12px; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); border-radius:20px; font-size:11px; font-weight:600; color:#ffffff; text-transform:uppercase; letter-spacing:0.5px;';
+    typeBadge.style.cssText = 'position:absolute; top:12px; left:12px; z-index:10; padding:6px 12px; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); border-radius:20px; font-size:11px; font-weight:600; color:#ffffff; text-transform:uppercase; letter-spacing:0.5px; pointer-events:none;';
     typeBadge.textContent = typeLabel;
     cardContent.appendChild(typeBadge);
     
@@ -3729,7 +3729,7 @@ function buildUserGrid() {
     
     // ✅ Botón "Abrir" fuera de la imagen, debajo
     const buttonContainer = document.createElement('div');
-    buttonContainer.style.cssText = 'padding:16px; background:var(--card-bg, rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.06); border-top:none; border-radius:0 0 12px 12px;';
+    buttonContainer.style.cssText = 'padding:16px; background:var(--card-bg, rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.06); border-top:none; border-radius:0 0 12px 12px; flex-shrink:0;';
     
     const openBtn = document.createElement('button');
     openBtn.className = 'btn';
