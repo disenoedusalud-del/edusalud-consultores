@@ -3404,6 +3404,9 @@ function showMaster() {
   const fabBtn = document.getElementById('btn-speed-refresh');
   if (fabBtn) fabBtn.classList.add('visible');
   
+  // ✅ Cargar lista de correos autorizados
+  renderAllowedEmailsList();
+  
   // Refresh inmediato adicional para limpiar datos obsoletos al abrir
   if (hasRemote()) {
     setTimeout(async () => {
@@ -5383,9 +5386,31 @@ async function tryLoginByGoogle() {
     const result = await window.firebaseAuth.signInWithPopup(provider);
     const user = result.user;
     
-    console.log('[AUTH] ✅ Login con Google exitoso:', user.email);
+    const userEmail = user.email.toLowerCase().trim();
+    console.log('[AUTH] ✅ Login con Google exitoso:', userEmail);
     console.log('[AUTH] Usuario:', user.displayName);
     console.log('[AUTH] Foto:', user.photoURL);
+    
+    // ✅ VERIFICAR SI EL CORREO ESTÁ PERMITIDO
+    showAuthMessage('msg-auth', 'Verificando autorización…', false);
+    const isAllowed = await checkEmailAllowed(userEmail);
+    
+    if (!isAllowed) {
+      // ✅ Cerrar sesión si no está permitido
+      await window.firebaseAuth.signOut();
+      showAuthMessage('msg-auth', 'Tu correo no está autorizado para acceder a esta plataforma. Contacta al administrador.', true);
+      
+      // ✅ Google Analytics: Tracking de acceso denegado
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'login_denied', {
+          'event_category': 'authentication',
+          'event_label': 'email_not_allowed',
+          'value': userEmail
+        });
+      }
+      
+      return false;
+    }
     
     // ✅ Google Analytics: Tracking de login exitoso
     if (typeof gtag !== 'undefined') {
@@ -5437,6 +5462,272 @@ async function tryLoginByGoogle() {
 // ✅ Funciones de registro y recuperación eliminadas (ya no se usan con Google Sign-In)
 // Los usuarios se registran automáticamente al iniciar sesión con Google por primera vez
 // Los usuarios pueden recuperar su contraseña directamente desde Google
+
+/* ============ Gestión de Correos Permitidos ============ */
+
+// ✅ Constantes para gestión de correos permitidos
+const ALLOWED_EMAILS_PATH = 'allowedEmails';
+
+// ✅ Verificar si un correo está permitido
+async function checkEmailAllowed(email) {
+  try {
+    const db = getFirebaseDB();
+    if (!db) {
+      console.warn('[AUTH] Firebase no disponible, permitiendo acceso');
+      return true; // Fallback: permitir si Firebase no está disponible
+    }
+    
+    // Normalizar email para usar como key
+    const emailKey = email.toLowerCase().trim().replace(/\./g, '_');
+    const emailRef = db.ref(`${ALLOWED_EMAILS_PATH}/${emailKey}`);
+    const snapshot = await emailRef.once('value');
+    
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      return data && data.active !== false; // Verificar que esté activo
+    }
+    
+    console.log('[AUTH] ⚠️ Correo no encontrado en lista permitida:', email);
+    return false;
+  } catch (error) {
+    console.error('[AUTH] Error verificando correo permitido:', error);
+    return false;
+  }
+}
+
+// ✅ Agregar correo a la lista permitida (solo master)
+async function addAllowedEmail(email) {
+  try {
+    if (!email || !email.includes('@')) {
+      throw new Error('Correo inválido');
+    }
+    
+    const db = getFirebaseDB();
+    if (!db) {
+      throw new Error('Firebase no disponible');
+    }
+    
+    // Normalizar email (reemplazar . por _ para usar como key en Firebase)
+    const emailKey = email.toLowerCase().trim().replace(/\./g, '_');
+    
+    // Obtener usuario actual (si está autenticado)
+    const currentUser = window.firebaseAuth?.currentUser;
+    const addedBy = currentUser?.email || 'master';
+    
+    const emailData = {
+      email: email.toLowerCase().trim(),
+      addedBy: addedBy,
+      addedAt: new Date().toISOString(),
+      active: true
+    };
+    
+    await db.ref(`${ALLOWED_EMAILS_PATH}/${emailKey}`).set(emailData);
+    console.log('[AUTH] ✅ Correo agregado:', email);
+    
+    return true;
+  } catch (error) {
+    console.error('[AUTH] Error agregando correo:', error);
+    throw error;
+  }
+}
+
+// ✅ Eliminar correo de la lista permitida (solo master)
+async function removeAllowedEmail(email) {
+  try {
+    const db = getFirebaseDB();
+    if (!db) {
+      throw new Error('Firebase no disponible');
+    }
+    
+    const emailKey = email.toLowerCase().trim().replace(/\./g, '_');
+    await db.ref(`${ALLOWED_EMAILS_PATH}/${emailKey}`).remove();
+    console.log('[AUTH] ✅ Correo eliminado:', email);
+    
+    return true;
+  } catch (error) {
+    console.error('[AUTH] Error eliminando correo:', error);
+    throw error;
+  }
+}
+
+// ✅ Obtener lista de correos permitidos
+async function getAllowedEmails() {
+  try {
+    const db = getFirebaseDB();
+    if (!db) {
+      return [];
+    }
+    
+    const emailsRef = db.ref(ALLOWED_EMAILS_PATH);
+    const snapshot = await emailsRef.once('value');
+    
+    if (!snapshot.exists()) {
+      return [];
+    }
+    
+    const emails = [];
+    snapshot.forEach((childSnapshot) => {
+      const data = childSnapshot.val();
+      if (data && data.active !== false) {
+        emails.push({
+          email: data.email,
+          addedBy: data.addedBy || 'desconocido',
+          addedAt: data.addedAt || new Date().toISOString(),
+          key: childSnapshot.key
+        });
+      }
+    });
+    
+    // Ordenar por fecha de agregado (más recientes primero)
+    emails.sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
+    
+    return emails;
+  } catch (error) {
+    console.error('[AUTH] Error obteniendo correos:', error);
+    return [];
+  }
+}
+
+// ✅ Renderizar lista de correos permitidos
+async function renderAllowedEmailsList() {
+  const container = $('#allowed-emails-list');
+  if (!container) return;
+  
+  try {
+    const emails = await getAllowedEmails();
+    
+    if (emails.length === 0) {
+      container.innerHTML = '<p style="color:var(--muted); text-align:center; padding:20px; margin:0;">No hay correos autorizados aún. Agrega el primer correo usando el formulario de arriba.</p>';
+      return;
+    }
+    
+    container.innerHTML = emails.map(email => {
+      const addedDate = new Date(email.addedAt);
+      const formattedDate = addedDate.toLocaleDateString('es-ES', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      return `
+        <div class="file" style="display:flex; align-items:center; justify-content:space-between;">
+          <div style="flex:1;">
+            <strong>${email.email}</strong>
+            <div class="meta" style="margin-top:4px;">
+              Agregado por: ${email.addedBy} • ${formattedDate}
+            </div>
+          </div>
+          <button 
+            class="btn secondary remove-email-btn" 
+            data-email="${email.email.replace(/"/g, '&quot;')}"
+            style="padding:6px 12px; font-size:13px;"
+            title="Eliminar acceso para ${email.email.replace(/"/g, '&quot;')}"
+          >
+            🗑️ Eliminar
+          </button>
+        </div>
+      `;
+    }).join('');
+    
+    // ✅ Agregar event listeners a los botones de eliminar
+    container.querySelectorAll('.remove-email-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const email = btn.getAttribute('data-email');
+        if (email) {
+          removeAllowedEmailUI(email);
+        }
+      });
+    });
+  } catch (error) {
+    console.error('[AUTH] Error renderizando correos:', error);
+    container.innerHTML = '<p style="color:var(--danger); text-align:center; padding:20px; margin:0;">Error al cargar la lista de correos.</p>';
+  }
+}
+
+// ✅ Agregar correo desde UI
+async function addAllowedEmailUI() {
+  const input = $('#input-allowed-email');
+  const msgEl = $('#msg-allowed-emails');
+  
+  if (!input || !input.value.trim()) {
+    if (msgEl) {
+      msgEl.textContent = 'Ingrese un correo válido.';
+      msgEl.classList.add('error');
+    }
+    return;
+  }
+  
+  const email = input.value.trim();
+  
+  // Validar formato básico de email
+  if (!email.includes('@') || !email.includes('.')) {
+    if (msgEl) {
+      msgEl.textContent = 'Por favor, ingrese un correo electrónico válido.';
+      msgEl.classList.add('error');
+    }
+    return;
+  }
+  
+  try {
+    // Verificar si ya existe
+    const existingEmails = await getAllowedEmails();
+    if (existingEmails.some(e => e.email.toLowerCase() === email.toLowerCase())) {
+      if (msgEl) {
+        msgEl.textContent = `El correo "${email}" ya está en la lista.`;
+        msgEl.classList.add('error');
+      }
+      return;
+    }
+    
+    await addAllowedEmail(email);
+    input.value = '';
+    if (msgEl) {
+      msgEl.textContent = `✅ Correo "${email}" agregado exitosamente.`;
+      msgEl.classList.remove('error');
+    }
+    if (typeof window.showToast === 'function') {
+      window.showToast('Correo agregado', `"${email}" ahora tiene acceso`, 'success');
+    }
+    await renderAllowedEmailsList();
+    
+    // Limpiar mensaje después de 3 segundos
+    setTimeout(() => {
+      if (msgEl) msgEl.textContent = '';
+    }, 3000);
+  } catch (error) {
+    if (msgEl) {
+      msgEl.textContent = `❌ Error: ${error.message || 'No se pudo agregar el correo.'}`;
+      msgEl.classList.add('error');
+    }
+    if (typeof window.showToast === 'function') {
+      window.showToast('Error', `No se pudo agregar: ${error.message}`, 'error');
+    }
+  }
+}
+
+// ✅ Eliminar correo desde UI
+async function removeAllowedEmailUI(email) {
+  if (!confirm(`¿Eliminar acceso para "${email}"?\n\nEl usuario ya no podrá iniciar sesión con este correo.`)) {
+    return;
+  }
+  
+  try {
+    await removeAllowedEmail(email);
+    if (typeof window.showToast === 'function') {
+      window.showToast('Correo eliminado', `"${email}" ya no tiene acceso`, 'success');
+    }
+    await renderAllowedEmailsList();
+  } catch (error) {
+    if (typeof window.showToast === 'function') {
+      window.showToast('Error', `No se pudo eliminar: ${error.message}`, 'error');
+    }
+  }
+}
+
+// ✅ Exponer función globalmente para uso en onclick
+window.removeAllowedEmailUI = removeAllowedEmailUI;
 
 // ✅ Función para logout de Firebase
 async function logoutFirebase() {
@@ -5568,6 +5859,24 @@ if (btnLoginGoogle) {
   });
 } else {
   console.warn('[AUTH] No se encontró el botón btn-login-google');
+}
+
+// ✅ Event listeners para gestión de correos autorizados
+const btnAddAllowedEmail = $('#btn-add-allowed-email');
+if (btnAddAllowedEmail) {
+  btnAddAllowedEmail.addEventListener('click', () => {
+    addAllowedEmailUI();
+  });
+}
+
+const inputAllowedEmail = $('#input-allowed-email');
+if (inputAllowedEmail) {
+  inputAllowedEmail.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addAllowedEmailUI();
+    }
+  });
 }
 
 // ✅ Integrar logout de Firebase con logout existente
