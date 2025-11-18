@@ -3739,8 +3739,11 @@ function buildUserGrid() {
     openBtn.setAttribute('aria-label', `Abrir curso: ${data.title || 'Curso'}`);
     openBtn.setAttribute('title', `Abrir el curso "${data.title || 'Curso'}"`);
     
-    openBtn.addEventListener('click', async (e) => {
-      e.stopPropagation();
+    // ✅ Función para abrir el curso (reutilizable)
+    const openCourse = async (e) => {
+      if (e) {
+        e.stopPropagation();
+      }
       
       // Verificar acceso
       if (window.currentUserEmail) {
@@ -3771,7 +3774,14 @@ function buildUserGrid() {
       currentKeyHex = hex;
       renderCourse(hex);
       showContent();
-    });
+    };
+    
+    // ✅ Event listener en el botón
+    openBtn.addEventListener('click', openCourse);
+    
+    // ✅ Event listener en toda la tarjeta
+    cardEl.style.cursor = 'pointer';
+    cardEl.addEventListener('click', openCourse);
     
     buttonContainer.appendChild(openBtn);
     cardEl.appendChild(cardContent);
