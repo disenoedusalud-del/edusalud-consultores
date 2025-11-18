@@ -23,7 +23,7 @@
   <style>
     :root{
       --bg:#0b1020;
-      --muted:#9fb1d1;
+      --muted:#b8c8e0; /* ✅ Mejorado: contraste WCAG AA (antes: #9fb1d1) */
       --text:#eaf1ff;
       --accent:#5aa9ff;
       --accent-2:#8be9fd;
@@ -379,7 +379,7 @@
           <label for="code">Ingrese su código de acceso</label>
           <div class="row">
             <input id="code" class="input" type="text" placeholder="Ej. ABC0-0000" autocomplete="one-time-code" aria-label="Código de acceso" />
-            <button id="btn-enter" class="btn" type="button">Entrar</button>
+            <button id="btn-enter" class="btn" type="button" aria-label="Entrar al curso con el código ingresado">Entrar</button>
           </div>
           <div id="msg" class="msg">Si no tiene código, solicítelo a comunicaciones.</div>
         </div>
@@ -400,7 +400,7 @@
               <div class="meta" id="courseMeta">Material oficial para consultoría</div>
             </div>
             <div class="row">
-              <button id="btn-logout" class="btn secondary" type="button">Salir</button>
+              <button id="btn-logout" class="btn secondary" type="button" aria-label="Salir del curso y volver al inicio">Salir</button>
             </div>
           </div>
 
@@ -409,7 +409,7 @@
           <div class="course-row" style="margin-top:12px;">
             <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() coloca la tarjeta aquí --></div>
             <div class="card-right">
-              <div class="filelist" id="filelist" aria-live="polite"></div>
+              <div class="filelist" id="filelist" aria-live="polite" role="list" aria-label="Lista de archivos del curso"></div>
             </div>
           </div>
 
@@ -424,12 +424,12 @@
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
         <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
         <div class="row">
-          <button id="btn-add-course" class="btn" type="button">➕ Agregar curso</button>
-          <button id="btn-master-copy" class="btn secondary" type="button">Compartir enlace con código</button>
+          <button id="btn-add-course" class="btn" type="button" aria-label="Agregar nuevo curso" title="Agregar nuevo curso (Ctrl+N)">➕ Agregar curso</button>
+          <button id="btn-master-copy" class="btn secondary" type="button" aria-label="Compartir enlace con código master">Compartir enlace con código</button>
           
           <!-- ✅ Botón de Ajustes con menú desplegable -->
           <div style="position: relative;">
-            <button id="btn-settings" class="btn secondary" type="button" title="Ajustes y herramientas">
+            <button id="btn-settings" class="btn secondary" type="button" aria-label="Abrir menú de ajustes y herramientas" title="Ajustes y herramientas">
               ⚙️ Ajustes
             </button>
             
@@ -452,7 +452,7 @@
             </div>
           </div>
           
-          <button id="btn-master-exit" class="btn secondary" type="button">Salir</button>
+          <button id="btn-master-exit" class="btn secondary" type="button" aria-label="Salir de la vista maestra">Salir</button>
         </div>
       </div>
 
@@ -501,11 +501,11 @@
 
       <!-- Buscador -->
       <div class="master-search">
-        <input id="masterSearch" type="text" placeholder="Buscar por nombre, tag o clasificación (ej. GASH, MBF, diplomado)..." />
-        <button id="masterSearchClear" type="button" title="Limpiar">Limpiar</button>
+        <input id="masterSearch" type="text" placeholder="Buscar por nombre, tag o clasificación (ej. GASH, MBF, diplomado)..." aria-label="Buscar cursos" title="Buscar cursos (Ctrl+F)" />
+        <button id="masterSearchClear" type="button" aria-label="Limpiar búsqueda" title="Limpiar búsqueda">Limpiar</button>
       </div>
 
-      <div class="master-grid" id="masterGrid"></div>
+      <div class="master-grid" id="masterGrid" role="list" aria-label="Lista de cursos disponibles"></div>
       <p class="footer">© <span id="year_master"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
     </section>
   </div>
@@ -531,31 +531,31 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2>➕ Agregar Nuevo Curso</h2>
-        <button class="modal-close" id="modalAddCourseClose">&times;</button>
+        <button class="modal-close" id="modalAddCourseClose" aria-label="Cerrar formulario de nuevo curso" title="Cerrar (Escape)">&times;</button>
       </div>
       <form id="formAddCourse">
         <div class="form-group">
           <label for="inputCourseTitle" title="Nombre completo del curso que aparecerá en la plataforma">Título del Curso * (5-100 caracteres)</label>
-          <input id="inputCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso (mínimo 5, máximo 100 caracteres)" maxlength="100" />
+          <input id="inputCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso (mínimo 5, máximo 100 caracteres)" maxlength="100" tabindex="1" aria-required="true" />
         </div>
         <div class="form-group">
           <label for="inputCourseMeta" title="Descripción breve del curso que aparecerá debajo del título">Descripción / Meta * (10-200 caracteres)</label>
-          <input id="inputCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso (mínimo 10, máximo 200 caracteres)" maxlength="200" />
+          <input id="inputCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso (mínimo 10, máximo 200 caracteres)" maxlength="200" tabindex="2" aria-required="true" />
         </div>
         <div class="form-group">
           <label for="inputCourseImage" title="URL de la imagen que aparecerá en la tarjeta del curso. Debe ser una URL pública (Google Drive, etc.)">URL de la Imagen *</label>
-          <input id="inputCourseImage" class="input" type="url" placeholder="https://..." required title="URL pública de la imagen" />
+          <input id="inputCourseImage" class="input" type="url" placeholder="https://..." required title="URL pública de la imagen" tabindex="3" aria-required="true" />
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
             📁 Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
           </div>
         </div>
         <div class="form-group">
           <label for="inputCourseTag" title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag del Curso * (2-10 caracteres)</label>
-          <input id="inputCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (mínimo 2, máximo 10 caracteres)" />
+          <input id="inputCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (mínimo 2, máximo 10 caracteres)" tabindex="4" aria-required="true" />
         </div>
         <div class="form-group">
           <label for="selectCourseType" title="Tipo de contenido educativo">Clasificación *</label>
-          <select id="selectCourseType" class="input" required title="Tipo de contenido educativo">
+          <select id="selectCourseType" class="input" required title="Tipo de contenido educativo" tabindex="5" aria-required="true">
             <option value="curso">Curso</option>
             <option value="diplomado">Diplomado</option>
             <option value="webinar">Webinar</option>
@@ -565,7 +565,7 @@
         </div>
         <div class="form-group">
           <label for="selectCourseVariant" title="Estilo visual de la tarjeta del curso">Estilo Visual *</label>
-          <select id="selectCourseVariant" class="input" required title="Estilo visual de la tarjeta">
+          <select id="selectCourseVariant" class="input" required title="Estilo visual de la tarjeta" tabindex="6" aria-required="true">
             <option value="dramatic">Dramatic (Azul)</option>
             <option value="neon">Neon (Cian)</option>
             <option value="simple">Simple (Sin efectos)</option>
@@ -574,17 +574,17 @@
         <div class="form-group">
           <label for="inputCourseAccent" title="Color de acento que se usará en la tarjeta del curso">Color Accent</label>
           <div style="display:flex; gap:10px;">
-            <input id="inputCourseAccent" class="input" type="color" value="#5aa9ff" title="Selector de color" />
-            <input type="text" class="input" id="inputCourseAccentHex" value="#5aa9ff" maxlength="7" title="Código hexadecimal del color (ej: #5aa9ff)" />
+            <input id="inputCourseAccent" class="input" type="color" value="#5aa9ff" title="Selector de color" tabindex="7" aria-label="Color de acento" />
+            <input type="text" class="input" id="inputCourseAccentHex" value="#5aa9ff" maxlength="7" title="Código hexadecimal del color (ej: #5aa9ff)" tabindex="8" aria-label="Código hexadecimal del color" />
           </div>
         </div>
         <div class="form-group">
           <label for="inputCourseCode" title="Código secreto único que los usuarios usarán para acceder al curso. Debe ser único y no puede cambiarse después">Código Secreto (se auto-generará) * (5-50 caracteres)</label>
-          <input id="inputCourseCode" class="input" type="text" placeholder="Ingresa un código único, ej: CURSO123456" required title="Código secreto único para acceder al curso (mínimo 5, máximo 50 caracteres)" maxlength="50" />
+          <input id="inputCourseCode" class="input" type="text" placeholder="Ingresa un código único, ej: CURSO123456" required title="Código secreto único para acceder al curso (mínimo 5, máximo 50 caracteres)" maxlength="50" tabindex="9" aria-required="true" />
         </div>
         <div class="form-actions">
-          <button type="button" class="btn secondary" id="btnCancelAddCourse">Cancelar</button>
-          <button type="submit" class="btn">Crear Curso</button>
+          <button type="button" class="btn secondary" id="btnCancelAddCourse" tabindex="10" aria-label="Cancelar creación de curso">Cancelar</button>
+          <button type="submit" class="btn" tabindex="11" aria-label="Crear nuevo curso">Crear Curso</button>
         </div>
       </form>
     </div>
@@ -595,31 +595,31 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2>✏️ Editar Curso</h2>
-        <button class="modal-close" id="modalEditCourseClose">&times;</button>
+        <button class="modal-close" id="modalEditCourseClose" aria-label="Cerrar formulario de edición" title="Cerrar (Escape)">&times;</button>
       </div>
       <form id="formEditCourse">
         <div class="form-group">
           <label for="inputEditCourseTitle" title="Nombre completo del curso que aparecerá en la plataforma">Título del Curso * (5-100 caracteres)</label>
-          <input id="inputEditCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso (mínimo 5, máximo 100 caracteres)" maxlength="100" />
+          <input id="inputEditCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso (mínimo 5, máximo 100 caracteres)" maxlength="100" tabindex="1" aria-required="true" />
         </div>
         <div class="form-group">
           <label for="inputEditCourseMeta" title="Descripción breve del curso que aparecerá debajo del título">Descripción / Meta * (10-200 caracteres)</label>
-          <input id="inputEditCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso (mínimo 10, máximo 200 caracteres)" maxlength="200" />
+          <input id="inputEditCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso (mínimo 10, máximo 200 caracteres)" maxlength="200" tabindex="2" aria-required="true" />
         </div>
         <div class="form-group">
           <label for="inputEditCourseImage" title="URL de la imagen que aparecerá en la tarjeta del curso. Debe ser una URL pública (Google Drive, etc.)">URL de la Imagen *</label>
-          <input id="inputEditCourseImage" class="input" type="url" placeholder="https://..." required title="URL pública de la imagen" />
+          <input id="inputEditCourseImage" class="input" type="url" placeholder="https://..." required title="URL pública de la imagen" tabindex="3" aria-required="true" />
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
             📁 Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
           </div>
         </div>
         <div class="form-group">
           <label for="inputEditCourseTag" title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag del Curso * (2-10 caracteres)</label>
-          <input id="inputEditCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (mínimo 2, máximo 10 caracteres)" />
+          <input id="inputEditCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (mínimo 2, máximo 10 caracteres)" tabindex="4" aria-required="true" />
         </div>
         <div class="form-group">
           <label for="selectEditCourseType" title="Tipo de contenido educativo">Clasificación *</label>
-          <select id="selectEditCourseType" class="input" required title="Tipo de contenido educativo">
+          <select id="selectEditCourseType" class="input" required title="Tipo de contenido educativo" tabindex="5" aria-required="true">
             <option value="curso">Curso</option>
             <option value="diplomado">Diplomado</option>
             <option value="webinar">Webinar</option>
@@ -629,7 +629,7 @@
         </div>
         <div class="form-group">
           <label for="selectEditCourseVariant" title="Estilo visual de la tarjeta del curso">Estilo Visual *</label>
-          <select id="selectEditCourseVariant" class="input" required title="Estilo visual de la tarjeta">
+          <select id="selectEditCourseVariant" class="input" required title="Estilo visual de la tarjeta" tabindex="6" aria-required="true">
             <option value="dramatic">Dramatic (Azul)</option>
             <option value="neon">Neon (Cian)</option>
             <option value="simple">Simple (Sin efectos)</option>
@@ -638,8 +638,8 @@
         <div class="form-group">
           <label for="inputEditCourseAccent" title="Color de acento que se usará en la tarjeta del curso">Color Accent</label>
           <div style="display:flex; gap:10px;">
-            <input id="inputEditCourseAccent" class="input" type="color" value="#5aa9ff" title="Selector de color" />
-            <input type="text" class="input" id="inputEditCourseAccentHex" value="#5aa9ff" maxlength="7" title="Código hexadecimal del color (ej: #5aa9ff)" />
+            <input id="inputEditCourseAccent" class="input" type="color" value="#5aa9ff" title="Selector de color" tabindex="7" aria-label="Color de acento" />
+            <input type="text" class="input" id="inputEditCourseAccentHex" value="#5aa9ff" maxlength="7" title="Código hexadecimal del color (ej: #5aa9ff)" tabindex="8" aria-label="Código hexadecimal del color" />
           </div>
         </div>
         <div class="form-group">
@@ -651,8 +651,8 @@
         </div>
         <input type="hidden" id="inputEditCourseHex" />
         <div class="form-actions">
-          <button type="button" class="btn secondary" id="btnCancelEditCourse">Cancelar</button>
-          <button type="submit" class="btn">Guardar Cambios</button>
+          <button type="button" class="btn secondary" id="btnCancelEditCourse" tabindex="9" aria-label="Cancelar edición de curso">Cancelar</button>
+          <button type="submit" class="btn" tabindex="10" aria-label="Guardar cambios del curso">Guardar Cambios</button>
         </div>
       </form>
     </div>
@@ -664,7 +664,7 @@
     <div class="modal-content" style="max-width: 500px;">
       <div class="modal-header">
         <h2>📋 Duplicar Curso</h2>
-        <button class="modal-close" id="modalDuplicateCodeClose" aria-label="Cerrar">&times;</button>
+        <button class="modal-close" id="modalDuplicateCodeClose" aria-label="Cerrar formulario de duplicar curso" title="Cerrar (Escape)">&times;</button>
       </div>
       
       <div style="padding: 20px;">
@@ -698,7 +698,7 @@
     <div class="modal-content" style="max-width: 500px;">
       <div class="modal-header">
         <h2>Confirmar Eliminación</h2>
-        <button class="modal-close" id="deleteConfirmClose" aria-label="Cerrar">&times;</button>
+        <button class="modal-close" id="deleteConfirmClose" aria-label="Cerrar confirmación de eliminación" title="Cerrar (Escape)">&times;</button>
       </div>
       
       <div style="text-align: center; padding: 20px 0;">
@@ -731,7 +731,7 @@
   <div id="successModal" class="modal">
     <div class="modal-overlay"></div>
     <div class="modal-content" style="max-width: 450px;">
-      <button class="modal-close" id="successModalClose" aria-label="Cerrar">&times;</button>
+      <button class="modal-close" id="successModalClose" aria-label="Cerrar mensaje de éxito" title="Cerrar (Escape)">&times;</button>
       
       <div style="text-align: center; padding: 30px 20px;">
         <!-- Icono de éxito -->
@@ -1365,7 +1365,7 @@
           <div class="toast-title">${title || ''}</div>
           <div class="toast-message">${message || ''}</div>
         </div>
-        <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+        <button class="toast-close" onclick="this.parentElement.remove()" aria-label="Cerrar notificación" title="Cerrar">&times;</button>
       `;
       
       container.appendChild(toast);
