@@ -5388,8 +5388,8 @@ function markFieldError(fieldId, hasError) {
       console.log('[AUTH] 🔴 Campo marcado con error:', fieldId);
       
       // ✅ Forzar aplicación del estilo con !important mediante style inline
-      // Esto asegura que el estilo se aplique incluso si hay conflictos
-      field.style.setProperty('border-color', 'var(--danger)', 'important');
+      // Usar color hexadecimal directamente (no variables CSS en style inline)
+      field.style.setProperty('border-color', '#ff7a7a', 'important');
       field.style.setProperty('box-shadow', '0 0 0 4px rgba(255,122,122,.2)', 'important');
       field.style.setProperty('background-color', 'rgba(255,122,122,.05)', 'important');
       
@@ -5403,7 +5403,9 @@ function markFieldError(fieldId, hasError) {
         if (!hasErrorClass) {
           console.warn('[AUTH] ⚠️ La clase error se perdió, reaplicando...');
           field.classList.add('error');
-          field.style.setProperty('border-color', 'var(--danger)', 'important');
+          field.style.setProperty('border-color', '#ff7a7a', 'important');
+          field.style.setProperty('box-shadow', '0 0 0 4px rgba(255,122,122,.2)', 'important');
+          field.style.setProperty('background-color', 'rgba(255,122,122,.05)', 'important');
         }
       }, 100);
     } else {
