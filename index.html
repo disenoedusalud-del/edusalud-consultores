@@ -1651,7 +1651,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=91" defer></script>
+  <script src="assets/js/app.js?v=92" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
@@ -1734,13 +1734,15 @@
     
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
+        // ✅ Usar ruta relativa para que funcione en cualquier path base
+        const swPath = './sw.js';
+        
         if (IS_DEVELOPMENT) {
           // En desarrollo: desregistrar cualquier SW existente y registrar nuevo
           // Esto asegura que siempre se use la versión más reciente
           navigator.serviceWorker.getRegistrations().then(registrations => {
             registrations.forEach(reg => reg.unregister());
           }).then(() => {
-            const swPath = '/edusalud-consultores/sw.js';
             navigator.serviceWorker.register(swPath)
               .then((registration) => {
                 console.log('[SW] ✅ Registrado (DESARROLLO):', registration.scope);
@@ -1754,7 +1756,6 @@
           });
         } else {
           // En producción: registro normal con caché optimizado
-          const swPath = '/edusalud-consultores/sw.js';
           navigator.serviceWorker.register(swPath)
             .then((registration) => {
               console.log('[SW] ✅ Registrado correctamente:', registration.scope);
