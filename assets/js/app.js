@@ -2830,6 +2830,7 @@ function renderCourse(keyHex) {
     btn.className = 'btn';
     btn.type = 'button';
     btn.textContent = 'Ver más';
+    btn.setAttribute('aria-label', `Ver o descargar archivo: ${item.label || 'Archivo'}`);
     btn.addEventListener('click', () => downloadFile(item.url, item.label));
     row.appendChild(btn);
     list.appendChild(row);
@@ -3006,6 +3007,7 @@ function buildMasterGrid() {
     open.className = 'btn secondary';
     open.type = 'button';
     open.textContent = 'Abrir curso';
+    open.setAttribute('aria-label', `Abrir curso: ${data.title || 'Curso'}`);
     open.addEventListener('click', async () => {
       // Mostrar loader inmediatamente
       showLoader();
@@ -3036,6 +3038,7 @@ function buildMasterGrid() {
       btnEditCourse.className = 'btn secondary';
       btnEditCourse.type = 'button';
       btnEditCourse.textContent = '✏️ Editar';
+      btnEditCourse.setAttribute('aria-label', `Editar curso: ${data.title || 'Curso'}`);
       btnEditCourse.addEventListener('click', () => {
         // Abrir modal de edición con datos del curso
         if (typeof window.openEditCourseModal === 'function') {
@@ -3049,6 +3052,7 @@ function buildMasterGrid() {
       btnDuplicate.className = 'btn secondary';
       btnDuplicate.type = 'button';
       btnDuplicate.textContent = '📋 Duplicar';
+      btnDuplicate.setAttribute('aria-label', `Duplicar curso: ${data.title || 'Curso'}`);
       btnDuplicate.addEventListener('click', async () => {
         // Generar código sugerido
         const suggestedCode = `${data.card?.tag || 'CURSO'}_${Date.now()}`;
@@ -3179,6 +3183,7 @@ function buildMasterGrid() {
       btnDelete.className = 'btn';
       btnDelete.type = 'button';
       btnDelete.textContent = '🗑️ Eliminar';
+      btnDelete.setAttribute('aria-label', `Eliminar curso: ${data.title || 'Curso'}`);
       btnDelete.style.background = 'linear-gradient(135deg, #ff4444, #cc0000)';
       btnDelete.addEventListener('click', async () => {
         // ✅ Mostrar modal de confirmación elegante
@@ -3255,12 +3260,14 @@ function buildMasterGrid() {
       btnOpen.className = 'btn';
       btnOpen.type = 'button';
       btnOpen.textContent = 'Descargar';
+      btnOpen.setAttribute('aria-label', `Descargar archivo: ${item.label || 'Archivo'}`);
       btnOpen.addEventListener('click', () => downloadFile(item.url, item.label));
 
       const btnEdit = document.createElement('button');
       btnEdit.className = 'btn secondary';
       btnEdit.type = 'button';
       btnEdit.textContent = 'Editar';
+      btnEdit.setAttribute('aria-label', `Editar archivo: ${item.label || 'Archivo'}`);
       btnEdit.addEventListener('click', () => {
         // ✅ Deshabilitar los 3 botones principales
         btnOpen.disabled = true;
@@ -3370,6 +3377,7 @@ function buildMasterGrid() {
       btnRemove.className = 'btn secondary';
       btnRemove.type = 'button';
       btnRemove.textContent = 'Quitar';
+      btnRemove.setAttribute('aria-label', `Eliminar archivo: ${item.label || 'Archivo'}`);
       btnRemove.addEventListener('click', async () => {
         // ✅ ADVERTENCIA: Usar modal de confirmación elegante (igual que al eliminar curso)
         // Siempre usar el modal, nunca el confirm nativo del navegador
