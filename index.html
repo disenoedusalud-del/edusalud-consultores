@@ -502,6 +502,28 @@
               <div class="meta" id="courseMeta">Material oficial para consultoría</div>
             </div>
             <div class="row">
+              <!-- ✅ Botón de Ajustes para consultores -->
+              <div style="position: relative;">
+                <button id="btn-settings-content" class="btn secondary" type="button" aria-label="Abrir menú de ajustes" aria-expanded="false" aria-haspopup="true" title="Ajustes">
+                  ⚙️ Ajustes
+                </button>
+                
+                <!-- Menú desplegable de ajustes para consultores -->
+                <div id="settingsDropdownContent" class="settings-dropdown" style="display: none;" role="menu" aria-label="Menú de ajustes">
+                  <!-- Categoría: Apariencia -->
+                  <div class="settings-category" data-category="appearance" role="menuitem" tabindex="0" aria-expanded="false">
+                    <span class="settings-category-icon">🎨</span>
+                    <span class="settings-category-label">Apariencia</span>
+                    <span class="settings-category-arrow">▶</span>
+                  </div>
+                  <div class="settings-submenu" data-submenu="appearance" style="display: none;">
+                    <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0">
+                      <span id="theme-toggle-icon-content">☀️</span> <span id="theme-toggle-text-content">Cambiar a Modo Claro</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
               <button id="btn-logout" class="btn secondary" type="button" aria-label="Salir del curso y volver al inicio">Salir</button>
             </div>
           </div>
