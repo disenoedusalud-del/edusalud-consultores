@@ -3395,6 +3395,19 @@ function showContent() {
   // ✅ Forzar reflow para que la transición se active
   void contentEl.offsetWidth;
   
+  // ✅ Mostrar/ocultar botón "Volver" según el origen
+  const btnBackToUser = $('#btn-back-to-user');
+  // ✅ Viene de vista de usuario si tiene email, cursos permitidos y el flag está activo
+  const isFromUserView = window.currentUserEmail && window.allowedCoursesForUser && window.isFromUserView;
+  
+  if (btnBackToUser) {
+    if (isFromUserView) {
+      btnBackToUser.classList.remove('hidden');
+    } else {
+      btnBackToUser.classList.add('hidden');
+    }
+  }
+  
   // No iniciar refresh periódico aquí, se inicia cuando se renderiza el curso
   // ✅ Mostrar botón flotante cuando está autenticado
   const fabBtn = document.getElementById('btn-speed-refresh');
@@ -3429,6 +3442,9 @@ function showMaster() {
   $('#access').classList.add('hidden');
   $('#content').classList.add('hidden');
   $('#user-view').classList.add('hidden');
+  
+  // ✅ Limpiar flag cuando se muestra la vista master
+  window.isFromUserView = false;
   
   // ✅ Mostrar master con transición
   const masterEl = $('#master');
@@ -3762,6 +3778,8 @@ function buildUserGrid() {
       
       await runLoader();
       
+      // ✅ Marcar que estamos en un curso desde vista de usuario
+      window.isFromUserView = true;
       currentKeyHex = hex;
       renderCourse(hex);
       showContent();
@@ -3999,6 +4017,8 @@ function buildMasterGrid() {
       // Ejecutar animación de loader ahora que ya tenemos los datos
       await runLoader();
       
+      // ✅ Limpiar flag cuando se abre desde master (no desde vista de usuario)
+      window.isFromUserView = false;
       currentKeyHex = hex;
       renderCourse(hex);
       showContent();
@@ -6967,12 +6987,38 @@ if (btnUserLogout) {
   });
 }
 
-// ✅ Integrar logout de Firebase con logout existente
+// ✅ Event listener para botón "Volver" (desde vista de contenido a vista de usuario)
+const btnBackToUser = $('#btn-back-to-user');
+if (btnBackToUser) {
+  btnBackToUser.addEventListener('click', () => {
+    // Limpiar curso actual y flag
+    currentKeyHex = null;
+    window.isFromUserView = false;
+    setQueryParam('code', null);
+    // Regresar a vista de usuario
+    showUserView();
+  });
+}
+
+// ✅ Event listener para botón "Salir" (comportamiento inteligente)
 $('#btn-logout').addEventListener('click', async () => {
-  currentKeyHex = null;
-  setQueryParam('code', null);
-  await logoutFirebase();
-  showAccess();
+  // ✅ Si viene de vista de usuario, regresar a vista de usuario
+  const isFromUserView = window.currentUserEmail && window.allowedCoursesForUser && window.isFromUserView;
+  
+  if (isFromUserView) {
+    // Regresar a vista de usuario (no cerrar sesión)
+    currentKeyHex = null;
+    window.isFromUserView = false;
+    setQueryParam('code', null);
+    showUserView();
+  } else {
+    // Si viene de master o acceso directo, cerrar sesión
+    currentKeyHex = null;
+    window.isFromUserView = false;
+    setQueryParam('code', null);
+    await logoutFirebase();
+    showAccess();
+  }
 });
 
 // ✅ Integrar logout de Firebase con logout del master
