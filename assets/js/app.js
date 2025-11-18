@@ -5429,9 +5429,12 @@ async function tryLoginByGoogle() {
     // ✅ Crear proveedor de Google
     const provider = new firebase.auth.GoogleAuthProvider();
     
+    // ✅ Configurar la URL de redirección explícitamente
+    const currentOrigin = window.location.origin;
     console.log('[AUTH] 🔄 Iniciando popup de Google...');
     console.log('[AUTH] Firebase Auth disponible:', !!window.firebaseAuth);
     console.log('[AUTH] Dominio actual:', window.location.hostname);
+    console.log('[AUTH] Origin completo:', currentOrigin);
     
     // ✅ Intentar con popup primero
     let result;
@@ -5439,6 +5442,7 @@ async function tryLoginByGoogle() {
       result = await window.firebaseAuth.signInWithPopup(provider);
     } catch (popupError) {
       console.error('[AUTH] ❌ Error con popup:', popupError);
+      console.error('[AUTH] Código de error:', popupError.code);
       
       // ✅ Si el popup falla, usar redirect como fallback
       if (popupError.code === 'auth/popup-blocked' || 
@@ -5450,8 +5454,9 @@ async function tryLoginByGoogle() {
         
         // Guardar estado para cuando regrese
         sessionStorage.setItem('pendingGoogleAuth', 'true');
+        sessionStorage.setItem('redirectUrl', currentOrigin + window.location.pathname);
         
-        // Usar redirect
+        // Usar redirect con configuración explícita
         await window.firebaseAuth.signInWithRedirect(provider);
         return false; // No continuar, se redirigirá
       }
@@ -5469,6 +5474,7 @@ async function tryLoginByGoogle() {
     
     // ✅ Limpiar estado pendiente si existe
     sessionStorage.removeItem('pendingGoogleAuth');
+    sessionStorage.removeItem('redirectUrl');
     
     // ✅ OBTENER CURSOS PERMITIDOS PARA ESTE CORREO
     showAuthMessage('msg-auth', 'Verificando cursos disponibles…', false);
@@ -6068,13 +6074,28 @@ function setupAuthStateListener() {
 // ✅ Manejar resultado de redirect cuando el usuario regrese
 async function handleGoogleRedirectResult() {
   try {
-    if (!window.firebaseAuth) return;
+    if (!window.firebaseAuth) {
+      console.log('[AUTH] Firebase Auth no disponible para redirect result');
+      return;
+    }
     
+    console.log('[AUTH] 🔄 Verificando resultado de redirect...');
     const result = await window.firebaseAuth.getRedirectResult();
+    
     if (result.user) {
       console.log('[AUTH] ✅ Login con redirect exitoso:', result.user.email);
       const userEmail = result.user.email.toLowerCase().trim();
       window.currentUserEmail = userEmail;
+      
+      // Limpiar estado pendiente
+      sessionStorage.removeItem('pendingGoogleAuth');
+      sessionStorage.removeItem('redirectUrl');
+      
+      // Mostrar mensaje de carga
+      const msgEl = $('#msg-auth');
+      if (msgEl) {
+        showAuthMessage('msg-auth', 'Verificando cursos disponibles…', false);
+      }
       
       const allowedCourses = await getCoursesForEmail(userEmail);
       
@@ -6085,9 +6106,18 @@ async function handleGoogleRedirectResult() {
       
       await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
       showAuthMessage('msg-auth', `¡Bienvenido! Tienes acceso a ${allowedCourses.length} curso(s).`, false);
+    } else {
+      console.log('[AUTH] No hay resultado de redirect (usuario no autenticado)');
     }
   } catch (error) {
-    console.error('[AUTH] Error en redirect result:', error);
+    console.error('[AUTH] ❌ Error en redirect result:', error);
+    console.error('[AUTH] Código de error:', error.code);
+    console.error('[AUTH] Mensaje:', error.message);
+    
+    // Limpiar estado pendiente incluso si hay error
+    sessionStorage.removeItem('pendingGoogleAuth');
+    sessionStorage.removeItem('redirectUrl');
+    
     showAuthMessage('msg-auth', 'Error al completar el inicio de sesión. Intente nuevamente.', true);
   }
 }
