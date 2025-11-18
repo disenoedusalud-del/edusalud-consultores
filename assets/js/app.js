@@ -5406,34 +5406,69 @@ function showAuthMessage(elementId, message, isError = false) {
 
 // ✅ Funciones de validación de campos eliminadas (ya no se usan con Google Sign-In)
 
-// ✅ Función para login con Google
+// ✅ Función para login con Google (mejorada con fallback a redirect)
 async function tryLoginByGoogle() {
   const msgEl = $('#msg-auth');
   showAuthMessage('msg-auth', 'Iniciando sesión con Google…', false);
   
   try {
+    // ✅ Verificar que Firebase esté completamente cargado
     if (!window.firebaseAuth) {
-      showAuthMessage('msg-auth', 'Firebase Authentication no está disponible. Por favor, use el acceso por código.', true);
+      showAuthMessage('msg-auth', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
+      console.error('[AUTH] ❌ Firebase Auth no disponible');
+      return false;
+    }
+
+    // ✅ Verificar que Firebase esté inicializado
+    if (typeof firebase === 'undefined') {
+      showAuthMessage('msg-auth', 'Firebase no está cargado. Por favor, recargue la página.', true);
+      console.error('[AUTH] ❌ Firebase no está definido');
       return false;
     }
 
     // ✅ Crear proveedor de Google
     const provider = new firebase.auth.GoogleAuthProvider();
     
-    // ✅ Opcional: Solicitar permisos adicionales
-    // provider.addScope('email');
-    // provider.addScope('profile');
-    
     console.log('[AUTH] 🔄 Iniciando popup de Google...');
+    console.log('[AUTH] Firebase Auth disponible:', !!window.firebaseAuth);
+    console.log('[AUTH] Dominio actual:', window.location.hostname);
     
-    // ✅ Iniciar sesión con popup
-    const result = await window.firebaseAuth.signInWithPopup(provider);
+    // ✅ Intentar con popup primero
+    let result;
+    try {
+      result = await window.firebaseAuth.signInWithPopup(provider);
+    } catch (popupError) {
+      console.error('[AUTH] ❌ Error con popup:', popupError);
+      
+      // ✅ Si el popup falla, usar redirect como fallback
+      if (popupError.code === 'auth/popup-blocked' || 
+          popupError.code === 'auth/popup-closed-by-user' ||
+          popupError.code === 'auth/unauthorized-domain') {
+        
+        console.log('[AUTH] 🔄 Popup falló, usando redirect...');
+        showAuthMessage('msg-auth', 'Redirigiendo a Google para iniciar sesión…', false);
+        
+        // Guardar estado para cuando regrese
+        sessionStorage.setItem('pendingGoogleAuth', 'true');
+        
+        // Usar redirect
+        await window.firebaseAuth.signInWithRedirect(provider);
+        return false; // No continuar, se redirigirá
+      }
+      
+      // Si es otro error, lanzarlo para que se maneje abajo
+      throw popupError;
+    }
+    
     const user = result.user;
     
     const userEmail = user.email.toLowerCase().trim();
     console.log('[AUTH] ✅ Login con Google exitoso:', userEmail);
     console.log('[AUTH] Usuario:', user.displayName);
     console.log('[AUTH] Foto:', user.photoURL);
+    
+    // ✅ Limpiar estado pendiente si existe
+    sessionStorage.removeItem('pendingGoogleAuth');
     
     // ✅ OBTENER CURSOS PERMITIDOS PARA ESTE CORREO
     showAuthMessage('msg-auth', 'Verificando cursos disponibles…', false);
@@ -5471,12 +5506,16 @@ async function tryLoginByGoogle() {
     console.error('[AUTH] ❌ Error en login con Google:', error);
     console.error('[AUTH] Código de error:', error.code);
     console.error('[AUTH] Mensaje de error:', error.message);
+    console.error('[AUTH] Stack:', error.stack);
     
     let errorMessage = 'Error al iniciar sesión con Google.';
     if (error.code === 'auth/popup-closed-by-user') {
       errorMessage = 'La ventana de Google se cerró. Intente nuevamente.';
     } else if (error.code === 'auth/popup-blocked') {
-      errorMessage = 'La ventana emergente fue bloqueada. Permita ventanas emergentes para este sitio.';
+      errorMessage = 'La ventana emergente fue bloqueada. Permita ventanas emergentes para este sitio o use el botón nuevamente para redirigir.';
+    } else if (error.code === 'auth/unauthorized-domain') {
+      errorMessage = 'Este dominio no está autorizado. Contacta al administrador.';
+      console.error('[AUTH] ⚠️ Dominio no autorizado. Agrega este dominio en Firebase Console → Authentication → Settings → Dominios autorizados:', window.location.hostname);
     } else if (error.code === 'auth/cancelled-popup-request') {
       errorMessage = 'Solo se puede abrir una ventana de inicio de sesión a la vez.';
     } else if (error.code === 'auth/account-exists-with-different-credential') {
@@ -5995,9 +6034,37 @@ function setupAuthStateListener() {
   });
 }
 
+// ✅ Manejar resultado de redirect cuando el usuario regrese
+async function handleGoogleRedirectResult() {
+  try {
+    if (!window.firebaseAuth) return;
+    
+    const result = await window.firebaseAuth.getRedirectResult();
+    if (result.user) {
+      console.log('[AUTH] ✅ Login con redirect exitoso:', result.user.email);
+      const userEmail = result.user.email.toLowerCase().trim();
+      window.currentUserEmail = userEmail;
+      
+      const allowedCourses = await getCoursesForEmail(userEmail);
+      
+      if (allowedCourses.length === 0) {
+        showAuthMessage('msg-auth', 'No tienes acceso a ningún curso. Contacta al administrador para solicitar acceso.', true);
+        return;
+      }
+      
+      await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
+      showAuthMessage('msg-auth', `¡Bienvenido! Tienes acceso a ${allowedCourses.length} curso(s).`, false);
+    }
+  } catch (error) {
+    console.error('[AUTH] Error en redirect result:', error);
+    showAuthMessage('msg-auth', 'Error al completar el inicio de sesión. Intente nuevamente.', true);
+  }
+}
+
 // ✅ Inicializar listener de estado cuando Firebase esté listo
 window.addEventListener('firebaseReady', () => {
   setupAuthStateListener();
+  handleGoogleRedirectResult();
 });
 
 /* ============ eventos ============ */
