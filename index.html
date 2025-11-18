@@ -740,35 +740,6 @@
         </div>
       </div>
 
-      <!-- Sección de Gestión de Correos Autorizados -->
-      <div id="allowed-emails-section" class="card" style="margin-top:24px; margin-bottom:24px;">
-        <h3 style="margin:0 0 16px 0; display:flex; align-items:center; gap:8px; font-size:18px;">
-          📧 Gestión de Correos Autorizados
-        </h3>
-        
-        <!-- Formulario para agregar correo -->
-        <div style="display:flex; gap:8px; margin-bottom:20px;">
-          <input 
-            id="input-allowed-email" 
-            class="input" 
-            type="email" 
-            placeholder="correo@ejemplo.com" 
-            style="flex:1;"
-            aria-label="Correo electrónico a autorizar"
-          />
-          <button id="btn-add-allowed-email" class="btn" type="button">
-            ➕ Agregar
-          </button>
-        </div>
-        
-        <!-- Lista de correos -->
-        <div id="allowed-emails-list" style="display:grid; gap:8px; min-height:60px;">
-          <p style="color:var(--muted); text-align:center; padding:20px; margin:0;">Cargando correos autorizados...</p>
-        </div>
-        
-        <div id="msg-allowed-emails" class="msg" style="margin-top:12px;"></div>
-      </div>
-
       <!-- Filtros y Ordenamiento -->
       <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
         <!-- Filtro por clasificación -->
@@ -1047,6 +1018,39 @@
         <button id="successModalBtn" class="btn" type="button" style="min-width: 140px; background: linear-gradient(135deg, #4ade80, #22c55e);">
           Continuar
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para gestionar correos permitidos por curso -->
+  <div id="modalCourseEmails" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h2 id="modalCourseEmailsTitle">📧 Correos Permitidos</h2>
+        <button class="modal-close" id="modalCourseEmailsClose" aria-label="Cerrar modal de correos" title="Cerrar (Escape)">&times;</button>
+      </div>
+      <div style="padding: 20px;">
+        <!-- Formulario para agregar correo -->
+        <div style="display:flex; gap:8px; margin-bottom:20px;">
+          <input 
+            id="input-course-email" 
+            class="input" 
+            type="email" 
+            placeholder="correo@ejemplo.com" 
+            style="flex:1;"
+            aria-label="Correo electrónico a autorizar para este curso"
+          />
+          <button id="btn-add-course-email" class="btn" type="button">
+            ➕ Agregar
+          </button>
+        </div>
+        
+        <!-- Lista de correos -->
+        <div id="course-emails-list" style="display:grid; gap:8px; min-height:60px; max-height:400px; overflow-y:auto;">
+          <p style="color:var(--muted); text-align:center; padding:20px; margin:0;">Cargando correos autorizados...</p>
+        </div>
+        
+        <div id="msg-course-emails" class="msg" style="margin-top:12px;"></div>
       </div>
     </div>
   </div>
@@ -1428,7 +1432,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=68" defer></script>
+  <script src="assets/js/app.js?v=69" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
