@@ -2097,10 +2097,34 @@ function setupSettingsMenu() {
   // ✅ Marcar como configurado
   btnSettings.dataset.settingsConfigured = 'true';
   
+  // ✅ Obtener todas las categorías
+  const categories = dropdown.querySelectorAll('.settings-category');
+  
+  // ✅ Función para colapsar todas las categorías
+  function collapseAllCategories() {
+    categories.forEach((category) => {
+      const categoryName = category.dataset.category;
+      const submenu = dropdown.querySelector(`[data-submenu="${categoryName}"]`);
+      if (submenu) {
+        category.setAttribute('aria-expanded', 'false');
+        submenu.classList.remove('expanded');
+        setTimeout(() => {
+          if (!submenu.classList.contains('expanded')) {
+            submenu.style.display = 'none';
+          }
+        }, 100);
+      }
+    });
+  }
+  
   // Toggle del menú al hacer click
   btnSettings.addEventListener('click', (e) => {
     e.stopPropagation();
     const isVisible = dropdown.style.display !== 'none';
+    if (isVisible) {
+      // Cerrar: colapsar todas las categorías
+      collapseAllCategories();
+    }
     dropdown.style.display = isVisible ? 'none' : 'block';
     // ✅ Actualizar aria-expanded para accesibilidad
     btnSettings.setAttribute('aria-expanded', isVisible ? 'false' : 'true');
@@ -2109,19 +2133,71 @@ function setupSettingsMenu() {
   // Cerrar menú al hacer click fuera
   document.addEventListener('click', (e) => {
     if (!btnSettings.contains(e.target) && !dropdown.contains(e.target)) {
+      collapseAllCategories();
       dropdown.style.display = 'none';
       // ✅ Actualizar aria-expanded cuando se cierra
       btnSettings.setAttribute('aria-expanded', 'false');
     }
   });
   
-  // ✅ Navegación por teclado en el menú
-  const menuItems = dropdown.querySelectorAll('[role="menuitem"]');
+  // ✅ Función para expandir/colapsar categorías
+  function toggleCategory(categoryElement) {
+    const categoryName = categoryElement.dataset.category;
+    const submenu = dropdown.querySelector(`[data-submenu="${categoryName}"]`);
+    
+    if (!submenu) return;
+    
+    const isExpanded = categoryElement.getAttribute('aria-expanded') === 'true';
+    
+    if (isExpanded) {
+      // Colapsar
+      categoryElement.setAttribute('aria-expanded', 'false');
+      submenu.classList.remove('expanded');
+      // Esperar a que termine la animación antes de ocultar
+      setTimeout(() => {
+        if (!submenu.classList.contains('expanded')) {
+          submenu.style.display = 'none';
+        }
+      }, 300);
+    } else {
+      // Expandir
+      submenu.style.display = 'block';
+      // Pequeño delay para que el navegador calcule el max-height
+      setTimeout(() => {
+        categoryElement.setAttribute('aria-expanded', 'true');
+        submenu.classList.add('expanded');
+      }, 10);
+    }
+  }
+  
+  // ✅ Configurar categorías (expandir/colapsar)
+  categories.forEach((category) => {
+    category.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleCategory(category);
+    });
+    
+    category.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleCategory(category);
+      }
+    });
+  });
+  
+  // ✅ Navegación por teclado en el menú (solo para items de acción, no categorías)
+  const menuItems = dropdown.querySelectorAll('.settings-menu-item[role="menuitem"]');
   menuItems.forEach((item, index) => {
-    // Click
-    item.addEventListener('click', () => {
-      dropdown.style.display = 'none';
-      btnSettings.setAttribute('aria-expanded', 'false');
+    // Click - cerrar menú solo si es una acción real
+    item.addEventListener('click', (e) => {
+      // No cerrar si el clic viene de un elemento dentro del item (como un span)
+      if (e.target === item || item.contains(e.target)) {
+        // Solo cerrar si tiene una acción definida
+        if (item.dataset.action) {
+          dropdown.style.display = 'none';
+          btnSettings.setAttribute('aria-expanded', 'false');
+        }
+      }
     });
     
     // Navegación con teclado
@@ -2131,11 +2207,15 @@ function setupSettingsMenu() {
         item.click();
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        const next = menuItems[index + 1] || menuItems[0];
+        const allItems = Array.from(dropdown.querySelectorAll('.settings-menu-item[role="menuitem"], .settings-category'));
+        const currentIndex = allItems.indexOf(item);
+        const next = allItems[currentIndex + 1] || allItems[0];
         next.focus();
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        const prev = menuItems[index - 1] || menuItems[menuItems.length - 1];
+        const allItems = Array.from(dropdown.querySelectorAll('.settings-menu-item[role="menuitem"], .settings-category'));
+        const currentIndex = allItems.indexOf(item);
+        const prev = allItems[currentIndex - 1] || allItems[allItems.length - 1];
         prev.focus();
       } else if (e.key === 'Escape') {
         e.preventDefault();
@@ -2150,27 +2230,30 @@ function setupSettingsMenu() {
   btnSettings.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowDown' && dropdown.style.display !== 'none') {
       e.preventDefault();
-      const firstItem = menuItems[0];
-      if (firstItem) firstItem.focus();
+      const firstCategory = categories[0] || menuItems[0];
+      if (firstCategory) firstCategory.focus();
     }
   });
   
   // ✅ Exportar Backup Completo
-  dropdown.querySelector('[data-action="export-all"]')?.addEventListener('click', () => {
+  dropdown.querySelector('[data-action="export-all"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
     dropdown.style.display = 'none';
     btnSettings.setAttribute('aria-expanded', 'false');
     exportOverrides();
   });
   
   // ✅ Exportar por Tipo (con modal de selección)
-  dropdown.querySelector('[data-action="export-filtered"]')?.addEventListener('click', () => {
+  dropdown.querySelector('[data-action="export-filtered"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
     dropdown.style.display = 'none';
     btnSettings.setAttribute('aria-expanded', 'false');
     showExportFilterModal();
   });
   
   // ✅ Importar Backup (con vista previa)
-  dropdown.querySelector('[data-action="import"]')?.addEventListener('click', () => {
+  dropdown.querySelector('[data-action="import"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
     dropdown.style.display = 'none';
     btnSettings.setAttribute('aria-expanded', 'false');
     const fileInput = document.createElement('input');
@@ -2192,16 +2275,17 @@ function setupSettingsMenu() {
   });
   
   // ✅ Historial de Backups
-  dropdown.querySelector('[data-action="backup-history"]')?.addEventListener('click', () => {
+  dropdown.querySelector('[data-action="backup-history"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
     dropdown.style.display = 'none';
     btnSettings.setAttribute('aria-expanded', 'false');
     showBackupHistory();
   });
   
   // ✅ Toggle de Tema (Claro/Oscuro)
-  dropdown.querySelector('[data-action="toggle-theme"]')?.addEventListener('click', () => {
-    dropdown.style.display = 'none';
-    btnSettings.setAttribute('aria-expanded', 'false');
+  dropdown.querySelector('[data-action="toggle-theme"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    // NO cerrar el menú aquí, solo cambiar el tema
     toggleTheme();
   });
   
