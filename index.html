@@ -517,14 +517,14 @@
                     <span class="settings-category-arrow">▶</span>
                   </div>
                   <div class="settings-submenu" data-submenu="appearance" style="display: none;">
-                    <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0">
+                    <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0" title="Alternar entre modo claro y oscuro">
                       <span id="theme-toggle-icon-content">☀️</span> <span id="theme-toggle-text-content">Cambiar a Modo Claro</span>
                     </div>
                   </div>
                 </div>
               </div>
               
-              <button id="btn-logout" class="btn secondary" type="button" aria-label="Salir del curso y volver al inicio">Salir</button>
+              <button id="btn-logout" class="btn secondary" type="button" aria-label="Salir del curso y volver al inicio" title="Volver a la pantalla de acceso">Salir</button>
             </div>
           </div>
 
@@ -549,7 +549,7 @@
         <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
         <div class="row">
           <button id="btn-add-course" class="btn" type="button" aria-label="Agregar nuevo curso" title="Agregar nuevo curso (Ctrl+N)">➕ Agregar curso</button>
-          <button id="btn-master-copy" class="btn secondary" type="button" aria-label="Compartir enlace con código master">Compartir enlace con código</button>
+          <button id="btn-master-copy" class="btn secondary" type="button" aria-label="Compartir enlace con código master" title="Copiar enlace con código master para compartir">Compartir enlace con código</button>
           
           <!-- ✅ Botón de Ajustes con menú desplegable -->
           <div style="position: relative;">
@@ -560,43 +560,43 @@
             <!-- Menú desplegable de ajustes -->
             <div id="settingsDropdown" class="settings-dropdown" style="display: none;" role="menu" aria-label="Menú de ajustes">
               <!-- Categoría: Backups -->
-              <div class="settings-category" data-category="backups" role="menuitem" tabindex="0" aria-expanded="false">
+              <div class="settings-category" data-category="backups" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de backup">
                 <span class="settings-category-icon">📦</span>
                 <span class="settings-category-label">Backups</span>
                 <span class="settings-category-arrow">▶</span>
               </div>
               <div class="settings-submenu" data-submenu="backups" style="display: none;">
-                <div class="settings-menu-item" data-action="export-all" role="menuitem" tabindex="0">
-                  💾 Exportar Backup Completo
-                </div>
-                <div class="settings-menu-item" data-action="export-filtered" role="menuitem" tabindex="0">
-                  📤 Exportar por Tipo...
-                </div>
-                <div class="settings-divider" role="separator"></div>
-                <div class="settings-menu-item" data-action="import" role="menuitem" tabindex="0">
-                  📥 Importar Backup...
-                </div>
-                <div class="settings-divider" role="separator"></div>
-                <div class="settings-menu-item" data-action="backup-history" role="menuitem" tabindex="0">
-                  📋 Historial de Backups
-                </div>
+                  <div class="settings-menu-item" data-action="export-all" role="menuitem" tabindex="0" title="Exportar todos los cursos y enlaces como archivo JSON">
+                💾 Exportar Backup Completo
+              </div>
+              <div class="settings-menu-item" data-action="export-filtered" role="menuitem" tabindex="0" title="Exportar solo cursos de un tipo específico (Cursos, Diplomados, Webinars)">
+                📤 Exportar por Tipo...
+              </div>
+              <div class="settings-divider" role="separator"></div>
+              <div class="settings-menu-item" data-action="import" role="menuitem" tabindex="0" title="Importar un backup anterior desde un archivo JSON">
+                📥 Importar Backup...
+              </div>
+              <div class="settings-divider" role="separator"></div>
+              <div class="settings-menu-item" data-action="backup-history" role="menuitem" tabindex="0" title="Ver historial de backups guardados anteriormente">
+                📋 Historial de Backups
+              </div>
               </div>
               
               <!-- Categoría: Apariencia -->
-              <div class="settings-category" data-category="appearance" role="menuitem" tabindex="0" aria-expanded="false">
+              <div class="settings-category" data-category="appearance" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de apariencia">
                 <span class="settings-category-icon">🎨</span>
                 <span class="settings-category-label">Apariencia</span>
                 <span class="settings-category-arrow">▶</span>
               </div>
               <div class="settings-submenu" data-submenu="appearance" style="display: none;">
-                <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0">
-                  <span id="theme-toggle-icon">☀️</span> <span id="theme-toggle-text">Cambiar a Modo Claro</span>
-                </div>
+                    <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0" title="Alternar entre modo claro y oscuro">
+                      <span id="theme-toggle-icon">☀️</span> <span id="theme-toggle-text">Cambiar a Modo Claro</span>
+                    </div>
               </div>
             </div>
           </div>
           
-          <button id="btn-master-exit" class="btn secondary" type="button" aria-label="Salir de la vista maestra">Salir</button>
+          <button id="btn-master-exit" class="btn secondary" type="button" aria-label="Salir de la vista maestra" title="Volver a la pantalla de acceso">Salir</button>
         </div>
       </div>
 
@@ -1256,6 +1256,16 @@
     /* Botón de ajustes con indicador */
     #btn-settings {
       position: relative;
+    }
+
+    /* ✅ Animación para spinner de carga */
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
     }
   </style>
 
