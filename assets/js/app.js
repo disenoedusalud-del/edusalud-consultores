@@ -3404,8 +3404,7 @@ function showMaster() {
   const fabBtn = document.getElementById('btn-speed-refresh');
   if (fabBtn) fabBtn.classList.add('visible');
   
-  // ✅ Cargar lista de correos autorizados
-  renderAllowedEmailsList();
+  // ✅ Lista de correos autorizados eliminada (ahora se gestiona por curso)
   
   // Refresh inmediato adicional para limpiar datos obsoletos al abrir
   if (hasRemote()) {
@@ -3617,6 +3616,16 @@ function buildMasterGrid() {
   // ✅ Paginación: solo si hay muchos cursos (más de 12)
   let coursesArray = Object.entries(mergedMap).filter(([hex]) => hex !== MASTER_HASH);
   
+  // ✅ Si el usuario está autenticado con email, filtrar solo cursos permitidos
+  // Si está autenticado con código master, mostrar todos los cursos
+  const isEmailAuth = window.currentUserEmail && !currentKeyHex;
+  if (isEmailAuth && window.allowedCoursesForUser) {
+    coursesArray = coursesArray.filter(([hex]) => {
+      return window.allowedCoursesForUser.includes(hex);
+    });
+    console.log('[MASTER] Filtrando cursos para email:', window.currentUserEmail, '- Cursos permitidos:', coursesArray.length);
+  }
+  
   // ✅ Aplicar filtro por tipo
   const filterType = $('#filterByType')?.value || 'all';
   if (filterType !== 'all') {
@@ -3754,6 +3763,20 @@ function buildMasterGrid() {
     open.setAttribute('aria-label', `Abrir curso: ${data.title || 'Curso'}`);
     open.setAttribute('title', `Abrir el curso "${data.title || 'Curso'}"`);
     open.addEventListener('click', async () => {
+      // ✅ Verificar acceso por email si el usuario está autenticado con email
+      const isEmailAuth = window.currentUserEmail && !currentKeyHex;
+      if (isEmailAuth) {
+        const hasAccess = await checkEmailAllowedForCourse(window.currentUserEmail, hex);
+        if (!hasAccess) {
+          if (typeof window.showToast === 'function') {
+            window.showToast('Acceso denegado', 'No tienes permiso para acceder a este curso', 'error');
+          } else {
+            alert('No tienes permiso para acceder a este curso.');
+          }
+          return;
+        }
+      }
+      
       // Mostrar loader inmediatamente
       showLoader();
       
@@ -3775,6 +3798,22 @@ function buildMasterGrid() {
       showContent();
     });
     headerActions.appendChild(open);
+    
+    // ✅ Botón para gestionar correos permitidos (solo visible para master con código)
+    // No mostrar si el usuario está autenticado con email
+    const isEmailAuth = window.currentUserEmail && !currentKeyHex;
+    if (!isEmailAuth) {
+      const btnEmails = document.createElement('button');
+      btnEmails.className = 'btn secondary';
+      btnEmails.type = 'button';
+      btnEmails.textContent = '📧 Correos';
+      btnEmails.setAttribute('aria-label', `Gestionar correos permitidos para: ${data.title || 'Curso'}`);
+      btnEmails.setAttribute('title', `Gestionar qué correos pueden acceder a "${data.title || 'Curso'}"`);
+      btnEmails.addEventListener('click', () => {
+        showCourseEmailsModal(hex, data.title || 'Curso');
+      });
+      headerActions.appendChild(btnEmails);
+    }
     
     // Botones de editar y eliminar solo para cursos personalizados
     if (isCustomCourse(hex)) {
@@ -5391,39 +5430,36 @@ async function tryLoginByGoogle() {
     console.log('[AUTH] Usuario:', user.displayName);
     console.log('[AUTH] Foto:', user.photoURL);
     
-    // ✅ VERIFICAR SI EL CORREO ESTÁ PERMITIDO
-    showAuthMessage('msg-auth', 'Verificando autorización…', false);
-    const isAllowed = await checkEmailAllowed(userEmail);
+    // ✅ OBTENER CURSOS PERMITIDOS PARA ESTE CORREO
+    showAuthMessage('msg-auth', 'Verificando cursos disponibles…', false);
+    const allowedCourses = await getCoursesForEmail(userEmail);
     
-    if (!isAllowed) {
-      // ✅ Cerrar sesión si no está permitido
-      await window.firebaseAuth.signOut();
-      showAuthMessage('msg-auth', 'Tu correo no está autorizado para acceder a esta plataforma. Contacta al administrador.', true);
-      
-      // ✅ Google Analytics: Tracking de acceso denegado
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'login_denied', {
-          'event_category': 'authentication',
-          'event_label': 'email_not_allowed',
-          'value': userEmail
-        });
-      }
-      
-      return false;
-    }
+    console.log('[AUTH] Cursos permitidos para', userEmail, ':', allowedCourses.length);
+    
+    // ✅ Guardar correo del usuario en una variable global para usar después
+    window.currentUserEmail = userEmail;
     
     // ✅ Google Analytics: Tracking de login exitoso
     if (typeof gtag !== 'undefined') {
       gtag('event', 'login_success_google', {
         'event_category': 'authentication',
-        'event_label': 'google'
+        'event_label': 'google',
+        'value': allowedCourses.length
       });
     }
     
-    // ✅ Usar el mismo flujo que el código master (acceso completo)
-    await handleSuccessfulAuth(MASTER_HASH, 'google');
+    // ✅ Si tiene acceso a cursos, mostrar vista master filtrada
+    // Si no tiene acceso a ningún curso, mostrar mensaje
+    if (allowedCourses.length === 0) {
+      showAuthMessage('msg-auth', 'No tienes acceso a ningún curso. Contacta al administrador para solicitar acceso.', true);
+      // No cerrar sesión, permitir que el usuario vea el mensaje
+      return false;
+    }
     
-    showAuthMessage('msg-auth', '¡Bienvenido!', false);
+    // ✅ Mostrar vista master con cursos filtrados
+    await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
+    
+    showAuthMessage('msg-auth', `¡Bienvenido! Tienes acceso a ${allowedCourses.length} curso(s).`, false);
     return true;
     
   } catch (error) {
@@ -5463,13 +5499,18 @@ async function tryLoginByGoogle() {
 // Los usuarios se registran automáticamente al iniciar sesión con Google por primera vez
 // Los usuarios pueden recuperar su contraseña directamente desde Google
 
-/* ============ Gestión de Correos Permitidos ============ */
+/* ============ Gestión de Correos Permitidos por Curso ============ */
 
-// ✅ Constantes para gestión de correos permitidos
-const ALLOWED_EMAILS_PATH = 'allowedEmails';
+// ✅ Constantes para gestión de correos permitidos por curso
+const COURSE_EMAILS_PATH = 'courseEmails';
 
-// ✅ Verificar si un correo está permitido
-async function checkEmailAllowed(email) {
+// ✅ Normalizar email para usar como key en Firebase
+function normalizeEmailKey(email) {
+  return email.toLowerCase().trim().replace(/\./g, '_');
+}
+
+// ✅ Verificar si un correo tiene acceso a un curso específico
+async function checkEmailAllowedForCourse(email, courseHex) {
   try {
     const db = getFirebaseDB();
     if (!db) {
@@ -5477,9 +5518,8 @@ async function checkEmailAllowed(email) {
       return true; // Fallback: permitir si Firebase no está disponible
     }
     
-    // Normalizar email para usar como key
-    const emailKey = email.toLowerCase().trim().replace(/\./g, '_');
-    const emailRef = db.ref(`${ALLOWED_EMAILS_PATH}/${emailKey}`);
+    const emailKey = normalizeEmailKey(email);
+    const emailRef = db.ref(`${COURSE_EMAILS_PATH}/${courseHex}/${emailKey}`);
     const snapshot = await emailRef.once('value');
     
     if (snapshot.exists()) {
@@ -5487,19 +5527,22 @@ async function checkEmailAllowed(email) {
       return data && data.active !== false; // Verificar que esté activo
     }
     
-    console.log('[AUTH] ⚠️ Correo no encontrado en lista permitida:', email);
     return false;
   } catch (error) {
-    console.error('[AUTH] Error verificando correo permitido:', error);
+    console.error('[AUTH] Error verificando correo para curso:', error);
     return false;
   }
 }
 
-// ✅ Agregar correo a la lista permitida (solo master)
-async function addAllowedEmail(email) {
+// ✅ Agregar correo a un curso específico
+async function addEmailToCourse(email, courseHex) {
   try {
     if (!email || !email.includes('@')) {
       throw new Error('Correo inválido');
+    }
+    
+    if (!courseHex) {
+      throw new Error('Hex de curso inválido');
     }
     
     const db = getFirebaseDB();
@@ -5507,8 +5550,7 @@ async function addAllowedEmail(email) {
       throw new Error('Firebase no disponible');
     }
     
-    // Normalizar email (reemplazar . por _ para usar como key en Firebase)
-    const emailKey = email.toLowerCase().trim().replace(/\./g, '_');
+    const emailKey = normalizeEmailKey(email);
     
     // Obtener usuario actual (si está autenticado)
     const currentUser = window.firebaseAuth?.currentUser;
@@ -5521,44 +5563,44 @@ async function addAllowedEmail(email) {
       active: true
     };
     
-    await db.ref(`${ALLOWED_EMAILS_PATH}/${emailKey}`).set(emailData);
-    console.log('[AUTH] ✅ Correo agregado:', email);
+    await db.ref(`${COURSE_EMAILS_PATH}/${courseHex}/${emailKey}`).set(emailData);
+    console.log('[AUTH] ✅ Correo agregado al curso:', email, courseHex.substring(0, 8));
     
     return true;
   } catch (error) {
-    console.error('[AUTH] Error agregando correo:', error);
+    console.error('[AUTH] Error agregando correo al curso:', error);
     throw error;
   }
 }
 
-// ✅ Eliminar correo de la lista permitida (solo master)
-async function removeAllowedEmail(email) {
+// ✅ Eliminar correo de un curso específico
+async function removeEmailFromCourse(email, courseHex) {
   try {
     const db = getFirebaseDB();
     if (!db) {
       throw new Error('Firebase no disponible');
     }
     
-    const emailKey = email.toLowerCase().trim().replace(/\./g, '_');
-    await db.ref(`${ALLOWED_EMAILS_PATH}/${emailKey}`).remove();
-    console.log('[AUTH] ✅ Correo eliminado:', email);
+    const emailKey = normalizeEmailKey(email);
+    await db.ref(`${COURSE_EMAILS_PATH}/${courseHex}/${emailKey}`).remove();
+    console.log('[AUTH] ✅ Correo eliminado del curso:', email, courseHex.substring(0, 8));
     
     return true;
   } catch (error) {
-    console.error('[AUTH] Error eliminando correo:', error);
+    console.error('[AUTH] Error eliminando correo del curso:', error);
     throw error;
   }
 }
 
-// ✅ Obtener lista de correos permitidos
-async function getAllowedEmails() {
+// ✅ Obtener lista de correos permitidos para un curso
+async function getCourseAllowedEmails(courseHex) {
   try {
     const db = getFirebaseDB();
     if (!db) {
       return [];
     }
     
-    const emailsRef = db.ref(ALLOWED_EMAILS_PATH);
+    const emailsRef = db.ref(`${COURSE_EMAILS_PATH}/${courseHex}`);
     const snapshot = await emailsRef.once('value');
     
     if (!snapshot.exists()) {
@@ -5583,21 +5625,98 @@ async function getAllowedEmails() {
     
     return emails;
   } catch (error) {
-    console.error('[AUTH] Error obteniendo correos:', error);
+    console.error('[AUTH] Error obteniendo correos del curso:', error);
     return [];
   }
 }
 
-// ✅ Renderizar lista de correos permitidos
-async function renderAllowedEmailsList() {
-  const container = $('#allowed-emails-list');
+// ✅ Obtener cursos a los que un correo tiene acceso
+async function getCoursesForEmail(email) {
+  try {
+    const db = getFirebaseDB();
+    if (!db) {
+      return [];
+    }
+    
+    const courseEmailsRef = db.ref(COURSE_EMAILS_PATH);
+    const snapshot = await courseEmailsRef.once('value');
+    
+    if (!snapshot.exists()) {
+      return [];
+    }
+    
+    const emailKey = normalizeEmailKey(email);
+    const allowedCourses = [];
+    
+    snapshot.forEach((courseSnapshot) => {
+      const courseHex = courseSnapshot.key;
+      const emailData = courseSnapshot.child(emailKey).val();
+      
+      if (emailData && emailData.active !== false) {
+        allowedCourses.push(courseHex);
+      }
+    });
+    
+    return allowedCourses;
+  } catch (error) {
+    console.error('[AUTH] Error obteniendo cursos para correo:', error);
+    return [];
+  }
+}
+
+// ✅ Mostrar modal de correos permitidos para un curso
+let currentCourseEmailsHex = null;
+
+async function showCourseEmailsModal(courseHex, courseTitle) {
+  currentCourseEmailsHex = courseHex;
+  const modal = $('#modalCourseEmails');
+  const title = $('#modalCourseEmailsTitle');
+  const input = $('#input-course-email');
+  const msgEl = $('#msg-course-emails');
+  
+  if (title) {
+    title.textContent = `📧 Correos Permitidos: ${courseTitle}`;
+  }
+  
+  if (input) {
+    input.value = '';
+  }
+  
+  if (msgEl) {
+    msgEl.textContent = '';
+    msgEl.classList.remove('error');
+  }
+  
+  if (modal) {
+    modal.classList.add('show');
+    await renderCourseEmailsList(courseHex);
+    
+    // Enfocar el input
+    if (input) {
+      setTimeout(() => input.focus(), 100);
+    }
+  }
+}
+
+// ✅ Cerrar modal de correos
+function closeCourseEmailsModal() {
+  const modal = $('#modalCourseEmails');
+  if (modal) {
+    modal.classList.remove('show');
+  }
+  currentCourseEmailsHex = null;
+}
+
+// ✅ Renderizar lista de correos permitidos para un curso
+async function renderCourseEmailsList(courseHex) {
+  const container = $('#course-emails-list');
   if (!container) return;
   
   try {
-    const emails = await getAllowedEmails();
+    const emails = await getCourseAllowedEmails(courseHex);
     
     if (emails.length === 0) {
-      container.innerHTML = '<p style="color:var(--muted); text-align:center; padding:20px; margin:0;">No hay correos autorizados aún. Agrega el primer correo usando el formulario de arriba.</p>';
+      container.innerHTML = '<p style="color:var(--muted); text-align:center; padding:20px; margin:0;">No hay correos autorizados para este curso. Agrega el primer correo usando el formulario de arriba.</p>';
       return;
     }
     
@@ -5620,7 +5739,7 @@ async function renderAllowedEmailsList() {
             </div>
           </div>
           <button 
-            class="btn secondary remove-email-btn" 
+            class="btn secondary remove-course-email-btn" 
             data-email="${email.email.replace(/"/g, '&quot;')}"
             style="padding:6px 12px; font-size:13px;"
             title="Eliminar acceso para ${email.email.replace(/"/g, '&quot;')}"
@@ -5632,24 +5751,29 @@ async function renderAllowedEmailsList() {
     }).join('');
     
     // ✅ Agregar event listeners a los botones de eliminar
-    container.querySelectorAll('.remove-email-btn').forEach(btn => {
+    container.querySelectorAll('.remove-course-email-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const email = btn.getAttribute('data-email');
-        if (email) {
-          removeAllowedEmailUI(email);
+        if (email && currentCourseEmailsHex) {
+          removeCourseEmailUI(email, currentCourseEmailsHex);
         }
       });
     });
   } catch (error) {
-    console.error('[AUTH] Error renderizando correos:', error);
+    console.error('[AUTH] Error renderizando correos del curso:', error);
     container.innerHTML = '<p style="color:var(--danger); text-align:center; padding:20px; margin:0;">Error al cargar la lista de correos.</p>';
   }
 }
 
-// ✅ Agregar correo desde UI
-async function addAllowedEmailUI() {
-  const input = $('#input-allowed-email');
-  const msgEl = $('#msg-allowed-emails');
+// ✅ Agregar correo a un curso desde UI
+async function addCourseEmailUI() {
+  if (!currentCourseEmailsHex) {
+    console.error('[AUTH] No hay curso seleccionado');
+    return;
+  }
+  
+  const input = $('#input-course-email');
+  const msgEl = $('#msg-course-emails');
   
   if (!input || !input.value.trim()) {
     if (msgEl) {
@@ -5672,7 +5796,7 @@ async function addAllowedEmailUI() {
   
   try {
     // Verificar si ya existe
-    const existingEmails = await getAllowedEmails();
+    const existingEmails = await getCourseAllowedEmails(currentCourseEmailsHex);
     if (existingEmails.some(e => e.email.toLowerCase() === email.toLowerCase())) {
       if (msgEl) {
         msgEl.textContent = `El correo "${email}" ya está en la lista.`;
@@ -5681,16 +5805,16 @@ async function addAllowedEmailUI() {
       return;
     }
     
-    await addAllowedEmail(email);
+    await addEmailToCourse(email, currentCourseEmailsHex);
     input.value = '';
     if (msgEl) {
       msgEl.textContent = `✅ Correo "${email}" agregado exitosamente.`;
       msgEl.classList.remove('error');
     }
     if (typeof window.showToast === 'function') {
-      window.showToast('Correo agregado', `"${email}" ahora tiene acceso`, 'success');
+      window.showToast('Correo agregado', `"${email}" ahora tiene acceso a este curso`, 'success');
     }
-    await renderAllowedEmailsList();
+    await renderCourseEmailsList(currentCourseEmailsHex);
     
     // Limpiar mensaje después de 3 segundos
     setTimeout(() => {
@@ -5707,18 +5831,18 @@ async function addAllowedEmailUI() {
   }
 }
 
-// ✅ Eliminar correo desde UI
-async function removeAllowedEmailUI(email) {
-  if (!confirm(`¿Eliminar acceso para "${email}"?\n\nEl usuario ya no podrá iniciar sesión con este correo.`)) {
+// ✅ Eliminar correo de un curso desde UI
+async function removeCourseEmailUI(email, courseHex) {
+  if (!confirm(`¿Eliminar acceso para "${email}"?\n\nEl usuario ya no podrá acceder a este curso con este correo.`)) {
     return;
   }
   
   try {
-    await removeAllowedEmail(email);
+    await removeEmailFromCourse(email, courseHex);
     if (typeof window.showToast === 'function') {
-      window.showToast('Correo eliminado', `"${email}" ya no tiene acceso`, 'success');
+      window.showToast('Correo eliminado', `"${email}" ya no tiene acceso a este curso`, 'success');
     }
-    await renderAllowedEmailsList();
+    await renderCourseEmailsList(courseHex);
   } catch (error) {
     if (typeof window.showToast === 'function') {
       window.showToast('Error', `No se pudo eliminar: ${error.message}`, 'error');
@@ -5726,8 +5850,40 @@ async function removeAllowedEmailUI(email) {
   }
 }
 
-// ✅ Exponer función globalmente para uso en onclick
-window.removeAllowedEmailUI = removeAllowedEmailUI;
+// ✅ Función para manejar autenticación exitosa con email (mostrar solo cursos permitidos)
+async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
+  console.log('[AUTH] ✅ Mostrando cursos permitidos para:', userEmail);
+  
+  // Guardar cursos permitidos en variable global para filtrar
+  window.allowedCoursesForUser = allowedCourses;
+  
+  // ✅ Refresh en background (no bloquear login)
+  if (hasRemote()) {
+    console.log('[SYNC] Iniciando refresh de cursos permitidos en background...');
+    Promise.allSettled(allowedCourses.map(h => refreshFromRemoteSilent(h).catch(e => {
+      console.warn('[SYNC] Error refrescando', h.substring(0, 8), ':', e);
+      return false;
+    }))).then(() => {
+      console.log('[SYNC] ✅ Refresh completado');
+    });
+  }
+  
+  try { 
+    await runLoader(); 
+  } catch (e) {}
+  
+  clearAttempts();
+  
+  refreshCustomCourses().catch(e => {
+    console.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
+  });
+  
+  // ✅ Construir grid master filtrado por cursos permitidos
+  buildMasterGrid();
+  setupMasterSearch();
+  $('#year_master').textContent = new Date().getFullYear();
+  showMaster();
+}
 
 // ✅ Función para logout de Firebase
 async function logoutFirebase() {
@@ -5861,20 +6017,49 @@ if (btnLoginGoogle) {
   console.warn('[AUTH] No se encontró el botón btn-login-google');
 }
 
-// ✅ Event listeners para gestión de correos autorizados
-const btnAddAllowedEmail = $('#btn-add-allowed-email');
-if (btnAddAllowedEmail) {
-  btnAddAllowedEmail.addEventListener('click', () => {
-    addAllowedEmailUI();
+// ✅ Event listeners para modal de correos por curso
+const modalCourseEmailsClose = $('#modalCourseEmailsClose');
+if (modalCourseEmailsClose) {
+  modalCourseEmailsClose.addEventListener('click', () => {
+    closeCourseEmailsModal();
   });
 }
 
-const inputAllowedEmail = $('#input-allowed-email');
-if (inputAllowedEmail) {
-  inputAllowedEmail.addEventListener('keydown', (e) => {
+// Cerrar modal con Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const modal = $('#modalCourseEmails');
+    if (modal && modal.classList.contains('show')) {
+      closeCourseEmailsModal();
+    }
+  }
+});
+
+// Cerrar modal al hacer clic fuera
+const modalCourseEmails = $('#modalCourseEmails');
+if (modalCourseEmails) {
+  modalCourseEmails.addEventListener('click', (e) => {
+    if (e.target === modalCourseEmails) {
+      closeCourseEmailsModal();
+    }
+  });
+}
+
+// Event listener para botón agregar correo
+const btnAddCourseEmail = $('#btn-add-course-email');
+if (btnAddCourseEmail) {
+  btnAddCourseEmail.addEventListener('click', () => {
+    addCourseEmailUI();
+  });
+}
+
+// Event listener para input de correo (Enter)
+const inputCourseEmail = $('#input-course-email');
+if (inputCourseEmail) {
+  inputCourseEmail.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      addAllowedEmailUI();
+      addCourseEmailUI();
     }
   });
 }
