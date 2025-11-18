@@ -800,6 +800,18 @@
               </div>
               </div>
               
+              <!-- Categoría: Gestión de Correos -->
+              <div class="settings-category" data-category="emails" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de gestión de correos">
+                <span class="settings-category-icon">📧</span>
+                <span class="settings-category-label">Gestión de Correos</span>
+                <span class="settings-category-arrow">▶</span>
+              </div>
+              <div class="settings-submenu" data-submenu="emails" style="display: none;">
+                  <div class="settings-menu-item" data-action="manage-emails" role="menuitem" tabindex="0" title="Gestionar correos permitidos para todos los cursos">
+                📋 Gestión General de Correos
+              </div>
+              </div>
+              
               <!-- Categoría: Apariencia -->
               <div class="settings-category" data-category="appearance" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de apariencia">
                 <span class="settings-category-icon">🎨</span>
@@ -1144,6 +1156,46 @@
         </div>
         
         <div id="msg-course-emails" class="msg" style="margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Gestión General de Correos -->
+  <div id="modalGeneralEmails" class="modal">
+    <div class="modal-content" style="max-width: 900px; max-height: 90vh;">
+      <div class="modal-header">
+        <h2>📧 Gestión General de Correos</h2>
+        <button class="modal-close" id="modalGeneralEmailsClose" aria-label="Cerrar modal de gestión de correos" title="Cerrar (Escape)">&times;</button>
+      </div>
+      <div style="padding: 20px; overflow-y: auto; max-height: calc(90vh - 100px);">
+        <!-- Búsqueda y filtros -->
+        <div style="margin-bottom: 20px;">
+          <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <input 
+              id="input-search-course-emails" 
+              class="input" 
+              type="text" 
+              placeholder="Buscar curso o correo..." 
+              style="flex:1;"
+              aria-label="Buscar curso o correo"
+            />
+            <select id="filter-course-type-emails" class="input" style="min-width: 150px;">
+              <option value="all">Todos los tipos</option>
+              <option value="curso">📖 Cursos</option>
+              <option value="diplomado">🎓 Diplomados</option>
+              <option value="webinar">💻 Webinars</option>
+              <option value="seminario">📝 Seminarios</option>
+              <option value="taller">🔧 Talleres</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Lista de cursos con sus correos -->
+        <div id="general-emails-list" style="display:grid; gap:16px;">
+          <p style="color:var(--muted); text-align:center; padding:40px; margin:0;">Cargando cursos y correos...</p>
+        </div>
+        
+        <div id="msg-general-emails" class="msg" style="margin-top:12px;"></div>
       </div>
     </div>
   </div>
@@ -1525,7 +1577,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=79" defer></script>
+  <script src="assets/js/app.js?v=80" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
