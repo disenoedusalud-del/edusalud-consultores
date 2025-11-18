@@ -3251,6 +3251,7 @@ function showAccess() {
   // ✅ Transición suave: ocultar otras vistas primero
   $('#content').classList.add('hidden');
   $('#master').classList.add('hidden');
+  $('#user-view').classList.add('hidden');
   
   // ✅ Mostrar access con transición
   const accessEl = $('#access');
@@ -3378,6 +3379,7 @@ function showContent() {
   // ✅ Transición suave: ocultar otras vistas primero
   $('#access').classList.add('hidden');
   $('#master').classList.add('hidden');
+  $('#user-view').classList.add('hidden');
   
   // ✅ Mostrar content con transición
   const contentEl = $('#content');
@@ -3392,10 +3394,33 @@ function showContent() {
   // ✅ Configurar menú de ajustes para consultores
   setupSettingsMenuContent();
 }
+// ✅ Mostrar vista de usuario (diferente a vista master)
+function showUserView() {
+  // ✅ Transición suave: ocultar otras vistas primero
+  $('#access').classList.add('hidden');
+  $('#content').classList.add('hidden');
+  $('#master').classList.add('hidden');
+  
+  // ✅ Mostrar vista de usuario con transición
+  const userViewEl = $('#user-view');
+  userViewEl.classList.remove('hidden');
+  void userViewEl.offsetWidth;
+  
+  // ✅ Mostrar email del usuario
+  const userEmailDisplay = $('#userEmailDisplay');
+  if (userEmailDisplay && window.currentUserEmail) {
+    userEmailDisplay.textContent = window.currentUserEmail;
+  }
+  
+  // ✅ Construir grid de cursos permitidos
+  buildUserGrid();
+}
+
 function showMaster() {
   // ✅ Transición suave: ocultar otras vistas primero
   $('#access').classList.add('hidden');
   $('#content').classList.add('hidden');
+  $('#user-view').classList.add('hidden');
   
   // ✅ Mostrar master con transición
   const masterEl = $('#master');
@@ -3601,6 +3626,174 @@ function renderCourse(keyHex) {
   
   // ❌ NO iniciar polling automático (el usuario sincroniza manualmente con el botón)
   // startPeriodicRefresh(keyHex);
+}
+
+/* ============ render user view ============ */
+function buildUserGrid() {
+  const grid = $('#userGrid');
+  const emptyState = $('#userEmptyState');
+  if (!grid) return;
+  
+  grid.innerHTML = '';
+  
+  const mergedMap = getMergedAccessHashMap();
+  const allowedCourses = window.allowedCoursesForUser || [];
+  
+  if (allowedCourses.length === 0) {
+    grid.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'block';
+    return;
+  }
+  
+  if (emptyState) emptyState.style.display = 'none';
+  grid.style.display = 'grid';
+  
+  // Filtrar solo cursos permitidos
+  const coursesToShow = allowedCourses
+    .map(hex => {
+      const data = mergedMap[hex];
+      return data ? [hex, data] : null;
+    })
+    .filter(Boolean);
+  
+  // Ordenar por título (A-Z)
+  coursesToShow.sort(([hexA, dataA], [hexB, dataB]) => {
+    return (dataA.title || '').localeCompare(dataB.title || '');
+  });
+  
+  coursesToShow.forEach(([hex, data]) => {
+    if (hex === MASTER_HASH) return;
+    
+    const cardEl = document.createElement('div');
+    cardEl.className = 'master-card';
+    
+    const left = document.createElement('div');
+    left.className = 'left';
+    const right = document.createElement('div');
+    right.className = 'right';
+    
+    // Imagen del curso
+    if (data.card?.img) {
+      const img = document.createElement('img');
+      img.src = `${data.card.img}?v=2`;
+      img.alt = data.title || 'Curso';
+      img.style.cssText = 'width:100%; height:220px; object-fit:cover; border-radius:12px;';
+      img.loading = 'lazy';
+      left.appendChild(img);
+    } else {
+      const placeholder = document.createElement('div');
+      placeholder.style.cssText = 'width:100%; height:220px; background:linear-gradient(135deg, rgba(90,169,255,0.2), rgba(90,169,255,0.05)); border-radius:12px; display:flex; align-items:center; justify-content:center; color:var(--muted);';
+      placeholder.textContent = 'Sin imagen';
+      left.appendChild(placeholder);
+    }
+    
+    // Información del curso
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;';
+    const t = document.createElement('div');
+    
+    // Badge de tipo
+    const courseType = data.type || 'curso';
+    const typeLabels = {
+      'curso': '📖 Curso',
+      'diplomado': '🎓 Diplomado',
+      'webinar': '💻 Webinar',
+      'seminario': '📝 Seminario',
+      'taller': '🔧 Taller'
+    };
+    const typeLabel = typeLabels[courseType] || '📖 Curso';
+    
+    const typeBadge = document.createElement('div');
+    typeBadge.style.cssText = 'font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;';
+    typeBadge.textContent = typeLabel;
+    t.appendChild(typeBadge);
+    
+    // Título y meta
+    const titleDiv = document.createElement('div');
+    titleDiv.style.fontWeight = '700';
+    titleDiv.textContent = data.title;
+    t.appendChild(titleDiv);
+    
+    const metaDiv = document.createElement('div');
+    metaDiv.className = 'meta';
+    metaDiv.textContent = data.meta || '';
+    t.appendChild(metaDiv);
+    
+    const headerActions = document.createElement('div');
+    headerActions.style.cssText = 'display:flex; gap:8px;';
+    
+    // Solo botón "Abrir curso" (sin editar, eliminar, correos)
+    const open = document.createElement('button');
+    open.className = 'btn';
+    open.type = 'button';
+    open.textContent = 'Abrir curso';
+    open.setAttribute('aria-label', `Abrir curso: ${data.title || 'Curso'}`);
+    open.setAttribute('title', `Abrir el curso "${data.title || 'Curso'}"`);
+    open.addEventListener('click', async () => {
+      // Verificar acceso
+      if (window.currentUserEmail) {
+        const hasAccess = await checkEmailAllowedForCourse(window.currentUserEmail, hex);
+        if (!hasAccess) {
+          if (typeof window.showToast === 'function') {
+            window.showToast('Acceso denegado', 'No tienes permiso para acceder a este curso', 'error');
+          } else {
+            alert('No tienes permiso para acceder a este curso.');
+          }
+          return;
+        }
+      }
+      
+      showLoader();
+      
+      if (hasRemote()) {
+        await refreshFromRemoteSilent(hex).catch(e => {
+          console.warn('[SYNC] Error en refresh:', e);
+          return false;
+        });
+      }
+      
+      await runLoader();
+      
+      currentKeyHex = hex;
+      renderCourse(hex);
+      showContent();
+    });
+    headerActions.appendChild(open);
+    
+    header.appendChild(t);
+    header.appendChild(headerActions);
+    right.appendChild(header);
+    
+    // Lista de archivos (preview)
+    const files = getFilesForHex(hex);
+    if (files.length > 0) {
+      const fileList = document.createElement('div');
+      fileList.className = 'filelist';
+      fileList.style.cssText = 'margin-top:12px;';
+      
+      const previewCount = Math.min(files.length, 3);
+      for (let i = 0; i < previewCount; i++) {
+        const file = files[i];
+        const fileEl = document.createElement('div');
+        fileEl.className = 'file';
+        fileEl.innerHTML = `<strong>${file.label}</strong>`;
+        fileList.appendChild(fileEl);
+      }
+      
+      if (files.length > 3) {
+        const moreEl = document.createElement('div');
+        moreEl.className = 'meta';
+        moreEl.textContent = `y ${files.length - 3} más...`;
+        fileList.appendChild(moreEl);
+      }
+      
+      right.appendChild(fileList);
+    }
+    
+    cardEl.appendChild(left);
+    cardEl.appendChild(right);
+    grid.appendChild(cardEl);
+  });
 }
 
 /* ============ render master ============ */
@@ -5970,11 +6163,10 @@ async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
     console.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
   });
   
-  // ✅ Construir grid master filtrado por cursos permitidos
-  buildMasterGrid();
-  setupMasterSearch();
+  // ✅ Construir grid de usuario (vista simplificada)
+  buildUserGrid();
   $('#year_master').textContent = new Date().getFullYear();
-  showMaster();
+  showUserView();
 }
 
 // ✅ Función para logout de Firebase
@@ -6063,17 +6255,37 @@ function setupAuthStateListener() {
   window.firebaseAuth.onAuthStateChanged(async (user) => {
     if (user) {
       console.log('[AUTH] ✅ Usuario autenticado:', user.email);
-      // Si el usuario está autenticado y no hay código en la URL y no estamos ya en master, dar acceso master
+      const userEmail = user.email.toLowerCase().trim();
+      
+      // ✅ Si el usuario está autenticado con email, verificar cursos y mostrar vista de usuario
+      // Solo dar acceso master si no hay código en URL y no estamos ya en una vista
       const urlParams = new URLSearchParams(window.location.search);
       const masterEl = document.getElementById('master');
+      const userViewEl = document.getElementById('user-view');
       const isInMaster = currentKeyHex === MASTER_HASH || (masterEl && !masterEl.classList.contains('hidden'));
-      if (!urlParams.has('code') && !isInMaster) {
-        await handleSuccessfulAuth(MASTER_HASH, 'google');
+      const isInUserView = userViewEl && !userViewEl.classList.contains('hidden');
+      
+      // Si no hay código en URL y no estamos en ninguna vista, verificar si es usuario con email o master
+      if (!urlParams.has('code') && !isInMaster && !isInUserView) {
+        // Verificar si tiene cursos permitidos (es usuario con email)
+        const allowedCourses = await getCoursesForEmail(userEmail);
+        if (allowedCourses.length > 0) {
+          // Es usuario con email, mostrar vista de usuario
+          window.currentUserEmail = userEmail;
+          window.allowedCoursesForUser = allowedCourses;
+          await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
+        } else {
+          // No tiene cursos, podría ser master (pero no debería llegar aquí sin código)
+          // Por seguridad, no dar acceso automático
+          console.log('[AUTH] Usuario autenticado pero sin cursos asignados');
+        }
       }
     } else {
       console.log('[AUTH] Usuario no autenticado');
       // Si el usuario cierra sesión, volver a la pantalla de acceso
-      if (currentKeyHex === MASTER_HASH) {
+      window.currentUserEmail = null;
+      window.allowedCoursesForUser = null;
+      if (currentKeyHex === MASTER_HASH || document.getElementById('user-view') && !document.getElementById('user-view').classList.contains('hidden')) {
         currentKeyHex = null;
         setQueryParam('code', null);
         showAccess();
@@ -6116,7 +6328,7 @@ async function handleGoogleRedirectResult() {
       }
       
       await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
-      showAuthMessage('msg-auth', `¡Bienvenido! Tienes acceso a ${allowedCourses.length} curso(s).`, false);
+      // No mostrar mensaje aquí, se mostrará en la vista de usuario
     } else {
       console.log('[AUTH] No hay resultado de redirect (usuario no autenticado)');
     }
@@ -6205,6 +6417,19 @@ if (inputCourseEmail) {
       e.preventDefault();
       addCourseEmailUI();
     }
+  });
+}
+
+// ✅ Event listener para logout de usuario (vista de usuario)
+const btnUserLogout = $('#btn-user-logout');
+if (btnUserLogout) {
+  btnUserLogout.addEventListener('click', async () => {
+    await logoutFirebase();
+    window.currentUserEmail = null;
+    window.allowedCoursesForUser = null;
+    currentKeyHex = null;
+    setQueryParam('code', null);
+    showAccess();
   });
 }
 
