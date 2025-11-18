@@ -2050,12 +2050,15 @@ function updateThemeToggleUI(theme) {
   const text = document.getElementById('theme-toggle-text');
   
   if (icon && text) {
+    // ✅ El texto indica qué modo se activará al hacer clic (no el modo actual)
     if (theme === 'light') {
-      icon.textContent = '☀️';
-      text.textContent = 'Modo Claro';
-    } else {
+      // Si está en modo claro, el botón debe permitir cambiar a oscuro
       icon.textContent = '🌙';
-      text.textContent = 'Modo Oscuro';
+      text.textContent = 'Cambiar a Modo Oscuro';
+    } else {
+      // Si está en modo oscuro (default), el botón debe permitir cambiar a claro
+      icon.textContent = '☀️';
+      text.textContent = 'Cambiar a Modo Claro';
     }
   }
 }
