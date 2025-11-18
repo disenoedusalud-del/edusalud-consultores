@@ -2,7 +2,7 @@
 // Versión 1.1 - Con soporte para desarrollo (Network-First en desarrollo)
 
 // ✅ NUEVO: Detectar modo desarrollo
-const IS_DEVELOPMENT = true; // Cambiar a false en producción
+const IS_DEVELOPMENT = false; // Cambiar a false en producción
 const VERSION = IS_DEVELOPMENT 
   ? 'edusalud-dev-' + Date.now() // Versión única cada vez en desarrollo
   : 'edusalud-v1'; // Versión estable en producción
