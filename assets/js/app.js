@@ -5307,13 +5307,453 @@ async function tryLoginByCode(code) {
   }
 }
 
+/* ============ Firebase Authentication ============ */
+
+// ✅ Función para manejar pestañas de autenticación
+function switchAuthTab(tab) {
+  const tabCode = $('#tab-code');
+  const tabAccount = $('#tab-account');
+  const formCode = $('#form-code');
+  const formAccount = $('#form-account');
+  
+  if (tab === 'code') {
+    tabCode.classList.add('active');
+    tabAccount.classList.remove('active');
+    formCode.classList.remove('hidden');
+    formAccount.classList.add('hidden');
+  } else {
+    tabCode.classList.remove('active');
+    tabAccount.classList.add('active');
+    formCode.classList.add('hidden');
+    formAccount.classList.remove('hidden');
+    // Mostrar formulario de login por defecto
+    showLoginForm();
+  }
+}
+
+// ✅ Función para mostrar formulario de login
+function showLoginForm() {
+  $('#form-login').classList.remove('hidden');
+  $('#form-register').classList.add('hidden');
+  $('#form-reset').classList.add('hidden');
+}
+
+// ✅ Función para mostrar formulario de registro
+function showRegisterForm() {
+  $('#form-login').classList.add('hidden');
+  $('#form-register').classList.remove('hidden');
+  $('#form-reset').classList.add('hidden');
+}
+
+// ✅ Función para mostrar formulario de recuperación
+function showResetForm() {
+  $('#form-login').classList.add('hidden');
+  $('#form-register').classList.add('hidden');
+  $('#form-reset').classList.remove('hidden');
+}
+
+// ✅ Función para mostrar mensaje de autenticación
+function showAuthMessage(elementId, message, isError = false) {
+  const msgEl = $(elementId);
+  if (msgEl) {
+    msgEl.textContent = message;
+    msgEl.classList.remove('error');
+    if (isError) {
+      msgEl.classList.add('error');
+    }
+  }
+}
+
+// ✅ Función para login con email/password
+async function tryLoginByEmail(email, password) {
+  const msgEl = $('#msg-auth');
+  showAuthMessage('msg-auth', 'Verificando…', false);
+  
+  if (!email || !password) {
+    showAuthMessage('msg-auth', 'Por favor, complete todos los campos.', true);
+    return false;
+  }
+
+  try {
+    if (!window.firebaseAuth) {
+      showAuthMessage('msg-auth', 'Firebase Authentication no está disponible. Por favor, use el acceso por código.', true);
+      return false;
+    }
+
+    const userCredential = await window.firebaseAuth.signInWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+    
+    console.log('[AUTH] ✅ Login exitoso:', user.email);
+    
+    // ✅ Google Analytics: Tracking de login exitoso
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'login_success_email', {
+        'event_category': 'authentication',
+        'event_label': 'email'
+      });
+    }
+    
+    // ✅ Usar el mismo flujo que el código master (acceso completo)
+    // Para usuarios con cuenta, dar acceso master por ahora
+    // En el futuro se puede personalizar según permisos del usuario
+    await handleSuccessfulAuth(MASTER_HASH, 'email');
+    
+    showAuthMessage('msg-auth', '¡Bienvenido!', false);
+    return true;
+    
+  } catch (error) {
+    console.error('[AUTH] ❌ Error en login:', error);
+    
+    let errorMessage = 'Error al iniciar sesión.';
+    if (error.code === 'auth/user-not-found') {
+      errorMessage = 'No existe una cuenta con este correo.';
+    } else if (error.code === 'auth/wrong-password') {
+      errorMessage = 'Contraseña incorrecta.';
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = 'Correo electrónico inválido.';
+    } else if (error.code === 'auth/user-disabled') {
+      errorMessage = 'Esta cuenta ha sido deshabilitada.';
+    } else if (error.code === 'auth/too-many-requests') {
+      errorMessage = 'Demasiados intentos fallidos. Intente más tarde.';
+    }
+    
+    showAuthMessage('msg-auth', errorMessage, true);
+    
+    // ✅ Google Analytics: Tracking de error
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'login_error', {
+        'event_category': 'authentication',
+        'event_label': 'email',
+        'value': error.code
+      });
+    }
+    
+    return false;
+  }
+}
+
+// ✅ Función para registro con email/password
+async function tryRegister(email, password, passwordConfirm) {
+  const msgEl = $('#msg-register');
+  showAuthMessage('msg-register', 'Creando cuenta…', false);
+  
+  if (!email || !password || !passwordConfirm) {
+    showAuthMessage('msg-register', 'Por favor, complete todos los campos.', true);
+    return false;
+  }
+
+  if (password.length < 6) {
+    showAuthMessage('msg-register', 'La contraseña debe tener al menos 6 caracteres.', true);
+    return false;
+  }
+
+  if (password !== passwordConfirm) {
+    showAuthMessage('msg-register', 'Las contraseñas no coinciden.', true);
+    return false;
+  }
+
+  try {
+    if (!window.firebaseAuth) {
+      showAuthMessage('msg-register', 'Firebase Authentication no está disponible.', true);
+      return false;
+    }
+
+    const userCredential = await window.firebaseAuth.createUserWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+    
+    console.log('[AUTH] ✅ Registro exitoso:', user.email);
+    
+    // ✅ Google Analytics: Tracking de registro exitoso
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'register_success', {
+        'event_category': 'authentication',
+        'event_label': 'email'
+      });
+    }
+    
+    // ✅ Usar el mismo flujo que el código master (acceso completo)
+    await handleSuccessfulAuth(MASTER_HASH, 'email');
+    
+    showAuthMessage('msg-register', '¡Cuenta creada exitosamente!', false);
+    return true;
+    
+  } catch (error) {
+    console.error('[AUTH] ❌ Error en registro:', error);
+    
+    let errorMessage = 'Error al crear la cuenta.';
+    if (error.code === 'auth/email-already-in-use') {
+      errorMessage = 'Este correo ya está registrado. Use "Iniciar sesión" en su lugar.';
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = 'Correo electrónico inválido.';
+    } else if (error.code === 'auth/weak-password') {
+      errorMessage = 'La contraseña es muy débil. Use al menos 6 caracteres.';
+    }
+    
+    showAuthMessage('msg-register', errorMessage, true);
+    
+    // ✅ Google Analytics: Tracking de error
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'register_error', {
+        'event_category': 'authentication',
+        'event_label': 'email',
+        'value': error.code
+      });
+    }
+    
+    return false;
+  }
+}
+
+// ✅ Función para recuperación de contraseña
+async function tryPasswordReset(email) {
+  const msgEl = $('#msg-reset');
+  showAuthMessage('msg-reset', 'Enviando enlace…', false);
+  
+  if (!email) {
+    showAuthMessage('msg-reset', 'Por favor, ingrese su correo electrónico.', true);
+    return false;
+  }
+
+  try {
+    if (!window.firebaseAuth) {
+      showAuthMessage('msg-reset', 'Firebase Authentication no está disponible.', true);
+      return false;
+    }
+
+    await window.firebaseAuth.sendPasswordResetEmail(email);
+    
+    console.log('[AUTH] ✅ Enlace de recuperación enviado a:', email);
+    
+    showAuthMessage('msg-reset', 'Se ha enviado un enlace de recuperación a su correo. Revise su bandeja de entrada.', false);
+    
+    // ✅ Google Analytics: Tracking de recuperación
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'password_reset_sent', {
+        'event_category': 'authentication',
+        'event_label': 'email'
+      });
+    }
+    
+    return true;
+    
+  } catch (error) {
+    console.error('[AUTH] ❌ Error en recuperación:', error);
+    
+    let errorMessage = 'Error al enviar el enlace de recuperación.';
+    if (error.code === 'auth/user-not-found') {
+      errorMessage = 'No existe una cuenta con este correo.';
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = 'Correo electrónico inválido.';
+    }
+    
+    showAuthMessage('msg-reset', errorMessage, true);
+    return false;
+  }
+}
+
+// ✅ Función para logout de Firebase
+async function logoutFirebase() {
+  try {
+    if (window.firebaseAuth) {
+      await window.firebaseAuth.signOut();
+      console.log('[AUTH] ✅ Logout exitoso');
+    }
+  } catch (error) {
+    console.error('[AUTH] ❌ Error en logout:', error);
+  }
+}
+
+// ✅ Función compartida para manejar autenticación exitosa (código o email)
+async function handleSuccessfulAuth(hex, method = 'code') {
+  console.log('[AUTH] ✅ Autenticación exitosa por:', method);
+  
+  // Si es master, mostrar vista master
+  if (hex === MASTER_HASH) {
+    // ✅ Refresh en background (no bloquear login)
+    if (hasRemote()) {
+      console.log('[SYNC] Iniciando refresh de todos los cursos en background...');
+      const mergedMap = getMergedAccessHashMap();
+      const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
+      console.log('[SYNC] Total de cursos a refrescar:', hexes.length);
+      
+      Promise.allSettled(hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
+        console.warn('[SYNC] Error refrescando', h.substring(0, 8), ':', e);
+        return false;
+      }))).then(() => {
+        console.log('[SYNC] ✅ Refresh completado');
+      });
+    }
+    
+    try { 
+      await runLoader(); 
+    } catch (e) {}
+    
+    clearAttempts();
+    if (method === 'code') {
+      const code = $('#code').value;
+      if (code) setQueryParam('code', btoa(code));
+    }
+    
+    refreshCustomCourses().catch(e => {
+      console.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
+    });
+    
+    buildMasterGrid();
+    setupMasterSearch();
+    $('#year_master').textContent = new Date().getFullYear();
+    showMaster();
+  } else {
+    // Curso individual
+    showLoader();
+    
+    if (hasRemote()) {
+      await refreshFromRemoteSilent(hex).catch(e => {
+        console.warn('[SYNC] Error en refresh:', e);
+      });
+    }
+    
+    try { 
+      await runLoader(); 
+    } catch (e) {}
+    
+    currentKeyHex = hex;
+    clearAttempts();
+    if (method === 'code') {
+      const code = $('#code').value;
+      if (code) setQueryParam('code', btoa(code));
+    }
+    renderCourse(hex);
+    showContent();
+  }
+}
+
+// ✅ Listener para estado de autenticación persistente
+function setupAuthStateListener() {
+  if (!window.firebaseAuth) {
+    console.log('[AUTH] Firebase Auth no disponible, omitiendo listener de estado');
+    return;
+  }
+
+  window.firebaseAuth.onAuthStateChanged(async (user) => {
+    if (user) {
+      console.log('[AUTH] ✅ Usuario autenticado:', user.email);
+      // Si el usuario está autenticado y no hay código en la URL y no estamos ya en master, dar acceso master
+      const urlParams = new URLSearchParams(window.location.search);
+      const masterEl = document.getElementById('master');
+      const isInMaster = currentKeyHex === MASTER_HASH || (masterEl && !masterEl.classList.contains('hidden'));
+      if (!urlParams.has('code') && !isInMaster) {
+        await handleSuccessfulAuth(MASTER_HASH, 'email');
+      }
+    } else {
+      console.log('[AUTH] Usuario no autenticado');
+      // Si el usuario cierra sesión, volver a la pantalla de acceso
+      if (currentKeyHex === MASTER_HASH) {
+        currentKeyHex = null;
+        setQueryParam('code', null);
+        showAccess();
+      }
+    }
+  });
+}
+
+// ✅ Inicializar listener de estado cuando Firebase esté listo
+window.addEventListener('firebaseReady', () => {
+  setupAuthStateListener();
+});
+
 /* ============ eventos ============ */
 $('#btn-enter').addEventListener('click', () => tryLoginByCode($('#code').value));
 $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#btn-enter').click(); } });
-$('#btn-logout').addEventListener('click', () => { currentKeyHex = null; setQueryParam('code', null); showAccess(); });
+// ✅ Logout integrado (se actualiza más abajo)
 
-$('#btn-master-exit').addEventListener('click', () => { setQueryParam('code', null); showAccess(); });
 // ✅ Botón "Compartir enlace con código" eliminado por solicitud del usuario
+// ✅ Logout del master se maneja más abajo
+
+// ✅ Event listeners para pestañas de autenticación
+$('#tab-code').addEventListener('click', () => switchAuthTab('code'));
+$('#tab-account').addEventListener('click', () => switchAuthTab('account'));
+
+// ✅ Event listeners para formularios de autenticación
+$('#btn-login').addEventListener('click', () => {
+  const email = $('#email-login').value;
+  const password = $('#password-login').value;
+  tryLoginByEmail(email, password);
+});
+
+$('#email-login').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    $('#btn-login').click();
+  }
+});
+
+$('#password-login').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    $('#btn-login').click();
+  }
+});
+
+$('#btn-register').addEventListener('click', () => {
+  const email = $('#email-register').value;
+  const password = $('#password-register').value;
+  const passwordConfirm = $('#password-confirm').value;
+  tryRegister(email, password, passwordConfirm);
+});
+
+$('#email-register').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    $('#btn-register').click();
+  }
+});
+
+$('#password-register').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    $('#btn-register').click();
+  }
+});
+
+$('#password-confirm').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    $('#btn-register').click();
+  }
+});
+
+$('#btn-reset').addEventListener('click', () => {
+  const email = $('#email-reset').value;
+  tryPasswordReset(email);
+});
+
+$('#email-reset').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    $('#btn-reset').click();
+  }
+});
+
+// ✅ Event listeners para cambiar entre formularios
+$('#btn-show-register').addEventListener('click', () => showRegisterForm());
+$('#btn-show-login').addEventListener('click', () => showLoginForm());
+$('#btn-show-reset').addEventListener('click', () => showResetForm());
+$('#btn-back-login').addEventListener('click', () => showLoginForm());
+
+// ✅ Integrar logout de Firebase con logout existente
+$('#btn-logout').addEventListener('click', async () => {
+  currentKeyHex = null;
+  setQueryParam('code', null);
+  await logoutFirebase();
+  showAccess();
+});
+
+// ✅ Integrar logout de Firebase con logout del master
+$('#btn-master-exit').addEventListener('click', async () => {
+  setQueryParam('code', null);
+  await logoutFirebase();
+  showAccess();
+});
 
 // ✅ FUNCIÓN GLOBAL: Ver qué hay guardado en localStorage
 window.verDatosGuardados = function() {
