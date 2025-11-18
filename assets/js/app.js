@@ -5697,11 +5697,12 @@ async function tryLoginByEmail() {
     console.error('[AUTH] ❌ Error en login:', error);
     let errorMessage = 'Error al iniciar sesión.';
     
-    if (error.code === 'auth/user-not-found') {
-      errorMessage = 'No existe una cuenta con este correo.';
+    // ✅ Manejar el código nuevo de Firebase que combina user-not-found y wrong-password
+    if (error.code === 'auth/invalid-login-credentials' || 
+        error.code === 'auth/user-not-found' || 
+        error.code === 'auth/wrong-password') {
+      errorMessage = 'Correo o contraseña incorrectos. Verifica tus credenciales e intenta nuevamente.';
       markFieldError('input-email');
-    } else if (error.code === 'auth/wrong-password') {
-      errorMessage = 'Contraseña incorrecta.';
       markFieldError('input-password');
     } else if (error.code === 'auth/invalid-email') {
       errorMessage = 'Correo electrónico inválido.';
@@ -5710,8 +5711,11 @@ async function tryLoginByEmail() {
       errorMessage = 'Esta cuenta ha sido deshabilitada.';
     } else if (error.code === 'auth/too-many-requests') {
       errorMessage = 'Demasiados intentos fallidos. Intenta más tarde.';
+    } else if (error.code === 'auth/network-request-failed') {
+      errorMessage = 'Error de conexión. Verifica tu internet e intenta nuevamente.';
     } else {
-      errorMessage = `Error: ${error.message || 'No se pudo iniciar sesión.'}`;
+      // ✅ Mensaje genérico sin mencionar Firebase
+      errorMessage = 'No se pudo iniciar sesión. Verifica tus credenciales e intenta nuevamente.';
     }
     
     showAuthMessage('msg-auth', errorMessage, true);
@@ -5749,37 +5753,39 @@ async function tryRegister() {
   }
   
   clearFieldErrors();
-  showAuthMessage('msg-register', 'Creando cuenta…', false);
+  const normalizedEmail = email.toLowerCase().trim();
+  
+  // ✅ VALIDAR CORREO ANTES DE CREAR LA CUENTA
+  showAuthMessage('msg-register', 'Verificando autorización del correo…', false);
   
   try {
+    // Verificar si el correo está permitido en algún curso
+    const allowedCourses = await getCoursesForEmail(normalizedEmail);
+    
+    if (allowedCourses.length === 0) {
+      showAuthMessage('msg-register', 'Este correo no está autorizado para crear una cuenta. Contacta al administrador para solicitar acceso.', true);
+      markFieldError('input-register-email');
+      return false;
+    }
+    
+    // ✅ Si el correo está autorizado, proceder con la creación de la cuenta
+    showAuthMessage('msg-register', 'Correo autorizado. Creando cuenta…', false);
+    
     if (!window.firebaseAuth) {
       showAuthMessage('msg-register', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
       return false;
     }
     
-    const userCredential = await window.firebaseAuth.createUserWithEmailAndPassword(email.toLowerCase().trim(), password);
+    const userCredential = await window.firebaseAuth.createUserWithEmailAndPassword(normalizedEmail, password);
     const user = userCredential.user;
     
     console.log('[AUTH] ✅ Registro exitoso:', user.email);
     
-    showAuthMessage('msg-register', '¡Cuenta creada exitosamente! Verificando cursos…', false);
+    showAuthMessage('msg-register', '¡Cuenta creada exitosamente! Cargando tus cursos…', false);
     
-    // ✅ DESPUÉS DE REGISTRARSE, VERIFICAR CURSOS (LÓGICA EXISTENTE)
-    setTimeout(async () => {
-      const userEmail = user.email.toLowerCase().trim();
-      const allowedCourses = await getCoursesForEmail(userEmail);
-      
-      if (allowedCourses.length === 0) {
-        showAuthMessage('msg-register', 'Cuenta creada. Contacta al administrador para solicitar acceso a cursos.', false);
-        $('#form-register').classList.add('hidden');
-        $('#form-login').classList.remove('hidden');
-        return;
-      }
-      
-      window.currentUserEmail = userEmail;
-      // ✅ USAR LA FUNCIÓN EXISTENTE (LÓGICA INTACTA)
-      await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
-    }, 1000);
+    // ✅ Ya sabemos que tiene cursos permitidos, proceder directamente
+    window.currentUserEmail = normalizedEmail;
+    await handleSuccessfulAuthWithEmail(normalizedEmail, allowedCourses);
     
     return true;
     
@@ -5787,6 +5793,7 @@ async function tryRegister() {
     console.error('[AUTH] ❌ Error en registro:', error);
     let errorMessage = 'Error al crear la cuenta.';
     
+    // ✅ Manejar errores de Firebase con mensajes amigables
     if (error.code === 'auth/email-already-in-use') {
       errorMessage = 'Este correo ya está registrado. Inicia sesión en su lugar.';
       markFieldError('input-register-email');
@@ -5796,8 +5803,11 @@ async function tryRegister() {
     } else if (error.code === 'auth/weak-password') {
       errorMessage = 'La contraseña es muy débil. Usa al menos 6 caracteres.';
       markFieldError('input-register-password');
+    } else if (error.code === 'auth/network-request-failed') {
+      errorMessage = 'Error de conexión. Verifica tu internet e intenta nuevamente.';
     } else {
-      errorMessage = `Error: ${error.message || 'No se pudo crear la cuenta.'}`;
+      // ✅ Mensaje genérico sin mencionar Firebase
+      errorMessage = 'No se pudo crear la cuenta. Verifica los datos e intenta nuevamente.';
     }
     
     showAuthMessage('msg-register', errorMessage, true);
