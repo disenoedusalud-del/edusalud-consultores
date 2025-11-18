@@ -1999,30 +1999,77 @@ function setupSettingsMenu() {
     e.stopPropagation();
     const isVisible = dropdown.style.display !== 'none';
     dropdown.style.display = isVisible ? 'none' : 'block';
+    // ✅ Actualizar aria-expanded para accesibilidad
+    btnSettings.setAttribute('aria-expanded', isVisible ? 'false' : 'true');
   });
   
   // Cerrar menú al hacer click fuera
   document.addEventListener('click', (e) => {
     if (!btnSettings.contains(e.target) && !dropdown.contains(e.target)) {
       dropdown.style.display = 'none';
+      // ✅ Actualizar aria-expanded cuando se cierra
+      btnSettings.setAttribute('aria-expanded', 'false');
+    }
+  });
+  
+  // ✅ Navegación por teclado en el menú
+  const menuItems = dropdown.querySelectorAll('[role="menuitem"]');
+  menuItems.forEach((item, index) => {
+    // Click
+    item.addEventListener('click', () => {
+      dropdown.style.display = 'none';
+      btnSettings.setAttribute('aria-expanded', 'false');
+    });
+    
+    // Navegación con teclado
+    item.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        item.click();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = menuItems[index + 1] || menuItems[0];
+        next.focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = menuItems[index - 1] || menuItems[menuItems.length - 1];
+        prev.focus();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        dropdown.style.display = 'none';
+        btnSettings.setAttribute('aria-expanded', 'false');
+        btnSettings.focus();
+      }
+    });
+  });
+  
+  // ✅ Navegación desde el botón de ajustes
+  btnSettings.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' && dropdown.style.display !== 'none') {
+      e.preventDefault();
+      const firstItem = menuItems[0];
+      if (firstItem) firstItem.focus();
     }
   });
   
   // ✅ Exportar Backup Completo
   dropdown.querySelector('[data-action="export-all"]')?.addEventListener('click', () => {
     dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
     exportOverrides();
   });
   
   // ✅ Exportar por Tipo (con modal de selección)
   dropdown.querySelector('[data-action="export-filtered"]')?.addEventListener('click', () => {
     dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
     showExportFilterModal();
   });
   
   // ✅ Importar Backup (con vista previa)
   dropdown.querySelector('[data-action="import"]')?.addEventListener('click', () => {
     dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'application/json';
@@ -2044,6 +2091,7 @@ function setupSettingsMenu() {
   // ✅ Historial de Backups
   dropdown.querySelector('[data-action="backup-history"]')?.addEventListener('click', () => {
     dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
     showBackupHistory();
   });
   
@@ -4836,17 +4884,28 @@ function setupAddCourseModal() {
       const urlValidation = validateURL(imageUrl);
       if (!urlValidation.valid) {
         inputImage.style.borderColor = '#ff5555';
+        inputImage.setAttribute('aria-invalid', 'true');
         if (inputImage.parentElement) {
           let errorMsg = inputImage.parentElement.querySelector('.url-error');
           if (!errorMsg) {
             errorMsg = document.createElement('div');
             errorMsg.className = 'url-error';
+            errorMsg.id = 'inputCourseImage-error';
+            errorMsg.setAttribute('role', 'alert');
             errorMsg.style.cssText = 'font-size: 12px; color: #ff5555; margin-top: 4px; padding: 4px 8px; border-radius: 4px; background: rgba(255,85,85,0.1); border-left: 3px solid #ff5555;';
             inputImage.parentElement.appendChild(errorMsg);
           }
           errorMsg.textContent = `⚠️ ${urlValidation.error}`;
+          inputImage.setAttribute('aria-describedby', 'inputCourseImage-error');
         }
         return;
+      }
+      
+      // ✅ Limpiar estado de error si la URL es válida
+      inputImage.setAttribute('aria-invalid', 'false');
+      const existingError = inputImage.parentElement.querySelector('.url-error');
+      if (existingError) {
+        inputImage.removeAttribute('aria-describedby');
       }
       
       // Verificar existencia de imagen (con indicador de carga)
@@ -4871,9 +4930,12 @@ function setupAddCourseModal() {
       
       if (imageCheck.exists) {
         inputImage.style.borderColor = '#4ade80';
+        inputImage.setAttribute('aria-invalid', 'false');
         if (inputImage.parentElement) {
           const successMsg = document.createElement('div');
           successMsg.className = 'image-success';
+          successMsg.setAttribute('role', 'status');
+          successMsg.setAttribute('aria-live', 'polite');
           successMsg.style.cssText = 'font-size: 12px; color: #4ade80; margin-top: 4px; padding: 4px 8px; border-radius: 4px; background: rgba(74,222,128,0.1); border-left: 3px solid #4ade80;';
           successMsg.textContent = `✅ Imagen válida (${imageCheck.width}x${imageCheck.height}px)`;
           inputImage.parentElement.appendChild(successMsg);
@@ -4888,12 +4950,16 @@ function setupAddCourseModal() {
         lastValidatedUrl = imageUrl;
       } else {
         inputImage.style.borderColor = '#fbbf24';
+        inputImage.setAttribute('aria-invalid', 'true');
         if (inputImage.parentElement) {
           const warningMsg = document.createElement('div');
           warningMsg.className = 'image-warning';
+          warningMsg.id = 'inputCourseImage-warning';
+          warningMsg.setAttribute('role', 'alert');
           warningMsg.style.cssText = 'font-size: 12px; color: #fbbf24; margin-top: 4px; padding: 4px 8px; border-radius: 4px; background: rgba(251,191,36,0.1); border-left: 3px solid #fbbf24;';
           warningMsg.textContent = `⚠️ No se pudo verificar la imagen: ${imageCheck.error}`;
           inputImage.parentElement.appendChild(warningMsg);
+          inputImage.setAttribute('aria-describedby', 'inputCourseImage-warning');
         }
       }
     });
