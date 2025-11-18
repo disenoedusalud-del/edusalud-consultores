@@ -618,6 +618,34 @@
       </div>
     </section>
 
+    <!-- Vista de Usuario (para usuarios con email) -->
+    <section id="user-view" class="hidden">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+        <h3 style="margin:0">Mis Cursos</h3>
+        <div class="row">
+          <button id="btn-user-logout" class="btn secondary" type="button" aria-label="Cerrar sesión" title="Cerrar sesión">Cerrar sesión</button>
+        </div>
+      </div>
+
+      <!-- Información del usuario -->
+      <div id="userInfo" style="margin-bottom: 16px; padding: 16px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 14px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-weight: 600; color: var(--accent);">👤</span>
+          <span id="userEmailDisplay">Cargando...</span>
+        </div>
+      </div>
+
+      <!-- Grid de cursos -->
+      <div id="userGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:20px;">
+        <!-- Se llenará dinámicamente -->
+      </div>
+
+      <div id="userEmptyState" style="text-align:center; padding:60px 20px; color:var(--muted); display:none;">
+        <p style="font-size:18px; margin-bottom:8px;">No tienes cursos asignados</p>
+        <p style="font-size:14px;">Contacta al administrador para solicitar acceso a cursos.</p>
+      </div>
+    </section>
+
     <!-- CONTENIDO (1 curso) -->
     <section id="content" class="hidden" style="margin-top:16px;">
       <div class="card" id="courseCard">
@@ -1432,7 +1460,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=73" defer></script>
+  <script src="assets/js/app.js?v=74" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
