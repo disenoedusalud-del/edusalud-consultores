@@ -721,6 +721,11 @@
               <div class="meta" id="courseMeta">Material oficial para consultoría</div>
             </div>
             <div class="row">
+              <!-- ✅ Botón Volver (solo visible cuando viene de vista de usuario) -->
+              <button id="btn-back-to-user" class="btn secondary hidden" type="button" aria-label="Volver a mis cursos" title="Volver a mis cursos">
+                ← Volver
+              </button>
+              
               <!-- ✅ Botón de Ajustes para consultores -->
               <div style="position: relative;">
                 <button id="btn-settings-content" class="btn secondary" type="button" aria-label="Abrir menú de ajustes" aria-expanded="false" aria-haspopup="true" title="Ajustes">
@@ -1577,7 +1582,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=80" defer></script>
+  <script src="assets/js/app.js?v=81" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
