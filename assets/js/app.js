@@ -5610,6 +5610,16 @@ function showLoginForm() {
   }
   if (formRegister) {
     formRegister.classList.add('hidden');
+    // Resetear formulario de registro al paso 1
+    const step1 = $('#register-step-1');
+    const step2 = $('#register-step-2');
+    if (step1) step1.style.display = 'block';
+    if (step2) step2.style.display = 'none';
+    window.verifiedEmailForRegistration = null;
+    window.verifiedCoursesForRegistration = null;
+    showAuthMessage('msg-register', '', false);
+    showAuthMessage('msg-register-step2', '', false);
+    clearFieldErrors();
   }
   if (formReset) {
     formReset.classList.add('hidden');
@@ -5723,14 +5733,12 @@ async function tryLoginByEmail() {
   }
 }
 
-// ✅ Función para registro con email/password
-async function tryRegister() {
+// ✅ Función para verificar correo antes de registrar
+async function verifyEmailForRegistration() {
   const email = $('#input-register-email').value.trim();
-  const password = $('#input-register-password').value;
-  const passwordConfirm = $('#input-register-password-confirm').value;
   
-  if (!email || !password || !passwordConfirm) {
-    showAuthMessage('msg-register', 'Por favor, completa todos los campos.', true);
+  if (!email) {
+    showAuthMessage('msg-register', 'Por favor, ingresa tu correo electrónico.', true);
     return false;
   }
   
@@ -5740,22 +5748,9 @@ async function tryRegister() {
     return false;
   }
   
-  if (password.length < 6) {
-    showAuthMessage('msg-register', 'La contraseña debe tener al menos 6 caracteres.', true);
-    markFieldError('input-register-password');
-    return false;
-  }
-  
-  if (password !== passwordConfirm) {
-    showAuthMessage('msg-register', 'Las contraseñas no coinciden.', true);
-    markFieldError('input-register-password-confirm');
-    return false;
-  }
-  
   clearFieldErrors();
   const normalizedEmail = email.toLowerCase().trim();
   
-  // ✅ VALIDAR CORREO ANTES DE CREAR LA CUENTA
   showAuthMessage('msg-register', 'Verificando autorización del correo…', false);
   
   try {
@@ -5768,24 +5763,94 @@ async function tryRegister() {
       return false;
     }
     
-    // ✅ Si el correo está autorizado, proceder con la creación de la cuenta
-    showAuthMessage('msg-register', 'Correo autorizado. Creando cuenta…', false);
+    // ✅ Correo autorizado, mostrar paso 2
+    showAuthMessage('msg-register', '', false); // Limpiar mensaje
     
+    // Guardar el correo verificado y los cursos permitidos
+    window.verifiedEmailForRegistration = normalizedEmail;
+    window.verifiedCoursesForRegistration = allowedCourses;
+    
+    // Ocultar paso 1 y mostrar paso 2
+    const step1 = $('#register-step-1');
+    const step2 = $('#register-step-2');
+    if (step1) step1.style.display = 'none';
+    if (step2) step2.style.display = 'block';
+    const verifiedEmailDisplay = $('#verified-email-display');
+    if (verifiedEmailDisplay) verifiedEmailDisplay.textContent = normalizedEmail;
+    
+    // Limpiar campos de contraseña
+    const passwordInput = $('#input-register-password');
+    const passwordConfirmInput = $('#input-register-password-confirm');
+    if (passwordInput) passwordInput.value = '';
+    if (passwordConfirmInput) passwordConfirmInput.value = '';
+    
+    // Enfocar el primer campo de contraseña
+    setTimeout(() => {
+      if (passwordInput) passwordInput.focus();
+    }, 100);
+    
+    return true;
+    
+  } catch (error) {
+    console.error('[AUTH] ❌ Error verificando correo:', error);
+    showAuthMessage('msg-register', 'Error al verificar el correo. Intenta nuevamente.', true);
+    return false;
+  }
+}
+
+// ✅ Función para registro con email/password (correo ya verificado)
+async function tryRegister() {
+  // ✅ Usar el correo ya verificado
+  const email = window.verifiedEmailForRegistration;
+  const password = $('#input-register-password').value;
+  const passwordConfirm = $('#input-register-password-confirm').value;
+  
+  if (!email) {
+    showAuthMessage('msg-register-step2', 'Error: El correo no fue verificado. Por favor, vuelve al paso anterior.', true);
+    return false;
+  }
+  
+  if (!password || !passwordConfirm) {
+    showAuthMessage('msg-register-step2', 'Por favor, completa todos los campos.', true);
+    return false;
+  }
+  
+  if (password.length < 6) {
+    showAuthMessage('msg-register-step2', 'La contraseña debe tener al menos 6 caracteres.', true);
+    markFieldError('input-register-password');
+    return false;
+  }
+  
+  if (password !== passwordConfirm) {
+    showAuthMessage('msg-register-step2', 'Las contraseñas no coinciden.', true);
+    markFieldError('input-register-password-confirm');
+    return false;
+  }
+  
+  clearFieldErrors();
+  showAuthMessage('msg-register-step2', 'Creando cuenta…', false);
+  
+  try {
     if (!window.firebaseAuth) {
-      showAuthMessage('msg-register', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
+      showAuthMessage('msg-register-step2', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
       return false;
     }
     
-    const userCredential = await window.firebaseAuth.createUserWithEmailAndPassword(normalizedEmail, password);
+    const userCredential = await window.firebaseAuth.createUserWithEmailAndPassword(email, password);
     const user = userCredential.user;
     
     console.log('[AUTH] ✅ Registro exitoso:', user.email);
     
-    showAuthMessage('msg-register', '¡Cuenta creada exitosamente! Cargando tus cursos…', false);
+    showAuthMessage('msg-register-step2', '¡Cuenta creada exitosamente! Cargando tus cursos…', false);
     
-    // ✅ Ya sabemos que tiene cursos permitidos, proceder directamente
-    window.currentUserEmail = normalizedEmail;
-    await handleSuccessfulAuthWithEmail(normalizedEmail, allowedCourses);
+    // ✅ Usar los cursos ya verificados
+    const allowedCourses = window.verifiedCoursesForRegistration || [];
+    window.currentUserEmail = email;
+    await handleSuccessfulAuthWithEmail(email, allowedCourses);
+    
+    // Limpiar variables temporales
+    window.verifiedEmailForRegistration = null;
+    window.verifiedCoursesForRegistration = null;
     
     return true;
     
@@ -5796,10 +5861,10 @@ async function tryRegister() {
     // ✅ Manejar errores de Firebase con mensajes amigables
     if (error.code === 'auth/email-already-in-use') {
       errorMessage = 'Este correo ya está registrado. Inicia sesión en su lugar.';
-      markFieldError('input-register-email');
+      markFieldError('input-register-password');
     } else if (error.code === 'auth/invalid-email') {
       errorMessage = 'Correo electrónico inválido.';
-      markFieldError('input-register-email');
+      markFieldError('input-register-password');
     } else if (error.code === 'auth/weak-password') {
       errorMessage = 'La contraseña es muy débil. Usa al menos 6 caracteres.';
       markFieldError('input-register-password');
@@ -5810,7 +5875,7 @@ async function tryRegister() {
       errorMessage = 'No se pudo crear la cuenta. Verifica los datos e intenta nuevamente.';
     }
     
-    showAuthMessage('msg-register', errorMessage, true);
+    showAuthMessage('msg-register-step2', errorMessage, true);
     return false;
   }
 }
@@ -6784,11 +6849,71 @@ function setupEmailPasswordListeners() {
     });
   }
 
-  // Registro
+  // ✅ Event listener para verificar correo antes de registrar
+  const btnVerifyEmail = $('#btn-verify-email');
+  if (btnVerifyEmail) {
+    btnVerifyEmail.addEventListener('click', async () => {
+      await verifyEmailForRegistration();
+    });
+  }
+  
+  // Enter en campo de correo para verificar
+  const inputRegisterEmail = $('#input-register-email');
+  if (inputRegisterEmail) {
+    inputRegisterEmail.addEventListener('keypress', async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        await verifyEmailForRegistration();
+      }
+    });
+  }
+  
+  // Enter en campos de contraseña para crear cuenta
+  const inputRegisterPassword = $('#input-register-password');
+  const inputRegisterPasswordConfirm = $('#input-register-password-confirm');
+  if (inputRegisterPassword) {
+    inputRegisterPassword.addEventListener('keypress', async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (inputRegisterPasswordConfirm) inputRegisterPasswordConfirm.focus();
+      }
+    });
+  }
+  if (inputRegisterPasswordConfirm) {
+    inputRegisterPasswordConfirm.addEventListener('keypress', async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        await tryRegister();
+      }
+    });
+  }
+  
+  // Registro (paso 2)
   const btnRegister = $('#btn-register');
   if (btnRegister) {
     btnRegister.addEventListener('click', () => {
       tryRegister();
+    });
+  }
+  
+  // ✅ Event listener para volver al paso 1
+  const btnBackToVerify = $('#btn-back-to-verify');
+  if (btnBackToVerify) {
+    btnBackToVerify.addEventListener('click', () => {
+      // Volver al paso 1
+      const step1 = $('#register-step-1');
+      const step2 = $('#register-step-2');
+      if (step1) step1.style.display = 'block';
+      if (step2) step2.style.display = 'none';
+      
+      // Limpiar variables temporales
+      window.verifiedEmailForRegistration = null;
+      window.verifiedCoursesForRegistration = null;
+      
+      // Limpiar mensajes
+      showAuthMessage('msg-register', '', false);
+      showAuthMessage('msg-register-step2', '', false);
+      clearFieldErrors();
     });
   }
 
@@ -6811,6 +6936,16 @@ function setupEmailPasswordListeners() {
       $('#form-login').classList.add('hidden');
       $('#form-register').classList.remove('hidden');
       $('#form-reset').classList.add('hidden');
+      
+      // Resetear formulario de registro al paso 1
+      const step1 = $('#register-step-1');
+      const step2 = $('#register-step-2');
+      if (step1) step1.style.display = 'block';
+      if (step2) step2.style.display = 'none';
+      window.verifiedEmailForRegistration = null;
+      window.verifiedCoursesForRegistration = null;
+      showAuthMessage('msg-register', '', false);
+      showAuthMessage('msg-register-step2', '', false);
       clearFieldErrors();
     });
   }
@@ -6820,6 +6955,16 @@ function setupEmailPasswordListeners() {
       $('#form-register').classList.add('hidden');
       $('#form-reset').classList.add('hidden');
       $('#form-login').classList.remove('hidden');
+      
+      // Resetear formulario de registro al paso 1
+      const step1 = $('#register-step-1');
+      const step2 = $('#register-step-2');
+      if (step1) step1.style.display = 'block';
+      if (step2) step2.style.display = 'none';
+      window.verifiedEmailForRegistration = null;
+      window.verifiedCoursesForRegistration = null;
+      showAuthMessage('msg-register', '', false);
+      showAuthMessage('msg-register-step2', '', false);
       clearFieldErrors();
     });
   }
