@@ -1975,6 +1975,61 @@ function ensureMasterTools(){
   setupSettingsMenu();
 }
 
+/* ===================== INDICADORES DE CARGA EN BOTONES ===================== */
+
+/**
+ * ✅ Helper para mostrar indicador de carga en un botón
+ * @param {HTMLElement} button - El botón a modificar
+ * @param {string} loadingText - Texto a mostrar durante la carga (ej: "Guardando...")
+ * @param {string} successText - Texto a mostrar al completar (ej: "Guardado")
+ * @param {string} errorText - Texto a mostrar si hay error (ej: "Error")
+ * @returns {Function} Función para restaurar el botón a su estado original
+ */
+function setButtonLoading(button, loadingText = 'Procesando...', successText = null, errorText = 'Error') {
+  if (!button) return () => {};
+  
+  // Guardar estado original
+  const originalHTML = button.innerHTML;
+  const originalDisabled = button.disabled;
+  const originalText = button.textContent || button.innerText;
+  
+  // Aplicar estado de carga
+  button.disabled = true;
+  button.innerHTML = `<span style="display: inline-flex; align-items: center; gap: 8px;">
+    <span style="display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+    ${loadingText}
+  </span>`;
+  
+  // Función para restaurar
+  return (success = true, customText = null) => {
+    button.disabled = originalDisabled;
+    
+    if (success && successText) {
+      button.innerHTML = `✅ ${customText || successText}`;
+      setTimeout(() => {
+        button.innerHTML = originalHTML;
+      }, 2000);
+    } else if (!success) {
+      button.innerHTML = `❌ ${customText || errorText}`;
+      setTimeout(() => {
+        button.innerHTML = originalHTML;
+      }, 3000);
+    } else {
+      button.innerHTML = originalHTML;
+    }
+  };
+}
+
+/**
+ * ✅ Helper para crear un spinner CSS inline
+ */
+function createSpinnerHTML() {
+  return `<span style="display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>`;
+}
+
+// ✅ Exponer función globalmente
+window.setButtonLoading = setButtonLoading;
+
 /* ===================== GESTIÓN DE TEMA (CLARO/OSCURO) ===================== */
 
 /**
@@ -3391,6 +3446,7 @@ function buildMasterGrid() {
     open.type = 'button';
     open.textContent = 'Abrir curso';
     open.setAttribute('aria-label', `Abrir curso: ${data.title || 'Curso'}`);
+    open.setAttribute('title', `Abrir el curso "${data.title || 'Curso'}"`);
     open.addEventListener('click', async () => {
       // Mostrar loader inmediatamente
       showLoader();
@@ -3422,6 +3478,7 @@ function buildMasterGrid() {
       btnEditCourse.type = 'button';
       btnEditCourse.textContent = '✏️ Editar';
       btnEditCourse.setAttribute('aria-label', `Editar curso: ${data.title || 'Curso'}`);
+      btnEditCourse.setAttribute('title', `Editar el curso "${data.title || 'Curso'}"`);
       btnEditCourse.addEventListener('click', () => {
         // Abrir modal de edición con datos del curso
         if (typeof window.openEditCourseModal === 'function') {
@@ -3436,6 +3493,7 @@ function buildMasterGrid() {
       btnDuplicate.type = 'button';
       btnDuplicate.textContent = '📋 Duplicar';
       btnDuplicate.setAttribute('aria-label', `Duplicar curso: ${data.title || 'Curso'}`);
+      btnDuplicate.setAttribute('title', `Duplicar el curso "${data.title || 'Curso'}" con un nuevo código`);
       btnDuplicate.addEventListener('click', async () => {
         // Generar código sugerido
         const suggestedCode = `${data.card?.tag || 'CURSO'}_${Date.now()}`;
@@ -3567,6 +3625,7 @@ function buildMasterGrid() {
       btnDelete.type = 'button';
       btnDelete.textContent = '🗑️ Eliminar';
       btnDelete.setAttribute('aria-label', `Eliminar curso: ${data.title || 'Curso'}`);
+      btnDelete.setAttribute('title', `Eliminar el curso "${data.title || 'Curso'}" (acción irreversible)`);
       btnDelete.style.background = 'linear-gradient(135deg, #ff4444, #cc0000)';
       btnDelete.addEventListener('click', async () => {
         // ✅ Mostrar modal de confirmación elegante
@@ -3576,38 +3635,66 @@ function buildMasterGrid() {
             return;
           }
           
+          // ✅ Obtener botón de confirmación y activar indicador de carga
+          const confirmBtn = document.getElementById('deleteConfirmYes');
+          let restoreButton = null;
+          if (confirmBtn) {
+            restoreButton = setButtonLoading(confirmBtn, 'Eliminando curso...', 'Curso eliminado');
+          }
+          
           console.log('[DELETE] Eliminando curso:', data.title);
           
           // ✅ Bloquear re-renders durante la eliminación
           userInteracting = true;
           
-          // ✅ Eliminar curso (local, Firebase y respaldo)
-          await removeCustomCourse(hex);
+          try {
+            // ✅ Eliminar curso (local, Firebase y respaldo)
+            await removeCustomCourse(hex);
           
-          // ✅ NO hacer refreshCustomCourses porque Firebase ya sincroniza en tiempo real
-          // El listener de Firebase actualizará automáticamente la vista en todos los dispositivos
-          // Solo hacer refresh si Firebase no está disponible
-          const db = getFirestoreDB();
-          if (!db) {
-            console.log('[DELETE] Firebase no disponible, usando refresh manual');
-            await refreshCustomCourses().catch(e => {
-              console.warn('[DELETE] Error refrescando cursos después de eliminar (fallback):', e);
-            });
-          }
-          
-                // ✅ Desbloquear y re-renderizar inmediatamente
-                userInteracting = false;
-                buildMasterGrid();
-                // ✅ Actualizar estadísticas después de eliminar
-                setTimeout(() => updateMasterStats(), 100);
-                console.log('[DELETE] ✅ Curso eliminado exitosamente');
-          
-          // Analytics tracking
-          if (typeof gtag !== 'undefined') {
-            gtag('event', 'course_deleted', {
-              'event_category': 'management',
-              'event_label': data.card?.tag || 'unknown'
-            });
+            // ✅ NO hacer refreshCustomCourses porque Firebase ya sincroniza en tiempo real
+            // El listener de Firebase actualizará automáticamente la vista en todos los dispositivos
+            // Solo hacer refresh si Firebase no está disponible
+            const db = getFirestoreDB();
+            if (!db) {
+              console.log('[DELETE] Firebase no disponible, usando refresh manual');
+              await refreshCustomCourses().catch(e => {
+                console.warn('[DELETE] Error refrescando cursos después de eliminar (fallback):', e);
+              });
+            }
+            
+            // ✅ Restaurar botón con éxito
+            if (restoreButton) {
+              restoreButton(true, 'Curso eliminado');
+            }
+            
+            // ✅ Desbloquear y re-renderizar inmediatamente
+            userInteracting = false;
+            buildMasterGrid();
+            // ✅ Actualizar estadísticas después de eliminar
+            setTimeout(() => updateMasterStats(), 100);
+            console.log('[DELETE] ✅ Curso eliminado exitosamente');
+            
+            // Cerrar modal
+            const deleteModal = document.getElementById('deleteConfirmModal');
+            if (deleteModal) {
+              deleteModal.classList.remove('show');
+            }
+            
+            // Analytics tracking
+            if (typeof gtag !== 'undefined') {
+              gtag('event', 'course_deleted', {
+                'event_category': 'management',
+                'event_label': data.card?.tag || 'unknown'
+              });
+            }
+          } catch (error) {
+            console.error('[DELETE] Error eliminando curso:', error);
+            // ✅ Restaurar botón con error
+            if (restoreButton) {
+              restoreButton(false, 'Error al eliminar');
+            }
+            userInteracting = false;
+            alert('Error al eliminar el curso. Por favor, intente nuevamente.');
           }
         });
       });
@@ -5338,6 +5425,10 @@ function setupAddCourseModal() {
   formAddCourse.addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    // ✅ Obtener botón submit
+    const submitBtn = formAddCourse.querySelector('button[type="submit"]');
+    let restoreButton = null;
+    
     // ✅ Rate limiting: prevenir acciones repetidas
     if (!checkRateLimit('crear curso')) {
       return;
@@ -5374,6 +5465,11 @@ function setupAddCourseModal() {
       alert('El código debe tener entre 5 y 50 caracteres');
       $('#inputCourseCode').focus();
       return;
+    }
+    
+    // ✅ Activar indicador de carga
+    if (submitBtn) {
+      restoreButton = setButtonLoading(submitBtn, 'Creando curso...', 'Curso creado');
     }
     
     // ✅ Sanitizar inputs (escapar HTML)
@@ -5478,30 +5574,45 @@ function setupAddCourseModal() {
     // ✅ Debug: mostrar datos que se van a guardar
     console.log('[FORM] 💾 Datos del curso a guardar:', courseData);
     
-    // Guardar curso (esperar confirmación)
-    await addCustomCourse(hex, courseData);
-    
-    // ✅ NO hacer refresh de cursos remotos después de crear, porque puede sobrescribir el código
-    // El código se guarda localmente y en Firebase, no necesita refresh desde Google Sheets
-    // await refreshCustomCourses().catch(e => {
-    //   console.warn('[ADD COURSE] Error refrescando cursos después de crear:', e);
-    // });
-    
-    // Analytics tracking
-    if (typeof gtag !== 'undefined') {
-      gtag('event', 'course_created', {
-        'event_category': 'management',
-        'event_label': tag
-      });
+    try {
+      // Guardar curso (esperar confirmación)
+      await addCustomCourse(hex, courseData);
+      
+      // ✅ NO hacer refresh de cursos remotos después de crear, porque puede sobrescribir el código
+      // El código se guarda localmente y en Firebase, no necesita refresh desde Google Sheets
+      // await refreshCustomCourses().catch(e => {
+      //   console.warn('[ADD COURSE] Error refrescando cursos después de crear:', e);
+      // });
+      
+      // Analytics tracking
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'course_created', {
+          'event_category': 'management',
+          'event_label': tag
+        });
+      }
+      
+      // ✅ Restaurar botón con éxito
+      if (restoreButton) {
+        restoreButton(true, 'Curso creado');
+      }
+      
+      // Cerrar modal y recargar grid
+      modalAddCourse.classList.remove('show');
+      formAddCourse.reset();
+      inputCourseAccent.value = '#5aa9ff';
+      inputCourseAccentHex.value = '#5aa9ff';
+      
+      // Reconstruir grid
+    } catch (error) {
+      console.error('[FORM] Error creando curso:', error);
+      // ✅ Restaurar botón con error
+      if (restoreButton) {
+        restoreButton(false, 'Error al crear');
+      }
+      alert('Error al crear el curso. Por favor, intente nuevamente.');
+      return;
     }
-    
-    // Cerrar modal y recargar grid
-    modalAddCourse.classList.remove('show');
-    formAddCourse.reset();
-    inputCourseAccent.value = '#5aa9ff';
-    inputCourseAccentHex.value = '#5aa9ff';
-    
-    // Reconstruir grid
     buildMasterGrid();
     
     // ✅ Mostrar modal de éxito
@@ -5581,6 +5692,10 @@ function setupEditCourseModal() {
   formEditCourse.addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    // ✅ Obtener botón submit
+    const submitBtn = formEditCourse.querySelector('button[type="submit"]');
+    let restoreButton = null;
+    
     // ✅ Rate limiting: prevenir ediciones repetidas
     if (!checkRateLimit('editar curso')) {
       return;
@@ -5618,6 +5733,11 @@ function setupEditCourseModal() {
       alert('El tag debe tener entre 2 y 10 caracteres');
       $('#inputEditCourseTag').focus();
       return;
+    }
+    
+    // ✅ Activar indicador de carga
+    if (submitBtn) {
+      restoreButton = setButtonLoading(submitBtn, 'Guardando cambios...', 'Cambios guardados');
     }
     
     // ✅ Sanitizar inputs (escapar HTML)
@@ -5708,6 +5828,11 @@ function setupEditCourseModal() {
         });
       }
       
+      // ✅ Restaurar botón con éxito
+      if (restoreButton) {
+        restoreButton(true, 'Cambios guardados');
+      }
+      
       // Cerrar modal y recargar grid
       modalEditCourse.classList.remove('show');
       formEditCourse.reset();
@@ -5722,6 +5847,10 @@ function setupEditCourseModal() {
       );
     } catch (error) {
       console.error('[EDIT COURSE] Error:', error);
+      // ✅ Restaurar botón con error
+      if (restoreButton) {
+        restoreButton(false, 'Error al guardar');
+      }
       alert('Error al actualizar el curso: ' + (error.message || 'Error desconocido'));
     }
   });
