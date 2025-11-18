@@ -424,29 +424,39 @@
     .card-left-wrapper { flex: 0 0 360px; max-width:360px; }
     .card-right { flex: 1 1 auto; }
     
-    /* ✅ Responsive mejorado para tablet y móvil */
-    @media (max-width: 1200px) {
+    /* ✅ Responsive mejorado - Mobile First - Layout horizontal siempre */
+    @media (max-width: 600px) {
+      .course-row { 
+        flex-direction: row; /* ✅ Mantener horizontal en móvil */
+        gap: 12px;
+        align-items: center;
+      }
       .card-left-wrapper { 
-        flex: 0 0 300px; 
-        max-width: 300px; 
+        flex: 0 0 120px; /* ✅ Imagen pequeña en móvil */
+        max-width: 120px;
+        min-width: 120px;
+      }
+      .card-right {
+        flex: 1 1 auto;
+        min-width: 0; /* ✅ Permite que se ajuste */
       }
     }
     
-    @media (max-width: 900px) { 
+    @media (max-width: 900px) and (min-width: 601px) { 
       .course-row { 
-        flex-direction: column; 
-      } 
+        flex-direction: row; /* ✅ Mantener horizontal en tablet */
+        gap: 16px;
+      }
       .card-left-wrapper { 
-        width: 100%; 
-        max-width: 100%;
-        flex: 1 1 auto;
+        flex: 0 0 200px; /* ✅ Tamaño medio en tablet */
+        max-width: 200px;
       } 
     }
     
-    @media (max-width: 600px) {
-      .card-left-wrapper {
-        width: 100%;
-        max-width: 100%;
+    @media (max-width: 1200px) and (min-width: 901px) {
+      .card-left-wrapper { 
+        flex: 0 0 300px; 
+        max-width: 300px; 
       }
     }
 
