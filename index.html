@@ -537,28 +537,39 @@
             
             <!-- Menú desplegable de ajustes -->
             <div id="settingsDropdown" class="settings-dropdown" style="display: none;" role="menu" aria-label="Menú de ajustes">
-              <!-- Sección de Backups -->
-              <div class="settings-menu-item" data-action="export-all" role="menuitem" tabindex="0">
-                💾 Exportar Backup Completo
+              <!-- Categoría: Backups -->
+              <div class="settings-category" data-category="backups" role="menuitem" tabindex="0" aria-expanded="false">
+                <span class="settings-category-icon">📦</span>
+                <span class="settings-category-label">Backups</span>
+                <span class="settings-category-arrow">▶</span>
               </div>
-              <div class="settings-menu-item" data-action="export-filtered" role="menuitem" tabindex="0">
-                📤 Exportar por Tipo...
-              </div>
-              <div class="settings-divider" role="separator"></div>
-              <div class="settings-menu-item" data-action="import" role="menuitem" tabindex="0">
-                📥 Importar Backup...
-              </div>
-              <div class="settings-divider" role="separator"></div>
-              <div class="settings-menu-item" data-action="backup-history" role="menuitem" tabindex="0">
-                📋 Historial de Backups
+              <div class="settings-submenu" data-submenu="backups" style="display: none;">
+                <div class="settings-menu-item" data-action="export-all" role="menuitem" tabindex="0">
+                  💾 Exportar Backup Completo
+                </div>
+                <div class="settings-menu-item" data-action="export-filtered" role="menuitem" tabindex="0">
+                  📤 Exportar por Tipo...
+                </div>
+                <div class="settings-divider" role="separator"></div>
+                <div class="settings-menu-item" data-action="import" role="menuitem" tabindex="0">
+                  📥 Importar Backup...
+                </div>
+                <div class="settings-divider" role="separator"></div>
+                <div class="settings-menu-item" data-action="backup-history" role="menuitem" tabindex="0">
+                  📋 Historial de Backups
+                </div>
               </div>
               
-              <!-- Separador para sección de Apariencia -->
-              <div class="settings-divider" role="separator" style="margin: 8px 0;"></div>
-              
-              <!-- Sección de Apariencia/Tema -->
-              <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0">
-                <span id="theme-toggle-icon">☀️</span> <span id="theme-toggle-text">Cambiar a Modo Claro</span>
+              <!-- Categoría: Apariencia -->
+              <div class="settings-category" data-category="appearance" role="menuitem" tabindex="0" aria-expanded="false">
+                <span class="settings-category-icon">🎨</span>
+                <span class="settings-category-label">Apariencia</span>
+                <span class="settings-category-arrow">▶</span>
+              </div>
+              <div class="settings-submenu" data-submenu="appearance" style="display: none;">
+                <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0">
+                  <span id="theme-toggle-icon">☀️</span> <span id="theme-toggle-text">Cambiar a Modo Claro</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1144,6 +1155,74 @@
     
     .settings-menu-item:active {
       background: rgba(90,169,255,0.2);
+    }
+    
+    /* ✅ Categorías principales del menú */
+    .settings-category {
+      padding: 12px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+    }
+    
+    .settings-category:hover {
+      background: rgba(90,169,255,0.15);
+    }
+    
+    .settings-category-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    
+    .settings-category-label {
+      flex: 1;
+    }
+    
+    .settings-category-arrow {
+      font-size: 10px;
+      transition: transform 0.2s ease;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    
+    .settings-category[aria-expanded="true"] .settings-category-arrow {
+      transform: rotate(90deg);
+    }
+    
+    /* ✅ Submenús (opciones dentro de cada categoría) */
+    .settings-submenu {
+      background: rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.2s ease;
+      max-height: 0;
+      opacity: 0;
+      padding: 0;
+    }
+    
+    .settings-submenu.expanded {
+      max-height: 500px;
+      opacity: 1;
+      padding: 4px 0;
+    }
+    
+    .settings-submenu .settings-menu-item {
+      padding-left: 40px;
+      font-size: 13px;
+      font-weight: normal;
+    }
+    
+    .settings-submenu .settings-divider {
+      margin-left: 40px;
+    }
+    
+    :root[data-theme="light"] .settings-submenu {
+      background: rgba(0,0,0,0.03);
     }
     
     .settings-divider {
