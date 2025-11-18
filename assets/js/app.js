@@ -6262,11 +6262,13 @@ function setupAuthStateListener() {
       const urlParams = new URLSearchParams(window.location.search);
       const masterEl = document.getElementById('master');
       const userViewEl = document.getElementById('user-view');
+      const contentEl = document.getElementById('content');
       const isInMaster = currentKeyHex === MASTER_HASH || (masterEl && !masterEl.classList.contains('hidden'));
       const isInUserView = userViewEl && !userViewEl.classList.contains('hidden');
+      const isInContent = contentEl && !contentEl.classList.contains('hidden');
       
-      // Si no hay código en URL y no estamos en ninguna vista, verificar si es usuario con email o master
-      if (!urlParams.has('code') && !isInMaster && !isInUserView) {
+      // Si no hay código en URL y no estamos en ninguna vista, verificar si es usuario con email
+      if (!urlParams.has('code') && !isInMaster && !isInUserView && !isInContent) {
         // Verificar si tiene cursos permitidos (es usuario con email)
         const allowedCourses = await getCoursesForEmail(userEmail);
         if (allowedCourses.length > 0) {
@@ -6285,7 +6287,7 @@ function setupAuthStateListener() {
       // Si el usuario cierra sesión, volver a la pantalla de acceso
       window.currentUserEmail = null;
       window.allowedCoursesForUser = null;
-      if (currentKeyHex === MASTER_HASH || document.getElementById('user-view') && !document.getElementById('user-view').classList.contains('hidden')) {
+      if (currentKeyHex === MASTER_HASH || (document.getElementById('user-view') && !document.getElementById('user-view').classList.contains('hidden'))) {
         currentKeyHex = null;
         setQueryParam('code', null);
         showAccess();
@@ -6294,12 +6296,25 @@ function setupAuthStateListener() {
   });
 }
 
+// ✅ Listener de estado con delay (para evitar conflictos con redirect)
+function setupAuthStateListenerDelayed() {
+  if (!window.firebaseAuth) {
+    console.log('[AUTH] Firebase Auth no disponible, omitiendo listener de estado');
+    return;
+  }
+
+  // Esperar un poco antes de configurar el listener para que el redirect se procese
+  setTimeout(() => {
+    setupAuthStateListener();
+  }, 1000);
+}
+
 // ✅ Manejar resultado de redirect cuando el usuario regrese
 async function handleGoogleRedirectResult() {
   try {
     if (!window.firebaseAuth) {
       console.log('[AUTH] Firebase Auth no disponible para redirect result');
-      return;
+      return false;
     }
     
     console.log('[AUTH] 🔄 Verificando resultado de redirect...');
@@ -6324,13 +6339,14 @@ async function handleGoogleRedirectResult() {
       
       if (allowedCourses.length === 0) {
         showAuthMessage('msg-auth', 'No tienes acceso a ningún curso. Contacta al administrador para solicitar acceso.', true);
-        return;
+        return true; // Se manejó, pero sin acceso
       }
       
       await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
-      // No mostrar mensaje aquí, se mostrará en la vista de usuario
+      return true; // Se manejó exitosamente
     } else {
       console.log('[AUTH] No hay resultado de redirect (usuario no autenticado)');
+      return false; // No se manejó redirect
     }
   } catch (error) {
     console.error('[AUTH] ❌ Error en redirect result:', error);
@@ -6342,13 +6358,25 @@ async function handleGoogleRedirectResult() {
     sessionStorage.removeItem('redirectUrl');
     
     showAuthMessage('msg-auth', 'Error al completar el inicio de sesión. Intente nuevamente.', true);
+    return false; // No se manejó correctamente
   }
 }
 
 // ✅ Inicializar listener de estado cuando Firebase esté listo
-window.addEventListener('firebaseReady', () => {
-  setupAuthStateListener();
-  handleGoogleRedirectResult();
+window.addEventListener('firebaseReady', async () => {
+  // ✅ PRIMERO: Manejar resultado de redirect (si existe)
+  // Esto debe ejecutarse ANTES del listener de estado para evitar conflictos
+  const redirectHandled = await handleGoogleRedirectResult();
+  
+  // ✅ SEGUNDO: Configurar listener de estado
+  // Si se manejó redirect, usar delay para evitar conflictos
+  if (redirectHandled) {
+    // Si se manejó redirect, configurar listener pero con delay
+    setupAuthStateListenerDelayed();
+  } else {
+    // Si no hubo redirect, configurar listener inmediatamente
+    setupAuthStateListener();
+  }
 });
 
 /* ============ eventos ============ */
