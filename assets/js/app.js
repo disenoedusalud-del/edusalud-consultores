@@ -3690,30 +3690,46 @@ function buildUserGrid() {
     
     const cardEl = document.createElement('div');
     cardEl.className = 'master-card';
-    cardEl.style.cssText = 'position:relative; overflow:hidden;';
+    cardEl.style.cssText = 'position:relative; overflow:visible;';
     
-    // ✅ Contenedor para imagen y botón
+    // ✅ Contenedor para imagen
     const cardContent = document.createElement('div');
-    cardContent.style.cssText = 'position:relative; width:100%; height:100%;';
+    cardContent.style.cssText = 'position:relative; width:100%;';
+    
+    // ✅ Badge de tipo en la parte superior izquierda
+    const courseType = data.type || 'curso';
+    const typeLabels = {
+      'curso': '📖 Curso',
+      'diplomado': '🎓 Diplomado',
+      'webinar': '💻 Webinar',
+      'seminario': '📝 Seminario',
+      'taller': '🔧 Taller'
+    };
+    const typeLabel = typeLabels[courseType] || '📖 Curso';
+    
+    const typeBadge = document.createElement('div');
+    typeBadge.style.cssText = 'position:absolute; top:12px; left:12px; z-index:10; padding:6px 12px; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); border-radius:20px; font-size:11px; font-weight:600; color:#ffffff; text-transform:uppercase; letter-spacing:0.5px;';
+    typeBadge.textContent = typeLabel;
+    cardContent.appendChild(typeBadge);
     
     // ✅ Imagen del curso
     if (data.card?.img) {
       const img = document.createElement('img');
       img.src = `${data.card.img}?v=2`;
       img.alt = data.title || 'Curso';
-      img.style.cssText = 'width:100%; height:220px; object-fit:cover; display:block;';
+      img.style.cssText = 'width:100%; height:220px; object-fit:cover; display:block; border-radius:12px 12px 0 0;';
       img.loading = 'lazy';
       cardContent.appendChild(img);
     } else {
       const placeholder = document.createElement('div');
-      placeholder.style.cssText = 'width:100%; height:220px; background:linear-gradient(135deg, rgba(90,169,255,0.2), rgba(90,169,255,0.05)); display:flex; align-items:center; justify-content:center; color:var(--muted);';
+      placeholder.style.cssText = 'width:100%; height:220px; background:linear-gradient(135deg, rgba(90,169,255,0.2), rgba(90,169,255,0.05)); display:flex; align-items:center; justify-content:center; color:var(--muted); border-radius:12px 12px 0 0;';
       placeholder.textContent = 'Sin imagen';
       cardContent.appendChild(placeholder);
     }
     
-    // ✅ Botón "Abrir" superpuesto en la parte inferior
+    // ✅ Botón "Abrir" fuera de la imagen, debajo
     const buttonContainer = document.createElement('div');
-    buttonContainer.style.cssText = 'position:absolute; bottom:0; left:0; right:0; padding:16px; background:linear-gradient(to top, rgba(0,0,0,0.8), transparent); display:flex; align-items:flex-end;';
+    buttonContainer.style.cssText = 'padding:16px; background:var(--card-bg, rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.06); border-top:none; border-radius:0 0 12px 12px;';
     
     const openBtn = document.createElement('button');
     openBtn.className = 'btn';
@@ -3758,8 +3774,8 @@ function buildUserGrid() {
     });
     
     buttonContainer.appendChild(openBtn);
-    cardContent.appendChild(buttonContainer);
     cardEl.appendChild(cardContent);
+    cardEl.appendChild(buttonContainer);
     grid.appendChild(cardEl);
   });
 }
