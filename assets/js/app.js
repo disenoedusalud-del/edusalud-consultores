@@ -1046,6 +1046,12 @@ function initFirestoreRealtime(courseHex) {
     return;
   }
 
+  // ✅ Evitar múltiples listeners para el mismo curso
+  if (firestoreUnsubscribe && window.currentFirestoreCourseHex === courseHex) {
+    console.log('[FIRESTORE] ⚠️ Listener ya activo para este curso, omitiendo');
+    return;
+  }
+
   // Desuscribir listeners anteriores si existen
   if (firestoreUnsubscribe) {
     console.log('[FIRESTORE] Desuscribiendo listener anterior');
@@ -1058,6 +1064,9 @@ function initFirestoreRealtime(courseHex) {
     return;
   }
 
+  // ✅ Guardar el curso actual para evitar duplicados
+  window.currentFirestoreCourseHex = courseHex;
+
   console.log('[FIRESTORE] 🔥 Iniciando listener en tiempo real para curso:', courseHex.substring(0, 10) + '...');
 
   try {
@@ -1066,6 +1075,20 @@ function initFirestoreRealtime(courseHex) {
 
     // ✅ SUSCRIBIRSE a cambios en tiempo real
     firestoreUnsubscribe = linksRef.on('value', (snapshot) => {
+      // ✅ Evitar re-renderizado si el usuario está interactuando
+      if (userInteracting) {
+        console.log('[FIRESTORE] ⏸️ Usuario interactuando, omitiendo actualización');
+        return;
+      }
+
+      // ✅ Evitar re-renderizado si no estamos en la vista de contenido de este curso
+      const isContentView = document.getElementById('content') && 
+                           !document.getElementById('content').classList.contains('hidden');
+      if (!isContentView || window.currentCourseHex !== courseHex) {
+        console.log('[FIRESTORE] ⏸️ No estamos en la vista de este curso, omitiendo actualización');
+        return;
+      }
+
       console.log('[FIREBASE] 📥 Evento disparado - Snapshot existe:', snapshot.exists());
       
       const firebaseLinks = [];
@@ -1158,8 +1181,22 @@ function mergeFirestoreLinks(courseHex, firestoreLinks) {
                       !document.getElementById('master').classList.contains('hidden');
   
   if (isContentView && window.currentCourseHex === courseHex) {
+    // ✅ Evitar re-renderizado si ya se está renderizando
+    if (window.isRenderingCourse === courseHex) {
+      console.log('[FIRESTORE] ⏸️ Ya se está renderizando este curso, omitiendo');
+      return;
+    }
+    
+    window.isRenderingCourse = courseHex;
     console.log('[FIRESTORE] ♻️ Re-renderizando curso (vista individual)');
     renderCourse(courseHex);
+    
+    // ✅ Limpiar flag después de un breve delay
+    setTimeout(() => {
+      if (window.isRenderingCourse === courseHex) {
+        window.isRenderingCourse = null;
+      }
+    }, 1000);
   } else if (isMasterView) {
     console.log('[FIRESTORE] ♻️ Re-renderizando Master grid con nuevos datos');
     buildMasterGrid();
@@ -3536,8 +3573,10 @@ function renderCourse(keyHex) {
   // ✅ Guardar hex globalmente para el botón de sincronización forzada
   window.currentCourseHex = keyHex;
 
-  // ✅ FIREBASE: Inicializar listener en tiempo real
+  // ✅ FIREBASE: Inicializar listener en tiempo real (solo si no está activo)
   if (typeof initFirestoreRealtime === 'function') {
+    // Limpiar flag de renderizado antes de inicializar
+    window.isRenderingCourse = null;
     initFirestoreRealtime(keyHex);
   }
 
