@@ -2644,6 +2644,14 @@ function setupSettingsMenu() {
     toggleTheme();
   });
   
+  // ✅ Gestión General de Correos
+  dropdown.querySelector('[data-action="manage-emails"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
+    showGeneralEmailsModal();
+  });
+  
   // ✅ Actualizar UI del toggle según el tema actual
   const currentTheme = getTheme();
   updateThemeToggleUI(currentTheme);
@@ -6291,6 +6299,244 @@ async function removeCourseEmailUI(email, courseHex) {
   }
 }
 
+/* ============ Gestión General de Correos ============ */
+
+// ✅ Mostrar modal de gestión general de correos
+async function showGeneralEmailsModal() {
+  const modal = $('#modalGeneralEmails');
+  if (!modal) {
+    console.error('[EMAILS] Modal de gestión general no encontrado');
+    return;
+  }
+  
+  modal.classList.add('show');
+  await renderGeneralEmailsList();
+  
+  // Enfocar el input de búsqueda
+  const searchInput = $('#input-search-course-emails');
+  if (searchInput) {
+    setTimeout(() => searchInput.focus(), 100);
+  }
+}
+
+// ✅ Cerrar modal de gestión general
+function closeGeneralEmailsModal() {
+  const modal = $('#modalGeneralEmails');
+  if (modal) {
+    modal.classList.remove('show');
+  }
+}
+
+// ✅ Obtener todos los cursos como array
+function getAllCourses() {
+  const mergedMap = getMergedAccessHashMap();
+  const coursesArray = Object.entries(mergedMap)
+    .filter(([hex]) => hex !== MASTER_HASH)
+    .map(([hex, data]) => ({
+      hex: hex,
+      title: data.title || 'Sin título',
+      meta: data.meta || 'Sin descripción',
+      type: data.type || 'curso',
+      tag: data.card?.tag || '',
+      createdAt: data.createdAt || data.updatedAt || Date.now()
+    }));
+  
+  return coursesArray;
+}
+
+// ✅ Renderizar lista general de cursos con sus correos
+async function renderGeneralEmailsList() {
+  const container = $('#general-emails-list');
+  if (!container) return;
+  
+  container.innerHTML = '<p style="color:var(--muted); text-align:center; padding:40px; margin:0;">Cargando cursos y correos...</p>';
+  
+  try {
+    // Obtener todos los cursos
+    const allCourses = getAllCourses();
+    console.log('[EMAILS] Total de cursos:', allCourses.length);
+    
+    if (allCourses.length === 0) {
+      container.innerHTML = '<p style="color:var(--muted); text-align:center; padding:40px; margin:0;">No hay cursos disponibles.</p>';
+      return;
+    }
+    
+    // Obtener correos para cada curso
+    const coursesWithEmails = await Promise.all(
+      allCourses.map(async (course) => {
+        const emails = await getCourseAllowedEmails(course.hex);
+        return {
+          ...course,
+          emails: emails
+        };
+      })
+    );
+    
+    // Renderizar
+    container.innerHTML = coursesWithEmails.map(course => {
+      const typeIcon = getTypeIcon(course.type || 'curso');
+      const emailsCount = course.emails.length;
+      const emailsList = course.emails.length > 0 
+        ? course.emails.map(e => {
+            const emailEscaped = e.email.replace(/'/g, "\\'");
+            return `
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:rgba(90,169,255,0.05); border-radius:6px; margin-bottom:6px;">
+                <div>
+                  <span style="font-weight:500;">${e.email}</span>
+                  <span style="color:var(--muted); font-size:12px; margin-left:8px;">agregado ${new Date(e.addedAt).toLocaleDateString('es-ES')}</span>
+                </div>
+                <button class="btn secondary" style="padding:4px 12px; font-size:12px;" onclick="window.removeEmailFromGeneral('${emailEscaped}', '${course.hex}')">
+                  🗑️ Eliminar
+                </button>
+              </div>
+            `;
+          }).join('')
+        : '<p style="color:var(--muted); text-align:center; padding:12px; margin:0; font-size:13px;">No hay correos autorizados</p>';
+      
+      return `
+        <div class="card" style="padding:16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+            <div>
+              <h4 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px;">
+                ${typeIcon} ${(course.title || 'Sin título').replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+              </h4>
+              <p style="margin:4px 0 0 0; color:var(--muted); font-size:13px;">${(course.meta || 'Sin descripción').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="color:var(--muted); font-size:13px;">${emailsCount} correo${emailsCount !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+          
+          <div style="margin-bottom:12px;">
+            <div style="display:flex; gap:8px;">
+              <input 
+                id="input-email-${course.hex}" 
+                class="input" 
+                type="email" 
+                placeholder="correo@ejemplo.com" 
+                style="flex:1; font-size:13px;"
+                onkeydown="if(event.key==='Enter') window.addEmailToGeneral('${course.hex}')"
+              />
+              <button class="btn" style="padding:8px 16px; font-size:13px;" onclick="window.addEmailToGeneral('${course.hex}')">
+                ➕ Agregar
+              </button>
+            </div>
+          </div>
+          
+          <div style="max-height:200px; overflow-y:auto;">
+            ${emailsList}
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+  } catch (error) {
+    console.error('[EMAILS] Error renderizando lista general:', error);
+    container.innerHTML = '<p style="color:var(--danger); text-align:center; padding:40px; margin:0;">Error al cargar cursos y correos.</p>';
+  }
+}
+
+// ✅ Función auxiliar para obtener ícono de tipo
+function getTypeIcon(type) {
+  const icons = {
+    'curso': '📖',
+    'diplomado': '🎓',
+    'webinar': '💻',
+    'seminario': '📝',
+    'taller': '🔧'
+  };
+  return icons[type] || '📚';
+}
+
+// ✅ Agregar correo desde la vista general (función global para usar en onclick)
+window.addEmailToGeneral = async function(courseHex) {
+  const input = $(`#input-email-${courseHex}`);
+  const msgEl = $('#msg-general-emails');
+  
+  if (!input || !input.value.trim()) {
+    if (msgEl) {
+      msgEl.textContent = 'Ingrese un correo válido.';
+      msgEl.classList.add('error');
+    }
+    return;
+  }
+  
+  const email = input.value.trim();
+  
+  if (!email.includes('@') || !email.includes('.')) {
+    if (msgEl) {
+      msgEl.textContent = 'Por favor, ingrese un correo electrónico válido.';
+      msgEl.classList.add('error');
+    }
+    return;
+  }
+  
+  try {
+    // Verificar si ya existe
+    const existingEmails = await getCourseAllowedEmails(courseHex);
+    if (existingEmails.some(e => e.email.toLowerCase() === email.toLowerCase())) {
+      if (msgEl) {
+        msgEl.textContent = `El correo "${email}" ya está en la lista.`;
+        msgEl.classList.add('error');
+      }
+      return;
+    }
+    
+    if (msgEl) {
+      msgEl.textContent = 'Agregando correo...';
+      msgEl.classList.remove('error');
+    }
+    
+    await addEmailToCourse(email, courseHex);
+    
+    input.value = '';
+    if (msgEl) {
+      msgEl.textContent = `✅ Correo "${email}" agregado exitosamente.`;
+      msgEl.classList.remove('error');
+    }
+    if (typeof window.showToast === 'function') {
+      window.showToast('Correo agregado', `"${email}" ahora tiene acceso a este curso`, 'success');
+    }
+    
+    // Refrescar la lista
+    await renderGeneralEmailsList();
+    
+    setTimeout(() => {
+      if (msgEl) msgEl.textContent = '';
+    }, 3000);
+  } catch (error) {
+    console.error('[EMAILS] Error agregando correo:', error);
+    const errorMessage = error.message || 'No se pudo agregar el correo.';
+    
+    if (msgEl) {
+      msgEl.textContent = `❌ Error: ${errorMessage}`;
+      msgEl.classList.add('error');
+    }
+    if (typeof window.showToast === 'function') {
+      window.showToast('Error', errorMessage, 'error');
+    }
+  }
+};
+
+// ✅ Eliminar correo desde la vista general (función global para usar en onclick)
+window.removeEmailFromGeneral = async function(email, courseHex) {
+  if (!confirm(`¿Eliminar acceso para "${email}"?\n\nEl usuario ya no podrá acceder a este curso con este correo.`)) {
+    return;
+  }
+  
+  try {
+    await removeEmailFromCourse(email, courseHex);
+    if (typeof window.showToast === 'function') {
+      window.showToast('Correo eliminado', `"${email}" ya no tiene acceso a este curso`, 'success');
+    }
+    await renderGeneralEmailsList();
+  } catch (error) {
+    if (typeof window.showToast === 'function') {
+      window.showToast('Error', `No se pudo eliminar: ${error.message}`, 'error');
+    }
+  }
+};
+
 // ✅ Función para manejar autenticación exitosa con email (mostrar solo cursos permitidos)
 async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
   console.log('[AUTH] ✅ Mostrando cursos permitidos para:', userEmail);
@@ -6606,6 +6852,10 @@ document.addEventListener('keydown', (e) => {
     if (modal && modal.classList.contains('show')) {
       closeCourseEmailsModal();
     }
+    const modalGeneral = $('#modalGeneralEmails');
+    if (modalGeneral && modalGeneral.classList.contains('show')) {
+      closeGeneralEmailsModal();
+    }
   }
 });
 
@@ -6616,6 +6866,72 @@ if (modalCourseEmails) {
     if (e.target === modalCourseEmails) {
       closeCourseEmailsModal();
     }
+  });
+}
+
+// Cerrar modal general al hacer clic fuera
+const modalGeneralEmails = $('#modalGeneralEmails');
+if (modalGeneralEmails) {
+  modalGeneralEmails.addEventListener('click', (e) => {
+    if (e.target === modalGeneralEmails) {
+      closeGeneralEmailsModal();
+    }
+  });
+}
+
+// ✅ Event listeners para modal de gestión general de correos
+const modalGeneralEmailsClose = $('#modalGeneralEmailsClose');
+if (modalGeneralEmailsClose) {
+  modalGeneralEmailsClose.addEventListener('click', () => {
+    closeGeneralEmailsModal();
+  });
+}
+
+// ✅ Búsqueda y filtrado en modal de gestión general
+const inputSearchCourseEmails = $('#input-search-course-emails');
+const filterCourseTypeEmails = $('#filter-course-type-emails');
+
+if (inputSearchCourseEmails) {
+  let searchTimeout;
+  inputSearchCourseEmails.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      filterGeneralEmailsList();
+    }, 300);
+  });
+}
+
+if (filterCourseTypeEmails) {
+  filterCourseTypeEmails.addEventListener('change', () => {
+    filterGeneralEmailsList();
+  });
+}
+
+// ✅ Función para filtrar la lista general de correos
+function filterGeneralEmailsList() {
+  const searchTerm = inputSearchCourseEmails?.value.toLowerCase().trim() || '';
+  const filterType = filterCourseTypeEmails?.value || 'all';
+  const cards = document.querySelectorAll('#general-emails-list .card');
+  
+  cards.forEach(card => {
+    const title = card.querySelector('h4')?.textContent.toLowerCase() || '';
+    const meta = card.querySelector('p')?.textContent.toLowerCase() || '';
+    const emails = Array.from(card.querySelectorAll('span[style*="font-weight:500"]')).map(e => e.textContent.toLowerCase());
+    const typeIcon = card.querySelector('h4')?.textContent || '';
+    
+    const matchesSearch = !searchTerm || 
+      title.includes(searchTerm) || 
+      meta.includes(searchTerm) || 
+      emails.some(e => e.includes(searchTerm));
+    
+    const matchesType = filterType === 'all' || 
+      (filterType === 'curso' && typeIcon.includes('📖')) ||
+      (filterType === 'diplomado' && typeIcon.includes('🎓')) ||
+      (filterType === 'webinar' && typeIcon.includes('💻')) ||
+      (filterType === 'seminario' && typeIcon.includes('📝')) ||
+      (filterType === 'taller' && typeIcon.includes('🔧'));
+    
+    card.style.display = (matchesSearch && matchesType) ? 'block' : 'none';
   });
 }
 
