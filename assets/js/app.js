@@ -1762,12 +1762,17 @@ async function remoteGetCourses(){
 }
 
 async function refreshCustomCourses(){
+  // ✅ Iniciar medición de sincronización
+  const syncStart = startPerformanceMeasure('Sincronización');
+  
   if (getFirestoreDB()) {
     console.log('[REFRESH] Firebase maneja cursos personalizados en tiempo real, sin usar JSONP');
+    endPerformanceMeasure('Sincronización', syncStart, { metodo: 'Firebase' });
     return false;
   }
   if (!hasRemote()) {
     console.log('[REFRESH] Sin remoto, saltando...');
+    endPerformanceMeasure('Sincronización', syncStart, { metodo: 'Sin remoto' });
     return false;
   }
   try {
@@ -1833,11 +1838,21 @@ async function refreshCustomCourses(){
     if (hadChanges && document.getElementById('master') && !document.getElementById('master').classList.contains('hidden')) {
       console.log('[REFRESH] ✅ Cambios detectados, reconstruyendo Vista Maestra...');
       buildMasterGrid();
-      return true;
     }
-    return false;
+    
+    // ✅ Finalizar medición de sincronización
+    const coursesCount = Object.keys(remoteCourses || {}).length;
+    endPerformanceMeasure('Sincronización', syncStart, { 
+      metodo: 'Google Sheets', 
+      cursos: coursesCount,
+      cambios: hadChanges ? 'Sí' : 'No'
+    });
+    
+    return hadChanges;
   } catch (e) {
     console.error('[REFRESH] Error en refreshCustomCourses:', e);
+    // ✅ Finalizar medición con error
+    endPerformanceMeasure('Sincronización', syncStart, { metodo: 'Error' });
     // ✅ No fallar completamente, siempre devolver false para continuar
     return false;
   }
@@ -1974,6 +1989,80 @@ function ensureMasterTools(){
   // ✅ Ya no crear botones visibles, solo configurar el menú de ajustes
   setupSettingsMenu();
 }
+
+/* ===================== MÉTRICAS DE RENDIMIENTO ===================== */
+
+/**
+ * ✅ Sistema de métricas de rendimiento
+ * Registra tiempos de operaciones importantes para debugging y optimización
+ */
+
+// Almacenar tiempos de inicio
+const performanceMetrics = {
+  pageLoadStart: performance.now(),
+  initStart: null,
+  syncStart: null,
+  gridRenderStart: null
+};
+
+/**
+ * ✅ Iniciar medición de una operación
+ * @param {string} operation - Nombre de la operación
+ * @returns {number} Timestamp de inicio
+ */
+function startPerformanceMeasure(operation) {
+  const start = performance.now();
+  performanceMetrics[operation] = start;
+  return start;
+}
+
+/**
+ * ✅ Finalizar medición y registrar en consola
+ * @param {string} operation - Nombre de la operación
+ * @param {number} startTime - Timestamp de inicio (opcional, si no se proporciona usa el almacenado)
+ * @param {object} extraData - Datos adicionales a mostrar (opcional)
+ */
+function endPerformanceMeasure(operation, startTime = null, extraData = {}) {
+  const start = startTime || performanceMetrics[operation];
+  if (!start) {
+    console.warn(`[PERFORMANCE] ⚠️ No se encontró tiempo de inicio para: ${operation}`);
+    return;
+  }
+  
+  const duration = performance.now() - start;
+  const icon = duration < 100 ? '⚡' : duration < 500 ? '✅' : duration < 1000 ? '⏱️' : '🐌';
+  
+  let message = `[PERFORMANCE] ${icon} ${operation}: ${duration.toFixed(0)}ms`;
+  
+  // Agregar datos adicionales si existen
+  if (Object.keys(extraData).length > 0) {
+    const extra = Object.entries(extraData)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(', ');
+    message += ` (${extra})`;
+  }
+  
+  console.log(message);
+  
+  // Limpiar el tiempo almacenado
+  delete performanceMetrics[operation];
+  
+  return duration;
+}
+
+/**
+ * ✅ Registrar métrica simple
+ * @param {string} label - Etiqueta de la métrica
+ * @param {*} value - Valor a registrar
+ */
+function logPerformanceMetric(label, value) {
+  console.log(`[PERFORMANCE] 📊 ${label}: ${value}`);
+}
+
+// ✅ Exponer funciones globalmente para debugging
+window.startPerformanceMeasure = startPerformanceMeasure;
+window.endPerformanceMeasure = endPerformanceMeasure;
+window.logPerformanceMetric = logPerformanceMetric;
 
 /* ===================== INDICADORES DE CARGA EN BOTONES ===================== */
 
@@ -2963,9 +3052,16 @@ function maybeShowAttemptsWarning() {
 
 /* ============ vistas ============ */
 function showAccess() {
-  $('#access').classList.remove('hidden');
+  // ✅ Transición suave: ocultar otras vistas primero
   $('#content').classList.add('hidden');
   $('#master').classList.add('hidden');
+  
+  // ✅ Mostrar access con transición
+  const accessEl = $('#access');
+  accessEl.classList.remove('hidden');
+  // ✅ Forzar reflow para que la transición se active
+  void accessEl.offsetWidth;
+  
   $('#code').focus();
   // Detener refresh periódico cuando vuelves al acceso
   stopPeriodicRefresh();
@@ -3083,9 +3179,16 @@ function stopPeriodicRefresh() {
 }
 
 function showContent() {
+  // ✅ Transición suave: ocultar otras vistas primero
   $('#access').classList.add('hidden');
-  $('#content').classList.remove('hidden');
   $('#master').classList.add('hidden');
+  
+  // ✅ Mostrar content con transición
+  const contentEl = $('#content');
+  contentEl.classList.remove('hidden');
+  // ✅ Forzar reflow para que la transición se active
+  void contentEl.offsetWidth;
+  
   // No iniciar refresh periódico aquí, se inicia cuando se renderiza el curso
   // ✅ Mostrar botón flotante cuando está autenticado
   const fabBtn = document.getElementById('btn-speed-refresh');
@@ -3094,9 +3197,15 @@ function showContent() {
   setupSettingsMenuContent();
 }
 function showMaster() {
+  // ✅ Transición suave: ocultar otras vistas primero
   $('#access').classList.add('hidden');
   $('#content').classList.add('hidden');
-  $('#master').classList.remove('hidden');
+  
+  // ✅ Mostrar master con transición
+  const masterEl = $('#master');
+  masterEl.classList.remove('hidden');
+  // ✅ Forzar reflow para que la transición se active
+  void masterEl.offsetWidth;
   // ❌ NO iniciar polling automático (el usuario sincroniza manualmente con el botón)
   // startPeriodicRefresh(MASTER_HASH);
   
@@ -3298,6 +3407,9 @@ function renderCourse(keyHex) {
 
 /* ============ render master ============ */
 function buildMasterGrid() {
+  // ✅ Iniciar medición de renderizado del grid
+  const gridStart = startPerformanceMeasure('Renderizado del grid');
+  
   const grid = $('#masterGrid');
   grid.innerHTML = '';
 
@@ -4218,6 +4330,10 @@ function buildMasterGrid() {
     cardEl.appendChild(right);
     grid.appendChild(cardEl);
   });
+  
+  // ✅ Finalizar medición de renderizado del grid
+  const coursesCount = Object.keys(mergedMap).filter(h => h !== MASTER_HASH).length;
+  endPerformanceMeasure('Renderizado del grid', gridStart, { cursos: coursesCount });
   
   // ✅ Agregar controles de paginación si hay más de 12 cursos
   const existingPagination = $('#masterPagination');
@@ -5177,6 +5293,9 @@ window.limpiarTodoYRecargar = async function() {
 
 /* ============ init ============ */
 (async function init(){
+  // ✅ Iniciar medición de tiempo total de inicialización
+  const initStart = startPerformanceMeasure('Inicialización total');
+  
   // ✅ Inicializar tema (claro/oscuro) ANTES de cualquier renderizado
   initTheme();
   
@@ -5184,6 +5303,10 @@ window.limpiarTodoYRecargar = async function() {
   console.log('[INIT] 🚀 Iniciando plataforma...');
   console.log('[INIT] 📦 Archivos locales disponibles:', Object.keys(localStorage).filter(k => k.startsWith(FILES_STORAGE_PREFIX)).length);
   console.log('[INIT] 🔄 La sincronización automática actualizará los datos cada 1.2s');
+  
+  // ✅ Medir tiempo de carga de página
+  const pageLoadTime = performance.now() - performanceMetrics.pageLoadStart;
+  logPerformanceMetric('Tiempo de carga de página', `${pageLoadTime.toFixed(0)}ms`);
   
   // Actualizar versión de caché
   localStorage.setItem(CACHE_VERSION_KEY, CURRENT_CACHE_VERSION);
@@ -5224,6 +5347,9 @@ window.limpiarTodoYRecargar = async function() {
   // ❌ NO iniciar polling automático para no interrumpir al usuario
   // El botón manual de sincronización será usado cuando el usuario quiera
   console.log('[INIT] ✅ Plataforma lista (sin polling automático)');
+  
+  // ✅ Finalizar medición de inicialización
+  endPerformanceMeasure('Inicialización total', initStart);
 })();
 
 /* ============ Modal agregar curso ============ */
