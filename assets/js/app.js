@@ -5431,38 +5431,49 @@ async function tryLoginByGoogle() {
     
     // ✅ Configurar la URL de redirección explícitamente
     const currentOrigin = window.location.origin;
-    console.log('[AUTH] 🔄 Iniciando popup de Google...');
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    console.log('[AUTH] 🔄 Iniciando autenticación con Google...');
     console.log('[AUTH] Firebase Auth disponible:', !!window.firebaseAuth);
     console.log('[AUTH] Dominio actual:', window.location.hostname);
     console.log('[AUTH] Origin completo:', currentOrigin);
+    console.log('[AUTH] Es localhost:', isLocalhost);
     
-    // ✅ Intentar con popup primero
+    // ✅ Usar redirect directamente si no es localhost (más confiable)
+    // O usar popup solo en localhost
+    if (!isLocalhost) {
+      console.log('[AUTH] 🔄 Usando redirect (no es localhost)...');
+      showAuthMessage('msg-auth', 'Redirigiendo a Google para iniciar sesión…', false);
+      
+      // Guardar estado para cuando regrese
+      sessionStorage.setItem('pendingGoogleAuth', 'true');
+      sessionStorage.setItem('redirectUrl', currentOrigin + window.location.pathname);
+      
+      // Usar redirect directamente
+      await window.firebaseAuth.signInWithRedirect(provider);
+      return false; // No continuar, se redirigirá
+    }
+    
+    // ✅ Solo usar popup en localhost
     let result;
     try {
+      console.log('[AUTH] 🔄 Intentando popup (localhost)...');
       result = await window.firebaseAuth.signInWithPopup(provider);
     } catch (popupError) {
       console.error('[AUTH] ❌ Error con popup:', popupError);
       console.error('[AUTH] Código de error:', popupError.code);
       
       // ✅ Si el popup falla, usar redirect como fallback
-      if (popupError.code === 'auth/popup-blocked' || 
-          popupError.code === 'auth/popup-closed-by-user' ||
-          popupError.code === 'auth/unauthorized-domain') {
-        
-        console.log('[AUTH] 🔄 Popup falló, usando redirect...');
-        showAuthMessage('msg-auth', 'Redirigiendo a Google para iniciar sesión…', false);
-        
-        // Guardar estado para cuando regrese
-        sessionStorage.setItem('pendingGoogleAuth', 'true');
-        sessionStorage.setItem('redirectUrl', currentOrigin + window.location.pathname);
-        
-        // Usar redirect con configuración explícita
-        await window.firebaseAuth.signInWithRedirect(provider);
-        return false; // No continuar, se redirigirá
-      }
+      console.log('[AUTH] 🔄 Popup falló, usando redirect...');
+      showAuthMessage('msg-auth', 'Redirigiendo a Google para iniciar sesión…', false);
       
-      // Si es otro error, lanzarlo para que se maneje abajo
-      throw popupError;
+      // Guardar estado para cuando regrese
+      sessionStorage.setItem('pendingGoogleAuth', 'true');
+      sessionStorage.setItem('redirectUrl', currentOrigin + window.location.pathname);
+      
+      // Usar redirect con configuración explícita
+      await window.firebaseAuth.signInWithRedirect(provider);
+      return false; // No continuar, se redirigirá
     }
     
     const user = result.user;
