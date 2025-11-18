@@ -3670,7 +3670,7 @@ function buildUserGrid() {
   }
   
   if (emptyState) emptyState.style.display = 'none';
-  grid.style.display = 'grid';
+  grid.style.display = 'flex';
   
   // Filtrar solo cursos permitidos
   const coursesToShow = allowedCourses
@@ -3688,72 +3688,38 @@ function buildUserGrid() {
   coursesToShow.forEach(([hex, data]) => {
     if (hex === MASTER_HASH) return;
     
+    // ✅ Crear tarjeta horizontal simple
     const cardEl = document.createElement('div');
-    cardEl.className = 'master-card';
+    cardEl.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px; background:var(--card-bg, rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.06); border-radius:12px; transition:all 0.2s ease; cursor:pointer;';
     
-    const left = document.createElement('div');
-    left.className = 'left';
-    const right = document.createElement('div');
-    right.className = 'right';
+    // Efecto hover
+    cardEl.addEventListener('mouseenter', () => {
+      cardEl.style.background = 'rgba(90,169,255,0.1)';
+      cardEl.style.borderColor = 'rgba(90,169,255,0.3)';
+    });
+    cardEl.addEventListener('mouseleave', () => {
+      cardEl.style.background = 'var(--card-bg, rgba(255,255,255,0.02))';
+      cardEl.style.borderColor = 'rgba(255,255,255,0.06)';
+    });
     
-    // Imagen del curso
-    if (data.card?.img) {
-      const img = document.createElement('img');
-      img.src = `${data.card.img}?v=2`;
-      img.alt = data.title || 'Curso';
-      img.style.cssText = 'width:100%; height:220px; object-fit:cover; border-radius:12px;';
-      img.loading = 'lazy';
-      left.appendChild(img);
-    } else {
-      const placeholder = document.createElement('div');
-      placeholder.style.cssText = 'width:100%; height:220px; background:linear-gradient(135deg, rgba(90,169,255,0.2), rgba(90,169,255,0.05)); border-radius:12px; display:flex; align-items:center; justify-content:center; color:var(--muted);';
-      placeholder.textContent = 'Sin imagen';
-      left.appendChild(placeholder);
-    }
-    
-    // Información del curso
-    const header = document.createElement('div');
-    header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;';
-    const t = document.createElement('div');
-    
-    // Badge de tipo
-    const courseType = data.type || 'curso';
-    const typeLabels = {
-      'curso': '📖 Curso',
-      'diplomado': '🎓 Diplomado',
-      'webinar': '💻 Webinar',
-      'seminario': '📝 Seminario',
-      'taller': '🔧 Taller'
-    };
-    const typeLabel = typeLabels[courseType] || '📖 Curso';
-    
-    const typeBadge = document.createElement('div');
-    typeBadge.style.cssText = 'font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;';
-    typeBadge.textContent = typeLabel;
-    t.appendChild(typeBadge);
-    
-    // Título y meta
+    // ✅ Nombre del curso
     const titleDiv = document.createElement('div');
-    titleDiv.style.fontWeight = '700';
-    titleDiv.textContent = data.title;
-    t.appendChild(titleDiv);
+    titleDiv.style.cssText = 'flex:1; font-weight:600; font-size:16px; color:var(--text, #ffffff);';
+    titleDiv.textContent = data.title || 'Curso sin título';
+    cardEl.appendChild(titleDiv);
     
-    const metaDiv = document.createElement('div');
-    metaDiv.className = 'meta';
-    metaDiv.textContent = data.meta || '';
-    t.appendChild(metaDiv);
+    // ✅ Botón "Abrir curso"
+    const openBtn = document.createElement('button');
+    openBtn.className = 'btn';
+    openBtn.type = 'button';
+    openBtn.textContent = 'Abrir';
+    openBtn.style.cssText = 'flex-shrink:0;';
+    openBtn.setAttribute('aria-label', `Abrir curso: ${data.title || 'Curso'}`);
+    openBtn.setAttribute('title', `Abrir el curso "${data.title || 'Curso'}"`);
     
-    const headerActions = document.createElement('div');
-    headerActions.style.cssText = 'display:flex; gap:8px;';
-    
-    // Solo botón "Abrir curso" (sin editar, eliminar, correos)
-    const open = document.createElement('button');
-    open.className = 'btn';
-    open.type = 'button';
-    open.textContent = 'Abrir curso';
-    open.setAttribute('aria-label', `Abrir curso: ${data.title || 'Curso'}`);
-    open.setAttribute('title', `Abrir el curso "${data.title || 'Curso'}"`);
-    open.addEventListener('click', async () => {
+    openBtn.addEventListener('click', async (e) => {
+      e.stopPropagation(); // Prevenir que se active el click de la tarjeta
+      
       // Verificar acceso
       if (window.currentUserEmail) {
         const hasAccess = await checkEmailAllowedForCourse(window.currentUserEmail, hex);
@@ -3784,40 +3750,17 @@ function buildUserGrid() {
       renderCourse(hex);
       showContent();
     });
-    headerActions.appendChild(open);
     
-    header.appendChild(t);
-    header.appendChild(headerActions);
-    right.appendChild(header);
+    cardEl.appendChild(openBtn);
     
-    // Lista de archivos (preview)
-    const files = getFilesForHex(hex);
-    if (files.length > 0) {
-      const fileList = document.createElement('div');
-      fileList.className = 'filelist';
-      fileList.style.cssText = 'margin-top:12px;';
-      
-      const previewCount = Math.min(files.length, 3);
-      for (let i = 0; i < previewCount; i++) {
-        const file = files[i];
-        const fileEl = document.createElement('div');
-        fileEl.className = 'file';
-        fileEl.innerHTML = `<strong>${file.label}</strong>`;
-        fileList.appendChild(fileEl);
+    // ✅ Click en toda la tarjeta también abre el curso
+    cardEl.addEventListener('click', (e) => {
+      // Solo si no se hizo click en el botón
+      if (e.target !== openBtn && !openBtn.contains(e.target)) {
+        openBtn.click();
       }
-      
-      if (files.length > 3) {
-        const moreEl = document.createElement('div');
-        moreEl.className = 'meta';
-        moreEl.textContent = `y ${files.length - 3} más...`;
-        fileList.appendChild(moreEl);
-      }
-      
-      right.appendChild(fileList);
-    }
+    });
     
-    cardEl.appendChild(left);
-    cardEl.appendChild(right);
     grid.appendChild(cardEl);
   });
 }
