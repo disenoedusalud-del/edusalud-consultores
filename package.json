@@ -1,0 +1,21 @@
+{
+  "name": "edusalud-platform",
+  "version": "1.0.0",
+  "description": "Plataforma educativa EduSalud",
+  "scripts": {
+    "build": "npm run minify",
+    "minify": "terser assets/js/app.js -o assets/js/app.min.js -c -m --comments false --source-map \"url=app.min.js.map\"",
+    "minify:prod": "terser assets/js/app.js -o assets/js/app.min.js -c -m --comments false"
+  },
+  "devDependencies": {
+    "terser": "^5.24.0"
+  },
+  "keywords": [
+    "education",
+    "platform",
+    "edusalud"
+  ],
+  "author": "Daniel Zavala",
+  "license": "MIT"
+}
+
