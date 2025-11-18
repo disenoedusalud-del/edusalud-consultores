@@ -623,33 +623,54 @@
             <div id="form-register" class="hidden">
               <h3 style="margin:0 0 8px 0; font-size:20px; font-weight:600;">Crear cuenta</h3>
               <p style="color:var(--muted); font-size:14px; margin-bottom:24px;">
-                Crea una cuenta para acceder a los cursos asignados
+                Ingresa tu correo para verificar si estás autorizado
               </p>
               
-              <div style="margin-bottom:16px;">
-                <label for="input-register-email" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Correo electrónico</label>
-                <input id="input-register-email" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" style="width:100%;" />
+              <!-- Paso 1: Verificar correo -->
+              <div id="register-step-1">
+                <div style="margin-bottom:16px;">
+                  <label for="input-register-email" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Correo electrónico</label>
+                  <input id="input-register-email" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" style="width:100%;" />
+                </div>
+                
+                <div style="margin-bottom:16px;">
+                  <button id="btn-verify-email" class="btn" type="button" style="width:100%;">Verificar correo</button>
+                </div>
+                
+                <div style="text-align:center; margin-top:16px;">
+                  <button id="btn-show-login" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">¿Ya tienes cuenta? Inicia sesión</button>
+                </div>
+                
+                <div id="msg-register" class="msg" role="alert" aria-live="polite"></div>
               </div>
               
-              <div style="margin-bottom:16px;">
-                <label for="input-register-password" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Contraseña</label>
-                <input id="input-register-password" class="input" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" style="width:100%;" />
+              <!-- Paso 2: Crear contraseña (oculto inicialmente) -->
+              <div id="register-step-2" style="display:none;">
+                <div style="margin-bottom:12px; padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; font-size:14px;">
+                  <span style="color:var(--accent); font-weight:600;">✓ Correo verificado:</span>
+                  <span id="verified-email-display" style="margin-left:8px;"></span>
+                </div>
+                
+                <div style="margin-bottom:16px;">
+                  <label for="input-register-password" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Contraseña</label>
+                  <input id="input-register-password" class="input" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" style="width:100%;" />
+                </div>
+                
+                <div style="margin-bottom:16px;">
+                  <label for="input-register-password-confirm" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Confirmar contraseña</label>
+                  <input id="input-register-password-confirm" class="input" type="password" placeholder="Repite la contraseña" autocomplete="new-password" style="width:100%;" />
+                </div>
+                
+                <div style="margin-bottom:16px;">
+                  <button id="btn-register" class="btn" type="button" style="width:100%;">Crear cuenta</button>
+                </div>
+                
+                <div style="text-align:center; margin-top:16px;">
+                  <button id="btn-back-to-verify" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">← Volver a verificar correo</button>
+                </div>
+                
+                <div id="msg-register-step2" class="msg" role="alert" aria-live="polite"></div>
               </div>
-              
-              <div style="margin-bottom:16px;">
-                <label for="input-register-password-confirm" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Confirmar contraseña</label>
-                <input id="input-register-password-confirm" class="input" type="password" placeholder="Repite la contraseña" autocomplete="new-password" style="width:100%;" />
-              </div>
-              
-              <div style="margin-bottom:16px;">
-                <button id="btn-register" class="btn" type="button" style="width:100%;">Crear cuenta</button>
-              </div>
-              
-              <div style="text-align:center; margin-top:16px;">
-                <button id="btn-show-login" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">¿Ya tienes cuenta? Inicia sesión</button>
-              </div>
-              
-              <div id="msg-register" class="msg" role="alert" aria-live="polite"></div>
             </div>
 
             <!-- Formulario de Reset Password -->
@@ -1582,7 +1603,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=82" defer></script>
+  <script src="assets/js/app.js?v=83" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
