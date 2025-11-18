@@ -5361,6 +5361,12 @@ function showAuthMessage(elementId, message, isError = false) {
     if (isError) {
       msgEl.classList.add('error');
     }
+    // Asegurar que el mensaje sea visible
+    msgEl.style.display = 'block';
+    msgEl.style.visibility = 'visible';
+    console.log('[AUTH] 💬 Mensaje mostrado:', elementId, message);
+  } else {
+    console.warn('[AUTH] ⚠️ No se encontró el elemento para mensaje:', elementId);
   }
 }
 
@@ -5378,9 +5384,16 @@ function markFieldError(fieldId, hasError) {
   if (field) {
     if (hasError) {
       field.classList.add('error');
+      console.log('[AUTH] 🔴 Campo marcado con error:', fieldId);
+      // Forzar re-render para asegurar que el estilo se aplique
+      field.style.borderColor = '';
+      void field.offsetWidth; // Trigger reflow
     } else {
       field.classList.remove('error');
+      console.log('[AUTH] ✅ Campo sin error:', fieldId);
     }
+  } else {
+    console.warn('[AUTH] ⚠️ No se encontró el campo:', fieldId);
   }
 }
 
@@ -5571,7 +5584,28 @@ async function tryPasswordReset(email) {
     
     console.log('[AUTH] ✅ Enlace de recuperación enviado exitosamente a:', email);
     
-    showAuthMessage('msg-reset', '✅ Se ha enviado un enlace de recuperación a su correo. Revise su bandeja de entrada (y la carpeta de spam).', false);
+    // ✅ Asegurar que el formulario de recuperación esté visible
+    const formReset = $('#form-reset');
+    if (formReset) {
+      formReset.classList.remove('hidden');
+    }
+    
+    // ✅ Mostrar mensaje de éxito de forma más visible
+    const successMessage = '✅ Se ha enviado un enlace de recuperación a tu correo. Revise su bandeja de entrada (y la carpeta de spam).';
+    showAuthMessage('msg-reset', successMessage, false);
+    
+    // ✅ Hacer scroll al mensaje para asegurar visibilidad
+    const msgResetEl = $('#msg-reset');
+    if (msgResetEl) {
+      setTimeout(() => {
+        msgResetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
+    }
+    
+    // ✅ También mostrar un toast para mayor visibilidad
+    if (typeof window.showToast === 'function') {
+      window.showToast('Enlace enviado', 'Revisa tu correo electrónico (incluyendo spam)', 'success');
+    }
     
     // ✅ Google Analytics: Tracking de recuperación
     if (typeof gtag !== 'undefined') {
