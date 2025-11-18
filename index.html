@@ -231,6 +231,37 @@
     .msg{ margin-top:8px; font-size:14px; color:var(--muted); }
     .msg.error{ color:var(--danger); }
 
+    /* Pestañas de autenticación */
+    .auth-tabs{ display:flex; gap:12px; margin-bottom:24px; border-bottom:1px solid rgba(255,255,255,.08); }
+    .auth-tab{
+      background:none;
+      border:none;
+      border-bottom:2px solid transparent;
+      padding:10px 16px;
+      color:var(--muted);
+      cursor:pointer;
+      font-size:15px;
+      transition:all 0.2s ease;
+      font-family:inherit;
+    }
+    .auth-tab:hover{ color:var(--text); }
+    .auth-tab.active{
+      color:var(--accent);
+      border-bottom-color:var(--accent);
+    }
+    .auth-form{ min-height:200px; }
+    .btn-link{
+      background:none;
+      border:none;
+      color:var(--accent);
+      cursor:pointer;
+      text-decoration:underline;
+      font-size:14px;
+      padding:0;
+      font-family:inherit;
+    }
+    .btn-link:hover{ color:var(--accent-2); }
+
     .filelist{ display:grid; gap:10px; margin-top:12px; }
     .file{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid rgba(255,255,255,.06); border-radius:12px; background:#0e1630; }
     .file strong{ font-size:14px; }
@@ -514,14 +545,81 @@
     <!-- ACCESO -->
     <section id="access" class="card" aria-labelledby="access-title">
       <h2 id="access-title" class="sr-only">Acceso restringido</h2>
+      
+      <!-- Pestañas de método de acceso -->
+      <div class="auth-tabs" style="display:flex; gap:12px; margin-bottom:24px; border-bottom:1px solid rgba(255,255,255,.08);">
+        <button id="tab-code" class="auth-tab active" type="button" data-tab="code">🔑 Código</button>
+        <button id="tab-account" class="auth-tab" type="button" data-tab="account">👤 Cuenta</button>
+      </div>
+
       <div class="grid cols-2" style="align-items:center;">
         <div>
-          <label for="code">Ingrese su código de acceso</label>
-          <div class="row">
-            <input id="code" class="input" type="text" placeholder="Ej. ABC0-0000" autocomplete="one-time-code" aria-label="Código de acceso" aria-describedby="msg" />
-            <button id="btn-enter" class="btn" type="button" aria-label="Entrar al curso con el código ingresado">Entrar</button>
+          <!-- Formulario de acceso por código -->
+          <div id="form-code" class="auth-form">
+            <label for="code">Ingrese su código de acceso</label>
+            <div class="row">
+              <input id="code" class="input" type="text" placeholder="Ej. ABC0-0000" autocomplete="one-time-code" aria-label="Código de acceso" aria-describedby="msg" />
+              <button id="btn-enter" class="btn" type="button" aria-label="Entrar al curso con el código ingresado">Entrar</button>
+            </div>
+            <div id="msg" class="msg" role="alert" aria-live="polite">Si no tiene código, solicítelo a comunicaciones.</div>
           </div>
-          <div id="msg" class="msg" role="alert" aria-live="polite">Si no tiene código, solicítelo a comunicaciones.</div>
+
+          <!-- Formulario de acceso por cuenta -->
+          <div id="form-account" class="auth-form hidden">
+            <!-- Formulario de login -->
+            <div id="form-login">
+              <label for="email-login">Correo electrónico</label>
+              <input id="email-login" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" aria-label="Correo electrónico" style="margin-bottom:12px;" />
+              
+              <label for="password-login">Contraseña</label>
+              <input id="password-login" class="input" type="password" placeholder="••••••••" autocomplete="current-password" aria-label="Contraseña" style="margin-bottom:12px;" />
+              
+              <div class="row" style="margin-bottom:12px;">
+                <button id="btn-login" class="btn" type="button">Iniciar sesión</button>
+              </div>
+              
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <button id="btn-show-register" class="btn-link" type="button" style="background:none; border:none; color:var(--accent); cursor:pointer; text-decoration:underline; font-size:14px;">¿No tienes cuenta? Regístrate</button>
+                <button id="btn-show-reset" class="btn-link" type="button" style="background:none; border:none; color:var(--accent); cursor:pointer; text-decoration:underline; font-size:14px;">¿Olvidaste tu contraseña?</button>
+              </div>
+              
+              <div id="msg-auth" class="msg" role="alert" aria-live="polite"></div>
+            </div>
+
+            <!-- Formulario de registro -->
+            <div id="form-register" class="hidden">
+              <label for="email-register">Correo electrónico</label>
+              <input id="email-register" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" aria-label="Correo electrónico" style="margin-bottom:12px;" />
+              
+              <label for="password-register">Contraseña (mínimo 6 caracteres)</label>
+              <input id="password-register" class="input" type="password" placeholder="••••••••" autocomplete="new-password" aria-label="Contraseña" style="margin-bottom:12px;" />
+              
+              <label for="password-confirm">Confirmar contraseña</label>
+              <input id="password-confirm" class="input" type="password" placeholder="••••••••" autocomplete="new-password" aria-label="Confirmar contraseña" style="margin-bottom:12px;" />
+              
+              <div class="row" style="margin-bottom:12px;">
+                <button id="btn-register" class="btn" type="button">Crear cuenta</button>
+              </div>
+              
+              <button id="btn-show-login" class="btn-link" type="button" style="background:none; border:none; color:var(--accent); cursor:pointer; text-decoration:underline; font-size:14px;">¿Ya tienes cuenta? Inicia sesión</button>
+              
+              <div id="msg-register" class="msg" role="alert" aria-live="polite"></div>
+            </div>
+
+            <!-- Formulario de recuperación de contraseña -->
+            <div id="form-reset" class="hidden">
+              <label for="email-reset">Correo electrónico</label>
+              <input id="email-reset" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" aria-label="Correo electrónico" style="margin-bottom:12px;" />
+              
+              <div class="row" style="margin-bottom:12px;">
+                <button id="btn-reset" class="btn" type="button">Enviar enlace de recuperación</button>
+              </div>
+              
+              <button id="btn-back-login" class="btn-link" type="button" style="background:none; border:none; color:var(--accent); cursor:pointer; text-decoration:underline; font-size:14px;">Volver al inicio de sesión</button>
+              
+              <div id="msg-reset" class="msg" role="alert" aria-live="polite"></div>
+            </div>
+          </div>
         </div>
 
         <div class="access-hero" aria-hidden="true">
@@ -1311,7 +1409,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=60" defer></script>
+  <script src="assets/js/app.js?v=61" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
