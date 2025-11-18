@@ -47,6 +47,85 @@ setTimeout(() => {
 
 console.log('[APP] Iniciando aplicación con soporte Firebase...');
 
+/* ===================== SEGURIDAD: SANITIZACIÓN XSS ===================== */
+
+/**
+ * ✅ Escapa HTML para prevenir XSS
+ * Convierte caracteres especiales en entidades HTML
+ */
+function escapeHTML(str) {
+  if (typeof str !== 'string') return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/**
+ * ✅ Sanitiza texto para usar en innerHTML de forma segura
+ * Solo permite texto plano, sin etiquetas HTML
+ */
+function sanitizeHTML(str) {
+  if (typeof str !== 'string') return '';
+  return escapeHTML(str);
+}
+
+/**
+ * ✅ Sanitiza y permite solo etiquetas seguras (para markdown básico)
+ * Por ahora solo escapa todo, pero se puede extender
+ */
+function sanitizeRichText(str) {
+  return sanitizeHTML(str);
+}
+
+/* ===================== RATE LIMITING ===================== */
+
+/**
+ * ✅ Rate limiting para prevenir acciones repetidas
+ */
+const actionTimestamps = {};
+const RATE_LIMIT_MS = 2000; // 2 segundos entre acciones
+
+function checkRateLimit(action, customLimit = RATE_LIMIT_MS) {
+  const now = Date.now();
+  const lastAction = actionTimestamps[action] || 0;
+  if (now - lastAction < customLimit) {
+    const remaining = Math.ceil((customLimit - (now - lastAction)) / 1000);
+    if (typeof window.showSuccessModal === 'function') {
+      window.showSuccessModal(
+        'Espera un momento',
+        `Por favor espera ${remaining} segundo(s) antes de ${action} nuevamente.`
+      );
+    } else {
+      alert(`Espera ${remaining} segundo(s) antes de ${action} nuevamente`);
+    }
+    return false;
+  }
+  actionTimestamps[action] = now;
+  return true;
+}
+
+/* ===================== OPTIMIZACIÓN: DEBOUNCE ===================== */
+
+/**
+ * ✅ Debounce helper para optimizar búsquedas y eventos frecuentes
+ * @param {Function} func - Función a ejecutar
+ * @param {number} wait - Tiempo de espera en ms
+ * @param {boolean} immediate - Ejecutar inmediatamente en la primera llamada
+ */
+function debounce(func, wait, immediate = false) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      timeout = null;
+      if (!immediate) func(...args);
+    };
+    const callNow = immediate && !timeout;
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+    if (callNow) func(...args);
+  };
+}
+
 /* ===================== VALIDACIONES MEJORADAS ===================== */
 
 /**
@@ -2546,7 +2625,10 @@ function renderCourse(keyHex) {
     row.className = 'file';
     let host = '';
     try { host = new URL(item.url).hostname; } catch { host = ''; }
-    row.innerHTML = `<div><strong>${item.label}</strong><div class="meta">${host}</div></div>`;
+    // ✅ Sanitizar para prevenir XSS
+    const safeLabel = escapeHTML(item.label || '');
+    const safeHost = escapeHTML(host);
+    row.innerHTML = `<div><strong>${safeLabel}</strong><div class="meta">${safeHost}</div></div>`;
     const btn = document.createElement('button');
     btn.className = 'btn';
     btn.type = 'button';
@@ -2904,6 +2986,11 @@ function buildMasterGrid() {
       btnDelete.addEventListener('click', async () => {
         // ✅ Mostrar modal de confirmación elegante
         window.showDeleteConfirmModal(data.title, async () => {
+          // ✅ Rate limiting: prevenir eliminaciones repetidas
+          if (!checkRateLimit('eliminar curso')) {
+            return;
+          }
+          
           console.log('[DELETE] Eliminando curso:', data.title);
           
           // ✅ Bloquear re-renders durante la eliminación
@@ -2958,7 +3045,10 @@ function buildMasterGrid() {
       let host = '';
       try { host = new URL(item.url).hostname; } catch { host = ''; }
       const leftInfo = document.createElement('div');
-      leftInfo.innerHTML = `<strong>${item.label}</strong><div class="meta">${host}</div>`;
+      // ✅ Sanitizar para prevenir XSS
+      const safeLabel = escapeHTML(item.label || '');
+      const safeHost = escapeHTML(host);
+      leftInfo.innerHTML = `<strong>${safeLabel}</strong><div class="meta">${safeHost}</div>`;
 
       const actions = document.createElement('div');
       actions.style.display = 'flex';
@@ -3757,9 +3847,25 @@ function setupMasterSearch(){
         transition: background 0.2s;
       `;
       
-      // ✅ Resaltar parte coincidente
-      const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-      item.innerHTML = suggestion.replace(regex, '<mark style="background: var(--accent); color: white; padding: 2px 4px; border-radius: 3px;">$1</mark>');
+      // ✅ Resaltar parte coincidente (sanitizado)
+      const escapedSuggestion = escapeHTML(suggestion);
+      const escapedQuery = escapeHTML(query);
+      const regex = new RegExp(`(${escapedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      
+      // Crear mark de forma segura usando DOM
+      const parts = escapedSuggestion.split(regex);
+      parts.forEach((part, index) => {
+        if (index % 2 === 1) {
+          // Es la parte coincidente
+          const mark = document.createElement('mark');
+          mark.style.cssText = 'background: var(--accent); color: white; padding: 2px 4px; border-radius: 3px;';
+          mark.textContent = part;
+          item.appendChild(mark);
+        } else if (part) {
+          // Es texto normal
+          item.appendChild(document.createTextNode(part));
+        }
+      });
       
       item.addEventListener('mouseenter', () => {
         item.style.background = 'rgba(90,169,255,0.1)';
@@ -3806,9 +3912,22 @@ function setupMasterSearch(){
       const regex = new RegExp(`(${escapedQuery})`, 'gi');
       
       if (regex.test(text)) {
-        const highlighted = text.replace(regex, '<mark class="search-highlight" style="background: var(--accent); color: white; padding: 2px 4px; border-radius: 3px; font-weight: 600;">$1</mark>');
+        // ✅ Crear resaltado de forma segura sin innerHTML
         const wrapper = document.createElement('span');
-        wrapper.innerHTML = highlighted;
+        const parts = text.split(regex);
+        parts.forEach((part, index) => {
+          if (index % 2 === 1) {
+            // Es la parte coincidente
+            const mark = document.createElement('mark');
+            mark.className = 'search-highlight';
+            mark.style.cssText = 'background: var(--accent); color: white; padding: 2px 4px; border-radius: 3px; font-weight: 600;';
+            mark.textContent = part;
+            wrapper.appendChild(mark);
+          } else if (part) {
+            // Es texto normal
+            wrapper.appendChild(document.createTextNode(part));
+          }
+        });
         textNode.parentNode.replaceChild(wrapper, textNode);
       }
     });
@@ -3874,11 +3993,17 @@ function setupMasterSearch(){
   // ✅ Event listeners
   let selectedIndex = -1;
   
+  // ✅ Debounce para optimizar búsqueda (300ms)
+  const debouncedFilter = debounce(() => {
+    applyFilter();
+  }, 300);
+  
+  // Mostrar autocompletado inmediatamente, filtrar con delay
   input.addEventListener('input', (e) => {
     const query = e.target.value.trim();
     selectedIndex = -1;
-    showAutocomplete(query);
-    applyFilter();
+    showAutocomplete(query); // Mostrar sugerencias inmediatamente
+    debouncedFilter(); // Filtrar con delay para mejor rendimiento
   });
   
   input.addEventListener('focus', () => {
@@ -4546,11 +4671,50 @@ function setupAddCourseModal() {
   formAddCourse.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const title = $('#inputCourseTitle').value.trim();
-    const meta = $('#inputCourseMeta').value.trim();
-    const imageUrl = $('#inputCourseImage').value.trim();
-    const tag = $('#inputCourseTag').value.trim().toUpperCase();
+    // ✅ Rate limiting: prevenir acciones repetidas
+    if (!checkRateLimit('crear curso')) {
+      return;
+    }
+    
+    // ✅ Sanitizar y validar inputs
+    const titleRaw = $('#inputCourseTitle').value.trim();
+    const metaRaw = $('#inputCourseMeta').value.trim();
+    const imageUrlRaw = $('#inputCourseImage').value.trim();
+    const tagRaw = $('#inputCourseTag').value.trim();
+    const codeRaw = $('#inputCourseCode').value.trim();
     const type = $('#selectCourseType').value || 'curso'; // ✅ Clasificación del curso
+    
+    // Validaciones básicas de longitud
+    if (!titleRaw || titleRaw.length < 5 || titleRaw.length > 100) {
+      alert('El título debe tener entre 5 y 100 caracteres');
+      $('#inputCourseTitle').focus();
+      return;
+    }
+    
+    if (!metaRaw || metaRaw.length < 10 || metaRaw.length > 200) {
+      alert('La descripción debe tener entre 10 y 200 caracteres');
+      $('#inputCourseMeta').focus();
+      return;
+    }
+    
+    if (!tagRaw || tagRaw.length < 2 || tagRaw.length > 10) {
+      alert('El tag debe tener entre 2 y 10 caracteres');
+      $('#inputCourseTag').focus();
+      return;
+    }
+    
+    if (!codeRaw || codeRaw.length < 5 || codeRaw.length > 50) {
+      alert('El código debe tener entre 5 y 50 caracteres');
+      $('#inputCourseCode').focus();
+      return;
+    }
+    
+    // ✅ Sanitizar inputs (escapar HTML)
+    const title = sanitizeHTML(titleRaw);
+    const meta = sanitizeHTML(metaRaw);
+    const imageUrl = imageUrlRaw.trim(); // URL no se sanitiza, se valida
+    const tag = tagRaw.toUpperCase().replace(/[^A-Z0-9]/g, ''); // Solo letras y números
+    const code = codeRaw.trim();
     
     // ✅ Leer valores de estilo visual y color accent con validación
     const selectVariant = $('#selectCourseVariant');
@@ -4584,9 +4748,10 @@ function setupAddCourseModal() {
       code
     });
     
-    // Validaciones
-    if (!title || !meta || !imageUrl || !tag || !code) {
-      alert('Complete todos los campos');
+    // ✅ Validación adicional: verificar que tag tenga al menos 2 caracteres después de sanitizar
+    if (tag.length < 2) {
+      alert('El tag debe contener al menos 2 letras o números');
+      $('#inputCourseTag').focus();
       return;
     }
     
@@ -4749,23 +4914,55 @@ function setupEditCourseModal() {
   formEditCourse.addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    // ✅ Rate limiting: prevenir ediciones repetidas
+    if (!checkRateLimit('editar curso')) {
+      return;
+    }
+    
     const hex = $('#inputEditCourseHex').value.trim();
     if (!hex) {
       alert('Error: No se encontró el identificador del curso');
       return;
     }
     
-    const title = $('#inputEditCourseTitle').value.trim();
-    const meta = $('#inputEditCourseMeta').value.trim();
-    const imageUrl = $('#inputEditCourseImage').value.trim();
-    const tag = $('#inputEditCourseTag').value.trim().toUpperCase();
+    // ✅ Sanitizar y validar inputs
+    const titleRaw = $('#inputEditCourseTitle').value.trim();
+    const metaRaw = $('#inputEditCourseMeta').value.trim();
+    const imageUrlRaw = $('#inputEditCourseImage').value.trim();
+    const tagRaw = $('#inputEditCourseTag').value.trim();
     const type = $('#selectEditCourseType').value || 'curso'; // ✅ Clasificación del curso
     const variant = $('#selectEditCourseVariant').value;
     const accent = $('#inputEditCourseAccent').value;
     
-    // Validaciones
-    if (!title || !meta || !imageUrl || !tag) {
-      alert('Complete todos los campos');
+    // Validaciones básicas de longitud
+    if (!titleRaw || titleRaw.length < 5 || titleRaw.length > 100) {
+      alert('El título debe tener entre 5 y 100 caracteres');
+      $('#inputEditCourseTitle').focus();
+      return;
+    }
+    
+    if (!metaRaw || metaRaw.length < 10 || metaRaw.length > 200) {
+      alert('La descripción debe tener entre 10 y 200 caracteres');
+      $('#inputEditCourseMeta').focus();
+      return;
+    }
+    
+    if (!tagRaw || tagRaw.length < 2 || tagRaw.length > 10) {
+      alert('El tag debe tener entre 2 y 10 caracteres');
+      $('#inputEditCourseTag').focus();
+      return;
+    }
+    
+    // ✅ Sanitizar inputs (escapar HTML)
+    const title = sanitizeHTML(titleRaw);
+    const meta = sanitizeHTML(metaRaw);
+    const imageUrl = imageUrlRaw.trim(); // URL no se sanitiza, se valida
+    const tag = tagRaw.toUpperCase().replace(/[^A-Z0-9]/g, ''); // Solo letras y números
+    
+    // ✅ Validación adicional: verificar que tag tenga al menos 2 caracteres después de sanitizar
+    if (tag.length < 2) {
+      alert('El tag debe contener al menos 2 letras o números');
+      $('#inputEditCourseTag').focus();
       return;
     }
     
