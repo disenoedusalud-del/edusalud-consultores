@@ -5331,25 +5331,12 @@ function switchAuthTab(tab) {
   }
 }
 
-// ✅ Función para mostrar formulario de login
+// ✅ Función para mostrar formulario de login (solo Google ahora)
 function showLoginForm() {
-  $('#form-login').classList.remove('hidden');
-  $('#form-register').classList.add('hidden');
-  $('#form-reset').classList.add('hidden');
-}
-
-// ✅ Función para mostrar formulario de registro
-function showRegisterForm() {
-  $('#form-login').classList.add('hidden');
-  $('#form-register').classList.remove('hidden');
-  $('#form-reset').classList.add('hidden');
-}
-
-// ✅ Función para mostrar formulario de recuperación
-function showResetForm() {
-  $('#form-login').classList.add('hidden');
-  $('#form-register').classList.add('hidden');
-  $('#form-reset').classList.remove('hidden');
+  const formLogin = $('#form-login');
+  if (formLogin) {
+    formLogin.classList.remove('hidden');
+  }
 }
 
 // ✅ Función para mostrar mensaje de autenticación
@@ -5370,148 +5357,67 @@ function showAuthMessage(elementId, message, isError = false) {
   }
 }
 
-// ✅ Función para limpiar errores de campos
-function clearFieldErrors() {
-  const emailInput = $('#email-login');
-  const passwordInput = $('#password-login');
-  if (emailInput) emailInput.classList.remove('error');
-  if (passwordInput) passwordInput.classList.remove('error');
-}
+// ✅ Funciones de validación de campos eliminadas (ya no se usan con Google Sign-In)
 
-// ✅ Función para marcar campos con error
-function markFieldError(fieldId, hasError) {
-  const field = $(fieldId);
-  if (field) {
-    if (hasError) {
-      // ✅ Agregar clase de error
-      field.classList.add('error');
-      console.log('[AUTH] 🔴 Campo marcado con error:', fieldId);
-      
-      // ✅ Forzar aplicación del estilo con !important mediante style inline
-      // Usar color hexadecimal directamente (no variables CSS en style inline)
-      field.style.setProperty('border-color', '#ff7a7a', 'important');
-      field.style.setProperty('box-shadow', '0 0 0 4px rgba(255,122,122,.2)', 'important');
-      field.style.setProperty('background-color', 'rgba(255,122,122,.05)', 'important');
-      
-      // ✅ Forzar re-render
-      void field.offsetWidth; // Trigger reflow
-      
-      // ✅ Verificar que se aplicó
-      setTimeout(() => {
-        const hasErrorClass = field.classList.contains('error');
-        console.log('[AUTH] Verificación después de 100ms - tiene clase error?', hasErrorClass);
-        if (!hasErrorClass) {
-          console.warn('[AUTH] ⚠️ La clase error se perdió, reaplicando...');
-          field.classList.add('error');
-          field.style.setProperty('border-color', '#ff7a7a', 'important');
-          field.style.setProperty('box-shadow', '0 0 0 4px rgba(255,122,122,.2)', 'important');
-          field.style.setProperty('background-color', 'rgba(255,122,122,.05)', 'important');
-        }
-      }, 100);
-    } else {
-      field.classList.remove('error');
-      // ✅ Limpiar estilos inline
-      field.style.removeProperty('border-color');
-      field.style.removeProperty('box-shadow');
-      field.style.removeProperty('background-color');
-      console.log('[AUTH] ✅ Campo sin error:', fieldId);
-    }
-  } else {
-    console.warn('[AUTH] ⚠️ No se encontró el campo:', fieldId);
-  }
-}
-
-// ✅ Función para login con email/password
-async function tryLoginByEmail(email, password) {
+// ✅ Función para login con Google
+async function tryLoginByGoogle() {
   const msgEl = $('#msg-auth');
-  showAuthMessage('msg-auth', 'Verificando…', false);
-  clearFieldErrors(); // Limpiar errores previos
+  showAuthMessage('msg-auth', 'Iniciando sesión con Google…', false);
   
-  if (!email || !password) {
-    showAuthMessage('msg-auth', 'Por favor, complete todos los campos.', true);
-    if (!email) markFieldError('email-login', true);
-    if (!password) markFieldError('password-login', true);
-    return false;
-  }
-
   try {
     if (!window.firebaseAuth) {
       showAuthMessage('msg-auth', 'Firebase Authentication no está disponible. Por favor, use el acceso por código.', true);
       return false;
     }
 
-    const userCredential = await window.firebaseAuth.signInWithEmailAndPassword(email, password);
-    const user = userCredential.user;
+    // ✅ Crear proveedor de Google
+    const provider = new firebase.auth.GoogleAuthProvider();
     
-    console.log('[AUTH] ✅ Login exitoso:', user.email);
+    // ✅ Opcional: Solicitar permisos adicionales
+    // provider.addScope('email');
+    // provider.addScope('profile');
     
-    // ✅ Limpiar errores de campos al tener éxito
-    clearFieldErrors();
+    console.log('[AUTH] 🔄 Iniciando popup de Google...');
+    
+    // ✅ Iniciar sesión con popup
+    const result = await window.firebaseAuth.signInWithPopup(provider);
+    const user = result.user;
+    
+    console.log('[AUTH] ✅ Login con Google exitoso:', user.email);
+    console.log('[AUTH] Usuario:', user.displayName);
+    console.log('[AUTH] Foto:', user.photoURL);
     
     // ✅ Google Analytics: Tracking de login exitoso
     if (typeof gtag !== 'undefined') {
-      gtag('event', 'login_success_email', {
+      gtag('event', 'login_success_google', {
         'event_category': 'authentication',
-        'event_label': 'email'
+        'event_label': 'google'
       });
     }
     
     // ✅ Usar el mismo flujo que el código master (acceso completo)
-    // Para usuarios con cuenta, dar acceso master por ahora
-    // En el futuro se puede personalizar según permisos del usuario
-    await handleSuccessfulAuth(MASTER_HASH, 'email');
+    await handleSuccessfulAuth(MASTER_HASH, 'google');
     
     showAuthMessage('msg-auth', '¡Bienvenido!', false);
     return true;
     
   } catch (error) {
-    console.error('[AUTH] ❌ Error en login:', error);
+    console.error('[AUTH] ❌ Error en login con Google:', error);
     console.error('[AUTH] Código de error:', error.code);
     console.error('[AUTH] Mensaje de error:', error.message);
     
-    let errorMessage = 'Error al iniciar sesión.';
-    let markPasswordError = false;
-    let markEmailError = false;
-    
-    // ✅ Firebase puede devolver diferentes códigos de error según la versión
-    if (error.code === 'auth/user-not-found') {
-      errorMessage = 'No existe una cuenta con este correo.';
-      markEmailError = true;
-    } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-      // ✅ 'auth/invalid-credential' es el nuevo código en Firebase v9+
-      errorMessage = 'Contraseña incorrecta.';
-      markPasswordError = true;
-      console.log('[AUTH] 🔴 Marcando campo de contraseña con error');
-    } else if (error.code === 'auth/invalid-email') {
-      errorMessage = 'Correo electrónico inválido.';
-      markEmailError = true;
-    } else if (error.code === 'auth/user-disabled') {
-      errorMessage = 'Esta cuenta ha sido deshabilitada.';
-      markEmailError = true;
-    } else if (error.code === 'auth/too-many-requests') {
-      errorMessage = 'Demasiados intentos fallidos. Intente más tarde.';
-      markPasswordError = true;
-    } else if (error.code === 'auth/invalid-login-credentials') {
-      // ✅ Otro código posible para credenciales inválidas
-      errorMessage = 'Correo o contraseña incorrectos.';
-      markPasswordError = true;
-      markEmailError = true;
+    let errorMessage = 'Error al iniciar sesión con Google.';
+    if (error.code === 'auth/popup-closed-by-user') {
+      errorMessage = 'La ventana de Google se cerró. Intente nuevamente.';
+    } else if (error.code === 'auth/popup-blocked') {
+      errorMessage = 'La ventana emergente fue bloqueada. Permita ventanas emergentes para este sitio.';
+    } else if (error.code === 'auth/cancelled-popup-request') {
+      errorMessage = 'Solo se puede abrir una ventana de inicio de sesión a la vez.';
+    } else if (error.code === 'auth/account-exists-with-different-credential') {
+      errorMessage = 'Ya existe una cuenta con este correo usando otro método de autenticación.';
+    } else {
+      errorMessage = `Error: ${error.message || 'No se pudo iniciar sesión con Google.'}`;
     }
-    
-    // ✅ Marcar campos con error (siempre ejecutar, incluso si no hay match específico)
-    console.log('[AUTH] markPasswordError:', markPasswordError, 'markEmailError:', markEmailError);
-    if (markPasswordError) {
-      console.log('[AUTH] 🔴 Intentando marcar password-login con error...');
-      markFieldError('password-login', true);
-      // ✅ Verificar que se aplicó
-      const passwordField = $('#password-login');
-      if (passwordField) {
-        console.log('[AUTH] Campo password-login encontrado, tiene clase error?', passwordField.classList.contains('error'));
-      } else {
-        console.error('[AUTH] ❌ No se encontró el campo password-login');
-      }
-    }
-    if (markEmailError) markFieldError('email-login', true);
     
     showAuthMessage('msg-auth', errorMessage, true);
     
@@ -5519,7 +5425,7 @@ async function tryLoginByEmail(email, password) {
     if (typeof gtag !== 'undefined') {
       gtag('event', 'login_error', {
         'event_category': 'authentication',
-        'event_label': 'email',
+        'event_label': 'google',
         'value': error.code
       });
     }
@@ -5528,160 +5434,9 @@ async function tryLoginByEmail(email, password) {
   }
 }
 
-// ✅ Función para registro con email/password
-async function tryRegister(email, password, passwordConfirm) {
-  const msgEl = $('#msg-register');
-  showAuthMessage('msg-register', 'Creando cuenta…', false);
-  
-  if (!email || !password || !passwordConfirm) {
-    showAuthMessage('msg-register', 'Por favor, complete todos los campos.', true);
-    return false;
-  }
-
-  if (password.length < 6) {
-    showAuthMessage('msg-register', 'La contraseña debe tener al menos 6 caracteres.', true);
-    return false;
-  }
-
-  if (password !== passwordConfirm) {
-    showAuthMessage('msg-register', 'Las contraseñas no coinciden.', true);
-    return false;
-  }
-
-  try {
-    if (!window.firebaseAuth) {
-      showAuthMessage('msg-register', 'Firebase Authentication no está disponible.', true);
-      return false;
-    }
-
-    const userCredential = await window.firebaseAuth.createUserWithEmailAndPassword(email, password);
-    const user = userCredential.user;
-    
-    console.log('[AUTH] ✅ Registro exitoso:', user.email);
-    
-    // ✅ Google Analytics: Tracking de registro exitoso
-    if (typeof gtag !== 'undefined') {
-      gtag('event', 'register_success', {
-        'event_category': 'authentication',
-        'event_label': 'email'
-      });
-    }
-    
-    // ✅ Usar el mismo flujo que el código master (acceso completo)
-    await handleSuccessfulAuth(MASTER_HASH, 'email');
-    
-    showAuthMessage('msg-register', '¡Cuenta creada exitosamente!', false);
-    return true;
-    
-  } catch (error) {
-    console.error('[AUTH] ❌ Error en registro:', error);
-    
-    let errorMessage = 'Error al crear la cuenta.';
-    if (error.code === 'auth/email-already-in-use') {
-      errorMessage = 'Este correo ya está registrado. Use "Iniciar sesión" en su lugar.';
-    } else if (error.code === 'auth/invalid-email') {
-      errorMessage = 'Correo electrónico inválido.';
-    } else if (error.code === 'auth/weak-password') {
-      errorMessage = 'La contraseña es muy débil. Use al menos 6 caracteres.';
-    }
-    
-    showAuthMessage('msg-register', errorMessage, true);
-    
-    // ✅ Google Analytics: Tracking de error
-    if (typeof gtag !== 'undefined') {
-      gtag('event', 'register_error', {
-        'event_category': 'authentication',
-        'event_label': 'email',
-        'value': error.code
-      });
-    }
-    
-    return false;
-  }
-}
-
-// ✅ Función para recuperación de contraseña
-async function tryPasswordReset(email) {
-  console.log('[AUTH] 🔄 Iniciando recuperación de contraseña para:', email);
-  
-  const msgEl = $('#msg-reset');
-  if (!msgEl) {
-    console.error('[AUTH] ❌ No se encontró el elemento msg-reset');
-    return false;
-  }
-  
-  showAuthMessage('msg-reset', 'Enviando enlace…', false);
-  
-  if (!email || email.trim().length === 0) {
-    showAuthMessage('msg-reset', 'Por favor, ingrese su correo electrónico.', true);
-    return false;
-  }
-
-  try {
-    if (!window.firebaseAuth) {
-      console.error('[AUTH] ❌ Firebase Auth no está disponible');
-      showAuthMessage('msg-reset', 'Firebase Authentication no está disponible. Por favor, intente más tarde.', true);
-      return false;
-    }
-
-    console.log('[AUTH] 📧 Enviando email de recuperación...');
-    await window.firebaseAuth.sendPasswordResetEmail(email.trim());
-    
-    console.log('[AUTH] ✅ Enlace de recuperación enviado exitosamente a:', email);
-    
-    // ✅ Asegurar que el formulario de recuperación esté visible
-    const formReset = $('#form-reset');
-    if (formReset) {
-      formReset.classList.remove('hidden');
-    }
-    
-    // ✅ Mostrar mensaje de éxito de forma más visible
-    const successMessage = '✅ Se ha enviado un enlace de recuperación a tu correo. Revise su bandeja de entrada (y la carpeta de spam).';
-    showAuthMessage('msg-reset', successMessage, false);
-    
-    // ✅ Hacer scroll al mensaje para asegurar visibilidad
-    const msgResetEl = $('#msg-reset');
-    if (msgResetEl) {
-      setTimeout(() => {
-        msgResetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 100);
-    }
-    
-    // ✅ También mostrar un toast para mayor visibilidad
-    if (typeof window.showToast === 'function') {
-      window.showToast('Enlace enviado', 'Revisa tu correo electrónico (incluyendo spam)', 'success');
-    }
-    
-    // ✅ Google Analytics: Tracking de recuperación
-    if (typeof gtag !== 'undefined') {
-      gtag('event', 'password_reset_sent', {
-        'event_category': 'authentication',
-        'event_label': 'email'
-      });
-    }
-    
-    return true;
-    
-  } catch (error) {
-    console.error('[AUTH] ❌ Error en recuperación:', error);
-    console.error('[AUTH] Código de error:', error.code);
-    console.error('[AUTH] Mensaje de error:', error.message);
-    
-    let errorMessage = 'Error al enviar el enlace de recuperación.';
-    if (error.code === 'auth/user-not-found') {
-      errorMessage = 'No existe una cuenta con este correo electrónico.';
-    } else if (error.code === 'auth/invalid-email') {
-      errorMessage = 'Correo electrónico inválido. Por favor, verifique el formato.';
-    } else if (error.code === 'auth/too-many-requests') {
-      errorMessage = 'Demasiados intentos. Por favor, espere unos minutos antes de intentar nuevamente.';
-    } else {
-      errorMessage = `Error: ${error.message || 'No se pudo enviar el enlace. Intente más tarde.'}`;
-    }
-    
-    showAuthMessage('msg-reset', errorMessage, true);
-    return false;
-  }
-}
+// ✅ Funciones de registro y recuperación eliminadas (ya no se usan con Google Sign-In)
+// Los usuarios se registran automáticamente al iniciar sesión con Google por primera vez
+// Los usuarios pueden recuperar su contraseña directamente desde Google
 
 // ✅ Función para logout de Firebase
 async function logoutFirebase() {
@@ -5695,7 +5450,7 @@ async function logoutFirebase() {
   }
 }
 
-// ✅ Función compartida para manejar autenticación exitosa (código o email)
+// ✅ Función compartida para manejar autenticación exitosa (código o Google)
 async function handleSuccessfulAuth(hex, method = 'code') {
   console.log('[AUTH] ✅ Autenticación exitosa por:', method);
   
@@ -5774,7 +5529,7 @@ function setupAuthStateListener() {
       const masterEl = document.getElementById('master');
       const isInMaster = currentKeyHex === MASTER_HASH || (masterEl && !masterEl.classList.contains('hidden'));
       if (!urlParams.has('code') && !isInMaster) {
-        await handleSuccessfulAuth(MASTER_HASH, 'email');
+        await handleSuccessfulAuth(MASTER_HASH, 'google');
       }
     } else {
       console.log('[AUTH] Usuario no autenticado');
@@ -5805,109 +5560,15 @@ $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preve
 $('#tab-code').addEventListener('click', () => switchAuthTab('code'));
 $('#tab-account').addEventListener('click', () => switchAuthTab('account'));
 
-// ✅ Event listeners para formularios de autenticación
-$('#btn-login').addEventListener('click', () => {
-  const email = $('#email-login').value;
-  const password = $('#password-login').value;
-  tryLoginByEmail(email, password);
-});
-
-$('#email-login').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    $('#btn-login').click();
-  }
-});
-
-$('#password-login').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    $('#btn-login').click();
-  }
-});
-
-// ✅ Limpiar errores cuando el usuario empieza a escribir
-$('#email-login').addEventListener('input', () => {
-  markFieldError('email-login', false);
-});
-
-// ✅ Limpiar errores cuando el usuario empieza a escribir (con pequeño delay para no interferir)
-$('#password-login').addEventListener('input', () => {
-  // ✅ Pequeño delay para asegurar que el error se haya mostrado primero
-  setTimeout(() => {
-    markFieldError('password-login', false);
-  }, 50);
-});
-
-$('#btn-register').addEventListener('click', () => {
-  const email = $('#email-register').value;
-  const password = $('#password-register').value;
-  const passwordConfirm = $('#password-confirm').value;
-  tryRegister(email, password, passwordConfirm);
-});
-
-$('#email-register').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    $('#btn-register').click();
-  }
-});
-
-$('#password-register').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    $('#btn-register').click();
-  }
-});
-
-$('#password-confirm').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    $('#btn-register').click();
-  }
-});
-
-// ✅ Event listener para botón de recuperación (con verificación de existencia)
-const btnReset = $('#btn-reset');
-if (btnReset) {
-  btnReset.addEventListener('click', async () => {
-    const emailInput = $('#email-reset');
-    if (!emailInput) {
-      console.error('[AUTH] No se encontró el campo email-reset');
-      return;
-    }
-    const email = emailInput.value.trim();
-    console.log('[AUTH] Intentando recuperar contraseña para:', email);
-    await tryPasswordReset(email);
+// ✅ Event listener para botón de Google Sign-In
+const btnLoginGoogle = $('#btn-login-google');
+if (btnLoginGoogle) {
+  btnLoginGoogle.addEventListener('click', () => {
+    tryLoginByGoogle();
   });
 } else {
-  console.warn('[AUTH] No se encontró el botón btn-reset');
+  console.warn('[AUTH] No se encontró el botón btn-login-google');
 }
-
-// ✅ Event listener para Enter en campo de recuperación
-const emailResetInput = $('#email-reset');
-if (emailResetInput) {
-  emailResetInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const btnReset = $('#btn-reset');
-      if (btnReset) btnReset.click();
-    }
-  });
-}
-
-// ✅ Event listeners para cambiar entre formularios (con verificación)
-const btnShowRegister = $('#btn-show-register');
-if (btnShowRegister) btnShowRegister.addEventListener('click', () => showRegisterForm());
-
-const btnShowLogin = $('#btn-show-login');
-if (btnShowLogin) btnShowLogin.addEventListener('click', () => showLoginForm());
-
-const btnShowReset = $('#btn-show-reset');
-if (btnShowReset) btnShowReset.addEventListener('click', () => showResetForm());
-
-const btnBackLogin = $('#btn-back-login');
-if (btnBackLogin) btnBackLogin.addEventListener('click', () => showLoginForm());
 
 // ✅ Integrar logout de Firebase con logout existente
 $('#btn-logout').addEventListener('click', async () => {
