@@ -144,3 +144,4 @@
   window.insertElectricCard = window.insertElectricCard || insertElectricCard;
   window.setCardImage = window.setCardImage || setCardImage;
 })();
+
