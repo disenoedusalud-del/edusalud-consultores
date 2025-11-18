@@ -1647,7 +1647,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=92" defer></script>
+  <script src="assets/js/app.js?v=93" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
@@ -1726,7 +1726,7 @@
     // ✅ MODO DESARROLLO: Cambia a false antes de hacer commit a producción
     // En desarrollo: Los cambios se ven inmediatamente sin limpiar caché
     // En producción: Usa caché optimizado para mejor rendimiento
-    const IS_DEVELOPMENT = true; // ⚠️ CAMBIAR A false EN PRODUCCIÓN
+    const IS_DEVELOPMENT = false; // ⚠️ CAMBIAR A false EN PRODUCCIÓN
     
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
