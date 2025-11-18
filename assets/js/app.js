@@ -1,3 +1,17 @@
+/* ===================== OPTIMIZACIÓN: LOGGING CONDICIONAL ===================== */
+// ✅ Sistema de logging optimizado: desactiva logs en producción para mejor rendimiento
+const IS_PRODUCTION = true; // Cambiar a false para ver logs en desarrollo
+const Logger = {
+  log: IS_PRODUCTION ? () => {} : (...args) => console.log(...args),
+  warn: IS_PRODUCTION ? () => {} : (...args) => console.warn(...args),
+  error: (...args) => console.error(...args), // Errores siempre se muestran
+  info: IS_PRODUCTION ? () => {} : (...args) => console.info(...args)
+};
+// Alias para compatibilidad
+const log = Logger.log;
+const warn = Logger.warn;
+const error = Logger.error;
+
 /* ===================== FIREBASE FIRESTORE - TIEMPO REAL ===================== */
 // ✅ Firebase se carga dinámicamente desde /src/firebase.js
 // ✅ Compatible con GitHub Pages (sin módulos ES6)
@@ -22,27 +36,27 @@ function getFirebaseDB() {
 // Verificar si Firebase ya está listo o esperar a que cargue
 function checkFirebaseStatus() {
   if (window.firebaseDB) {
-    console.log('[APP] ✅ Firebase disponible y listo para usar');
+    log('[APP] ✅ Firebase disponible y listo para usar');
     return true;
   } else if (typeof firebase !== 'undefined') {
-    console.log('[APP] ⏳ Firebase cargando, esperando Firestore...');
+    log('[APP] ⏳ Firebase cargando, esperando Firestore...');
     return false;
   } else {
-    console.log('[APP] ℹ️ Modo sin Firebase (usando solo Google Sheets)');
+    log('[APP] ℹ️ Modo sin Firebase (usando solo Google Sheets)');
     return false;
   }
 }
 
 // Escuchar evento cuando Firebase esté listo
 window.addEventListener('firebaseReady', (e) => {
-  console.log('[APP] 🔥 Firebase conectado y listo para sincronización en tiempo real');
-  console.log('[APP] 📊 Base de datos:', e.detail.db ? 'Firestore activo' : 'No disponible');
+  log('[APP] 🔥 Firebase conectado y listo para sincronización en tiempo real');
+  log('[APP] 📊 Base de datos:', e.detail.db ? 'Firestore activo' : 'No disponible');
   initFirebaseCustomCoursesRealtime();
 });
 
 // Escuchar evento de error de Firebase
 window.addEventListener('firebaseError', (e) => {
-  console.log('[APP] ⚠️ Firebase no disponible, usando Google Sheets como backend');
+  log('[APP] ⚠️ Firebase no disponible, usando Google Sheets como backend');
 });
 
 // Verificación inicial
@@ -50,7 +64,7 @@ setTimeout(() => {
   checkFirebaseStatus();
 }, 1500);
 
-console.log('[APP] Iniciando aplicación con soporte Firebase...');
+log('[APP] Iniciando aplicación con soporte Firebase...');
 
 /* ===================== SEGURIDAD: SANITIZACIÓN XSS ===================== */
 
@@ -510,7 +524,7 @@ function loadCustomCourses(){
   try {
     // ✅ Verificar que localStorage está disponible (importante para modo incógnito)
     if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
-      console.warn('[STORAGE] localStorage no disponible (modo incógnito?)');
+      warn('[STORAGE] localStorage no disponible (modo incógnito?)');
       return {};
     }
     const raw = localStorage.getItem(CUSTOM_COURSES_KEY);
@@ -528,7 +542,7 @@ function saveCustomCourses(courses){
   try {
     // ✅ Verificar que localStorage está disponible
     if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
-      console.warn('[STORAGE] localStorage no disponible, no se pueden guardar cursos');
+      warn('[STORAGE] localStorage no disponible, no se pueden guardar cursos');
       return;
     }
     localStorage.setItem(CUSTOM_COURSES_KEY, JSON.stringify(courses || {}));
@@ -548,12 +562,12 @@ function getMergedAccessHashMap(){
   try {
     custom = loadCustomCourses();
   } catch (e) {
-    console.warn('[HASHMAP] Error cargando cursos custom:', e);
+    warn('[HASHMAP] Error cargando cursos custom:', e);
   }
   
   // ✅ Combinar base (vacío) con custom - Ahora solo custom tiene cursos
   const merged = Object.assign({}, base, custom);
-  console.log('[HASHMAP] Cursos base:', Object.keys(base).length, 'Custom:', Object.keys(custom).length, 'Total:', Object.keys(merged).length);
+  log('[HASHMAP] Cursos base:', Object.keys(base).length, 'Custom:', Object.keys(custom).length, 'Total:', Object.keys(merged).length);
   
   return merged;
 }
@@ -564,7 +578,7 @@ async function loadRemoteCoursesOnInit(){
   try {
     await refreshCustomCourses();
   } catch (e) {
-    console.warn('[INIT] Error cargando cursos remotos al inicio (continuando):', e);
+    warn('[INIT] Error cargando cursos remotos al inicio (continuando):', e);
     // No bloquear la carga si falla
   }
 }
@@ -586,7 +600,7 @@ async function addCustomCourse(hex, courseData){
   
   // ✅ Limpiar localStorage de links para este curso (por si hay datos residuales)
   clearFilesOverride(hex);
-  console.log('[ADD COURSE] 🧹 localStorage de links limpiado para curso nuevo');
+  log('[ADD COURSE] 🧹 localStorage de links limpiado para curso nuevo');
 
   const db = getFirestoreDB();
   if (db) {
@@ -596,11 +610,11 @@ async function addCustomCourse(hex, courseData){
         const linksRef = db.ref(`courses/${hex}/links`);
         const linksSnapshot = await linksRef.once('value');
         if (linksSnapshot.exists()) {
-          console.log('[ADD COURSE] 🧹 Eliminando links residuales de Firebase para este hash');
+          log('[ADD COURSE] 🧹 Eliminando links residuales de Firebase para este hash');
           await linksRef.remove();
         }
       } catch (cleanupError) {
-        console.warn('[ADD COURSE] ⚠️ Error limpiando links residuales (continuando):', cleanupError);
+        warn('[ADD COURSE] ⚠️ Error limpiando links residuales (continuando):', cleanupError);
       }
       
       const firebasePayload = {
@@ -609,7 +623,7 @@ async function addCustomCourse(hex, courseData){
         updatedAt: firebase.database.ServerValue.TIMESTAMP
       };
       await db.ref(`customCourses/${hex}`).set(firebasePayload);
-      console.log('[ADD COURSE] ✅ Curso guardado en Firebase Realtime Database');
+      log('[ADD COURSE] ✅ Curso guardado en Firebase Realtime Database');
       if (typeof window.showToast === 'function') {
         window.showToast('success', 'Curso creado', `"${courseData.card?.tag || 'Curso'}" creado exitosamente`);
       }
@@ -626,7 +640,7 @@ async function addCustomCourse(hex, courseData){
         }
       }
   } else {
-    console.warn('[ADD COURSE] ⚠️ Firebase no disponible, usando solo almacenamiento local');
+    warn('[ADD COURSE] ⚠️ Firebase no disponible, usando solo almacenamiento local');
   }
 
   const saveResult = await remoteSaveCourse(hex, normalizedCourse).catch(e => {
@@ -639,7 +653,7 @@ async function addCustomCourse(hex, courseData){
   });
 
   if (saveResult) {
-    console.log('[ADD COURSE] ✅ Curso guardado en Google Sheets como respaldo');
+    log('[ADD COURSE] ✅ Curso guardado en Google Sheets como respaldo');
   }
   
   // ✅ Historial de cambios: registrar creación de curso
@@ -684,7 +698,7 @@ async function updateCustomCourse(hex, courseData){
         updatedAt: firebase.database.ServerValue.TIMESTAMP
       };
       await db.ref(`customCourses/${hex}`).set(firebasePayload);
-      console.log('[UPDATE COURSE] ✅ Curso actualizado en Firebase Realtime Database');
+      log('[UPDATE COURSE] ✅ Curso actualizado en Firebase Realtime Database');
       if (typeof window.showToast === 'function') {
         window.showToast('success', 'Curso actualizado', `"${courseData.card?.tag || 'Curso'}" actualizado exitosamente`);
       }
@@ -701,7 +715,7 @@ async function updateCustomCourse(hex, courseData){
         }
       }
   } else {
-    console.warn('[UPDATE COURSE] ⚠️ Firebase no disponible, usando solo almacenamiento local');
+    warn('[UPDATE COURSE] ⚠️ Firebase no disponible, usando solo almacenamiento local');
   }
 
   const saveResult = await remoteSaveCourse(hex, normalizedCourse).catch(e => {
@@ -710,7 +724,7 @@ async function updateCustomCourse(hex, courseData){
   });
 
   if (saveResult) {
-    console.log('[UPDATE COURSE] ✅ Curso actualizado en Google Sheets como respaldo');
+    log('[UPDATE COURSE] ✅ Curso actualizado en Google Sheets como respaldo');
   }
   
   // ✅ Historial de cambios: registrar actualización de curso
@@ -733,15 +747,15 @@ async function removeCustomCourse(hex){
     try {
       // ✅ Eliminar el curso de customCourses
       await db.ref(`customCourses/${hex}`).remove();
-      console.log('[DELETE COURSE] ✅ Curso eliminado de Firebase');
+      log('[DELETE COURSE] ✅ Curso eliminado de Firebase');
       
       // ✅ Eliminar también todos los links asociados al curso
       await db.ref(`courses/${hex}/links`).remove();
-      console.log('[DELETE COURSE] ✅ Links del curso eliminados de Firebase');
+      log('[DELETE COURSE] ✅ Links del curso eliminados de Firebase');
       
       // ✅ Limpiar también localStorage de los links
       clearFilesOverride(hex);
-      console.log('[DELETE COURSE] ✅ Links eliminados de localStorage');
+      log('[DELETE COURSE] ✅ Links eliminados de localStorage');
       
       // ✅ Notificación de eliminación
       if (typeof window.showToast === 'function') {
@@ -760,12 +774,12 @@ async function removeCustomCourse(hex){
 
   // ✅ Eliminar curso de Google Sheets
   await remoteDeleteCourse(hex).catch(e => {
-    console.warn('[DELETE COURSE] ⚠️ Error eliminando curso en Google Sheets:', e);
+    warn('[DELETE COURSE] ⚠️ Error eliminando curso en Google Sheets:', e);
   });
   
   // ✅ Eliminar también los links de la hoja de overrides en Google Sheets
   await remoteDeleteFiles(hex).catch(e => {
-    console.warn('[DELETE COURSE] ⚠️ Error eliminando links de Google Sheets:', e);
+    warn('[DELETE COURSE] ⚠️ Error eliminando links de Google Sheets:', e);
   });
   
   // ✅ Historial de cambios: registrar eliminación de curso
@@ -792,16 +806,16 @@ function checkAndCleanOldCache(){
   try {
     const storedVersion = localStorage.getItem(CACHE_VERSION_KEY);
     if (storedVersion !== CURRENT_CACHE_VERSION) {
-      console.log('[CACHE] ℹ️ Nueva versión detectada:', CURRENT_CACHE_VERSION);
+      log('[CACHE] ℹ️ Nueva versión detectada:', CURRENT_CACHE_VERSION);
       // SOLO actualizar versión, NO limpiar datos
       // Los datos se sincronizarán con remoto automáticamente
       localStorage.setItem(CACHE_VERSION_KEY, CURRENT_CACHE_VERSION);
-      console.log('[CACHE] ✅ Versión actualizada, datos se sincronizarán automáticamente');
+      log('[CACHE] ✅ Versión actualizada, datos se sincronizarán automáticamente');
       return true;
     }
     return false;
   } catch (e) {
-    console.warn('[CACHE] Error verificando versión:', e);
+    warn('[CACHE] Error verificando versión:', e);
     return false;
   }
 }
@@ -818,7 +832,7 @@ function saveFilesOverride(hex, files){
     const key = storageKeyFor(hex);
     const value = JSON.stringify(files || []);
     localStorage.setItem(key, value);
-    console.log('[STORAGE] 💾 Guardados', files.length, 'archivos para hex:', hex.substring(0, 8));
+    log('[STORAGE] 💾 Guardados', files.length, 'archivos para hex:', hex.substring(0, 8));
   } catch (e) {
     console.error('[STORAGE] ❌ Error guardando archivos:', e);
   }
@@ -837,10 +851,10 @@ function clearAllFilesOverrides(){
         count++;
       }
     });
-    console.log('[CACHE] 🧹 Limpiados', count, 'archivos de localStorage');
+    log('[CACHE] 🧹 Limpiados', count, 'archivos de localStorage');
     return count;
   } catch (e) {
-    console.warn('[CACHE] Error limpiando archivos:', e);
+    warn('[CACHE] Error limpiando archivos:', e);
     return 0;
   }
 }
@@ -852,11 +866,11 @@ function getBaseFilesForHex(hex){
 function getFilesForHex(hex){
   const override = loadFilesOverride(hex);
   if (override) {
-    // console.log('[FILES] Usando override para', hex.substring(0,8), ':', override.length, 'archivos');
+    // log('[FILES] Usando override para', hex.substring(0,8), ':', override.length, 'archivos');
     return override;
   }
   const base = getBaseFilesForHex(hex);
-  // console.log('[FILES] Usando base para', hex.substring(0,8), ':', base.length, 'archivos');
+  // log('[FILES] Usando base para', hex.substring(0,8), ':', base.length, 'archivos');
   return base;
 }
 
@@ -871,7 +885,7 @@ function initFirebaseCustomCoursesRealtime() {
   const db = getFirestoreDB();
 
   if (!db) {
-    console.log('[FIREBASE COURSES] Firebase no configurado, no se inicia listener de cursos');
+    log('[FIREBASE COURSES] Firebase no configurado, no se inicia listener de cursos');
     return;
   }
 
@@ -883,7 +897,7 @@ function initFirebaseCustomCoursesRealtime() {
     customCoursesRef = db.ref('customCourses');
     customCoursesListener = customCoursesRef.on('value', (snapshot) => {
       const rawCourses = snapshot.exists() ? snapshot.val() : {};
-      console.log('[FIREBASE COURSES] 📥 Snapshot recibido - Cursos totales:', Object.keys(rawCourses).length);
+      log('[FIREBASE COURSES] 📥 Snapshot recibido - Cursos totales:', Object.keys(rawCourses).length);
 
       // ✅ Preservar códigos locales si Firebase no los tiene
       const localCourses = loadCustomCourses();
@@ -904,9 +918,9 @@ function initFirebaseCustomCoursesRealtime() {
         };
         
         if (codeToUse && !firebaseCourse?.code) {
-          console.log('[FIREBASE COURSES] 🔑 Usando código local para:', hex.substring(0, 8), 'Código:', codeToUse);
+          log('[FIREBASE COURSES] 🔑 Usando código local para:', hex.substring(0, 8), 'Código:', codeToUse);
         } else if (codeToUse) {
-          console.log('[FIREBASE COURSES] 🔑 Usando código de Firebase para:', hex.substring(0, 8), 'Código:', codeToUse);
+          log('[FIREBASE COURSES] 🔑 Usando código de Firebase para:', hex.substring(0, 8), 'Código:', codeToUse);
         }
       });
       
@@ -920,21 +934,21 @@ function initFirebaseCustomCoursesRealtime() {
       const currentCount = Object.keys(mergedCourses).length;
       
       if (previousCount !== currentCount) {
-        console.log('[FIREBASE COURSES] 🔄 Cambio detectado: cursos locales:', previousCount, '→ Firebase:', currentCount);
+        log('[FIREBASE COURSES] 🔄 Cambio detectado: cursos locales:', previousCount, '→ Firebase:', currentCount);
         if (currentCount < previousCount) {
-          console.log('[FIREBASE COURSES] 🗑️ Curso(s) eliminado(s) - se actualizará localStorage');
+          log('[FIREBASE COURSES] 🗑️ Curso(s) eliminado(s) - se actualizará localStorage');
         }
       }
       
       try {
         saveCustomCourses(mergedCourses);
-        console.log('[FIREBASE COURSES] ✅ localStorage actualizado con', currentCount, 'cursos (Firebase es la fuente de verdad)');
+        log('[FIREBASE COURSES] ✅ localStorage actualizado con', currentCount, 'cursos (Firebase es la fuente de verdad)');
       } catch (e) {
-        console.warn('[FIREBASE COURSES] ⚠️ No se pudieron guardar cursos en localStorage:', e);
+        warn('[FIREBASE COURSES] ⚠️ No se pudieron guardar cursos en localStorage:', e);
       }
 
       if (userInteracting) {
-        console.log('[FIREBASE COURSES] ⏸️ Usuario interactuando, actualizará después');
+        log('[FIREBASE COURSES] ⏸️ Usuario interactuando, actualizará después');
         // ✅ Aún así actualizar localStorage para mantener sincronización
         return;
       }
@@ -943,19 +957,19 @@ function initFirebaseCustomCoursesRealtime() {
       const isContentView = document.getElementById('content') && !document.getElementById('content').classList.contains('hidden');
 
       if (isMasterView) {
-        console.log('[FIREBASE COURSES] ♻️ Re-renderizando grid Master (cursos eliminados se quitarán automáticamente)');
+        log('[FIREBASE COURSES] ♻️ Re-renderizando grid Master (cursos eliminados se quitarán automáticamente)');
         buildMasterGrid();
         // ✅ Actualizar estadísticas después de re-renderizar (buildMasterGrid ya lo hace, pero por si acaso)
         setTimeout(() => updateMasterStats(mergedCourses), 100);
       }
 
       if (isContentView && currentKeyHex && rawCourses[currentKeyHex]) {
-        console.log('[FIREBASE COURSES] ♻️ Re-renderizando curso personalizado en vista individual');
+        log('[FIREBASE COURSES] ♻️ Re-renderizando curso personalizado en vista individual');
         renderCourse(currentKeyHex);
       }
     });
 
-    console.log('[FIREBASE COURSES] ✅ Listener de cursos personalizados activo');
+    log('[FIREBASE COURSES] ✅ Listener de cursos personalizados activo');
   } catch (error) {
     console.error('[FIREBASE COURSES] ❌ Error iniciando listener de cursos:', error);
   }
@@ -965,9 +979,9 @@ function teardownFirebaseCustomCoursesRealtime() {
   if (customCoursesRef && customCoursesListener) {
     try {
       customCoursesRef.off('value', customCoursesListener);
-      console.log('[FIREBASE COURSES] 🔕 Listener de cursos desactivado');
+      log('[FIREBASE COURSES] 🔕 Listener de cursos desactivado');
     } catch (error) {
-      console.warn('[FIREBASE COURSES] ⚠️ Error al desactivar listener de cursos:', error);
+      warn('[FIREBASE COURSES] ⚠️ Error al desactivar listener de cursos:', error);
     }
   }
   customCoursesListener = null;
@@ -981,16 +995,16 @@ function initFirestoreRealtimeMaster(courseHexes) {
   const db = getFirestoreDB();
   
   if (!db) {
-    console.log('[FIRESTORE] Firebase no configurado para Master');
+    log('[FIRESTORE] Firebase no configurado para Master');
     return;
   }
   
-  console.log('[FIRESTORE] 🔥 Iniciando listeners para', courseHexes.length, 'cursos en Master');
+  log('[FIRESTORE] 🔥 Iniciando listeners para', courseHexes.length, 'cursos en Master');
   
   // Limpiar listeners antiguos que ya no están en la lista
   activeListeners.forEach((unsubscribe, hex) => {
     if (!courseHexes.includes(hex)) {
-      console.log('[FIRESTORE] Desuscribiendo listener obsoleto:', hex.substring(0, 10));
+      log('[FIRESTORE] Desuscribiendo listener obsoleto:', hex.substring(0, 10));
       unsubscribe();
       activeListeners.delete(hex);
     }
@@ -1018,14 +1032,14 @@ function initFirestoreRealtimeMaster(courseHexes) {
           });
           
           firebaseLinks.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-          console.log('[FIREBASE] 📥 Cambio detectado en', courseHex.substring(0, 10), ':', firebaseLinks.length, 'links');
+          log('[FIREBASE] 📥 Cambio detectado en', courseHex.substring(0, 10), ':', firebaseLinks.length, 'links');
         }
         
         mergeFirestoreLinks(courseHex, firebaseLinks);
       });
       
       activeListeners.set(courseHex, () => linksRef.off('value', unsubscribe));
-      console.log('[FIRESTORE] ✅ Listener activo para:', courseHex.substring(0, 10));
+      log('[FIRESTORE] ✅ Listener activo para:', courseHex.substring(0, 10));
       
     } catch (error) {
       console.error('[FIRESTORE] ❌ Error iniciando listener para', courseHex.substring(0, 10), ':', error);
@@ -1042,32 +1056,32 @@ function initFirestoreRealtime(courseHex) {
   
   // Verificar que Firebase esté disponible
   if (!db) {
-    console.log('[FIRESTORE] Firebase no configurado, continuando sin tiempo real');
+    log('[FIRESTORE] Firebase no configurado, continuando sin tiempo real');
     return;
   }
 
   // ✅ Evitar múltiples listeners para el mismo curso
   if (firestoreUnsubscribe && window.currentFirestoreCourseHex === courseHex) {
-    console.log('[FIRESTORE] ⚠️ Listener ya activo para este curso, omitiendo');
+    log('[FIRESTORE] ⚠️ Listener ya activo para este curso, omitiendo');
     return;
   }
 
   // Desuscribir listeners anteriores si existen
   if (firestoreUnsubscribe) {
-    console.log('[FIRESTORE] Desuscribiendo listener anterior');
+    log('[FIRESTORE] Desuscribiendo listener anterior');
     firestoreUnsubscribe();
     firestoreUnsubscribe = null;
   }
 
   if (!courseHex || courseHex === MASTER_HASH) {
-    console.log('[FIRESTORE] No iniciar listener en vista master');
+    log('[FIRESTORE] No iniciar listener en vista master');
     return;
   }
 
   // ✅ Guardar el curso actual para evitar duplicados
   window.currentFirestoreCourseHex = courseHex;
 
-  console.log('[FIRESTORE] 🔥 Iniciando listener en tiempo real para curso:', courseHex.substring(0, 10) + '...');
+  log('[FIRESTORE] 🔥 Iniciando listener en tiempo real para curso:', courseHex.substring(0, 10) + '...');
 
   try {
     // Referencia a la ruta de links de este curso (Realtime Database)
@@ -1077,7 +1091,7 @@ function initFirestoreRealtime(courseHex) {
     firestoreUnsubscribe = linksRef.on('value', (snapshot) => {
       // ✅ Evitar re-renderizado si el usuario está interactuando
       if (userInteracting) {
-        console.log('[FIRESTORE] ⏸️ Usuario interactuando, omitiendo actualización');
+        log('[FIRESTORE] ⏸️ Usuario interactuando, omitiendo actualización');
         return;
       }
 
@@ -1085,18 +1099,18 @@ function initFirestoreRealtime(courseHex) {
       const isContentView = document.getElementById('content') && 
                            !document.getElementById('content').classList.contains('hidden');
       if (!isContentView || window.currentCourseHex !== courseHex) {
-        console.log('[FIRESTORE] ⏸️ No estamos en la vista de este curso, omitiendo actualización');
+        log('[FIRESTORE] ⏸️ No estamos en la vista de este curso, omitiendo actualización');
         return;
       }
 
-      console.log('[FIREBASE] 📥 Evento disparado - Snapshot existe:', snapshot.exists());
+      log('[FIREBASE] 📥 Evento disparado - Snapshot existe:', snapshot.exists());
       
       const firebaseLinks = [];
       
       if (snapshot.exists()) {
         const data = snapshot.val();
         const linkCount = Object.keys(data).length;
-        console.log('[FIREBASE] 📥 Links en Firebase:', linkCount);
+        log('[FIREBASE] 📥 Links en Firebase:', linkCount);
         
         // Convertir objeto a array
         Object.keys(data).forEach((key) => {
@@ -1109,10 +1123,10 @@ function initFirestoreRealtime(courseHex) {
         // Ordenar por createdAt descendente
         firebaseLinks.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         
-        console.log('[FIREBASE] 📥 Cambios detectados - Total de links:', linkCount);
-        console.log('[FIREBASE] 📝 Links:', firebaseLinks.map(l => l.label).join(', '));
+        log('[FIREBASE] 📥 Cambios detectados - Total de links:', linkCount);
+        log('[FIREBASE] 📝 Links:', firebaseLinks.map(l => l.label).join(', '));
       } else {
-        console.log('[FIREBASE] ℹ️ Sin datos en Firebase (primera carga o curso vacío)');
+        log('[FIREBASE] ℹ️ Sin datos en Firebase (primera carga o curso vacío)');
       }
 
       // ✅ Combinar links de Firebase con los de localStorage
@@ -1141,7 +1155,7 @@ function initFirestoreRealtime(courseHex) {
  * ✅ FUNCIÓN: Combinar links de Firestore con localStorage y actualizar vista
  */
 function mergeFirestoreLinks(courseHex, firestoreLinks) {
-  console.log('[FIRESTORE] 🔥 Firebase es la ÚNICA FUENTE DE VERDAD - Total:', firestoreLinks.length, 'links');
+  log('[FIRESTORE] 🔥 Firebase es la ÚNICA FUENTE DE VERDAD - Total:', firestoreLinks.length, 'links');
   
   // ✅ FIREBASE ES LA ÚNICA FUENTE: Solo usar links de Firebase, ignorar ACCESS_HASH_MAP
   const firebaseFormatted = firestoreLinks.map(link => ({
@@ -1156,7 +1170,7 @@ function mergeFirestoreLinks(courseHex, firestoreLinks) {
   const uniqueFirebaseLinks = firebaseFormatted.filter(link => {
     const key = link.firebaseId || `${link.url}|||${link.label}`;
     if (seen.has(key)) {
-      console.log('[MERGE] ⚠️ Duplicado en Firebase detectado y filtrado:', link.label);
+      log('[MERGE] ⚠️ Duplicado en Firebase detectado y filtrado:', link.label);
       return false;
     }
     seen.add(key);
@@ -1170,7 +1184,7 @@ function mergeFirestoreLinks(courseHex, firestoreLinks) {
   
   // ✅ NO re-renderizar si el usuario está interactuando
   if (userInteracting) {
-    console.log('[FIRESTORE] ⏸️ Usuario interactuando, posponer re-render');
+    log('[FIRESTORE] ⏸️ Usuario interactuando, posponer re-render');
     return;
   }
   
@@ -1183,12 +1197,12 @@ function mergeFirestoreLinks(courseHex, firestoreLinks) {
   if (isContentView && window.currentCourseHex === courseHex) {
     // ✅ Evitar re-renderizado si ya se está renderizando
     if (window.isRenderingCourse === courseHex) {
-      console.log('[FIRESTORE] ⏸️ Ya se está renderizando este curso, omitiendo');
+      log('[FIRESTORE] ⏸️ Ya se está renderizando este curso, omitiendo');
       return;
     }
     
     window.isRenderingCourse = courseHex;
-    console.log('[FIRESTORE] ♻️ Re-renderizando curso (vista individual)');
+    log('[FIRESTORE] ♻️ Re-renderizando curso (vista individual)');
     renderCourse(courseHex);
     
     // ✅ Limpiar flag después de un breve delay
@@ -1198,7 +1212,7 @@ function mergeFirestoreLinks(courseHex, firestoreLinks) {
       }
     }, 1000);
   } else if (isMasterView) {
-    console.log('[FIRESTORE] ♻️ Re-renderizando Master grid con nuevos datos');
+    log('[FIRESTORE] ♻️ Re-renderizando Master grid con nuevos datos');
     buildMasterGrid();
   }
 }
@@ -1227,13 +1241,13 @@ window.agregarLinkFirebase = async function(courseHex, label, url) {
       throw new Error('URL inválida. Debe empezar con http:// o https://');
     }
     
-    console.log('[FIRESTORE] ➕ Agregando link a Firebase:', label);
-    console.log('[FIRESTORE] 📍 Curso:', courseHex.substring(0, 10) + '...');
+    log('[FIRESTORE] ➕ Agregando link a Firebase:', label);
+    log('[FIRESTORE] 📍 Curso:', courseHex.substring(0, 10) + '...');
     
     // Referencia a la ruta del curso (Realtime Database)
     const linksRef = db.ref(`courses/${courseHex}/links`);
     
-    console.log('[FIRESTORE] 📤 Enviando datos a Realtime Database...');
+    log('[FIRESTORE] 📤 Enviando datos a Realtime Database...');
     
     // Generar nuevo ID y agregar link
     const newLinkRef = linksRef.push();
@@ -1243,8 +1257,8 @@ window.agregarLinkFirebase = async function(courseHex, label, url) {
       createdAt: firebase.database.ServerValue.TIMESTAMP
     });
     
-    console.log('[FIRESTORE] ✅ Link agregado con ID:', newLinkRef.key);
-    console.log('[FIRESTORE] ⏳ El cambio se detectará automáticamente en todos los dispositivos...');
+    log('[FIRESTORE] ✅ Link agregado con ID:', newLinkRef.key);
+    log('[FIRESTORE] ⏳ El cambio se detectará automáticamente en todos los dispositivos...');
     
     // Mostrar modal de éxito
     if (typeof window.showSuccessModal === 'function') {
@@ -1275,7 +1289,7 @@ window.eliminarLinkFirebase = async function(courseHex, firebaseId) {
   const db = getFirestoreDB();
   
   if (!db) {
-    console.warn('[FIRESTORE] Firebase no configurado');
+    warn('[FIRESTORE] Firebase no configurado');
     return;
   }
 
@@ -1284,13 +1298,13 @@ window.eliminarLinkFirebase = async function(courseHex, firebaseId) {
       throw new Error('No se puede eliminar: link no tiene ID de Firebase');
     }
     
-    console.log('[FIRESTORE] 🗑️ Eliminando link de Firebase:', firebaseId);
+    log('[FIRESTORE] 🗑️ Eliminando link de Firebase:', firebaseId);
     
     // Referencia al link específico (Realtime Database)
     const linkRef = db.ref(`courses/${courseHex}/links/${firebaseId}`);
     await linkRef.remove();
     
-    console.log('[FIRESTORE] ✅ Link eliminado de Firebase');
+    log('[FIRESTORE] ✅ Link eliminado de Firebase');
     
   } catch (error) {
     console.error('[FIRESTORE] ❌ Error eliminando link:', error);
@@ -1298,7 +1312,7 @@ window.eliminarLinkFirebase = async function(courseHex, firebaseId) {
   }
 };
 
-console.log('[FIRESTORE] ✅ Funciones Firebase registradas globalmente');
+log('[FIRESTORE] ✅ Funciones Firebase registradas globalmente');
 
 /* ============ sincronización remota (opcional) ============ */
 const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbztpMUW7wlF_Ikum-sIwGHEVCKblcsGiQhmBaeB-_vJ-uhtSuH9ipd0PjRiBagq8jmM/exec';
@@ -1306,12 +1320,12 @@ function hasRemote(){ return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE_
 function stableStringify(obj){ try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 async function remoteGetFiles(hex){
   if (!hasRemote()) return null;
-  console.log('[GET] Iniciando para hex:', hex.substring(0,8));
+  log('[GET] Iniciando para hex:', hex.substring(0,8));
   
   // Intentar primero con fetch (puede funcionar si el servidor tiene CORS habilitado)
   try {
     const url = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex);
-    console.log('[GET] Intentando fetch directo...');
+    log('[GET] Intentando fetch directo...');
     const response = await fetch(url, {
       method: 'GET',
       mode: 'no-cors', // Intentar con no-cors primero
@@ -1319,19 +1333,19 @@ async function remoteGetFiles(hex){
     });
     
     // Con no-cors no podemos leer la respuesta, así que seguimos con JSONP
-    console.log('[GET] Fetch no-cors enviado, pero no podemos leer respuesta. Intentando JSONP...');
+    log('[GET] Fetch no-cors enviado, pero no podemos leer respuesta. Intentando JSONP...');
   } catch (e) {
-    console.log('[GET] Fetch falló, intentando JSONP...');
+    log('[GET] Fetch falló, intentando JSONP...');
   }
   
   // Usar JSONP como método principal
   try {
     const jsonpResult = await remoteGetFilesJSONP(hex);
     if (jsonpResult && Array.isArray(jsonpResult)) {
-      console.log('[GET] ✅ JSONP éxito - hex:', hex.substring(0,8), 'files:', jsonpResult.length);
+      log('[GET] ✅ JSONP éxito - hex:', hex.substring(0,8), 'files:', jsonpResult.length);
       return jsonpResult;
     } else {
-      console.warn('[GET] ⚠️ JSONP retornó null o no es array');
+      warn('[GET] ⚠️ JSONP retornó null o no es array');
       // Intentar verificar qué está devolviendo el servidor
       await testWebAppResponse(hex);
       return null;
@@ -1345,7 +1359,7 @@ async function remoteGetFiles(hex){
 
 // Función de diagnóstico para ver qué devuelve el WebApp
 async function testWebAppResponse(hex) {
-  console.log('[DIAG] Probando respuesta del WebApp...');
+  log('[DIAG] Probando respuesta del WebApp...');
   // 🛡️ Cache-buster
   const testUrl = REMOTE_BASE_URL 
     + '?hex=' + encodeURIComponent(hex) 
@@ -1355,13 +1369,13 @@ async function testWebAppResponse(hex) {
   // Intentar cargar como imagen para ver si hay redirección
   const img = new Image();
   img.onerror = () => {
-    console.log('[DIAG] La URL no se puede cargar como imagen (esperado para script)');
+    log('[DIAG] La URL no se puede cargar como imagen (esperado para script)');
   };
   img.src = testUrl;
   
   // También mostrar la URL completa para copiar y probar manualmente
-  console.log('[DIAG] URL completa para probar manualmente:', testUrl);
-  console.log('[DIAG] Abre esta URL en tu navegador para ver qué devuelve:', testUrl);
+  log('[DIAG] URL completa para probar manualmente:', testUrl);
+  log('[DIAG] Abre esta URL en tu navegador para ver qué devuelve:', testUrl);
 }
 
 function remoteGetFilesJSONP(hex){
@@ -1376,9 +1390,9 @@ function remoteGetFilesJSONP(hex){
     script.src = url;
     script.async = true;
     
-    console.log('[JSONP] Intentando GET para hex:', hex.substring(0,8));
-    console.log('[JSONP] URL:', url);
-    console.log('[JSONP] Callback name:', callbackName);
+    log('[JSONP] Intentando GET para hex:', hex.substring(0,8));
+    log('[JSONP] URL:', url);
+    log('[JSONP] Callback name:', callbackName);
     
     let resolved = false;
     const cleanup = () => {
@@ -1393,19 +1407,19 @@ function remoteGetFilesJSONP(hex){
     // Crear callback global ANTES de agregar el script
     window[callbackName] = function(data) {
       if (resolved) {
-        console.warn('[JSONP] Callback llamado pero ya resuelto');
+        warn('[JSONP] Callback llamado pero ya resuelto');
         return;
       }
       resolved = true;
       clearTimeout(timeout);
-      console.log('[JSONP] ✅ Callback recibido!', data);
+      log('[JSONP] ✅ Callback recibido!', data);
       
       let files = null;
       if (data && Array.isArray(data.files)) {
         files = data.files;
-        console.log('[JSONP] ✅ Archivos encontrados:', files.length);
+        log('[JSONP] ✅ Archivos encontrados:', files.length);
       } else {
-        console.warn('[JSONP] ⚠️ Respuesta inválida - no hay files array:', data);
+        warn('[JSONP] ⚠️ Respuesta inválida - no hay files array:', data);
       }
       
       cleanup();
@@ -1439,11 +1453,11 @@ function remoteGetFilesJSONP(hex){
     };
     
     script.onload = () => {
-      console.log('[JSONP] Script cargado, esperando callback...');
+      log('[JSONP] Script cargado, esperando callback...');
       // Si después de 2 segundos no se llamó el callback, algo está mal
       setTimeout(() => {
         if (!resolved) {
-          console.warn('[JSONP] ⚠️ Script cargó pero callback no se ejecutó después de 2s');
+          warn('[JSONP] ⚠️ Script cargó pero callback no se ejecutó después de 2s');
         }
       }, 2000);
     };
@@ -1452,14 +1466,14 @@ function remoteGetFilesJSONP(hex){
     const timeout = setTimeout(() => {
       if (resolved) return;
       resolved = true;
-      console.warn('[JSONP] ⚠️ Timeout después de 10s para hex:', hex.substring(0,8));
+      warn('[JSONP] ⚠️ Timeout después de 10s para hex:', hex.substring(0,8));
       cleanup();
       resolve(null);
     }, 10000);
     
     try {
       document.body.appendChild(script);
-      console.log('[JSONP] Script agregado al DOM');
+      log('[JSONP] Script agregado al DOM');
     } catch(e) {
       console.error('[JSONP] Error agregando script:', e);
       cleanup();
@@ -1469,14 +1483,14 @@ function remoteGetFilesJSONP(hex){
 }
 async function remoteSaveFiles(hex, files){
   if (!hasRemote()) {
-    console.warn('[SAVE] ⚠️ No hay remoto configurado');
+    warn('[SAVE] ⚠️ No hay remoto configurado');
     return false;
   }
   try {
     const filesJson = JSON.stringify(Array.isArray(files) ? files : []);
-    console.log('[SAVE] Enviando a remoto - hex:', hex.substring(0,8), 'archivos:', files.length);
-    console.log('[SAVE] Datos a guardar:', filesJson.substring(0, 100) + '...');
-    console.log('[SAVE] URL remoto:', REMOTE_BASE_URL);
+    log('[SAVE] Enviando a remoto - hex:', hex.substring(0,8), 'archivos:', files.length);
+    log('[SAVE] Datos a guardar:', filesJson.substring(0, 100) + '...');
+    log('[SAVE] URL remoto:', REMOTE_BASE_URL);
     
     // ✅ Validar que tenemos los datos necesarios
     if (!hex || !filesJson) {
@@ -1510,9 +1524,9 @@ async function remoteSaveFiles(hex, files){
     form.appendChild(filesInput);
     document.body.appendChild(form);
     
-    console.log('[SAVE] Formulario creado, enviando...');
+    log('[SAVE] Formulario creado, enviando...');
     form.submit();
-    console.log('[SAVE] ✅ Formulario enviado a:', REMOTE_BASE_URL);
+    log('[SAVE] ✅ Formulario enviado a:', REMOTE_BASE_URL);
     
     // Limpiar después de un breve delay
     setTimeout(() => {
@@ -1520,7 +1534,7 @@ async function remoteSaveFiles(hex, files){
         if (form.parentNode) document.body.removeChild(form);
         if (iframe.parentNode) document.body.removeChild(iframe);
       } catch (e) {
-        console.warn('[SAVE] Error limpiando:', e);
+        warn('[SAVE] Error limpiando:', e);
       }
     }, 2000);
     
@@ -1551,7 +1565,7 @@ async function refreshFromRemote(hex, context){
     }
     return false;
   } catch (e) {
-    console.warn('Error en refreshFromRemote:', e);
+    warn('Error en refreshFromRemote:', e);
     return false;
   }
 }
@@ -1559,14 +1573,14 @@ async function refreshFromRemote(hex, context){
 // ===== Sincronización remota de cursos personalizados =====
 async function remoteSaveCourse(hex, courseData){
   if (!hasRemote()) {
-    console.warn('[COURSE SAVE] ⚠️ No hay remoto configurado');
+    warn('[COURSE SAVE] ⚠️ No hay remoto configurado');
     return false;
   }
   try {
     const courseJson = JSON.stringify(courseData);
-    console.log('[COURSE SAVE] Enviando curso a remoto - hex:', hex.substring(0,8));
-    console.log('[COURSE SAVE] Datos del curso:', courseJson.substring(0, 100) + '...');
-    console.log('[COURSE SAVE] URL remoto:', REMOTE_BASE_URL);
+    log('[COURSE SAVE] Enviando curso a remoto - hex:', hex.substring(0,8));
+    log('[COURSE SAVE] Datos del curso:', courseJson.substring(0, 100) + '...');
+    log('[COURSE SAVE] URL remoto:', REMOTE_BASE_URL);
     
     // ✅ Validar que tenemos los datos necesarios
     if (!hex || !courseJson || courseJson === '{}') {
@@ -1599,13 +1613,13 @@ async function remoteSaveCourse(hex, courseData){
     form.appendChild(courseInput);
     document.body.appendChild(form);
     
-    console.log('[COURSE SAVE] Formulario creado, enviando...');
-    console.log('[COURSE SAVE] Hex:', hex);
-    console.log('[COURSE SAVE] Course JSON length:', courseJson.length);
+    log('[COURSE SAVE] Formulario creado, enviando...');
+    log('[COURSE SAVE] Hex:', hex);
+    log('[COURSE SAVE] Course JSON length:', courseJson.length);
     
     // ✅ Enviar formulario
     form.submit();
-    console.log('[COURSE SAVE] ✅ Formulario enviado a:', REMOTE_BASE_URL);
+    log('[COURSE SAVE] ✅ Formulario enviado a:', REMOTE_BASE_URL);
     
     // ✅ Esperar más tiempo para asegurar que el servidor procesó el envío
     // No limpiar inmediatamente para no interrumpir el envío
@@ -1615,9 +1629,9 @@ async function remoteSaveCourse(hex, courseData){
     setTimeout(() => {
       try {
         if (form.parentNode) document.body.removeChild(form);
-        console.log('[COURSE SAVE] Formulario limpiado');
+        log('[COURSE SAVE] Formulario limpiado');
       } catch (e) {
-        console.warn('[COURSE SAVE] Error limpiando formulario:', e);
+        warn('[COURSE SAVE] Error limpiando formulario:', e);
       }
     }, 500);
     
@@ -1625,9 +1639,9 @@ async function remoteSaveCourse(hex, courseData){
     setTimeout(() => {
       try {
         if (iframe.parentNode) document.body.removeChild(iframe);
-        console.log('[COURSE SAVE] Iframe limpiado');
+        log('[COURSE SAVE] Iframe limpiado');
       } catch (e) {
-        console.warn('[COURSE SAVE] Error limpiando iframe:', e);
+        warn('[COURSE SAVE] Error limpiando iframe:', e);
       }
     }, 3000); // 3 segundos total
     
@@ -1641,7 +1655,7 @@ async function remoteSaveCourse(hex, courseData){
 async function remoteDeleteCourse(hex){
   if (!hasRemote()) return false;
   try {
-    console.log('[COURSE DELETE] Eliminando curso remoto - hex:', hex.substring(0,8));
+    log('[COURSE DELETE] Eliminando curso remoto - hex:', hex.substring(0,8));
     
     const iframe = document.createElement('iframe');
     iframe.name = 'hiddenFrameCourseDel';
@@ -1668,7 +1682,7 @@ async function remoteDeleteCourse(hex){
     document.body.appendChild(form);
     
     form.submit();
-    console.log('[COURSE DELETE] ✅ Formulario de eliminación enviado a:', REMOTE_BASE_URL);
+    log('[COURSE DELETE] ✅ Formulario de eliminación enviado a:', REMOTE_BASE_URL);
     
     // ✅ Limpiar formulario después de enviar
     setTimeout(() => {
@@ -1676,20 +1690,20 @@ async function remoteDeleteCourse(hex){
         if (form.parentNode) document.body.removeChild(form);
         if (iframe.parentNode) document.body.removeChild(iframe);
       } catch (e) {
-        console.warn('[COURSE DELETE] Error limpiando formulario:', e);
+        warn('[COURSE DELETE] Error limpiando formulario:', e);
       }
       
       // ✅ Forzar refresh inmediato para que otros dispositivos vean el cambio
-      console.log('[COURSE DELETE] Iniciando refresh para sincronizar eliminación...');
+      log('[COURSE DELETE] Iniciando refresh para sincronizar eliminación...');
       const refreshAttempts = [500, 1000, 2000, 4000];
       refreshAttempts.forEach((delay, index) => {
         setTimeout(async () => {
-          console.log(`[COURSE DELETE] Refrescando después de eliminar (intento ${index + 1}/${refreshAttempts.length} - ${delay}ms)...`);
+          log(`[COURSE DELETE] Refrescando después de eliminar (intento ${index + 1}/${refreshAttempts.length} - ${delay}ms)...`);
           try {
             await refreshCustomCourses();
-            console.log('[COURSE DELETE] ✅ Refresh completado');
+            log('[COURSE DELETE] ✅ Refresh completado');
           } catch (e) {
-            console.warn('[COURSE DELETE] Error en refresh:', e);
+            warn('[COURSE DELETE] Error en refresh:', e);
           }
         }, delay);
       });
@@ -1705,7 +1719,7 @@ async function remoteDeleteCourse(hex){
 async function remoteDeleteFiles(hex){
   if (!hasRemote()) return false;
   try {
-    console.log('[FILES DELETE] Eliminando links de la hoja de overrides - hex:', hex.substring(0,8));
+    log('[FILES DELETE] Eliminando links de la hoja de overrides - hex:', hex.substring(0,8));
     
     const iframe = document.createElement('iframe');
     iframe.name = 'hiddenFrameFilesDel_' + Date.now();
@@ -1732,7 +1746,7 @@ async function remoteDeleteFiles(hex){
     document.body.appendChild(form);
     
     form.submit();
-    console.log('[FILES DELETE] ✅ Formulario de eliminación de links enviado a:', REMOTE_BASE_URL);
+    log('[FILES DELETE] ✅ Formulario de eliminación de links enviado a:', REMOTE_BASE_URL);
     
     // ✅ Limpiar formulario después de enviar
     setTimeout(() => {
@@ -1740,7 +1754,7 @@ async function remoteDeleteFiles(hex){
         if (form.parentNode) document.body.removeChild(form);
         if (iframe.parentNode) document.body.removeChild(iframe);
       } catch (e) {
-        console.warn('[FILES DELETE] Error limpiando formulario:', e);
+        warn('[FILES DELETE] Error limpiando formulario:', e);
       }
     }, 2000);
     
@@ -1754,7 +1768,7 @@ async function remoteDeleteFiles(hex){
 async function remoteGetCourses(){
   if (!hasRemote()) return {};
   try {
-    console.log('[COURSE GET] Obteniendo cursos remotos...');
+    log('[COURSE GET] Obteniendo cursos remotos...');
     
     return new Promise((resolve) => {
       const callbackName = '_gas_jsonp_courses_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -1785,9 +1799,9 @@ async function remoteGetCourses(){
         let courses = {};
         if (data && typeof data.courses === 'object') {
           courses = data.courses;
-          console.log('[COURSE GET] ✅ Cursos remotos obtenidos:', Object.keys(courses).length);
+          log('[COURSE GET] ✅ Cursos remotos obtenidos:', Object.keys(courses).length);
         } else {
-          console.warn('[COURSE GET] ⚠️ Datos recibidos no tienen formato esperado:', data);
+          warn('[COURSE GET] ⚠️ Datos recibidos no tienen formato esperado:', data);
         }
         
         cleanup();
@@ -1797,7 +1811,7 @@ async function remoteGetCourses(){
       const timeout = setTimeout(() => {
         if (resolved) return;
         resolved = true;
-        console.warn('[COURSE GET] ⚠️ Timeout después de 10s');
+        warn('[COURSE GET] ⚠️ Timeout después de 10s');
         cleanup();
         resolve({});
       }, 10000);
@@ -1812,8 +1826,8 @@ async function remoteGetCourses(){
       };
       
       // ✅ Agregar script DESPUÉS de registrar callback
-      console.log('[COURSE GET] Callback registrado:', callbackName);
-      console.log('[COURSE GET] URL completa:', script.src);
+      log('[COURSE GET] Callback registrado:', callbackName);
+      log('[COURSE GET] URL completa:', script.src);
       document.body.appendChild(script);
     });
   } catch (e) {
@@ -1827,22 +1841,22 @@ async function refreshCustomCourses(){
   const syncStart = startPerformanceMeasure('Sincronización');
   
   if (getFirestoreDB()) {
-    console.log('[REFRESH] Firebase maneja cursos personalizados en tiempo real, sin usar JSONP');
+    log('[REFRESH] Firebase maneja cursos personalizados en tiempo real, sin usar JSONP');
     endPerformanceMeasure('Sincronización', syncStart, { metodo: 'Firebase' });
     return false;
   }
   if (!hasRemote()) {
-    console.log('[REFRESH] Sin remoto, saltando...');
+    log('[REFRESH] Sin remoto, saltando...');
     endPerformanceMeasure('Sincronización', syncStart, { metodo: 'Sin remoto' });
     return false;
   }
   try {
-    console.log('[REFRESH] Obteniendo cursos personalizados remotos...');
+    log('[REFRESH] Obteniendo cursos personalizados remotos...');
     
     // ✅ Timeout de 10 segundos (Google Apps Script puede ser lento en primera carga)
     const timeoutPromise = new Promise((resolve) => {
       setTimeout(() => {
-        console.warn('[REFRESH] ⚠️ Timeout obteniendo cursos remotos después de 10s (continuando con cursos base)');
+        warn('[REFRESH] ⚠️ Timeout obteniendo cursos remotos después de 10s (continuando con cursos base)');
         resolve({});
       }, 10000); // 10 segundos para dar tiempo a Google Apps Script
     });
@@ -1850,20 +1864,20 @@ async function refreshCustomCourses(){
     const remoteCoursesPromise = remoteGetCourses();
     const remoteCourses = await Promise.race([remoteCoursesPromise, timeoutPromise]);
     
-    console.log('[REFRESH] Cursos remotos obtenidos:', Object.keys(remoteCourses || {}).length);
+    log('[REFRESH] Cursos remotos obtenidos:', Object.keys(remoteCourses || {}).length);
     
     // ✅ Remoto es la fuente de verdad - sobrescribir completamente
     let localCourses = {};
     try {
       localCourses = loadCustomCourses();
     } catch (e) {
-      console.warn('[REFRESH] Error cargando cursos locales (modo incógnito?):', e);
+      warn('[REFRESH] Error cargando cursos locales (modo incógnito?):', e);
       localCourses = {};
     }
     
     const remoteKeys = Object.keys(remoteCourses || {});
     
-    console.log('[REFRESH] Comparación - Remoto:', remoteKeys.length, 'Local:', Object.keys(localCourses).length);
+    log('[REFRESH] Comparación - Remoto:', remoteKeys.length, 'Local:', Object.keys(localCourses).length);
     
     // Detectar cambios antes de guardar
     const hadChanges = JSON.stringify(localCourses) !== JSON.stringify(remoteCourses || {});
@@ -1872,32 +1886,32 @@ async function refreshCustomCourses(){
     // ✅ Manejar error de localStorage silenciosamente
     try {
       saveCustomCourses(remoteCourses || {});
-      console.log('[REFRESH] ✅ Cursos sincronizados');
+      log('[REFRESH] ✅ Cursos sincronizados');
     } catch (e) {
-      console.warn('[REFRESH] ⚠️ No se pudieron guardar cursos (modo incógnito?), continuando...', e);
+      warn('[REFRESH] ⚠️ No se pudieron guardar cursos (modo incógnito?), continuando...', e);
     }
     
     // ✅ IMPORTANTE: Refrescar archivos SOLO del curso actual si es personalizado
     // No refrescar todos los cursos personalizados para evitar lentitud
     // El refresh periódico se encargará de refrescar todos cada 3 segundos
     if (currentKeyHex && remoteCourses && remoteCourses[currentKeyHex]) {
-      console.log('[REFRESH] Curso actual es personalizado, refrescando sus archivos...');
+      log('[REFRESH] Curso actual es personalizado, refrescando sus archivos...');
       refreshFromRemoteSilent(currentKeyHex).then(updated => {
         if (updated) {
-          console.log('[REFRESH] ✅ Archivos del curso actual actualizados');
+          log('[REFRESH] ✅ Archivos del curso actual actualizados');
           // Solo actualizar vista si estamos viendo ese curso
           if (document.getElementById('content') && !document.getElementById('content').classList.contains('hidden')) {
             renderCourse(currentKeyHex);
           }
         }
       }).catch(e => {
-        console.warn('[REFRESH] Error refrescando archivos del curso actual:', e);
+        warn('[REFRESH] Error refrescando archivos del curso actual:', e);
       });
     }
     
     // Si estamos en vista master, reconstruir SOLO si hubo cambios
     if (hadChanges && document.getElementById('master') && !document.getElementById('master').classList.contains('hidden')) {
-      console.log('[REFRESH] ✅ Cambios detectados, reconstruyendo Vista Maestra...');
+      log('[REFRESH] ✅ Cambios detectados, reconstruyendo Vista Maestra...');
       buildMasterGrid();
     }
     
@@ -1927,7 +1941,7 @@ async function refreshCustomCourses(){
 function exportOverrides(){
   // ✅ PREVENIR MÚLTIPLES EJECUCIONES: Verificar si ya se está exportando
   if (window._isExporting) {
-    console.warn('[EXPORT] Ya hay una exportación en curso, ignorando...');
+    warn('[EXPORT] Ya hay una exportación en curso, ignorando...');
     if (typeof window.showToast === 'function') {
       window.showToast('warning', 'Exportación en curso', 'Por favor espera a que termine la exportación actual.');
     }
@@ -2014,7 +2028,7 @@ async function importOverridesFromFile(file){
         }
       });
       saveCustomCourses(custom);
-      console.log('[IMPORT] ✅ Cursos importados:', coursesCount);
+      log('[IMPORT] ✅ Cursos importados:', coursesCount);
     }
     
     // Importar overrides (links personalizados) - Compatible con versión 1
@@ -2025,7 +2039,7 @@ async function importOverridesFromFile(file){
           overridesCount++; 
         }
       });
-      console.log('[IMPORT] ✅ Overrides importados:', overridesCount);
+      log('[IMPORT] ✅ Overrides importados:', overridesCount);
     }
     
     // Reconstruir grid
@@ -2041,7 +2055,7 @@ async function importOverridesFromFile(file){
     
     // Sincronizar con Firebase si está disponible
     if (getFirestoreDB()) {
-      console.log('[IMPORT] 🔄 Sincronizando cursos importados con Firebase...');
+      log('[IMPORT] 🔄 Sincronizando cursos importados con Firebase...');
       // Los cursos se sincronizarán automáticamente con Firebase
     }
   } catch (e) {
@@ -2092,7 +2106,7 @@ function startPerformanceMeasure(operation) {
 function endPerformanceMeasure(operation, startTime = null, extraData = {}) {
   const start = startTime || performanceMetrics[operation];
   if (!start) {
-    console.warn(`[PERFORMANCE] ⚠️ No se encontró tiempo de inicio para: ${operation}`);
+    warn(`[PERFORMANCE] ⚠️ No se encontró tiempo de inicio para: ${operation}`);
     return;
   }
   
@@ -2109,7 +2123,7 @@ function endPerformanceMeasure(operation, startTime = null, extraData = {}) {
     message += ` (${extra})`;
   }
   
-  console.log(message);
+  log(message);
   
   // Limpiar el tiempo almacenado
   delete performanceMetrics[operation];
@@ -2123,7 +2137,7 @@ function endPerformanceMeasure(operation, startTime = null, extraData = {}) {
  * @param {*} value - Valor a registrar
  */
 function logPerformanceMetric(label, value) {
-  console.log(`[PERFORMANCE] 📊 ${label}: ${value}`);
+  log(`[PERFORMANCE] 📊 ${label}: ${value}`);
 }
 
 // ✅ Exponer funciones globalmente para debugging
@@ -2212,12 +2226,12 @@ function trackError(error, context = {}, fatal = false) {
           error_context: JSON.stringify(fullContext).substring(0, 500) // Limitar tamaño
         });
       } catch (analyticsError) {
-        console.warn('[ERROR TRACKER] No se pudo enviar a Analytics:', analyticsError);
+        warn('[ERROR TRACKER] No se pudo enviar a Analytics:', analyticsError);
       }
     }
     
     // 5. Log adicional para debugging
-    console.log(`[ERROR TRACKER] 📊 Total de errores ${errorType}: ${errorStats[errorType]}`);
+    log(`[ERROR TRACKER] 📊 Total de errores ${errorType}: ${errorStats[errorType]}`);
     
   } catch (trackingError) {
     // Fallback si el tracking mismo falla
@@ -2255,7 +2269,7 @@ function getErrorStats() {
     fatal: errorLog.filter(e => e.fatal).length
   };
   
-  console.log('[ERROR STATS] 📊 Estadísticas de errores:', stats);
+  log('[ERROR STATS] 📊 Estadísticas de errores:', stats);
   return stats;
 }
 
@@ -2265,7 +2279,7 @@ function getErrorStats() {
 function clearErrorLog() {
   errorLog.length = 0;
   Object.keys(errorStats).forEach(key => delete errorStats[key]);
-  console.log('[ERROR TRACKER] ✅ Log de errores limpiado');
+  log('[ERROR TRACKER] ✅ Log de errores limpiado');
 }
 
 // ✅ Captura global de errores no manejados
@@ -2295,7 +2309,7 @@ window.trackError = trackError;
 window.getErrorStats = getErrorStats;
 window.clearErrorLog = clearErrorLog;
 
-console.log('[ERROR TRACKER] ✅ Sistema de tracking de errores inicializado');
+log('[ERROR TRACKER] ✅ Sistema de tracking de errores inicializado');
 
 /* ===================== INDICADORES DE CARGA EN BOTONES ===================== */
 
@@ -2363,7 +2377,7 @@ function getTheme() {
     const saved = localStorage.getItem('edusalud-theme');
     return saved === 'light' ? 'light' : 'dark';
   } catch (e) {
-    console.warn('[THEME] Error obteniendo tema:', e);
+    warn('[THEME] Error obteniendo tema:', e);
     return 'dark';
   }
 }
@@ -2375,9 +2389,9 @@ function getTheme() {
 function saveTheme(theme) {
   try {
     localStorage.setItem('edusalud-theme', theme);
-    console.log('[THEME] ✅ Tema guardado:', theme);
+    log('[THEME] ✅ Tema guardado:', theme);
   } catch (e) {
-    console.warn('[THEME] Error guardando tema:', e);
+    warn('[THEME] Error guardando tema:', e);
   }
 }
 
@@ -2392,7 +2406,7 @@ function applyTheme(theme) {
   } else {
     root.removeAttribute('data-theme');
   }
-  console.log('[THEME] ✅ Tema aplicado:', theme);
+  log('[THEME] ✅ Tema aplicado:', theme);
 }
 
 /**
@@ -2462,7 +2476,7 @@ function initTheme() {
   const theme = getTheme();
   applyTheme(theme);
   updateThemeToggleUI(theme);
-  console.log('[THEME] ✅ Tema inicializado:', theme);
+  log('[THEME] ✅ Tema inicializado:', theme);
 }
 
 // ✅ Exponer funciones globalmente para debugging
@@ -2476,13 +2490,13 @@ function setupSettingsMenu() {
   const dropdown = document.getElementById('settingsDropdown');
   
   if (!btnSettings || !dropdown) {
-    console.warn('[SETTINGS] Botón de ajustes o dropdown no encontrado');
+    warn('[SETTINGS] Botón de ajustes o dropdown no encontrado');
     return;
   }
   
   // ✅ PREVENIR MÚLTIPLES REGISTROS: Verificar si ya está configurado
   if (btnSettings.dataset.settingsConfigured === 'true') {
-    console.log('[SETTINGS] Menú ya configurado, saltando...');
+    log('[SETTINGS] Menú ya configurado, saltando...');
     return;
   }
   
@@ -2693,7 +2707,7 @@ function setupSettingsMenu() {
   const currentTheme = getTheme();
   updateThemeToggleUI(currentTheme);
   
-  console.log('[SETTINGS] ✅ Menú de ajustes configurado correctamente');
+  log('[SETTINGS] ✅ Menú de ajustes configurado correctamente');
 }
 
 // ✅ Función para configurar el menú de ajustes en la vista de consultores
@@ -2702,13 +2716,13 @@ function setupSettingsMenuContent() {
   const dropdown = document.getElementById('settingsDropdownContent');
   
   if (!btnSettings || !dropdown) {
-    console.warn('[SETTINGS CONTENT] Botón de ajustes o dropdown no encontrado');
+    warn('[SETTINGS CONTENT] Botón de ajustes o dropdown no encontrado');
     return;
   }
   
   // ✅ PREVENIR MÚLTIPLES REGISTROS: Verificar si ya está configurado
   if (btnSettings.dataset.settingsConfigured === 'true') {
-    console.log('[SETTINGS CONTENT] Menú ya configurado, saltando...');
+    log('[SETTINGS CONTENT] Menú ya configurado, saltando...');
     return;
   }
   
@@ -2813,7 +2827,7 @@ function setupSettingsMenuContent() {
   const currentTheme = getTheme();
   updateThemeToggleUI(currentTheme);
   
-  console.log('[SETTINGS CONTENT] ✅ Menú de ajustes de consultores configurado correctamente');
+  log('[SETTINGS CONTENT] ✅ Menú de ajustes de consultores configurado correctamente');
 }
 
 // ✅ Función para exportar filtrado por tipo
@@ -2821,7 +2835,7 @@ function showExportFilterModal() {
   // ✅ PREVENIR MÚLTIPLES MODALES: Verificar si ya hay un modal abierto
   const existingModal = document.getElementById('exportFilterModal');
   if (existingModal) {
-    console.warn('[EXPORT FILTER] Ya hay un modal de exportación abierto');
+    warn('[EXPORT FILTER] Ya hay un modal de exportación abierto');
     return;
   }
   
@@ -2861,7 +2875,7 @@ function showExportFilterModal() {
 function exportFilteredByType() {
   // ✅ PREVENIR MÚLTIPLES EJECUCIONES
   if (window._isExporting) {
-    console.warn('[EXPORT FILTER] Ya hay una exportación en curso, ignorando...');
+    warn('[EXPORT FILTER] Ya hay una exportación en curso, ignorando...');
     if (typeof window.showToast === 'function') {
       window.showToast('warning', 'Exportación en curso', 'Por favor espera a que termine la exportación actual.');
     }
@@ -2934,13 +2948,13 @@ async function showImportPreview(file) {
   // ✅ PREVENIR MÚLTIPLES MODALES: Verificar si ya hay un modal de preview abierto
   const existingModal = document.getElementById('importPreviewModal');
   if (existingModal) {
-    console.warn('[IMPORT] Ya hay un modal de preview abierto, cerrando el anterior...');
+    warn('[IMPORT] Ya hay un modal de preview abierto, cerrando el anterior...');
     existingModal.remove();
   }
   
   // ✅ Verificar si ya se está procesando una importación
   if (window._isImporting) {
-    console.warn('[IMPORT] Ya hay una importación en curso, ignorando...');
+    warn('[IMPORT] Ya hay una importación en curso, ignorando...');
     if (typeof window.showToast === 'function') {
       window.showToast('warning', 'Importación en curso', 'Por favor espera a que termine la importación actual.');
     }
@@ -3006,7 +3020,7 @@ async function showImportPreview(file) {
 function confirmImportBackup() {
   // ✅ PREVENIR MÚLTIPLES EJECUCIONES
   if (window._isImporting) {
-    console.warn('[IMPORT] Ya hay una importación en curso, ignorando...');
+    warn('[IMPORT] Ya hay una importación en curso, ignorando...');
     if (typeof window.showToast === 'function') {
       window.showToast('warning', 'Importación en curso', 'Por favor espera a que termine la importación actual.');
     }
@@ -3112,7 +3126,7 @@ async function importOverridesFromFileData(data) {
             updatedAt: Date.now()
           };
           
-          console.log('[IMPORT] 📤 Guardando curso:', hex.substring(0, 8), '- Título:', normalizedCourse.title);
+          log('[IMPORT] 📤 Guardando curso:', hex.substring(0, 8), '- Título:', normalizedCourse.title);
           
           // ✅ Guardar en Firebase
           if (db) {
@@ -3123,19 +3137,19 @@ async function importOverridesFromFileData(data) {
                 updatedAt: firebase.database.ServerValue.TIMESTAMP
               };
               await db.ref(`customCourses/${hex}`).set(firebasePayload);
-              console.log('[IMPORT] ✅ Curso guardado en Firebase:', hex.substring(0, 8));
+              log('[IMPORT] ✅ Curso guardado en Firebase:', hex.substring(0, 8));
             } catch (firebaseError) {
               console.error('[IMPORT] ❌ Error guardando curso en Firebase:', hex.substring(0, 8), firebaseError);
             }
           }
           
           // ✅ Guardar en Google Sheets (esperar a que termine antes de continuar)
-          console.log('[IMPORT] 📤 Enviando curso a Google Sheets:', hex.substring(0, 8));
+          log('[IMPORT] 📤 Enviando curso a Google Sheets:', hex.substring(0, 8));
           const saveResult = await remoteSaveCourse(hex, normalizedCourse);
           if (saveResult) {
-            console.log('[IMPORT] ✅ Curso guardado en Google Sheets:', hex.substring(0, 8));
+            log('[IMPORT] ✅ Curso guardado en Google Sheets:', hex.substring(0, 8));
           } else {
-            console.warn('[IMPORT] ⚠️ No se pudo guardar curso en Google Sheets:', hex.substring(0, 8));
+            warn('[IMPORT] ⚠️ No se pudo guardar curso en Google Sheets:', hex.substring(0, 8));
           }
           
           // ✅ Esperar un poco entre cada curso para no saturar el servidor
@@ -3185,7 +3199,7 @@ function showBackupHistory() {
   // ✅ PREVENIR MÚLTIPLES MODALES: Verificar si ya hay un modal de historial abierto
   const existingModal = document.getElementById('backupHistoryModal');
   if (existingModal) {
-    console.warn('[BACKUP HISTORY] Ya hay un modal de historial abierto');
+    warn('[BACKUP HISTORY] Ya hay un modal de historial abierto');
     return;
   }
   
@@ -3247,9 +3261,9 @@ function logBackupHistory(action, filterType, coursesCount) {
     });
     history = history.slice(0, 50); // Mantener solo los últimos 50
     localStorage.setItem('backupHistory', JSON.stringify(history));
-    console.log('[BACKUP HISTORY] ✅ Registrado:', action, filterType, coursesCount, 'cursos');
+    log('[BACKUP HISTORY] ✅ Registrado:', action, filterType, coursesCount, 'cursos');
   } catch (e) {
-    console.warn('[BACKUP HISTORY] ⚠️ Error guardando historial:', e);
+    warn('[BACKUP HISTORY] ⚠️ Error guardando historial:', e);
   }
 }
 
@@ -3257,7 +3271,7 @@ function getBackupHistory() {
   try {
     return JSON.parse(localStorage.getItem('backupHistory') || '[]');
   } catch (e) {
-    console.warn('[BACKUP HISTORY] ⚠️ Error leyendo historial:', e);
+    warn('[BACKUP HISTORY] ⚠️ Error leyendo historial:', e);
     return [];
   }
 }
@@ -3320,16 +3334,16 @@ function startPeriodicRefresh(currentHex = null) {
   
   // ✅ Debug: verificar hasRemote
   const remoteAvailable = hasRemote();
-  console.log('[PERIODIC] hasRemote():', remoteAvailable);
-  console.log('[PERIODIC] REMOTE_BASE_URL:', typeof REMOTE_BASE_URL !== 'undefined' ? REMOTE_BASE_URL : 'UNDEFINED');
+  log('[PERIODIC] hasRemote():', remoteAvailable);
+  log('[PERIODIC] REMOTE_BASE_URL:', typeof REMOTE_BASE_URL !== 'undefined' ? REMOTE_BASE_URL : 'UNDEFINED');
   
   if (!remoteAvailable) {
-    console.warn('[PERIODIC] ⚠️ No se puede iniciar: REMOTE_BASE_URL no disponible');
+    warn('[PERIODIC] ⚠️ No se puede iniciar: REMOTE_BASE_URL no disponible');
     return;
   }
 
-  console.log('[PERIODIC] 🔄 Iniciando refresh AUTOMÁTICO cada', PERIODIC_REFRESH_INTERVAL_MS / 1000, 'segundos');
-  console.log('[PERIODIC] 💡 Los cambios aparecerán AUTOMÁTICAMENTE sin refrescar');
+  log('[PERIODIC] 🔄 Iniciando refresh AUTOMÁTICO cada', PERIODIC_REFRESH_INTERVAL_MS / 1000, 'segundos');
+  log('[PERIODIC] 💡 Los cambios aparecerán AUTOMÁTICAMENTE sin refrescar');
 
   const runRefresh = async () => {
     try {
@@ -3345,7 +3359,7 @@ function startPeriodicRefresh(currentHex = null) {
       const hasEditFormOpen = isInputFocused && activeElement.closest('[data-edit-form]') !== null;
 
       if (isInputFocused && hasEditFormOpen) {
-        console.log('[PERIODIC] ⏸️ Pausado: usuario escribiendo en formulario');
+        log('[PERIODIC] ⏸️ Pausado: usuario escribiendo en formulario');
         return;
       }
 
@@ -3353,11 +3367,11 @@ function startPeriodicRefresh(currentHex = null) {
       if (!currentHex || currentHex === MASTER_HASH) {
         const mergedMap = getMergedAccessHashMap();
         const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
-        console.log('[PERIODIC] Total cursos a refrescar (base + personalizados):', hexes.length);
+        log('[PERIODIC] Total cursos a refrescar (base + personalizados):', hexes.length);
 
         const results = await Promise.allSettled(
           hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
-            console.warn('[PERIODIC] Error refrescando', h.substring(0, 8), ':', e);
+            warn('[PERIODIC] Error refrescando', h.substring(0, 8), ':', e);
             return false;
           }))
         );
@@ -3368,39 +3382,39 @@ function startPeriodicRefresh(currentHex = null) {
         // ✅ NO actualizar la vista automáticamente para no interrumpir al usuario
         // El botón amarillo le avisará que hay cambios, y puede sincronizar manualmente
         if (anyUpdated) {
-          console.log('[PERIODIC] ✅ Cambios detectados (botón se pondrá amarillo)');
+          log('[PERIODIC] ✅ Cambios detectados (botón se pondrá amarillo)');
         }
         
         // ✅ Actualizar botón flotante (siempre, incluso cuando NO hay cambios)
         if (typeof window.updateSyncButtonState === 'function') {
-          console.log('[PERIODIC-MASTER] 🔔 Actualizando botón:', anyUpdated ? 'AMARILLO (cambios)' : 'AZUL (sin cambios)');
+          log('[PERIODIC-MASTER] 🔔 Actualizando botón:', anyUpdated ? 'AMARILLO (cambios)' : 'AZUL (sin cambios)');
           window.updateSyncButtonState(anyUpdated);
         } else {
-          console.warn('[PERIODIC-MASTER] ⚠️ updateSyncButtonState no disponible');
+          warn('[PERIODIC-MASTER] ⚠️ updateSyncButtonState no disponible');
         }
       } else if (currentHex) {
         const mergedMap = getMergedAccessHashMap();
         if (mergedMap[currentHex]) {
           const updated = await refreshFromRemoteSilent(currentHex).catch(e => {
-            console.warn('[PERIODIC] Error refrescando archivos:', e);
+            warn('[PERIODIC] Error refrescando archivos:', e);
             return false;
           });
 
           // ✅ NO actualizar la vista automáticamente para no interrumpir al usuario
           // El botón amarillo le avisará que hay cambios, y puede sincronizar manualmente
           if (updated) {
-            console.log('[PERIODIC] ✅ Cambios detectados (botón se pondrá amarillo)');
+            log('[PERIODIC] ✅ Cambios detectados (botón se pondrá amarillo)');
           }
           
           // ✅ Actualizar botón flotante
           if (typeof window.updateSyncButtonState === 'function') {
-            console.log('[PERIODIC-CURSO] 🔔 Actualizando botón:', updated ? 'AMARILLO (cambios)' : 'AZUL (sin cambios)');
+            log('[PERIODIC-CURSO] 🔔 Actualizando botón:', updated ? 'AMARILLO (cambios)' : 'AZUL (sin cambios)');
             window.updateSyncButtonState(updated);
           } else {
-            console.warn('[PERIODIC-CURSO] ⚠️ updateSyncButtonState no disponible');
+            warn('[PERIODIC-CURSO] ⚠️ updateSyncButtonState no disponible');
           }
         } else {
-          console.warn('[PERIODIC] ⚠️ Hex no encontrado en mergedMap:', currentHex.substring(0, 8));
+          warn('[PERIODIC] ⚠️ Hex no encontrado en mergedMap:', currentHex.substring(0, 8));
         }
       }
     } catch (e) {
@@ -3414,7 +3428,7 @@ function startPeriodicRefresh(currentHex = null) {
 
 function stopPeriodicRefresh() {
   if (periodicRefreshInterval) {
-    console.log('[PERIODIC] Deteniendo refresh periódico');
+    log('[PERIODIC] Deteniendo refresh periódico');
     clearInterval(periodicRefreshInterval);
     periodicRefreshInterval = null;
   }
@@ -3506,15 +3520,15 @@ function showMaster() {
       const hasEditFormOpen = document.querySelector('[data-edit-form]') !== null;
       
       if (isInputFocused || hasEditFormOpen) {
-        console.log('[SYNC] ⏭️ Saltando refresh inmediato: usuario escribiendo o editando');
+        log('[SYNC] ⏭️ Saltando refresh inmediato: usuario escribiendo o editando');
         return;
       }
       
-      console.log('[SYNC] Refresh inmediato adicional al mostrar master...');
+      log('[SYNC] Refresh inmediato adicional al mostrar master...');
       const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== MASTER_HASH);
       const results = await Promise.allSettled(
         hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
-          console.warn('[SYNC] Error en refresh inmediato:', e);
+          warn('[SYNC] Error en refresh inmediato:', e);
           return false;
         }))
       );
@@ -3526,7 +3540,7 @@ function showMaster() {
       await refreshCustomCourses();
       
       if (anyUpdated) {
-        console.log('[SYNC] ✅ Cambios detectados en refresh inmediato, actualizando...');
+        log('[SYNC] ✅ Cambios detectados en refresh inmediato, actualizando...');
         buildMasterGrid();
       }
     }, 500); // Esperar 500ms después de mostrar para no bloquear
@@ -3619,9 +3633,9 @@ function renderCourse(keyHex) {
       }
     }
     
-    console.log('[RENDER COURSE] ✅ Badge de clasificación agregado:', typeLabel);
+    log('[RENDER COURSE] ✅ Badge de clasificación agregado:', typeLabel);
   } else {
-    console.warn('[RENDER COURSE] ⚠️ No se encontró el contenedor del título');
+    warn('[RENDER COURSE] ⚠️ No se encontró el contenedor del título');
   }
   
   // ✅ Actualizar título y meta
@@ -3643,7 +3657,7 @@ function renderCourse(keyHex) {
   const uniqueFiles = (files || []).filter(item => {
     const key = item.firebaseId || `${item.url}|||${item.label}`;
     if (seen.has(key)) {
-      console.log('[RENDER] ⚠️ Duplicado filtrado al renderizar:', item.label);
+      log('[RENDER] ⚠️ Duplicado filtrado al renderizar:', item.label);
       return false;
     }
     seen.add(key);
@@ -3685,7 +3699,7 @@ function renderCourse(keyHex) {
         window.setCardImage(wrapper, `${data.card.img}?v=2`);
       }
     }
-  } catch (e) { console.warn('No se pudo insertar la tarjeta:', e); }
+  } catch (e) { warn('No se pudo insertar la tarjeta:', e); }
   
   // ❌ NO iniciar polling automático (el usuario sincroniza manualmente con el botón)
   // startPeriodicRefresh(keyHex);
@@ -3801,7 +3815,7 @@ function buildUserGrid() {
       
       if (hasRemote()) {
         await refreshFromRemoteSilent(hex).catch(e => {
-          console.warn('[SYNC] Error en refresh:', e);
+          warn('[SYNC] Error en refresh:', e);
           return false;
         });
       }
@@ -3854,7 +3868,7 @@ function buildMasterGrid() {
     coursesArray = coursesArray.filter(([hex]) => {
       return window.allowedCoursesForUser.includes(hex);
     });
-    console.log('[MASTER] Filtrando cursos para email:', window.currentUserEmail, '- Cursos permitidos:', coursesArray.length);
+    log('[MASTER] Filtrando cursos para email:', window.currentUserEmail, '- Cursos permitidos:', coursesArray.length);
   }
   
   // ✅ Aplicar filtro por tipo
@@ -4013,12 +4027,12 @@ function buildMasterGrid() {
       
       // ✅ NUEVO: Esperar a que termine el refresh ANTES de cerrar el loader
       if (hasRemote()) {
-        console.log('[SYNC] Iniciando refresh antes del loader...');
+        log('[SYNC] Iniciando refresh antes del loader...');
         await refreshFromRemoteSilent(hex).catch(e => {
-          console.warn('[SYNC] Error en refresh:', e);
+          warn('[SYNC] Error en refresh:', e);
           return false;
         });
-        console.log('[SYNC] ✅ Refresh completado, cerrando loader...');
+        log('[SYNC] ✅ Refresh completado, cerrando loader...');
       }
       
       // Ejecutar animación de loader ahora que ya tenemos los datos
@@ -4220,7 +4234,7 @@ function buildMasterGrid() {
             restoreButton = setButtonLoading(confirmBtn, 'Eliminando curso...', 'Curso eliminado');
           }
           
-          console.log('[DELETE] Eliminando curso:', data.title);
+          log('[DELETE] Eliminando curso:', data.title);
           
           // ✅ Bloquear re-renders durante la eliminación
           userInteracting = true;
@@ -4234,9 +4248,9 @@ function buildMasterGrid() {
             // Solo hacer refresh si Firebase no está disponible
             const db = getFirestoreDB();
             if (!db) {
-              console.log('[DELETE] Firebase no disponible, usando refresh manual');
+              log('[DELETE] Firebase no disponible, usando refresh manual');
               await refreshCustomCourses().catch(e => {
-                console.warn('[DELETE] Error refrescando cursos después de eliminar (fallback):', e);
+                warn('[DELETE] Error refrescando cursos después de eliminar (fallback):', e);
               });
             }
             
@@ -4250,7 +4264,7 @@ function buildMasterGrid() {
             buildMasterGrid();
             // ✅ Actualizar estadísticas después de eliminar
             setTimeout(() => updateMasterStats(), 100);
-            console.log('[DELETE] ✅ Curso eliminado exitosamente');
+            log('[DELETE] ✅ Curso eliminado exitosamente');
             
             // Cerrar modal
             const deleteModal = document.getElementById('deleteConfirmModal');
@@ -4370,7 +4384,7 @@ function buildMasterGrid() {
           saveFilesOverride(hex, next);
           
           // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
-          console.log('[EDIT] ✏️ Actualizando vista inmediatamente');
+          log('[EDIT] ✏️ Actualizando vista inmediatamente');
           const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
           if (isMasterView) {
             buildMasterGrid();
@@ -4381,11 +4395,11 @@ function buildMasterGrid() {
           // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
           remoteSaveFiles(hex, next).then(editOk => {
             if (editOk) {
-              console.log('[EDIT] ✅ Guardado en remoto exitoso');
+              log('[EDIT] ✅ Guardado en remoto exitoso');
               // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
               refreshFromRemoteSilent(hex).catch(() => {});
             } else {
-              console.warn('[EDIT] ⚠️ Error guardando en remoto');
+              warn('[EDIT] ⚠️ Error guardando en remoto');
             }
           }).catch(e => {
             console.error('[EDIT] ❌ Error guardando en remoto:', e);
@@ -4437,26 +4451,26 @@ function buildMasterGrid() {
               // ✅ Bloquear re-renders durante la eliminación
               userInteracting = true;
               
-              console.log('[REMOVE] 🔥 Eliminando de Firebase:', item.firebaseId);
+              log('[REMOVE] 🔥 Eliminando de Firebase:', item.firebaseId);
               await window.eliminarLinkFirebase(hex, item.firebaseId);
-              console.log('[REMOVE] ✅ Eliminado de Firebase');
+              log('[REMOVE] ✅ Eliminado de Firebase');
               
               // ✅ CRÍTICO: Actualizar localStorage INMEDIATAMENTE
               const currentFiles = getFilesForHex(hex);
               const updatedFiles = currentFiles.filter(f => f.firebaseId !== item.firebaseId);
               saveFilesOverride(hex, updatedFiles);
-              console.log('[REMOVE] 💾 localStorage actualizado:', currentFiles.length, '→', updatedFiles.length);
+              log('[REMOVE] 💾 localStorage actualizado:', currentFiles.length, '→', updatedFiles.length);
               
               // ✅ Actualizar Google Sheets (sincronización)
               // Si no quedan más links, eliminar el hex completamente de la hoja de overrides
               if (updatedFiles.length === 0) {
-                console.log('[REMOVE] 🧹 No quedan más links, eliminando hex de la hoja de overrides');
+                log('[REMOVE] 🧹 No quedan más links, eliminando hex de la hoja de overrides');
                 remoteDeleteFiles(hex).catch(e => {
-                  console.warn('[REMOVE] ⚠️ Error eliminando hex de Google Sheets:', e);
+                  warn('[REMOVE] ⚠️ Error eliminando hex de Google Sheets:', e);
                 });
               } else {
                 remoteSaveFiles(hex, updatedFiles).catch(e => {
-                  console.warn('[REMOVE] ⚠️ Error actualizando Google Sheets:', e);
+                  warn('[REMOVE] ⚠️ Error actualizando Google Sheets:', e);
                 });
               }
               
@@ -4464,10 +4478,10 @@ function buildMasterGrid() {
               userInteracting = false;
               const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
               if (isMasterView) {
-                console.log('[REMOVE] ♻️ Re-renderizando Master');
+                log('[REMOVE] ♻️ Re-renderizando Master');
                 buildMasterGrid();
               } else {
-                console.log('[REMOVE] ♻️ Re-renderizando Curso');
+                log('[REMOVE] ♻️ Re-renderizando Curso');
                 renderCourse(hex);
               }
               
@@ -4485,7 +4499,7 @@ function buildMasterGrid() {
           saveFilesOverride(hex, next);
           
           // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
-          console.log('[REMOVE] 🗑️ Eliminando archivo inmediatamente de la vista');
+          log('[REMOVE] 🗑️ Eliminando archivo inmediatamente de la vista');
           const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
           if (isMasterView) {
             buildMasterGrid();
@@ -4496,12 +4510,12 @@ function buildMasterGrid() {
           // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
           // Si no quedan más links, eliminar el hex completamente de la hoja de overrides
           if (next.length === 0) {
-            console.log('[REMOVE] 🧹 No quedan más links, eliminando hex de la hoja de overrides');
+            log('[REMOVE] 🧹 No quedan más links, eliminando hex de la hoja de overrides');
             remoteDeleteFiles(hex).then(removeOk => {
               if (removeOk) {
-                console.log('[REMOVE] ✅ Hex eliminado de la hoja de overrides');
+                log('[REMOVE] ✅ Hex eliminado de la hoja de overrides');
               } else {
-                console.warn('[REMOVE] ⚠️ Error eliminando hex de la hoja de overrides');
+                warn('[REMOVE] ⚠️ Error eliminando hex de la hoja de overrides');
               }
             }).catch(e => {
               console.error('[REMOVE] ❌ Error eliminando hex de la hoja de overrides:', e);
@@ -4509,11 +4523,11 @@ function buildMasterGrid() {
           } else {
             remoteSaveFiles(hex, next).then(removeOk => {
               if (removeOk) {
-                console.log('[REMOVE] ✅ Guardado en remoto exitoso');
+                log('[REMOVE] ✅ Guardado en remoto exitoso');
                 // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
                 refreshFromRemoteSilent(hex).catch(() => {});
               } else {
-                console.warn('[REMOVE] ⚠️ Error guardando en remoto');
+                warn('[REMOVE] ⚠️ Error guardando en remoto');
               }
             }).catch(e => {
               console.error('[REMOVE] ❌ Error guardando en remoto:', e);
@@ -4554,7 +4568,7 @@ function buildMasterGrid() {
       saveFilesOverride(hex, next);
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
-      console.log('[REORDER] 🔄 Reordenando inmediatamente en la vista');
+      log('[REORDER] 🔄 Reordenando inmediatamente en la vista');
       const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
       if (isMasterView) {
         buildMasterGrid();
@@ -4565,11 +4579,11 @@ function buildMasterGrid() {
       // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
       remoteSaveFiles(hex, next).then(reorderOk => {
         if (reorderOk) {
-          console.log('[REORDER] ✅ Guardado en remoto exitoso');
+          log('[REORDER] ✅ Guardado en remoto exitoso');
           // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
           refreshFromRemoteSilent(hex).catch(() => {});
         } else {
-          console.warn('[REORDER] ⚠️ Error guardando en remoto');
+          warn('[REORDER] ⚠️ Error guardando en remoto');
         }
       }).catch(e => {
         console.error('[REORDER] ❌ Error guardando en remoto:', e);
@@ -4646,16 +4660,16 @@ function buildMasterGrid() {
           inputLabel.value = '';
           inputUrl.value = '';
           
-          console.log('[ADD] ✅ Link agregado a Firebase, sincronización automática activa');
+          log('[ADD] ✅ Link agregado a Firebase, sincronización automática activa');
           
           // ✅ También guardar en Google Sheets como backup
           // Obtener los archivos actuales y agregar el nuevo link para guardar en Sheets
           const current = getFilesForHex(hex);
           const newLink = { label: labelVal, url: urlVal };
           const next = current.concat(newLink);
-          console.log('[ADD] 💾 Guardando en Google Sheets como backup:', next.length, 'links');
+          log('[ADD] 💾 Guardando en Google Sheets como backup:', next.length, 'links');
           remoteSaveFiles(hex, next).catch(e => {
-            console.warn('[ADD] ⚠️ No se pudo guardar en Google Sheets (backup):', e);
+            warn('[ADD] ⚠️ No se pudo guardar en Google Sheets (backup):', e);
           });
           
           return; // Salir, Firebase se encarga de actualizar la vista
@@ -4667,11 +4681,11 @@ function buildMasterGrid() {
       }
       
       // ✅ FALLBACK: Método local si Firebase no está disponible
-      console.log('[ADD] Usando método local (Firebase no disponible)');
+      log('[ADD] Usando método local (Firebase no disponible)');
       const current = getFilesForHex(hex);
-      console.log('[ADD] Links actuales:', current.length);
+      log('[ADD] Links actuales:', current.length);
       const next = current.concat({ label: labelVal, url: urlVal });
-      console.log('[ADD] Links después de agregar:', next.length);
+      log('[ADD] Links después de agregar:', next.length);
       
       // Limpiar inputs
       inputLabel.value = '';
@@ -4680,30 +4694,30 @@ function buildMasterGrid() {
       saveFilesOverride(hex, next);
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
-      console.log('[ADD] ➕ Agregando link inmediatamente a la vista');
+      log('[ADD] ➕ Agregando link inmediatamente a la vista');
       const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
       
       if (isMasterView) {
         buildMasterGrid();
-        console.log('[ADD] ✅ Vista master actualizada');
+        log('[ADD] ✅ Vista master actualizada');
       } else {
         renderCourse(hex);
-        console.log('[ADD] ✅ Vista de curso actualizada');
+        log('[ADD] ✅ Vista de curso actualizada');
       }
       
       // ✅ GUARDAR EN REMOTO (Google Sheets)
       remoteSaveFiles(hex, next).then(saveResult => {
         if (saveResult) {
-          console.log('[ADD] ✅ Guardado en remoto - POST exitoso');
+          log('[ADD] ✅ Guardado en remoto - POST exitoso');
           setTimeout(() => {
             refreshFromRemoteSilent(hex).then(() => {
-              console.log('[ADD] ✅ SINCRONIZACIÓN CONFIRMADA');
+              log('[ADD] ✅ SINCRONIZACIÓN CONFIRMADA');
             }).catch(() => {
-              console.log('[ADD] ⚠️ Error en sincronización post-guardado');
+              log('[ADD] ⚠️ Error en sincronización post-guardado');
             });
           }, 500);
         } else {
-          console.warn('[ADD] ⚠️ No se pudo guardar en remoto');
+          warn('[ADD] ⚠️ No se pudo guardar en remoto');
         }
       }).catch(e => {
         console.error('[ADD] ❌ Error guardando en remoto:', e);
@@ -4728,7 +4742,7 @@ function buildMasterGrid() {
       clearFilesOverride(hex);
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
-      console.log('[RESTORE] ♻️ Restaurando vista inmediatamente');
+      log('[RESTORE] ♻️ Restaurando vista inmediatamente');
       const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
       if (isMasterView) {
         buildMasterGrid();
@@ -4739,11 +4753,11 @@ function buildMasterGrid() {
       // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
       remoteSaveFiles(hex, getFilesForHex(hex)).then(restoreOk => {
         if (restoreOk) {
-          console.log('[RESTORE] ✅ Guardado en remoto exitoso');
+          log('[RESTORE] ✅ Guardado en remoto exitoso');
           // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
           refreshFromRemoteSilent(hex).catch(() => {});
         } else {
-          console.warn('[RESTORE] ⚠️ Error guardando en remoto');
+          warn('[RESTORE] ⚠️ Error guardando en remoto');
         }
       }).catch(e => {
         console.error('[RESTORE] ❌ Error guardando en remoto:', e);
@@ -4901,7 +4915,7 @@ function updateMasterStats(mergedMap) {
   if (statsTypeSeminario) statsTypeSeminario.textContent = typeCounts.seminario;
   if (statsTypeTaller) statsTypeTaller.textContent = typeCounts.taller;
   
-  console.log('[STATS] 📊 Total:', coursesCount, '| Por tipo:', typeCounts);
+  log('[STATS] 📊 Total:', coursesCount, '| Por tipo:', typeCounts);
 }
 
 // ✅ Historial de cambios: registrar cambios importantes
@@ -4919,9 +4933,9 @@ function logChangeHistory(action, data) {
     history = history.slice(0, 100); // Mantener solo los últimos 100 cambios
     
     localStorage.setItem('changeHistory', JSON.stringify(history));
-    console.log('[HISTORY] 📝 Registrado:', action, data);
+    log('[HISTORY] 📝 Registrado:', action, data);
   } catch (e) {
-    console.warn('[HISTORY] ⚠️ Error guardando historial:', e);
+    warn('[HISTORY] ⚠️ Error guardando historial:', e);
   }
 }
 
@@ -4931,7 +4945,7 @@ function getChangeHistory(limit = 20) {
     const history = JSON.parse(localStorage.getItem('changeHistory') || '[]');
     return history.slice(0, limit);
   } catch (e) {
-    console.warn('[HISTORY] ⚠️ Error leyendo historial:', e);
+    warn('[HISTORY] ⚠️ Error leyendo historial:', e);
     return [];
   }
 }
@@ -4941,27 +4955,27 @@ async function refreshFromRemoteSilent(hex){
     // ✅ FIREBASE ES LA ÚNICA FUENTE DE VERDAD - No consultar Google Sheets si Firebase está disponible
     const db = getFirestoreDB();
     if (db) {
-      console.log('[REFRESH] Firebase maneja links en tiempo real, sin usar Google Sheets');
+      log('[REFRESH] Firebase maneja links en tiempo real, sin usar Google Sheets');
       // Firebase ya tiene listeners activos que actualizan automáticamente
       // No necesitamos consultar Google Sheets
       return false;
     }
     
-    console.log('[REFRESH] 🔄 Consultando remoto para hex:', hex.substring(0, 8));
+    log('[REFRESH] 🔄 Consultando remoto para hex:', hex.substring(0, 8));
     // ✅ Usar JSONP directamente (no fetch que puede fallar)
     const remote = await remoteGetFilesJSONP(hex);
     
     if (!remote) {
-      console.log('[REFRESH] ⚠️ Sin respuesta del remoto');
+      log('[REFRESH] ⚠️ Sin respuesta del remoto');
       return false;
     }
     
     if (!Array.isArray(remote)) {
-      console.warn('[REFRESH] Datos remotos no son un array:', remote);
+      warn('[REFRESH] Datos remotos no son un array:', remote);
       return false;
     }
     
-    console.log('[REFRESH] 📥 Remoto respondió:', remote.length, 'archivos');
+    log('[REFRESH] 📥 Remoto respondió:', remote.length, 'archivos');
     
     const current = getFilesForHex(hex);
     const base = getBaseFilesForHex(hex);
@@ -4977,11 +4991,11 @@ async function refreshFromRemoteSilent(hex){
       const hasChanges = remoteStr !== currentStr || remote.length !== current.length;
       
       if (hasChanges) {
-        console.log('[REFRESH] 🔄 CAMBIOS DETECTADOS');
-        console.log('[REFRESH] Remoto:', remote.length, 'archivos | Local:', current.length, 'archivos');
-        console.log('[REFRESH] 📥 Aplicando', remote.length, 'archivos desde remoto');
+        log('[REFRESH] 🔄 CAMBIOS DETECTADOS');
+        log('[REFRESH] Remoto:', remote.length, 'archivos | Local:', current.length, 'archivos');
+        log('[REFRESH] 📥 Aplicando', remote.length, 'archivos desde remoto');
         saveFilesOverride(hex, remote);
-        console.log('[REFRESH] ✅ Sincronización completada con cambios');
+        log('[REFRESH] ✅ Sincronización completada con cambios');
         
         // ✅ Notificación de sincronización
         const mergedMap = getMergedAccessHashMap();
@@ -4991,7 +5005,7 @@ async function refreshFromRemoteSilent(hex){
         }
         return true;
       } else {
-        // console.log('[REFRESH] ✅ Sin cambios (datos idénticos)');
+        // log('[REFRESH] ✅ Sin cambios (datos idénticos)');
         return false;
       }
     }
@@ -4999,16 +5013,16 @@ async function refreshFromRemoteSilent(hex){
     // ✅ Remoto vacío → Verificar si debe usar base o limpiar
     if (remote.length === 0 && current.length > 0) {
       if (base.length === 0) {
-        console.log('[REFRESH] 🧹 Remoto vacío y sin base, limpiando local');
+        log('[REFRESH] 🧹 Remoto vacío y sin base, limpiando local');
         clearFilesOverride(hex);
         return true;
       }
-      console.log('[REFRESH] 🔄 Usando datos base (', base.length, 'archivos)');
+      log('[REFRESH] 🔄 Usando datos base (', base.length, 'archivos)');
       clearFilesOverride(hex);
       return true;
     }
     
-    // console.log('[REFRESH] ✅ Sin datos remotos ni locales');
+    // log('[REFRESH] ✅ Sin datos remotos ni locales');
     return false;
   } catch (e) { 
     console.error('[REFRESH] Error en refresh silencioso:', e);
@@ -5394,7 +5408,7 @@ function setupKeyboardShortcuts() {
     }
   });
 
-  console.log('[SHORTCUTS] ✅ Atajos de teclado configurados');
+  log('[SHORTCUTS] ✅ Atajos de teclado configurados');
 }
 
 // Llamar después de que la página cargue
@@ -5431,21 +5445,21 @@ async function tryLoginByCode(code) {
     if (hex === MASTER_HASH) {
       // ✅ Refresh en background (no bloquear login) con timeout corto
       if (hasRemote()) {
-        console.log('[SYNC] Iniciando refresh de todos los cursos en background...');
+        log('[SYNC] Iniciando refresh de todos los cursos en background...');
         const mergedMap = getMergedAccessHashMap();
         const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
-        console.log('[SYNC] Total de cursos a refrescar:', hexes.length);
+        log('[SYNC] Total de cursos a refrescar:', hexes.length);
         
         // Iniciar refresh en background (no await, con timeout global)
         Promise.race([
           Promise.allSettled(hexes.map((h, index) => {
             const isLast = index === hexes.length - 1;
             const label = isLast ? `[ÚLTIMO CURSO]` : '';
-            console.log(`${label} [SYNC] Refrescando curso ${index + 1}/${hexes.length}: ${h.substring(0, 8)}...`);
+            log(`${label} [SYNC] Refrescando curso ${index + 1}/${hexes.length}: ${h.substring(0, 8)}...`);
             return refreshFromRemoteSilent(h)
               .then(result => {
                 if (isLast) {
-                  console.log(`[ÚLTIMO CURSO] ✅ Refresh completado para ${h.substring(0, 8)}, resultado:`, result);
+                  log(`[ÚLTIMO CURSO] ✅ Refresh completado para ${h.substring(0, 8)}, resultado:`, result);
                 }
                 return result;
               })
@@ -5455,7 +5469,7 @@ async function tryLoginByCode(code) {
               });
           })),
           new Promise(resolve => setTimeout(() => {
-            console.log('[SYNC] Timeout refresh global, continuando...');
+            log('[SYNC] Timeout refresh global, continuando...');
             resolve({});
           }, 2000)) // Timeout de 2 segundos máximo para todos los cursos
         ])
@@ -5463,14 +5477,14 @@ async function tryLoginByCode(code) {
             if (Array.isArray(results)) {
               const successful = results.filter(r => r.status === 'fulfilled').length;
               const failed = results.filter(r => r.status === 'rejected').length;
-              console.log(`[SYNC] Refresh completado: ${successful} exitosos, ${failed} fallidos`);
+              log(`[SYNC] Refresh completado: ${successful} exitosos, ${failed} fallidos`);
             }
           })
           .catch(e => {
-            console.warn('[SYNC] Error general en refresh:', e);
+            warn('[SYNC] Error general en refresh:', e);
           });
         
-        console.log('[SYNC] Refresh iniciado en background, continuando con login...');
+        log('[SYNC] Refresh iniciado en background, continuando con login...');
       }
       
       // Ejecutar animación de loader ahora que ya tenemos los datos
@@ -5483,7 +5497,7 @@ async function tryLoginByCode(code) {
       
       // ✅ Cargar cursos remotos en background (no bloquear)
       refreshCustomCourses().catch(e => {
-        console.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
+        warn('[MASTER] Error cargando cursos remotos (continuando):', e);
       });
       
       buildMasterGrid();
@@ -5505,31 +5519,31 @@ async function tryLoginByCode(code) {
     // ✅ CRÍTICO: Cargar cursos personalizados ANTES de validar (por si no están cargados)
     // Esto asegura que cursos personalizados recién creados estén disponibles
     if (hasRemote()) {
-      console.log('[LOGIN] Cargando cursos personalizados antes de validar...');
+      log('[LOGIN] Cargando cursos personalizados antes de validar...');
       await refreshCustomCourses().catch(e => {
-        console.warn('[LOGIN] Error cargando cursos personalizados (continuando):', e);
+        warn('[LOGIN] Error cargando cursos personalizados (continuando):', e);
       });
     }
     
     // ✅ Obtener mergedMap DESPUÉS de cargar cursos personalizados
     const mergedMap = getMergedAccessHashMap();
-    console.log('[LOGIN] Validando código, cursos disponibles:', Object.keys(mergedMap).length);
-    console.log('[LOGIN] Hex a buscar:', hex.substring(0, 8) + '...');
+    log('[LOGIN] Validando código, cursos disponibles:', Object.keys(mergedMap).length);
+    log('[LOGIN] Hex a buscar:', hex.substring(0, 8) + '...');
     
     if (mergedMap && mergedMap[hex]) {
-      console.log('[LOGIN] ✅ Código válido encontrado en hashmap');
+      log('[LOGIN] ✅ Código válido encontrado en hashmap');
       // Mostrar loader inmediatamente
       showLoader();
       
       // ✅ CRÍTICO: Esperar refresh ANTES de renderizar (igual que cursos base desde master)
       // Esto asegura que los archivos estén actualizados cuando se muestra el curso
       if (hasRemote()) {
-        console.log('[SYNC] Iniciando refresh antes de mostrar curso...');
+        log('[SYNC] Iniciando refresh antes de mostrar curso...');
         await refreshFromRemoteSilent(hex).catch(e => {
-          console.warn('[SYNC] Error en refresh:', e);
+          warn('[SYNC] Error en refresh:', e);
           return false;
         });
-        console.log('[SYNC] ✅ Refresh completado, renderizando curso...');
+        log('[SYNC] ✅ Refresh completado, renderizando curso...');
       }
       
       // Ejecutar animación de loader después del refresh
@@ -5554,9 +5568,9 @@ async function tryLoginByCode(code) {
       
       return true;
     } else {
-      console.warn('[LOGIN] ❌ Código no encontrado en hashmap');
-      console.warn('[LOGIN] Cursos disponibles:', Object.keys(mergedMap || {}));
-      console.warn('[LOGIN] Hex buscado:', hex.substring(0, 8) + '...');
+      warn('[LOGIN] ❌ Código no encontrado en hashmap');
+      warn('[LOGIN] Cursos disponibles:', Object.keys(mergedMap || {}));
+      warn('[LOGIN] Hex buscado:', hex.substring(0, 8) + '...');
       
       const attempts = recordAttempt();
       msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
@@ -5645,9 +5659,9 @@ function showAuthMessage(elementId, message, isError = false) {
     // Asegurar que el mensaje sea visible
     msgEl.style.display = 'block';
     msgEl.style.visibility = 'visible';
-    console.log('[AUTH] 💬 Mensaje mostrado:', elementId, message);
+    log('[AUTH] 💬 Mensaje mostrado:', elementId, message);
   } else {
-    console.warn('[AUTH] ⚠️ No se encontró el elemento para mensaje:', elementId);
+    warn('[AUTH] ⚠️ No se encontró el elemento para mensaje:', elementId);
   }
 }
 
@@ -5682,7 +5696,7 @@ async function tryLoginByEmail() {
     const user = userCredential.user;
     const userEmail = user.email.toLowerCase().trim();
     
-    console.log('[AUTH] ✅ Login exitoso:', userEmail);
+    log('[AUTH] ✅ Login exitoso:', userEmail);
     
     // ✅ OBTENER CURSOS PERMITIDOS PARA ESTE CORREO (LÓGICA EXISTENTE)
     showAuthMessage('msg-auth', 'Verificando cursos disponibles…', false);
@@ -5696,7 +5710,7 @@ async function tryLoginByEmail() {
       return false;
     }
     
-    console.log('[AUTH] Cursos permitidos para', userEmail, ':', allowedCourses.length);
+    log('[AUTH] Cursos permitidos para', userEmail, ':', allowedCourses.length);
     
     window.currentUserEmail = userEmail;
     
@@ -5846,7 +5860,7 @@ async function tryRegister() {
     const userCredential = await window.firebaseAuth.createUserWithEmailAndPassword(email, password);
     const user = userCredential.user;
     
-    console.log('[AUTH] ✅ Registro exitoso:', user.email);
+    log('[AUTH] ✅ Registro exitoso:', user.email);
     
     showAuthMessage('msg-register-step2', '¡Cuenta creada exitosamente! Cargando tus cursos…', false);
     
@@ -5987,7 +6001,7 @@ async function checkEmailAllowedForCourse(email, courseHex) {
   try {
     const db = getFirebaseDB();
     if (!db) {
-      console.warn('[AUTH] Firebase no disponible, permitiendo acceso');
+      warn('[AUTH] Firebase no disponible, permitiendo acceso');
       return true; // Fallback: permitir si Firebase no está disponible
     }
     
@@ -6010,7 +6024,7 @@ async function checkEmailAllowedForCourse(email, courseHex) {
 // ✅ Agregar correo a un curso específico
 async function addEmailToCourse(email, courseHex) {
   try {
-    console.log('[AUTH] 🔄 Intentando agregar correo:', email, 'al curso:', courseHex?.substring(0, 8));
+    log('[AUTH] 🔄 Intentando agregar correo:', email, 'al curso:', courseHex?.substring(0, 8));
     
     if (!email || !email.includes('@')) {
       throw new Error('Correo inválido');
@@ -6021,8 +6035,8 @@ async function addEmailToCourse(email, courseHex) {
     }
     
     // ✅ Verificar que Firebase esté disponible
-    console.log('[AUTH] Verificando Firebase DB...');
-    console.log('[AUTH] window.firebaseDB existe:', !!window.firebaseDB);
+    log('[AUTH] Verificando Firebase DB...');
+    log('[AUTH] window.firebaseDB existe:', !!window.firebaseDB);
     
     const db = getFirebaseDB();
     if (!db) {
@@ -6031,15 +6045,15 @@ async function addEmailToCourse(email, courseHex) {
       throw new Error('Firebase no disponible. Asegúrate de que Firebase esté cargado.');
     }
     
-    console.log('[AUTH] ✅ Firebase DB disponible');
+    log('[AUTH] ✅ Firebase DB disponible');
     
     const emailKey = normalizeEmailKey(email);
-    console.log('[AUTH] Email key normalizado:', emailKey);
+    log('[AUTH] Email key normalizado:', emailKey);
     
     // Obtener usuario actual (si está autenticado)
     const currentUser = window.firebaseAuth?.currentUser;
     const addedBy = currentUser?.email || 'master';
-    console.log('[AUTH] Agregado por:', addedBy);
+    log('[AUTH] Agregado por:', addedBy);
     
     const emailData = {
       email: email.toLowerCase().trim(),
@@ -6048,22 +6062,22 @@ async function addEmailToCourse(email, courseHex) {
       active: true
     };
     
-    console.log('[AUTH] Datos a guardar:', emailData);
-    console.log('[AUTH] Ruta completa:', `${COURSE_EMAILS_PATH}/${courseHex}/${emailKey}`);
+    log('[AUTH] Datos a guardar:', emailData);
+    log('[AUTH] Ruta completa:', `${COURSE_EMAILS_PATH}/${courseHex}/${emailKey}`);
     
     // ✅ Intentar guardar en Firebase
     const ref = db.ref(`${COURSE_EMAILS_PATH}/${courseHex}/${emailKey}`);
-    console.log('[AUTH] 🔄 Guardando en Firebase...');
+    log('[AUTH] 🔄 Guardando en Firebase...');
     
     await ref.set(emailData);
     
-    console.log('[AUTH] ✅ Correo agregado exitosamente al curso:', email, courseHex.substring(0, 8));
+    log('[AUTH] ✅ Correo agregado exitosamente al curso:', email, courseHex.substring(0, 8));
     
     // ✅ Verificar que se guardó correctamente
     const verifySnapshot = await ref.once('value');
     if (verifySnapshot.exists()) {
-      console.log('[AUTH] ✅ Verificación: Correo guardado correctamente en Firebase');
-      console.log('[AUTH] Datos verificados:', verifySnapshot.val());
+      log('[AUTH] ✅ Verificación: Correo guardado correctamente en Firebase');
+      log('[AUTH] Datos verificados:', verifySnapshot.val());
     } else {
       console.error('[AUTH] ⚠️ ADVERTENCIA: El correo no se encontró después de guardarlo');
     }
@@ -6094,7 +6108,7 @@ async function removeEmailFromCourse(email, courseHex) {
     
     const emailKey = normalizeEmailKey(email);
     await db.ref(`${COURSE_EMAILS_PATH}/${courseHex}/${emailKey}`).remove();
-    console.log('[AUTH] ✅ Correo eliminado del curso:', email, courseHex.substring(0, 8));
+    log('[AUTH] ✅ Correo eliminado del curso:', email, courseHex.substring(0, 8));
     
     return true;
   } catch (error) {
@@ -6146,11 +6160,11 @@ async function getCoursesForEmail(email) {
   try {
     const db = getFirebaseDB();
     if (!db) {
-      console.warn('[AUTH] Firebase DB no disponible, retornando array vacío');
+      warn('[AUTH] Firebase DB no disponible, retornando array vacío');
       return [];
     }
     
-    console.log('[AUTH] 🔍 Buscando cursos para:', email);
+    log('[AUTH] 🔍 Buscando cursos para:', email);
     const courseEmailsRef = db.ref(COURSE_EMAILS_PATH);
     
     // ✅ Agregar timeout de 10 segundos
@@ -6162,12 +6176,12 @@ async function getCoursesForEmail(email) {
     const snapshot = await Promise.race([snapshotPromise, timeoutPromise]);
     
     if (!snapshot.exists()) {
-      console.log('[AUTH] ✅ No hay cursos configurados aún');
+      log('[AUTH] ✅ No hay cursos configurados aún');
       return [];
     }
     
     const emailKey = normalizeEmailKey(email);
-    console.log('[AUTH] 🔑 Email key normalizado:', emailKey);
+    log('[AUTH] 🔑 Email key normalizado:', emailKey);
     const allowedCourses = [];
     
     snapshot.forEach((courseSnapshot) => {
@@ -6175,12 +6189,12 @@ async function getCoursesForEmail(email) {
       const emailData = courseSnapshot.child(emailKey).val();
       
       if (emailData && emailData.active !== false) {
-        console.log('[AUTH] ✅ Encontrado acceso para curso:', courseHex.substring(0, 8));
+        log('[AUTH] ✅ Encontrado acceso para curso:', courseHex.substring(0, 8));
         allowedCourses.push(courseHex);
       }
     });
     
-    console.log('[AUTH] ✅ Total de cursos permitidos:', allowedCourses.length);
+    log('[AUTH] ✅ Total de cursos permitidos:', allowedCourses.length);
     return allowedCourses;
   } catch (error) {
     console.error('[AUTH] ❌ Error obteniendo cursos para correo:', error);
@@ -6189,7 +6203,7 @@ async function getCoursesForEmail(email) {
     
     // ✅ Si es timeout, retornar array vacío pero loguear
     if (error.message && error.message.includes('Timeout')) {
-      console.warn('[AUTH] ⚠️ Timeout en consulta, retornando array vacío');
+      warn('[AUTH] ⚠️ Timeout en consulta, retornando array vacío');
       return [];
     }
     
@@ -6331,7 +6345,7 @@ async function addCourseEmailUI() {
   }
   
   try {
-    console.log('[AUTH] 🔄 Iniciando proceso de agregar correo...');
+    log('[AUTH] 🔄 Iniciando proceso de agregar correo...');
     
     // Verificar si ya existe
     const existingEmails = await getCourseAllowedEmails(currentCourseEmailsHex);
@@ -6456,7 +6470,7 @@ async function renderGeneralEmailsList() {
   try {
     // Obtener todos los cursos
     const allCourses = getAllCourses();
-    console.log('[EMAILS] Total de cursos:', allCourses.length);
+    log('[EMAILS] Total de cursos:', allCourses.length);
     
     if (allCourses.length === 0) {
       container.innerHTML = '<p style="color:var(--muted); text-align:center; padding:40px; margin:0;">No hay cursos disponibles.</p>';
@@ -6641,19 +6655,19 @@ window.removeEmailFromGeneral = async function(email, courseHex) {
 
 // ✅ Función para manejar autenticación exitosa con email (mostrar solo cursos permitidos)
 async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
-  console.log('[AUTH] ✅ Mostrando cursos permitidos para:', userEmail);
+  log('[AUTH] ✅ Mostrando cursos permitidos para:', userEmail);
   
   // Guardar cursos permitidos en variable global para filtrar
   window.allowedCoursesForUser = allowedCourses;
   
   // ✅ Refresh en background (no bloquear login)
   if (hasRemote()) {
-    console.log('[SYNC] Iniciando refresh de cursos permitidos en background...');
+    log('[SYNC] Iniciando refresh de cursos permitidos en background...');
     Promise.allSettled(allowedCourses.map(h => refreshFromRemoteSilent(h).catch(e => {
-      console.warn('[SYNC] Error refrescando', h.substring(0, 8), ':', e);
+      warn('[SYNC] Error refrescando', h.substring(0, 8), ':', e);
       return false;
     }))).then(() => {
-      console.log('[SYNC] ✅ Refresh completado');
+      log('[SYNC] ✅ Refresh completado');
     });
   }
   
@@ -6664,7 +6678,7 @@ async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
   clearAttempts();
   
   refreshCustomCourses().catch(e => {
-    console.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
+    warn('[MASTER] Error cargando cursos remotos (continuando):', e);
   });
   
   // ✅ Construir grid de usuario (vista simplificada)
@@ -6678,7 +6692,7 @@ async function logoutFirebase() {
   try {
     if (window.firebaseAuth) {
       await window.firebaseAuth.signOut();
-      console.log('[AUTH] ✅ Logout exitoso');
+      log('[AUTH] ✅ Logout exitoso');
     }
   } catch (error) {
     console.error('[AUTH] ❌ Error en logout:', error);
@@ -6687,22 +6701,22 @@ async function logoutFirebase() {
 
 // ✅ Función compartida para manejar autenticación exitosa (código o Google)
 async function handleSuccessfulAuth(hex, method = 'code') {
-  console.log('[AUTH] ✅ Autenticación exitosa por:', method);
+  log('[AUTH] ✅ Autenticación exitosa por:', method);
   
   // Si es master, mostrar vista master
   if (hex === MASTER_HASH) {
     // ✅ Refresh en background (no bloquear login)
     if (hasRemote()) {
-      console.log('[SYNC] Iniciando refresh de todos los cursos en background...');
+      log('[SYNC] Iniciando refresh de todos los cursos en background...');
       const mergedMap = getMergedAccessHashMap();
       const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
-      console.log('[SYNC] Total de cursos a refrescar:', hexes.length);
+      log('[SYNC] Total de cursos a refrescar:', hexes.length);
       
       Promise.allSettled(hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
-        console.warn('[SYNC] Error refrescando', h.substring(0, 8), ':', e);
+        warn('[SYNC] Error refrescando', h.substring(0, 8), ':', e);
         return false;
       }))).then(() => {
-        console.log('[SYNC] ✅ Refresh completado');
+        log('[SYNC] ✅ Refresh completado');
       });
     }
     
@@ -6717,7 +6731,7 @@ async function handleSuccessfulAuth(hex, method = 'code') {
     }
     
     refreshCustomCourses().catch(e => {
-      console.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
+      warn('[MASTER] Error cargando cursos remotos (continuando):', e);
     });
     
     buildMasterGrid();
@@ -6730,7 +6744,7 @@ async function handleSuccessfulAuth(hex, method = 'code') {
     
     if (hasRemote()) {
       await refreshFromRemoteSilent(hex).catch(e => {
-        console.warn('[SYNC] Error en refresh:', e);
+        warn('[SYNC] Error en refresh:', e);
       });
     }
     
@@ -6752,15 +6766,15 @@ async function handleSuccessfulAuth(hex, method = 'code') {
 // ✅ Listener para estado de autenticación persistente
 function setupAuthStateListener() {
   if (!window.firebaseAuth) {
-    console.log('[AUTH] Firebase Auth no disponible, omitiendo listener de estado');
+    log('[AUTH] Firebase Auth no disponible, omitiendo listener de estado');
     return;
   }
 
   window.firebaseAuth.onAuthStateChanged(async (user) => {
-    console.log('[AUTH] 🔔 onAuthStateChanged disparado, usuario:', user?.email || 'null');
+    log('[AUTH] 🔔 onAuthStateChanged disparado, usuario:', user?.email || 'null');
     
     if (user) {
-      console.log('[AUTH] ✅ Usuario autenticado:', user.email);
+      log('[AUTH] ✅ Usuario autenticado:', user.email);
       const userEmail = user.email.toLowerCase().trim();
       
       const urlParams = new URLSearchParams(window.location.search);
@@ -6774,12 +6788,12 @@ function setupAuthStateListener() {
       const isInAccess = accessEl && !accessEl.classList.contains('hidden');
       
       if (!urlParams.has('code') && !isInMaster && !isInUserView && !isInContent) {
-        console.log('[AUTH] 🔍 Verificando cursos para usuario con email...');
+        log('[AUTH] 🔍 Verificando cursos para usuario con email...');
         const allowedCourses = await getCoursesForEmail(userEmail);
-        console.log('[AUTH] 📚 Cursos encontrados en listener:', allowedCourses.length);
+        log('[AUTH] 📚 Cursos encontrados en listener:', allowedCourses.length);
         
         if (allowedCourses.length > 0) {
-          console.log('[AUTH] ✅ Mostrando vista de usuario desde listener');
+          log('[AUTH] ✅ Mostrando vista de usuario desde listener');
           window.currentUserEmail = userEmail;
           window.allowedCoursesForUser = allowedCourses;
           
@@ -6791,7 +6805,7 @@ function setupAuthStateListener() {
         }
       }
     } else {
-      console.log('[AUTH] Usuario no autenticado');
+      log('[AUTH] Usuario no autenticado');
       window.currentUserEmail = null;
       window.allowedCoursesForUser = null;
       if (currentKeyHex === MASTER_HASH || (document.getElementById('user-view') && !document.getElementById('user-view').classList.contains('hidden'))) {
@@ -7192,37 +7206,37 @@ $('#btn-master-exit').addEventListener('click', async () => {
 
 // ✅ FUNCIÓN GLOBAL: Ver qué hay guardado en localStorage
 window.verDatosGuardados = function() {
-  console.log('==========================================');
-  console.log('📦 DATOS EN LOCALSTORAGE:');
-  console.log('==========================================');
+  log('==========================================');
+  log('📦 DATOS EN LOCALSTORAGE:');
+  log('==========================================');
   
   const keys = Object.keys(localStorage);
   const fileKeys = keys.filter(k => k.startsWith(FILES_STORAGE_PREFIX));
   
-  console.log('Total archivos guardados:', fileKeys.length);
+  log('Total archivos guardados:', fileKeys.length);
   
   fileKeys.forEach(key => {
     const hex = key.replace(FILES_STORAGE_PREFIX, '');
     try {
       const data = JSON.parse(localStorage.getItem(key));
-      console.log('\n---');
-      console.log('Hex:', hex.substring(0, 10) + '...');
-      console.log('Archivos:', data.length);
+      log('\n---');
+      log('Hex:', hex.substring(0, 10) + '...');
+      log('Archivos:', data.length);
       data.forEach((file, idx) => {
-        console.log(`  ${idx + 1}. ${file.label}`);
+        log(`  ${idx + 1}. ${file.label}`);
       });
     } catch (e) {
       console.error('Error leyendo:', key);
     }
   });
   
-  console.log('\n==========================================');
+  log('\n==========================================');
   return fileKeys.length;
 };
 
 // ✅ FUNCIÓN GLOBAL: Forzar sincronización desde servidor (SIN borrar localStorage)
 window.forzarSincronizacion = async function() {
-  console.log('[SYNC FORCE] 🔄 Forzando sincronización desde servidor...');
+  log('[SYNC FORCE] 🔄 Forzando sincronización desde servidor...');
   
   try {
     // Detectar en qué vista estamos
@@ -7230,25 +7244,25 @@ window.forzarSincronizacion = async function() {
     const isContentView = !$('#content').classList.contains('hidden');
     
     if (isMasterView) {
-      console.log('[SYNC FORCE] 📋 Vista Maestra detectada - Sincronizando todos los cursos...');
+      log('[SYNC FORCE] 📋 Vista Maestra detectada - Sincronizando todos los cursos...');
       
       // Refrescar cursos personalizados
       await refreshCustomCourses().catch(e => {
-        console.warn('[SYNC FORCE] Error refrescando cursos:', e);
+        warn('[SYNC FORCE] Error refrescando cursos:', e);
       });
       
       // Refrescar todos los archivos de cada curso
       const mergedMap = getMergedAccessHashMap();
       const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
       
-      console.log('[SYNC FORCE] Total cursos a sincronizar:', hexes.length);
+      log('[SYNC FORCE] Total cursos a sincronizar:', hexes.length);
       
       const results = await Promise.allSettled(
         hexes.map(h => refreshFromRemoteSilent(h))
       );
       
       const updated = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
-      console.log('[SYNC FORCE] ✅ Sincronizados', updated, 'cursos');
+      log('[SYNC FORCE] ✅ Sincronizados', updated, 'cursos');
       
       // Reconstruir grid
       buildMasterGrid();
@@ -7262,7 +7276,7 @@ window.forzarSincronizacion = async function() {
       }
       
     } else if (isContentView) {
-      console.log('[SYNC FORCE] 📄 Vista de curso detectada - Sincronizando curso actual...');
+      log('[SYNC FORCE] 📄 Vista de curso detectada - Sincronizando curso actual...');
       
       // Obtener el hex del curso actual
       const currentHex = window.currentCourseHex; // Necesitamos guardarlo globalmente
@@ -7271,7 +7285,7 @@ window.forzarSincronizacion = async function() {
         const updated = await refreshFromRemoteSilent(currentHex);
         
         if (updated) {
-          console.log('[SYNC FORCE] ✅ Curso sincronizado, re-renderizando...');
+          log('[SYNC FORCE] ✅ Curso sincronizado, re-renderizando...');
           renderCourse(currentHex);
           // ✅ Mostrar modal de éxito (sin alert)
           if (typeof window.showSuccessModal === 'function') {
@@ -7281,7 +7295,7 @@ window.forzarSincronizacion = async function() {
             );
           }
         } else {
-          console.log('[SYNC FORCE] ℹ️ No hay cambios nuevos');
+          log('[SYNC FORCE] ℹ️ No hay cambios nuevos');
           // ✅ Mostrar modal informativo (sin alert)
           if (typeof window.showSuccessModal === 'function') {
             window.showSuccessModal(
@@ -7291,7 +7305,7 @@ window.forzarSincronizacion = async function() {
           }
         }
       } else {
-        console.warn('[SYNC FORCE] ⚠️ No se detectó hex del curso actual');
+        warn('[SYNC FORCE] ⚠️ No se detectó hex del curso actual');
         // ✅ Mostrar modal de advertencia (sin alert)
         if (typeof window.showSuccessModal === 'function') {
           window.showSuccessModal(
@@ -7302,7 +7316,7 @@ window.forzarSincronizacion = async function() {
       }
       
     } else {
-      console.log('[SYNC FORCE] ℹ️ No hay vista activa para sincronizar');
+      log('[SYNC FORCE] ℹ️ No hay vista activa para sincronizar');
       // ✅ Mostrar modal informativo (sin alert)
       if (typeof window.showSuccessModal === 'function') {
         window.showSuccessModal(
@@ -7320,18 +7334,18 @@ window.forzarSincronizacion = async function() {
 
 // ✅ FUNCIÓN GLOBAL: Limpiar TODO y recargar
 window.limpiarTodoYRecargar = async function() {
-  console.log('[CLEAN] 🧹 LIMPIANDO TODO...');
+  log('[CLEAN] 🧹 LIMPIANDO TODO...');
   
   // 1. Limpiar localStorage de archivos
   const filesCleared = clearAllFilesOverrides();
-  console.log('[CLEAN] 🧹 Limpiados', filesCleared, 'archivos de localStorage');
+  log('[CLEAN] 🧹 Limpiados', filesCleared, 'archivos de localStorage');
   
   // 2. Limpiar caché del navegador
   if ('caches' in window) {
     const cacheNames = await caches.keys();
     await Promise.all(
       cacheNames.map(cacheName => {
-        console.log('[CLEAN] 🧹 Eliminando caché:', cacheName);
+        log('[CLEAN] 🧹 Eliminando caché:', cacheName);
         return caches.delete(cacheName);
       })
     );
@@ -7342,13 +7356,13 @@ window.limpiarTodoYRecargar = async function() {
     const registrations = await navigator.serviceWorker.getRegistrations();
     await Promise.all(
       registrations.map(reg => {
-        console.log('[CLEAN] 🧹 Desregistrando Service Worker');
+        log('[CLEAN] 🧹 Desregistrando Service Worker');
         return reg.unregister();
       })
     );
   }
   
-  console.log('[CLEAN] ✅ TODO LIMPIADO. Recargando...');
+  log('[CLEAN] ✅ TODO LIMPIADO. Recargando...');
   alert('✅ TODO limpiado. Solo verás datos desde Google Sheets.');
   
   // 4. Recargar página
@@ -7366,9 +7380,9 @@ window.limpiarTodoYRecargar = async function() {
   initTheme();
   
   // ✅ NO limpiar archivos al inicio - dejar que la sincronización automática lo maneje
-  console.log('[INIT] 🚀 Iniciando plataforma...');
-  console.log('[INIT] 📦 Archivos locales disponibles:', Object.keys(localStorage).filter(k => k.startsWith(FILES_STORAGE_PREFIX)).length);
-  console.log('[INIT] 🔄 La sincronización automática actualizará los datos cada 1.2s');
+  log('[INIT] 🚀 Iniciando plataforma...');
+  log('[INIT] 📦 Archivos locales disponibles:', Object.keys(localStorage).filter(k => k.startsWith(FILES_STORAGE_PREFIX)).length);
+  log('[INIT] 🔄 La sincronización automática actualizará los datos cada 1.2s');
   
   // ✅ Medir tiempo de carga de página
   const pageLoadTime = performance.now() - performanceMetrics.pageLoadStart;
@@ -7401,7 +7415,7 @@ window.limpiarTodoYRecargar = async function() {
       }
     } catch (e) { 
       hideLoader(); // ✅ Ocultar loader si hay error
-      console.warn('Parámetro code inválido', e); 
+      warn('Parámetro code inválido', e); 
     }
   }
   showAccess();
@@ -7412,7 +7426,7 @@ window.limpiarTodoYRecargar = async function() {
   
   // ❌ NO iniciar polling automático para no interrumpir al usuario
   // El botón manual de sincronización será usado cuando el usuario quiera
-  console.log('[INIT] ✅ Plataforma lista (sin polling automático)');
+  log('[INIT] ✅ Plataforma lista (sin polling automático)');
   
   // ✅ Finalizar medición de inicialización
   endPerformanceMeasure('Inicialización total', initStart);
@@ -7423,7 +7437,7 @@ let setupAddCourseModalDone = false;
 
 function setupAddCourseModal() {
   if (setupAddCourseModalDone) {
-    console.log('[SETUP] Ya configurado, saltando...');
+    log('[SETUP] Ya configurado, saltando...');
     return;
   }
   setupAddCourseModalDone = true;
@@ -7435,7 +7449,7 @@ function setupAddCourseModal() {
   const inputCourseAccent = $('#inputCourseAccent');
   const inputCourseAccentHex = $('#inputCourseAccentHex');
 
-  console.log('[SETUP] Elementos encontrados:', {
+  log('[SETUP] Elementos encontrados:', {
     modalAddCourse: !!modalAddCourse,
     formAddCourse: !!formAddCourse,
     btnAddCourse: !!btnAddCourse
@@ -7683,7 +7697,7 @@ function setupAddCourseModal() {
     // code ya está definido arriba (línea 4720)
     
     // ✅ Debug: mostrar valores capturados
-    console.log('[FORM] 📝 Valores capturados:', {
+    log('[FORM] 📝 Valores capturados:', {
       title,
       meta,
       imageUrl,
@@ -7755,7 +7769,7 @@ function setupAddCourseModal() {
     };
     
     // ✅ Debug: mostrar datos que se van a guardar
-    console.log('[FORM] 💾 Datos del curso a guardar:', courseData);
+    log('[FORM] 💾 Datos del curso a guardar:', courseData);
     
     try {
       // Guardar curso (esperar confirmación)
@@ -7764,7 +7778,7 @@ function setupAddCourseModal() {
       // ✅ NO hacer refresh de cursos remotos después de crear, porque puede sobrescribir el código
       // El código se guarda localmente y en Firebase, no necesita refresh desde Google Sheets
       // await refreshCustomCourses().catch(e => {
-      //   console.warn('[ADD COURSE] Error refrescando cursos después de crear:', e);
+      //   warn('[ADD COURSE] Error refrescando cursos después de crear:', e);
       // });
       
       // Analytics tracking
@@ -8000,7 +8014,7 @@ function setupEditCourseModal() {
       
       // ✅ Forzar refresh de cursos para que se vea inmediatamente
       await refreshCustomCourses().catch(e => {
-        console.warn('[EDIT COURSE] Error refrescando cursos después de editar:', e);
+        warn('[EDIT COURSE] Error refrescando cursos después de editar:', e);
       });
       
       // Analytics tracking
@@ -8061,17 +8075,17 @@ if (document.readyState === 'loading') {
 
 // 🧪 TEST DE BOTÓN FLOTANTE (CAMBIO DE COLOR)
 window.testButtonColor = function() {
-  console.log('═══════════════════════════════════════════');
-  console.log('🧪 TEST DE BOTÓN FLOTANTE');
-  console.log('═══════════════════════════════════════════');
-  console.log('');
+  log('═══════════════════════════════════════════');
+  log('🧪 TEST DE BOTÓN FLOTANTE');
+  log('═══════════════════════════════════════════');
+  log('');
   
   // Test 1: Cambiar a amarillo
-  console.log('Test 1: Cambiando botón a AMARILLO (con cambios)...');
+  log('Test 1: Cambiando botón a AMARILLO (con cambios)...');
   if (typeof window.updateSyncButtonState === 'function') {
     window.updateSyncButtonState(true);
-    console.log('✅ Botón debería estar AMARILLO pulsante ahora');
-    console.log('   Verifica visualmente el botón flotante →');
+    log('✅ Botón debería estar AMARILLO pulsante ahora');
+    log('   Verifica visualmente el botón flotante →');
   } else {
     console.error('❌ updateSyncButtonState no está disponible');
     console.error('   Asegúrate de haber refrescado la página');
@@ -8079,112 +8093,112 @@ window.testButtonColor = function() {
   
   // Test 2: Esperar 4 segundos y cambiar a azul
   setTimeout(() => {
-    console.log('');
-    console.log('Test 2: Cambiando botón a AZUL (sin cambios)...');
+    log('');
+    log('Test 2: Cambiando botón a AZUL (sin cambios)...');
     if (typeof window.updateSyncButtonState === 'function') {
       window.updateSyncButtonState(false);
-      console.log('✅ Botón debería estar AZUL ahora');
-      console.log('   Verifica visualmente el botón flotante →');
+      log('✅ Botón debería estar AZUL ahora');
+      log('   Verifica visualmente el botón flotante →');
     }
     
-    console.log('');
-    console.log('═══════════════════════════════════════════');
-    console.log('Si viste el cambio de colores, ¡funciona! 🎉');
-    console.log('═══════════════════════════════════════════');
+    log('');
+    log('═══════════════════════════════════════════');
+    log('Si viste el cambio de colores, ¡funciona! 🎉');
+    log('═══════════════════════════════════════════');
   }, 4000);
 };
 
 // 🧪 TEST COMPLETO DE SINCRONIZACIÓN
 window.testSyncComplete = async function(hex) {
-  console.log('═══════════════════════════════════════════');
-  console.log('🧪 TEST COMPLETO DE SINCRONIZACIÓN');
-  console.log('═══════════════════════════════════════════');
-  console.log('Hex:', hex);
-  console.log('URL Remoto:', REMOTE_BASE_URL);
-  console.log('');
+  log('═══════════════════════════════════════════');
+  log('🧪 TEST COMPLETO DE SINCRONIZACIÓN');
+  log('═══════════════════════════════════════════');
+  log('Hex:', hex);
+  log('URL Remoto:', REMOTE_BASE_URL);
+  log('');
   
   // 1. Ver datos locales actuales
-  console.log('📦 PASO 1: Datos locales actuales');
+  log('📦 PASO 1: Datos locales actuales');
   const localFiles = getFilesForHex(hex);
-  console.log('  → Archivos locales:', localFiles.length);
-  console.log('  → Datos:', JSON.stringify(localFiles));
-  console.log('');
+  log('  → Archivos locales:', localFiles.length);
+  log('  → Datos:', JSON.stringify(localFiles));
+  log('');
   
   // 2. Leer desde remoto
-  console.log('📥 PASO 2: Leer desde remoto (JSONP)');
+  log('📥 PASO 2: Leer desde remoto (JSONP)');
   const remoteFiles = await remoteGetFilesJSONP(hex);
-  console.log('  → Archivos remotos:', remoteFiles ? remoteFiles.length : 'NULL');
-  console.log('  → Datos:', JSON.stringify(remoteFiles));
-  console.log('');
+  log('  → Archivos remotos:', remoteFiles ? remoteFiles.length : 'NULL');
+  log('  → Datos:', JSON.stringify(remoteFiles));
+  log('');
   
   // 3. Agregar un archivo de prueba
-  console.log('✏️ PASO 3: Agregar archivo de prueba');
+  log('✏️ PASO 3: Agregar archivo de prueba');
   const testFile = {
     label: 'TEST ' + new Date().toLocaleTimeString(),
     url: 'https://ejemplo.com/test-' + Date.now()
   };
   const newFiles = [...localFiles, testFile];
-  console.log('  → Agregando:', testFile);
-  console.log('  → Total archivos:', newFiles.length);
-  console.log('');
+  log('  → Agregando:', testFile);
+  log('  → Total archivos:', newFiles.length);
+  log('');
   
   // 4. Guardar localmente
-  console.log('💾 PASO 4: Guardar localmente');
+  log('💾 PASO 4: Guardar localmente');
   saveFilesOverride(hex, newFiles);
   const savedLocal = getFilesForHex(hex);
-  console.log('  → Guardado local exitoso:', savedLocal.length === newFiles.length ? '✅' : '❌');
-  console.log('');
+  log('  → Guardado local exitoso:', savedLocal.length === newFiles.length ? '✅' : '❌');
+  log('');
   
   // 5. Guardar en remoto
-  console.log('☁️ PASO 5: Guardar en remoto (POST)');
+  log('☁️ PASO 5: Guardar en remoto (POST)');
   const saveOk = await remoteSaveFiles(hex, newFiles);
-  console.log('  → Resultado POST:', saveOk ? '✅ ÉXITO' : '❌ FALLÓ');
-  console.log('');
+  log('  → Resultado POST:', saveOk ? '✅ ÉXITO' : '❌ FALLÓ');
+  log('');
   
   // 6. Esperar 2 segundos para que Google Sheets procese
-  console.log('⏳ PASO 6: Esperando 2 segundos...');
+  log('⏳ PASO 6: Esperando 2 segundos...');
   await new Promise(r => setTimeout(r, 2000));
-  console.log('');
+  log('');
   
   // 7. Verificar que se guardó en remoto
-  console.log('🔍 PASO 7: Verificar en remoto');
+  log('🔍 PASO 7: Verificar en remoto');
   const remoteCheck = await remoteGetFilesJSONP(hex);
-  console.log('  → Archivos en remoto:', remoteCheck ? remoteCheck.length : 'NULL');
-  console.log('  → Coincide con local:', remoteCheck && remoteCheck.length === newFiles.length ? '✅' : '❌');
-  console.log('  → Datos remotos:', JSON.stringify(remoteCheck));
-  console.log('');
+  log('  → Archivos en remoto:', remoteCheck ? remoteCheck.length : 'NULL');
+  log('  → Coincide con local:', remoteCheck && remoteCheck.length === newFiles.length ? '✅' : '❌');
+  log('  → Datos remotos:', JSON.stringify(remoteCheck));
+  log('');
   
   // 8. Resumen
-  console.log('═══════════════════════════════════════════');
-  console.log('📊 RESUMEN DEL TEST');
-  console.log('═══════════════════════════════════════════');
-  console.log('✓ Lectura local:', localFiles.length, 'archivos');
-  console.log('✓ Lectura remota inicial:', remoteFiles ? remoteFiles.length : 'NULL', 'archivos');
-  console.log('✓ Guardado local:', savedLocal.length === newFiles.length ? '✅' : '❌');
-  console.log('✓ Guardado remoto:', saveOk ? '✅' : '❌');
-  console.log('✓ Verificación remota:', remoteCheck && remoteCheck.length === newFiles.length ? '✅' : '❌');
-  console.log('');
+  log('═══════════════════════════════════════════');
+  log('📊 RESUMEN DEL TEST');
+  log('═══════════════════════════════════════════');
+  log('✓ Lectura local:', localFiles.length, 'archivos');
+  log('✓ Lectura remota inicial:', remoteFiles ? remoteFiles.length : 'NULL', 'archivos');
+  log('✓ Guardado local:', savedLocal.length === newFiles.length ? '✅' : '❌');
+  log('✓ Guardado remoto:', saveOk ? '✅' : '❌');
+  log('✓ Verificación remota:', remoteCheck && remoteCheck.length === newFiles.length ? '✅' : '❌');
+  log('');
   
   if (remoteCheck && remoteCheck.length === newFiles.length) {
-    console.log('🎉 ¡TEST EXITOSO! La sincronización funciona correctamente');
-    console.log('💡 Abre la página en otro dispositivo/pestaña y ejecuta:');
-    console.log('   verDatosGuardados()');
+    log('🎉 ¡TEST EXITOSO! La sincronización funciona correctamente');
+    log('💡 Abre la página en otro dispositivo/pestaña y ejecuta:');
+    log('   verDatosGuardados()');
   } else {
-    console.log('❌ TEST FALLÓ - La sincronización no está funcionando');
-    console.log('🔧 Posibles causas:');
-    console.log('   1. El POST no llega a Google Sheets');
-    console.log('   2. Google Apps Script tiene un error');
-    console.log('   3. La URL del WebApp es incorrecta');
-    console.log('   4. Hay un delay en el procesamiento');
+    log('❌ TEST FALLÓ - La sincronización no está funcionando');
+    log('🔧 Posibles causas:');
+    log('   1. El POST no llega a Google Sheets');
+    log('   2. Google Apps Script tiene un error');
+    log('   3. La URL del WebApp es incorrecta');
+    log('   4. Hay un delay en el procesamiento');
   }
-  console.log('═══════════════════════════════════════════');
+  log('═══════════════════════════════════════════');
 };
 
 // 🔍 DIAGNÓSTICO: Ver qué devuelve realmente el servidor
 window.diagnosticarRespuesta = async function(hex = null) {
-  console.log('═══════════════════════════════════════════');
-  console.log('🔍 DIAGNÓSTICO DE RESPUESTA DEL SERVIDOR');
-  console.log('═══════════════════════════════════════════');
+  log('═══════════════════════════════════════════');
+  log('🔍 DIAGNÓSTICO DE RESPUESTA DEL SERVIDOR');
+  log('═══════════════════════════════════════════');
   
   // Test 1: Sin callback (JSON puro)
   const testUrl1 = hex 
@@ -8196,79 +8210,79 @@ window.diagnosticarRespuesta = async function(hex = null) {
     ? `${REMOTE_BASE_URL}?hex=${encodeURIComponent(hex)}&callback=testCallback123&ts=${Date.now()}`
     : `${REMOTE_BASE_URL}?action=get_courses&callback=testCallback123&ts=${Date.now()}`;
   
-  console.log('');
-  console.log('🧪 TEST 1: Sin parámetro callback');
-  console.log('URL:', testUrl1);
-  console.log('');
+  log('');
+  log('🧪 TEST 1: Sin parámetro callback');
+  log('URL:', testUrl1);
+  log('');
   
   try {
     const response1 = await fetch(testUrl1);
     const text1 = await response1.text();
     
-    console.log('Status:', response1.status);
-    console.log('Content-Type:', response1.headers.get('content-type'));
-    console.log('📄 Respuesta:');
-    console.log('─────────────────────────────────────────');
-    console.log(text1);
-    console.log('─────────────────────────────────────────');
+    log('Status:', response1.status);
+    log('Content-Type:', response1.headers.get('content-type'));
+    log('📄 Respuesta:');
+    log('─────────────────────────────────────────');
+    log(text1);
+    log('─────────────────────────────────────────');
   } catch (error) {
     console.error('❌ Error:', error);
   }
   
-  console.log('');
-  console.log('🧪 TEST 2: Con parámetro callback=testCallback123');
-  console.log('URL:', testUrl2);
-  console.log('');
+  log('');
+  log('🧪 TEST 2: Con parámetro callback=testCallback123');
+  log('URL:', testUrl2);
+  log('');
   
   try {
     const response2 = await fetch(testUrl2);
     const text2 = await response2.text();
     
-    console.log('Status:', response2.status);
-    console.log('Content-Type:', response2.headers.get('content-type'));
-    console.log('📄 Respuesta:');
-    console.log('─────────────────────────────────────────');
-    console.log(text2);
-    console.log('─────────────────────────────────────────');
-    console.log('');
+    log('Status:', response2.status);
+    log('Content-Type:', response2.headers.get('content-type'));
+    log('📄 Respuesta:');
+    log('─────────────────────────────────────────');
+    log(text2);
+    log('─────────────────────────────────────────');
+    log('');
     
     // Analizar si es JSONP válido
     if (text2.includes('testCallback123')) {
-      console.log('✅ El servidor SÍ está usando el callback');
+      log('✅ El servidor SÍ está usando el callback');
       if (text2.startsWith('testCallback123(') && text2.includes(')')) {
-        console.log('✅ Formato JSONP CORRECTO');
-        console.log('');
-        console.log('🎉 ¡EL SERVIDOR ESTÁ CONFIGURADO CORRECTAMENTE!');
+        log('✅ Formato JSONP CORRECTO');
+        log('');
+        log('🎉 ¡EL SERVIDOR ESTÁ CONFIGURADO CORRECTAMENTE!');
       } else {
-        console.log('⚠️ El callback está presente pero el formato es incorrecto');
+        log('⚠️ El callback está presente pero el formato es incorrecto');
       }
     } else {
-      console.log('❌ El servidor NO está usando el callback');
-      console.log('❌ Problema: Google Apps Script no está devolviendo JSONP');
-      console.log('');
-      console.log('🔧 SOLUCIONES:');
-      console.log('1. Verifica que copiaste el código COMPLETO a Google Apps Script');
-      console.log('2. Verifica que guardaste (Ctrl+S)');
-      console.log('3. Haz una NUEVA implementación (no editar la existente)');
-      console.log('4. Copia la NUEVA URL y actualiza app.js');
+      log('❌ El servidor NO está usando el callback');
+      log('❌ Problema: Google Apps Script no está devolviendo JSONP');
+      log('');
+      log('🔧 SOLUCIONES:');
+      log('1. Verifica que copiaste el código COMPLETO a Google Apps Script');
+      log('2. Verifica que guardaste (Ctrl+S)');
+      log('3. Haz una NUEVA implementación (no editar la existente)');
+      log('4. Copia la NUEVA URL y actualiza app.js');
     }
     
   } catch (error) {
     console.error('❌ Error:', error);
   }
   
-  console.log('═══════════════════════════════════════════');
+  log('═══════════════════════════════════════════');
 };
 
 // 🧪 TEST JSONP SIMPLE
 window.testJSONP = async function(hex) {
-  console.log('🧪 TEST JSONP para hex:', hex);
+  log('🧪 TEST JSONP para hex:', hex);
   // 🛡️ Cache-buster
   const url = REMOTE_BASE_URL 
     + '?hex=' + encodeURIComponent(hex) 
     + '&callback=test_callback'
     + '&ts=' + Date.now();
-  console.log('URL:', url);
+  log('URL:', url);
   
   return new Promise((resolve) => {
     const callbackName = 'test_callback_' + Date.now();
@@ -8280,7 +8294,7 @@ window.testJSONP = async function(hex) {
     script.src = testUrl;
     
     window[callbackName] = function(data) {
-      console.log('✅ CALLBACK EJECUTADO!', data);
+      log('✅ CALLBACK EJECUTADO!', data);
       document.body.removeChild(script);
       delete window[callbackName];
       resolve(data);
@@ -8295,7 +8309,7 @@ window.testJSONP = async function(hex) {
     
     setTimeout(() => {
       if (window[callbackName]) {
-        console.warn('⏱️ TIMEOUT - callback no se ejecutó después de 10s');
+        warn('⏱️ TIMEOUT - callback no se ejecutó después de 10s');
         if (script.parentNode) document.body.removeChild(script);
         delete window[callbackName];
         resolve(null);
@@ -8303,16 +8317,16 @@ window.testJSONP = async function(hex) {
     }, 10000);
     
     document.body.appendChild(script);
-    console.log('📡 Script agregado, esperando respuesta...');
+    log('📡 Script agregado, esperando respuesta...');
   });
 };
 
 // Probar GET directo desde la consola
 window.testGET = async function(hex) {
-  console.log('🧪 TEST GET para hex:', hex);
+  log('🧪 TEST GET para hex:', hex);
   try {
     const result = await remoteGetFiles(hex);
-    console.log('✅ Resultado:', result);
+    log('✅ Resultado:', result);
     return result;
   } catch(e) {
     console.error('❌ Error:', e);
