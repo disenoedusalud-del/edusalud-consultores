@@ -14,6 +14,11 @@ function getFirestoreDB() {
   return window.firebaseDB || null;
 }
 
+// ✅ Función auxiliar para obtener Firebase Realtime Database (alias)
+function getFirebaseDB() {
+  return window.firebaseDB || null;
+}
+
 // Verificar si Firebase ya está listo o esperar a que cargue
 function checkFirebaseStatus() {
   if (window.firebaseDB) {
