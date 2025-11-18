@@ -429,12 +429,15 @@
       .course-row { 
         flex-direction: row; /* ✅ Mantener horizontal en móvil */
         gap: 12px;
-        align-items: center;
+        align-items: flex-start; /* ✅ Cambiar a flex-start para mejor alineación */
       }
       .card-left-wrapper { 
         flex: 0 0 120px; /* ✅ Imagen pequeña en móvil */
         max-width: 120px;
         min-width: 120px;
+        height: 160px; /* ✅ Altura fija para la tarjeta */
+        min-height: 160px;
+        overflow: hidden; /* ✅ Evitar desbordes */
       }
       .card-right {
         flex: 1 1 auto;
@@ -446,17 +449,24 @@
       .course-row { 
         flex-direction: row; /* ✅ Mantener horizontal en tablet */
         gap: 16px;
+        align-items: flex-start;
       }
       .card-left-wrapper { 
         flex: 0 0 200px; /* ✅ Tamaño medio en tablet */
         max-width: 200px;
+        height: 250px; /* ✅ Altura fija para la tarjeta */
+        min-height: 250px;
+        overflow: hidden;
       } 
     }
     
     @media (max-width: 1200px) and (min-width: 901px) {
       .card-left-wrapper { 
         flex: 0 0 300px; 
-        max-width: 300px; 
+        max-width: 300px;
+        height: 350px; /* ✅ Altura fija para la tarjeta */
+        min-height: 350px;
+        overflow: hidden;
       }
     }
 
