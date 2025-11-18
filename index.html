@@ -214,6 +214,8 @@
       outline:none;
     }
     .input:focus{ border-color:var(--accent); box-shadow:0 0 0 4px rgba(90,169,255,.12); }
+    .input.error{ border-color:var(--danger); box-shadow:0 0 0 4px rgba(255,122,122,.15); }
+    .input.error:focus{ border-color:var(--danger); box-shadow:0 0 0 4px rgba(255,122,122,.2); }
 
     .btn{
       border:none;
@@ -1409,7 +1411,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=61" defer></script>
+  <script src="assets/js/app.js?v=62" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
