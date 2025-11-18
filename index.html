@@ -537,10 +537,7 @@
             
             <!-- Menú desplegable de ajustes -->
             <div id="settingsDropdown" class="settings-dropdown" style="display: none;" role="menu" aria-label="Menú de ajustes">
-              <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0">
-                <span id="theme-toggle-icon">🌙</span> <span id="theme-toggle-text">Modo Oscuro</span>
-              </div>
-              <div class="settings-divider" role="separator"></div>
+              <!-- Sección de Backups -->
               <div class="settings-menu-item" data-action="export-all" role="menuitem" tabindex="0">
                 💾 Exportar Backup Completo
               </div>
@@ -554,6 +551,14 @@
               <div class="settings-divider" role="separator"></div>
               <div class="settings-menu-item" data-action="backup-history" role="menuitem" tabindex="0">
                 📋 Historial de Backups
+              </div>
+              
+              <!-- Separador para sección de Apariencia -->
+              <div class="settings-divider" role="separator" style="margin: 8px 0;"></div>
+              
+              <!-- Sección de Apariencia/Tema -->
+              <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0">
+                <span id="theme-toggle-icon">☀️</span> <span id="theme-toggle-text">Cambiar a Modo Claro</span>
               </div>
             </div>
           </div>
