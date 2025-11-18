@@ -139,6 +139,176 @@ function debounce(func, wait, immediate = false) {
   };
 }
 
+/* ===================== NOTIFICACIONES TOAST ===================== */
+
+/**
+ * ✅ Sistema de notificaciones toast
+ */
+function showToast(type, title, message, duration = 3000) {
+  // Crear contenedor si no existe
+  let toastContainer = document.getElementById('toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'toast-container';
+    toastContainer.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    `;
+    document.body.appendChild(toastContainer);
+  }
+
+  // Crear toast
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    background: var(--bg);
+    border: 1px solid rgba(90,169,255,0.3);
+    border-left: 4px solid ${getToastColor(type)};
+    border-radius: 8px;
+    padding: 14px 18px;
+    min-width: 300px;
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    pointer-events: auto;
+    animation: slideInRight 0.3s ease-out;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  `;
+
+  // Icono
+  const icon = document.createElement('div');
+  icon.textContent = getToastIcon(type);
+  icon.style.cssText = `
+    font-size: 20px;
+    flex-shrink: 0;
+  `;
+
+  // Contenido
+  const content = document.createElement('div');
+  content.style.cssText = `flex: 1;`;
+  
+  const titleEl = document.createElement('div');
+  titleEl.textContent = title;
+  titleEl.style.cssText = `
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 4px;
+  `;
+
+  const messageEl = document.createElement('div');
+  messageEl.textContent = message;
+  messageEl.style.cssText = `
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.4;
+  `;
+
+  content.appendChild(titleEl);
+  content.appendChild(messageEl);
+
+  // Botón cerrar
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '×';
+  closeBtn.style.cssText = `
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: color 0.2s;
+  `;
+  closeBtn.addEventListener('click', () => removeToast(toast));
+  closeBtn.addEventListener('mouseenter', () => {
+    closeBtn.style.color = 'var(--text)';
+  });
+  closeBtn.addEventListener('mouseleave', () => {
+    closeBtn.style.color = 'var(--muted)';
+  });
+
+  toast.appendChild(icon);
+  toast.appendChild(content);
+  toast.appendChild(closeBtn);
+  toastContainer.appendChild(toast);
+
+  // Auto-remover después de duration
+  setTimeout(() => removeToast(toast), duration);
+
+  // Agregar animación CSS si no existe
+  if (!document.getElementById('toast-animations')) {
+    const style = document.createElement('style');
+    style.id = 'toast-animations';
+    style.textContent = `
+      @keyframes slideInRight {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      @keyframes slideOutRight {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+function getToastColor(type) {
+  const colors = {
+    success: '#4ade80',
+    error: '#ff5555',
+    warning: '#fbbf24',
+    info: '#5aa9ff'
+  };
+  return colors[type] || colors.info;
+}
+
+function getToastIcon(type) {
+  const icons = {
+    success: '✅',
+    error: '❌',
+    warning: '⚠️',
+    info: 'ℹ️'
+  };
+  return icons[type] || icons.info;
+}
+
+function removeToast(toast) {
+  toast.style.animation = 'slideOutRight 0.3s ease-out';
+  setTimeout(() => {
+    if (toast.parentElement) {
+      toast.remove();
+    }
+  }, 300);
+}
+
+// Exponer globalmente
+window.showToast = showToast;
+
 /* ===================== VALIDACIONES MEJORADAS ===================== */
 
 /**
@@ -428,6 +598,9 @@ async function addCustomCourse(hex, courseData){
       };
       await db.ref(`customCourses/${hex}`).set(firebasePayload);
       console.log('[ADD COURSE] ✅ Curso guardado en Firebase Realtime Database');
+      if (typeof window.showToast === 'function') {
+        window.showToast('success', 'Curso creado', `"${courseData.card?.tag || 'Curso'}" creado exitosamente`);
+      }
       } catch (error) {
         console.error('[ADD COURSE] ❌ Error guardando curso en Firebase:', error);
         if (typeof window.showToast === 'function') {
@@ -492,6 +665,9 @@ async function updateCustomCourse(hex, courseData){
       };
       await db.ref(`customCourses/${hex}`).set(firebasePayload);
       console.log('[UPDATE COURSE] ✅ Curso actualizado en Firebase Realtime Database');
+      if (typeof window.showToast === 'function') {
+        window.showToast('success', 'Curso actualizado', `"${courseData.card?.tag || 'Curso'}" actualizado exitosamente`);
+      }
       } catch (error) {
         console.error('[UPDATE COURSE] ❌ Error actualizando curso en Firebase:', error);
         if (typeof window.showToast === 'function') {
@@ -542,8 +718,16 @@ async function removeCustomCourse(hex){
       // ✅ Limpiar también localStorage de los links
       clearFilesOverride(hex);
       console.log('[DELETE COURSE] ✅ Links eliminados de localStorage');
+      
+      // ✅ Notificación de eliminación
+      if (typeof window.showToast === 'function') {
+        window.showToast('info', 'Curso eliminado', `"${deletedCourse.title || 'Curso'}" ha sido eliminado`);
+      }
     } catch (error) {
       console.error('[DELETE COURSE] ❌ Error eliminando curso en Firebase:', error);
+      if (typeof window.showToast === 'function') {
+        window.showToast('error', 'Error', 'Error al eliminar curso en Firebase');
+      }
     }
   } else {
     // Si no hay Firebase, limpiar localStorage de todas formas
@@ -3738,6 +3922,13 @@ async function refreshFromRemoteSilent(hex){
         console.log('[REFRESH] 📥 Aplicando', remote.length, 'archivos desde remoto');
         saveFilesOverride(hex, remote);
         console.log('[REFRESH] ✅ Sincronización completada con cambios');
+        
+        // ✅ Notificación de sincronización
+        const mergedMap = getMergedAccessHashMap();
+        const courseData = mergedMap[hex];
+        if (typeof window.showToast === 'function' && courseData) {
+          window.showToast('success', 'Sincronizado', `"${courseData.title}" actualizado (${remote.length} archivos)`);
+        }
         return true;
       } else {
         // console.log('[REFRESH] ✅ Sin cambios (datos idénticos)');
@@ -4064,14 +4255,7 @@ function setupMasterSearch(){
       selectedIndex = -1;
     }
   });
-  
-  clear?.addEventListener('click', () => { 
-    input.value = '';
-    autocompleteContainer.style.display = 'none';
-    removeHighlights();
-    applyFilter();
-  });
-  
+
   // ✅ Event listeners para filtro y ordenamiento
   const filterByType = $('#filterByType');
   const sortBy = $('#sortBy');
@@ -4103,6 +4287,61 @@ function setupMasterSearch(){
       }
     });
   }
+}
+
+/* ===================== ATAJOS DE TECLADO ===================== */
+
+/**
+ * ✅ Configurar atajos de teclado globales
+ */
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    // Solo si estamos en Vista Master
+    const masterView = $('#master');
+    if (masterView && !masterView.classList.contains('hidden')) {
+      // Ctrl+N (Windows/Linux) o Cmd+N (Mac): Nuevo curso
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        const btnAddCourse = $('#btn-add-course');
+        if (btnAddCourse && !btnAddCourse.disabled) {
+          btnAddCourse.click();
+          if (typeof window.showToast === 'function') {
+            window.showToast('info', 'Atajo de teclado', 'Formulario de nuevo curso abierto');
+          }
+        }
+      }
+
+      // Ctrl+F o Cmd+F: Buscar
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        const searchInput = $('#masterSearch');
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.select();
+          if (typeof window.showToast === 'function') {
+            window.showToast('info', 'Atajo de teclado', 'Campo de búsqueda activado');
+          }
+        }
+      }
+    }
+
+    // Escape: Cerrar modales (funciona en cualquier vista)
+    if (e.key === 'Escape') {
+      const openModal = document.querySelector('.modal.show');
+      if (openModal) {
+        openModal.classList.remove('show');
+      }
+    }
+  });
+
+  console.log('[SHORTCUTS] ✅ Atajos de teclado configurados');
+}
+
+// Llamar después de que la página cargue
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupKeyboardShortcuts);
+} else {
+  setupKeyboardShortcuts();
 }
 
 /* ============ login ============ */
