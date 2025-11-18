@@ -378,10 +378,10 @@
         <div>
           <label for="code">Ingrese su código de acceso</label>
           <div class="row">
-            <input id="code" class="input" type="text" placeholder="Ej. ABC0-0000" autocomplete="one-time-code" aria-label="Código de acceso" />
+            <input id="code" class="input" type="text" placeholder="Ej. ABC0-0000" autocomplete="one-time-code" aria-label="Código de acceso" aria-describedby="msg" />
             <button id="btn-enter" class="btn" type="button" aria-label="Entrar al curso con el código ingresado">Entrar</button>
           </div>
-          <div id="msg" class="msg">Si no tiene código, solicítelo a comunicaciones.</div>
+          <div id="msg" class="msg" role="alert" aria-live="polite">Si no tiene código, solicítelo a comunicaciones.</div>
         </div>
 
         <div class="access-hero" aria-hidden="true">
@@ -429,24 +429,24 @@
           
           <!-- ✅ Botón de Ajustes con menú desplegable -->
           <div style="position: relative;">
-            <button id="btn-settings" class="btn secondary" type="button" aria-label="Abrir menú de ajustes y herramientas" title="Ajustes y herramientas">
+            <button id="btn-settings" class="btn secondary" type="button" aria-label="Abrir menú de ajustes y herramientas" aria-expanded="false" aria-haspopup="true" title="Ajustes y herramientas">
               ⚙️ Ajustes
             </button>
             
             <!-- Menú desplegable de ajustes -->
-            <div id="settingsDropdown" class="settings-dropdown" style="display: none;">
-              <div class="settings-menu-item" data-action="export-all">
+            <div id="settingsDropdown" class="settings-dropdown" style="display: none;" role="menu" aria-label="Menú de ajustes">
+              <div class="settings-menu-item" data-action="export-all" role="menuitem" tabindex="0">
                 💾 Exportar Backup Completo
               </div>
-              <div class="settings-menu-item" data-action="export-filtered">
+              <div class="settings-menu-item" data-action="export-filtered" role="menuitem" tabindex="0">
                 📤 Exportar por Tipo...
               </div>
-              <div class="settings-divider"></div>
-              <div class="settings-menu-item" data-action="import">
+              <div class="settings-divider" role="separator"></div>
+              <div class="settings-menu-item" data-action="import" role="menuitem" tabindex="0">
                 📥 Importar Backup...
               </div>
-              <div class="settings-divider"></div>
-              <div class="settings-menu-item" data-action="backup-history">
+              <div class="settings-divider" role="separator"></div>
+              <div class="settings-menu-item" data-action="backup-history" role="menuitem" tabindex="0">
                 📋 Historial de Backups
               </div>
             </div>
