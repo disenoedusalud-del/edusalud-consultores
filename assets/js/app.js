@@ -5006,16 +5006,7 @@ $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preve
 $('#btn-logout').addEventListener('click', () => { currentKeyHex = null; setQueryParam('code', null); showAccess(); });
 
 $('#btn-master-exit').addEventListener('click', () => { setQueryParam('code', null); showAccess(); });
-$('#btn-master-copy').addEventListener('click', async () => {
-  const url = new URL(location.href);
-  url.searchParams.set('code', btoa('EDUMASTER123456987'));
-  try {
-    await navigator.clipboard.writeText(url.toString());
-    alert('Enlace de vista maestra copiado');
-  } catch (e) {
-    prompt('Copie este enlace:', url.toString());
-  }
-});
+// ✅ Botón "Compartir enlace con código" eliminado por solicitud del usuario
 
 // ✅ FUNCIÓN GLOBAL: Ver qué hay guardado en localStorage
 window.verDatosGuardados = function() {
