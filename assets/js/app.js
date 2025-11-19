@@ -5890,9 +5890,39 @@ async function verifyEmailForRegistration() {
     try {
       const code = generateVerificationCode();
       await saveVerificationCode(normalizedEmail, code);
-      await sendVerificationCode(normalizedEmail, code);
       
-      // Guardar el correo verificado
+      try {
+        await sendVerificationCode(normalizedEmail, code);
+      } catch (sendError) {
+        // Si falla el envío, mostrar error pero no bloquear el flujo
+        // El código ya está guardado en Firebase, el usuario puede pedir reenvío
+        console.error('[VERIFICATION] ❌ Error enviando código:', sendError);
+        const errorMessage = sendError.message || 'Error al enviar el código';
+        
+        // Mostrar error pero permitir continuar (el código está guardado)
+        showAuthMessage('msg-register', 'Error al enviar el código: ' + errorMessage + '. Puedes intentar reenviarlo más tarde.', true);
+        
+        // Aún así, mostrar el paso 2 para que pueda pedir reenvío
+        window.verifiedEmailForRegistration = normalizedEmail;
+        window.verifiedCoursesForRegistration = allowedCourses;
+        window.verifiedIsAdmin = isAdmin || false;
+        
+        const step1 = $('#register-step-1');
+        const step2 = $('#register-step-2');
+        if (step1) step1.style.display = 'none';
+        if (step2) step2.style.display = 'block';
+        
+        const verifiedEmailDisplay = $('#verified-email-display');
+        if (verifiedEmailDisplay) verifiedEmailDisplay.textContent = normalizedEmail;
+        
+        const codeInput = $('#input-verification-code');
+        if (codeInput) codeInput.value = '';
+        
+        showAuthMessage('msg-register-step2', 'No se pudo enviar el código. Usa el botón "Reenviar código" para intentar nuevamente.', true);
+        return true; // Permitir continuar para que pueda reenviar
+      }
+      
+      // ✅ Código enviado exitosamente
       window.verifiedEmailForRegistration = normalizedEmail;
       window.verifiedCoursesForRegistration = allowedCourses;
       window.verifiedIsAdmin = isAdmin || false;
@@ -5916,12 +5946,12 @@ async function verifyEmailForRegistration() {
         if (codeInput) codeInput.focus();
       }, 100);
       
-      showAuthMessage('msg-register-step2', 'Código enviado a tu correo. Revisa tu bandeja de entrada.', false);
+      showAuthMessage('msg-register-step2', 'Código enviado a tu correo. Revisa tu bandeja de entrada (y spam).', false);
       
       return true;
     } catch (error) {
-      console.error('[VERIFICATION] ❌ Error enviando código:', error);
-      showAuthMessage('msg-register', 'Error al enviar el código de verificación. Intenta nuevamente.', true);
+      console.error('[VERIFICATION] ❌ Error en proceso de verificación:', error);
+      showAuthMessage('msg-register', 'Error al procesar la verificación. Intenta nuevamente.', true);
       return false;
     }
     
