@@ -887,6 +887,18 @@
               </div>
               </div>
               
+              <!-- Categoría: Administradores -->
+              <div class="settings-category" data-category="admins" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de administradores">
+                <span class="settings-category-icon">👑</span>
+                <span class="settings-category-label">Administradores</span>
+                <span class="settings-category-arrow">▶</span>
+              </div>
+              <div class="settings-submenu" data-submenu="admins" style="display: none;">
+                  <div class="settings-menu-item" data-action="manage-admins" role="menuitem" tabindex="0" title="Gestionar administradores con acceso master">
+                👑 Gestión de Administradores
+              </div>
+              </div>
+              
               <!-- Categoría: Apariencia -->
               <div class="settings-category" data-category="appearance" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de apariencia">
                 <span class="settings-category-icon">🎨</span>
@@ -1275,6 +1287,44 @@
     </div>
   </div>
 
+  <!-- Modal de Gestión de Administradores -->
+  <div id="modalAdmins" class="modal">
+    <div class="modal-content" style="max-width: 700px; max-height: 90vh;">
+      <div class="modal-header">
+        <h2>👑 Gestión de Administradores</h2>
+        <button class="modal-close" id="modalAdminsClose" aria-label="Cerrar modal de administradores" title="Cerrar (Escape)">&times;</button>
+      </div>
+      <div style="padding: 20px; overflow-y: auto; max-height: calc(90vh - 100px);">
+        <p style="color:var(--muted); font-size:14px; margin-bottom:20px;">
+          Los administradores tienen acceso completo a la vista maestra. Pueden gestionar todos los cursos, correos y configuraciones.
+        </p>
+        
+        <!-- Formulario para agregar administrador -->
+        <div style="margin-bottom: 20px; padding: 16px; background: rgba(90,169,255,0.05); border-radius: 8px; border: 1px solid rgba(90,169,255,0.2);">
+          <h3 style="margin:0 0 12px 0; font-size:16px; font-weight:600;">Agregar Administrador</h3>
+          <div style="display:flex; gap:8px;">
+            <input 
+              id="input-admin-email" 
+              class="input" 
+              type="email" 
+              placeholder="correo@ejemplo.com" 
+              style="flex:1;"
+              aria-label="Correo electrónico del administrador"
+            />
+            <button id="btn-add-admin" class="btn" type="button" style="white-space:nowrap;">Agregar</button>
+          </div>
+        </div>
+        
+        <!-- Lista de administradores -->
+        <div id="admins-list" style="display:grid; gap:8px; min-height:60px; max-height:400px; overflow-y:auto;">
+          <p style="color:var(--muted); text-align:center; padding:20px; margin:0;">Cargando administradores...</p>
+        </div>
+        
+        <div id="msg-admins" class="msg" style="margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Sistema de Notificaciones Toast -->
   <div id="toastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 12px; pointer-events: none;"></div>
 
@@ -1652,7 +1702,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=96" defer></script>
+  <script src="assets/js/app.js?v=97" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
