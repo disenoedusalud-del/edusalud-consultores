@@ -1,32 +1,47 @@
-require('dotenv').config();
-
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { Resend } = require('resend');
 
 admin.initializeApp();
 
-// ✅ Inicializar Resend con tu API Key
-const resend = new Resend(process.env.RESEND_API_KEY || 'tu_api_key_aqui');
+// ✅ Inicializar Resend con tu API Key desde variables de entorno
+// Para producción: configurar RESEND_API_KEY en Firebase Console (Functions > Configuration > Environment variables)
+// Para desarrollo local: crear archivo .env con RESEND_API_KEY=tu_api_key
+const resendApiKey = process.env.RESEND_API_KEY || 're_eATCWBLR_5MBUmnvRAo2y2hYkwTt1Qdis';
+const resend = new Resend(resendApiKey);
 
 // ✅ Cloud Function para enviar código de verificación
-exports.sendVerificationCode = functions.https.onCall(async (data, context) => {
-  // Validar que el usuario esté autenticado (opcional, puedes quitarlo si quieres)
-  // if (!context.auth) {
-  //   throw new functions.https.HttpsError('unauthenticated', 'Usuario no autenticado');
-  // }
+exports.sendVerificationCode = functions.https.onRequest(async (req, res) => {
+  // ✅ Habilitar CORS para permitir llamadas desde el frontend
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
   
-  const { email, code } = data;
+  // ✅ Manejar preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  
+  // ✅ Solo permitir método POST
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Método no permitido. Use POST.' });
+    return;
+  }
+  
+  const { email, code } = req.body;
   
   // Validar parámetros
   if (!email || !code) {
-    throw new functions.https.HttpsError('invalid-argument', 'Email y código son requeridos');
+    res.status(400).json({ error: 'Email y código son requeridos' });
+    return;
   }
   
   // Validar formato de email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
-    throw new functions.https.HttpsError('invalid-argument', 'Email inválido');
+    res.status(400).json({ error: 'Email inválido' });
+    return;
   }
   
   try {
@@ -52,9 +67,9 @@ exports.sendVerificationCode = functions.https.onCall(async (data, context) => {
     });
     
     console.log('Email enviado exitosamente:', result);
-    return { success: true, messageId: result.id };
+    res.status(200).json({ success: true, messageId: result.id });
   } catch (error) {
     console.error('Error enviando email:', error);
-    throw new functions.https.HttpsError('internal', 'Error enviando email: ' + error.message);
+    res.status(500).json({ error: 'Error enviando email: ' + error.message });
   }
 });
