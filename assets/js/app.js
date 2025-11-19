@@ -5691,12 +5691,16 @@ function showLoginForm() {
     // Resetear formulario de registro al paso 1
     const step1 = $('#register-step-1');
     const step2 = $('#register-step-2');
+    const step3 = $('#register-step-3');
     if (step1) step1.style.display = 'block';
     if (step2) step2.style.display = 'none';
+    if (step3) step3.style.display = 'none';
     window.verifiedEmailForRegistration = null;
     window.verifiedCoursesForRegistration = null;
+    window.verifiedIsAdmin = null;
     showAuthMessage('msg-register', '', false);
     showAuthMessage('msg-register-step2', '', false);
+    showAuthMessage('msg-register-step3', '', false);
     clearFieldErrors();
   }
   if (formReset) {
@@ -5867,74 +5871,59 @@ async function verifyEmailForRegistration() {
   try {
     // ✅ PRIMERO: Verificar si es administrador
     const isAdmin = await checkIsAdmin(normalizedEmail);
-    if (isAdmin) {
-      // ✅ Es administrador, permitir registro (tendrá acceso master)
-      showAuthMessage('msg-register', '', false); // Limpiar mensaje
+    let allowedCourses = [];
+    
+    if (!isAdmin) {
+      // ✅ Si NO es admin, verificar si está en algún curso
+      allowedCourses = await getCoursesForEmail(normalizedEmail);
       
-      // Guardar el correo verificado (sin cursos, pero es admin)
+      if (allowedCourses.length === 0) {
+        showAuthMessage('msg-register', 'Este correo no está autorizado para crear una cuenta. Contacta al administrador para solicitar acceso.', true);
+        markFieldError('input-register-email');
+        return false;
+      }
+    }
+    
+    // ✅ Correo autorizado (admin o tiene cursos), generar y enviar código
+    showAuthMessage('msg-register', 'Generando código de verificación…', false);
+    
+    try {
+      const code = generateVerificationCode();
+      await saveVerificationCode(normalizedEmail, code);
+      await sendVerificationCode(normalizedEmail, code);
+      
+      // Guardar el correo verificado
       window.verifiedEmailForRegistration = normalizedEmail;
-      window.verifiedCoursesForRegistration = []; // Array vacío, pero es admin
-      window.verifiedIsAdmin = true; // ✅ Flag para indicar que es admin
+      window.verifiedCoursesForRegistration = allowedCourses;
+      window.verifiedIsAdmin = isAdmin || false;
       
-      // Ocultar paso 1 y mostrar paso 2
+      // Ocultar paso 1 y mostrar paso 2 (verificación de código)
       const step1 = $('#register-step-1');
       const step2 = $('#register-step-2');
       if (step1) step1.style.display = 'none';
       if (step2) step2.style.display = 'block';
+      
+      // Mostrar email verificado
       const verifiedEmailDisplay = $('#verified-email-display');
       if (verifiedEmailDisplay) verifiedEmailDisplay.textContent = normalizedEmail;
       
-      // Limpiar campos de contraseña
-      const passwordInput = $('#input-register-password');
-      const passwordConfirmInput = $('#input-register-password-confirm');
-      if (passwordInput) passwordInput.value = '';
-      if (passwordConfirmInput) passwordConfirmInput.value = '';
+      // Limpiar campo de código
+      const codeInput = $('#input-verification-code');
+      if (codeInput) codeInput.value = '';
       
-      // Enfocar el primer campo de contraseña
+      // Enfocar el campo de código
       setTimeout(() => {
-        if (passwordInput) passwordInput.focus();
+        if (codeInput) codeInput.focus();
       }, 100);
       
+      showAuthMessage('msg-register-step2', 'Código enviado a tu correo. Revisa tu bandeja de entrada.', false);
+      
       return true;
-    }
-    
-    // ✅ Si NO es admin, verificar si está en algún curso
-    const allowedCourses = await getCoursesForEmail(normalizedEmail);
-    
-    if (allowedCourses.length === 0) {
-      showAuthMessage('msg-register', 'Este correo no está autorizado para crear una cuenta. Contacta al administrador para solicitar acceso.', true);
-      markFieldError('input-register-email');
+    } catch (error) {
+      console.error('[VERIFICATION] ❌ Error enviando código:', error);
+      showAuthMessage('msg-register', 'Error al enviar el código de verificación. Intenta nuevamente.', true);
       return false;
     }
-    
-    // ✅ Correo autorizado (tiene cursos), mostrar paso 2
-    showAuthMessage('msg-register', '', false); // Limpiar mensaje
-    
-    // Guardar el correo verificado y los cursos permitidos
-    window.verifiedEmailForRegistration = normalizedEmail;
-    window.verifiedCoursesForRegistration = allowedCourses;
-    window.verifiedIsAdmin = false; // ✅ No es admin
-    
-    // Ocultar paso 1 y mostrar paso 2
-    const step1 = $('#register-step-1');
-    const step2 = $('#register-step-2');
-    if (step1) step1.style.display = 'none';
-    if (step2) step2.style.display = 'block';
-    const verifiedEmailDisplay = $('#verified-email-display');
-    if (verifiedEmailDisplay) verifiedEmailDisplay.textContent = normalizedEmail;
-    
-    // Limpiar campos de contraseña
-    const passwordInput = $('#input-register-password');
-    const passwordConfirmInput = $('#input-register-password-confirm');
-    if (passwordInput) passwordInput.value = '';
-    if (passwordConfirmInput) passwordConfirmInput.value = '';
-    
-    // Enfocar el primer campo de contraseña
-    setTimeout(() => {
-      if (passwordInput) passwordInput.focus();
-    }, 100);
-    
-    return true;
     
   } catch (error) {
     console.error('[AUTH] ❌ Error verificando correo:', error);
@@ -5951,33 +5940,33 @@ async function tryRegister() {
   const passwordConfirm = $('#input-register-password-confirm').value;
   
   if (!email) {
-    showAuthMessage('msg-register-step2', 'Error: El correo no fue verificado. Por favor, vuelve al paso anterior.', true);
+    showAuthMessage('msg-register-step3', 'Error: El correo no fue verificado. Por favor, vuelve al paso anterior.', true);
     return false;
   }
   
   if (!password || !passwordConfirm) {
-    showAuthMessage('msg-register-step2', 'Por favor, completa todos los campos.', true);
+    showAuthMessage('msg-register-step3', 'Por favor, completa todos los campos.', true);
     return false;
   }
   
   if (password.length < 6) {
-    showAuthMessage('msg-register-step2', 'La contraseña debe tener al menos 6 caracteres.', true);
+    showAuthMessage('msg-register-step3', 'La contraseña debe tener al menos 6 caracteres.', true);
     markFieldError('input-register-password');
     return false;
   }
   
   if (password !== passwordConfirm) {
-    showAuthMessage('msg-register-step2', 'Las contraseñas no coinciden.', true);
+    showAuthMessage('msg-register-step3', 'Las contraseñas no coinciden.', true);
     markFieldError('input-register-password-confirm');
     return false;
   }
   
   clearFieldErrors();
-  showAuthMessage('msg-register-step2', 'Creando cuenta…', false);
+  showAuthMessage('msg-register-step3', 'Creando cuenta…', false);
   
   try {
     if (!window.firebaseAuth) {
-      showAuthMessage('msg-register-step2', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
+      showAuthMessage('msg-register-step3', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
       return false;
     }
     
@@ -5986,7 +5975,7 @@ async function tryRegister() {
     
     log('[AUTH] ✅ Registro exitoso:', user.email);
     
-    showAuthMessage('msg-register-step2', '¡Cuenta creada exitosamente! Cargando tus cursos…', false);
+    showAuthMessage('msg-register-step3', '¡Cuenta creada exitosamente! Cargando tus cursos…', false);
     
     // ✅ Usar los cursos ya verificados (puede ser array vacío si es admin)
     const allowedCourses = window.verifiedCoursesForRegistration || [];
@@ -6021,8 +6010,87 @@ async function tryRegister() {
       errorMessage = 'No se pudo crear la cuenta. Verifica los datos e intenta nuevamente.';
     }
     
-    showAuthMessage('msg-register-step2', errorMessage, true);
+    showAuthMessage('msg-register-step3', errorMessage, true);
     return false;
+  }
+}
+
+// ✅ Función para verificar código de verificación
+async function verifyCodeForRegistration() {
+  const email = window.verifiedEmailForRegistration;
+  const code = $('#input-verification-code').value.trim();
+  
+  if (!email) {
+    showAuthMessage('msg-register-step2', 'Error: El correo no fue verificado. Por favor, vuelve al paso anterior.', true);
+    return false;
+  }
+  
+  if (!code || code.length !== 6) {
+    showAuthMessage('msg-register-step2', 'Por favor, ingresa el código de 6 dígitos.', true);
+    markFieldError('input-verification-code');
+    return false;
+  }
+  
+  clearFieldErrors();
+  showAuthMessage('msg-register-step2', 'Verificando código…', false);
+  
+  const verification = await verifyCode(email, code);
+  
+  if (!verification.valid) {
+    showAuthMessage('msg-register-step2', verification.error || 'Código inválido. Intenta nuevamente.', true);
+    markFieldError('input-verification-code');
+    return false;
+  }
+  
+  // Código verificado, mostrar paso 3 (crear contraseña)
+  const step2 = $('#register-step-2');
+  const step3 = $('#register-step-3');
+  if (step2) step2.style.display = 'none';
+  if (step3) step3.style.display = 'block';
+  
+  // Limpiar campos de contraseña
+  const passwordInput = $('#input-register-password');
+  const passwordConfirmInput = $('#input-register-password-confirm');
+  if (passwordInput) passwordInput.value = '';
+  if (passwordConfirmInput) passwordConfirmInput.value = '';
+  
+  // Enfocar el primer campo de contraseña
+  setTimeout(() => {
+    if (passwordInput) passwordInput.focus();
+  }, 100);
+  
+  showAuthMessage('msg-register-step3', 'Código verificado. Ahora crea tu contraseña.', false);
+  return true;
+}
+
+// ✅ Función para reenviar código de verificación
+async function resendVerificationCode() {
+  const email = window.verifiedEmailForRegistration;
+  
+  if (!email) {
+    showAuthMessage('msg-register-step2', 'Error: No hay correo verificado.', true);
+    return false;
+  }
+  
+  if (!checkRateLimit('resend_code', 60000)) { // 1 minuto entre reenvíos
+    return false;
+  }
+  
+  showAuthMessage('msg-register-step2', 'Reenviando código…', false);
+  
+  try {
+    const code = generateVerificationCode();
+    await saveVerificationCode(email, code);
+    await sendVerificationCode(email, code);
+    
+    // Limpiar campo de código
+    const codeInput = $('#input-verification-code');
+    if (codeInput) codeInput.value = '';
+    
+    showAuthMessage('msg-register-step2', 'Código reenviado. Revisa tu correo.', false);
+  } catch (error) {
+    console.error('[VERIFICATION] ❌ Error reenviando código:', error);
+    showAuthMessage('msg-register-step2', 'Error al reenviar el código. Intenta nuevamente.', true);
   }
 }
 
@@ -6117,6 +6185,10 @@ function showAuthMessage(elementId, message, isError) {
 const COURSE_EMAILS_PATH = 'courseEmails';
 // ✅ Ruta para administradores (emails con acceso master)
 const ADMINS_PATH = 'admins';
+// ✅ Ruta para códigos de verificación
+const VERIFICATION_CODES_PATH = 'verificationCodes';
+// ✅ URL de la Cloud Function para enviar códigos de verificación
+const VERIFICATION_FUNCTION_URL = 'https://sendverificationcode-nzqxumxiba-uc.a.run.app';
 // ✅ Super administradores hardcodeados (siempre tienen acceso, incluso si se borran de Firebase)
 const SUPER_ADMINS = [
   'diseno.edusalud@gmail.com',
@@ -6126,6 +6198,111 @@ const SUPER_ADMINS = [
 // ✅ Normalizar email para usar como key en Firebase
 function normalizeEmailKey(email) {
   return email.toLowerCase().trim().replace(/\./g, '_');
+}
+
+/* ============ Verificación de Código por Email ============ */
+
+// ✅ Generar código de verificación de 6 dígitos
+function generateVerificationCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// ✅ Guardar código en Firebase con expiración (10 minutos)
+async function saveVerificationCode(email, code) {
+  try {
+    const db = getFirebaseDB();
+    if (!db) {
+      throw new Error('Firebase no disponible');
+    }
+    
+    const emailKey = normalizeEmailKey(email);
+    const codeRef = db.ref(`${VERIFICATION_CODES_PATH}/${emailKey}`);
+    
+    const codeData = {
+      code: code,
+      email: email.toLowerCase().trim(),
+      createdAt: Date.now(),
+      expiresAt: Date.now() + (10 * 60 * 1000), // 10 minutos
+      used: false
+    };
+    
+    await codeRef.set(codeData);
+    log('[VERIFICATION] ✅ Código guardado en Firebase para:', email);
+    return true;
+  } catch (error) {
+    error('[VERIFICATION] ❌ Error guardando código:', error);
+    throw error;
+  }
+}
+
+// ✅ Enviar código de verificación usando Cloud Function
+async function sendVerificationCode(email, code) {
+  try {
+    const response = await fetch(VERIFICATION_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, code })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+      throw new Error(errorData.error || `Error HTTP: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    log('[VERIFICATION] ✅ Código enviado exitosamente:', result);
+    return { success: true };
+  } catch (error) {
+    error('[VERIFICATION] ❌ Error enviando código:', error);
+    throw error;
+  }
+}
+
+// ✅ Verificar código ingresado por el usuario
+async function verifyCode(email, code) {
+  try {
+    const db = getFirebaseDB();
+    if (!db) {
+      throw new Error('Firebase no disponible');
+    }
+    
+    const emailKey = normalizeEmailKey(email);
+    const codeRef = db.ref(`${VERIFICATION_CODES_PATH}/${emailKey}`);
+    const snapshot = await codeRef.once('value');
+    
+    if (!snapshot.exists()) {
+      return { valid: false, error: 'Código no encontrado. Solicita uno nuevo.' };
+    }
+    
+    const codeData = snapshot.val();
+    const now = Date.now();
+    
+    // Verificar si el código ya fue usado
+    if (codeData.used) {
+      return { valid: false, error: 'Este código ya fue utilizado.' };
+    }
+    
+    // Verificar si el código expiró
+    if (now > codeData.expiresAt) {
+      return { valid: false, error: 'El código ha expirado. Solicita uno nuevo.' };
+    }
+    
+    // Verificar si el código coincide
+    if (codeData.code !== code.trim()) {
+      return { valid: false, error: 'Código incorrecto. Intenta nuevamente.' };
+    }
+    
+    // Marcar código como usado
+    await codeRef.update({ used: true });
+    
+    log('[VERIFICATION] ✅ Código verificado correctamente');
+    return { valid: true };
+  } catch (error) {
+    error('[VERIFICATION] ❌ Error verificando código:', error);
+    return { valid: false, error: 'Error al verificar el código. Intenta nuevamente.' };
+  }
 }
 
 // ✅ Verificar si un correo tiene acceso a un curso específico
@@ -7349,6 +7526,57 @@ function setupEmailPasswordListeners() {
     });
   }
   
+  // ✅ Event listener para verificar código
+  const btnVerifyCode = $('#btn-verify-code');
+  if (btnVerifyCode) {
+    btnVerifyCode.addEventListener('click', async () => {
+      await verifyCodeForRegistration();
+    });
+  }
+  
+  // ✅ Event listener para reenviar código
+  const btnResendCode = $('#btn-resend-code');
+  if (btnResendCode) {
+    btnResendCode.addEventListener('click', async () => {
+      await resendVerificationCode();
+    });
+  }
+  
+  // ✅ Enter en campo de código para verificar
+  const inputVerificationCode = $('#input-verification-code');
+  if (inputVerificationCode) {
+    inputVerificationCode.addEventListener('keypress', async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        await verifyCodeForRegistration();
+      }
+    });
+    
+    // Solo permitir números
+    inputVerificationCode.addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    });
+  }
+  
+  // ✅ Event listener para volver del paso 2 al paso 1
+  const btnBackToEmail = $('#btn-back-to-email');
+  if (btnBackToEmail) {
+    btnBackToEmail.addEventListener('click', () => {
+      const step1 = $('#register-step-1');
+      const step2 = $('#register-step-2');
+      if (step1) step1.style.display = 'block';
+      if (step2) step2.style.display = 'none';
+      
+      window.verifiedEmailForRegistration = null;
+      window.verifiedCoursesForRegistration = null;
+      window.verifiedIsAdmin = null;
+      
+      showAuthMessage('msg-register', '', false);
+      showAuthMessage('msg-register-step2', '', false);
+      clearFieldErrors();
+    });
+  }
+  
   // Enter en campos de contraseña para crear cuenta
   const inputRegisterPassword = $('#input-register-password');
   const inputRegisterPasswordConfirm = $('#input-register-password-confirm');
@@ -7369,7 +7597,7 @@ function setupEmailPasswordListeners() {
     });
   }
   
-  // Registro (paso 2)
+  // Registro (paso 3)
   const btnRegister = $('#btn-register');
   if (btnRegister) {
     btnRegister.addEventListener('click', () => {
@@ -7377,23 +7605,23 @@ function setupEmailPasswordListeners() {
     });
   }
   
-  // ✅ Event listener para volver al paso 1
+  // ✅ Event listener para volver del paso 3 al paso 2
   const btnBackToVerify = $('#btn-back-to-verify');
   if (btnBackToVerify) {
     btnBackToVerify.addEventListener('click', () => {
-      // Volver al paso 1
-      const step1 = $('#register-step-1');
       const step2 = $('#register-step-2');
-      if (step1) step1.style.display = 'block';
-      if (step2) step2.style.display = 'none';
+      const step3 = $('#register-step-3');
+      if (step2) step2.style.display = 'block';
+      if (step3) step3.style.display = 'none';
       
-      // Limpiar variables temporales
-      window.verifiedEmailForRegistration = null;
-      window.verifiedCoursesForRegistration = null;
+      // Limpiar campos de contraseña
+      const passwordInput = $('#input-register-password');
+      const passwordConfirmInput = $('#input-register-password-confirm');
+      if (passwordInput) passwordInput.value = '';
+      if (passwordConfirmInput) passwordConfirmInput.value = '';
       
       // Limpiar mensajes
-      showAuthMessage('msg-register', '', false);
-      showAuthMessage('msg-register-step2', '', false);
+      showAuthMessage('msg-register-step3', '', false);
       clearFieldErrors();
     });
   }
@@ -7421,9 +7649,13 @@ function setupEmailPasswordListeners() {
       // Resetear formulario de registro al paso 1
       const step1 = $('#register-step-1');
       const step2 = $('#register-step-2');
+      const step3 = $('#register-step-3');
       if (step1) step1.style.display = 'block';
       if (step2) step2.style.display = 'none';
+      if (step3) step3.style.display = 'none';
       window.verifiedEmailForRegistration = null;
+      window.verifiedCoursesForRegistration = null;
+      window.verifiedIsAdmin = null;
       window.verifiedCoursesForRegistration = null;
       showAuthMessage('msg-register', '', false);
       showAuthMessage('msg-register-step2', '', false);
@@ -7440,9 +7672,13 @@ function setupEmailPasswordListeners() {
       // Resetear formulario de registro al paso 1
       const step1 = $('#register-step-1');
       const step2 = $('#register-step-2');
+      const step3 = $('#register-step-3');
       if (step1) step1.style.display = 'block';
       if (step2) step2.style.display = 'none';
+      if (step3) step3.style.display = 'none';
       window.verifiedEmailForRegistration = null;
+      window.verifiedCoursesForRegistration = null;
+      window.verifiedIsAdmin = null;
       window.verifiedCoursesForRegistration = null;
       showAuthMessage('msg-register', '', false);
       showAuthMessage('msg-register-step2', '', false);
