@@ -3446,23 +3446,10 @@ function showContent() {
   // ✅ Forzar reflow para que la transición se active
   void contentEl.offsetWidth;
   
-  // ✅ Mostrar/ocultar botón "Regresar" según el origen
-  const btnBackToMaster = $('#btn-back-to-master');
+  // ✅ Mostrar/ocultar botón "Volver" según el origen
   const btnBackToUser = $('#btn-back-to-user');
-  
-  // ✅ Viene de vista maestra si tiene el flag activo
-  const isFromMaster = window.isFromMasterView === true;
-  
   // ✅ Viene de vista de usuario si tiene email, cursos permitidos y el flag está activo
   const isFromUserView = window.currentUserEmail && window.allowedCoursesForUser && window.isFromUserView;
-  
-  if (btnBackToMaster) {
-    if (isFromMaster) {
-      btnBackToMaster.classList.remove('hidden');
-    } else {
-      btnBackToMaster.classList.add('hidden');
-    }
-  }
   
   if (btnBackToUser) {
     if (isFromUserView) {
@@ -3507,8 +3494,7 @@ function showMaster() {
   $('#content').classList.add('hidden');
   $('#user-view').classList.add('hidden');
   
-  // ✅ Limpiar flags cuando se muestra la vista master
-  window.isFromMasterView = false;
+  // ✅ Limpiar flag cuando se muestra la vista master
   window.isFromUserView = false;
   
   // ✅ Mostrar master con transición
@@ -3836,10 +3822,8 @@ function buildUserGrid() {
       
       await runLoader();
       
-      // ✅ Marcar que venimos de la vista de usuario
+      // ✅ Marcar que estamos en un curso desde vista de usuario
       window.isFromUserView = true;
-      // Limpiar flag de master view si existe
-      window.isFromMasterView = false;
       currentKeyHex = hex;
       renderCourse(hex);
       showContent();
@@ -4054,9 +4038,7 @@ function buildMasterGrid() {
       // Ejecutar animación de loader ahora que ya tenemos los datos
       await runLoader();
       
-      // ✅ Marcar que venimos de la vista maestra
-      window.isFromMasterView = true;
-      // Limpiar flag de user view si existe
+      // ✅ Limpiar flag cuando se abre desde master (no desde vista de usuario)
       window.isFromUserView = false;
       currentKeyHex = hex;
       renderCourse(hex);
@@ -7196,17 +7178,6 @@ if (btnBackToUser) {
 
 // ✅ Event listener para botón "Salir" (comportamiento inteligente)
 $('#btn-logout').addEventListener('click', async () => {
-  // ✅ Si viene de vista maestra, regresar a vista maestra
-  const isFromMaster = window.isFromMasterView === true;
-  
-  if (isFromMaster) {
-    currentKeyHex = null;
-    window.isFromMasterView = false;
-    setQueryParam('code', null);
-    showMaster();
-    return;
-  }
-  
   // ✅ Si viene de vista de usuario, regresar a vista de usuario
   const isFromUserView = window.currentUserEmail && window.allowedCoursesForUser && window.isFromUserView;
   
@@ -7217,22 +7188,13 @@ $('#btn-logout').addEventListener('click', async () => {
     setQueryParam('code', null);
     showUserView();
   } else {
-    // Si viene de acceso directo, cerrar sesión
+    // Si viene de master o acceso directo, cerrar sesión
     currentKeyHex = null;
-    window.isFromMasterView = false;
     window.isFromUserView = false;
     setQueryParam('code', null);
     await logoutFirebase();
     showAccess();
   }
-});
-
-// ✅ Botón para regresar a la vista maestra
-$('#btn-back-to-master').addEventListener('click', () => {
-  currentKeyHex = null;
-  window.isFromMasterView = false;
-  setQueryParam('code', null);
-  showMaster();
 });
 
 // ✅ Integrar logout de Firebase con logout del master
