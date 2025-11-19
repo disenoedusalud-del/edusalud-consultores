@@ -5755,7 +5755,19 @@ async function tryLoginByEmail() {
     
     log('[AUTH] ✅ Login exitoso:', userEmail);
     
-    // ✅ OBTENER CURSOS PERMITIDOS PARA ESTE CORREO (LÓGICA EXISTENTE)
+    window.currentUserEmail = userEmail;
+    
+    // ✅ PRIMERO: Verificar si es administrador
+    const isAdmin = await checkIsAdmin(userEmail);
+    if (isAdmin) {
+      // ✅ Es administrador, otorgar acceso master directamente
+      log('[AUTH] ✅ Usuario es administrador, otorgando acceso master');
+      showAuthMessage('msg-auth', '¡Bienvenido! Acceso de administrador activado.', false);
+      await handleSuccessfulAuthWithEmail(userEmail, []); // Array vacío, pero es admin
+      return true;
+    }
+    
+    // ✅ Si NO es admin, verificar cursos permitidos
     showAuthMessage('msg-auth', 'Verificando cursos disponibles…', false);
     
     let allowedCourses;
@@ -5768,8 +5780,6 @@ async function tryLoginByEmail() {
     }
     
     log('[AUTH] Cursos permitidos para', userEmail, ':', allowedCourses.length);
-    
-    window.currentUserEmail = userEmail;
     
     if (allowedCourses.length === 0) {
       showAuthMessage('msg-auth', 'No tienes acceso a ningún curso. Contacta al administrador para solicitar acceso.', true);
