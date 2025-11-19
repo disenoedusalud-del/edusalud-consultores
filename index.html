@@ -688,7 +688,7 @@
                 <div id="msg-register" class="msg" role="alert" aria-live="polite"></div>
               </div>
               
-              <!-- Paso 2: Crear contraseña (oculto inicialmente) -->
+              <!-- Paso 2: Verificar código (oculto inicialmente) -->
               <div id="register-step-2" style="display:none;">
                 <div style="margin-bottom:12px; padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; font-size:14px;">
                   <span style="color:var(--accent); font-weight:600;">✓ Correo verificado:</span>
@@ -696,24 +696,51 @@
                 </div>
                 
                 <div style="margin-bottom:16px;">
+                  <label for="input-verification-code" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Código de verificación</label>
+                  <input id="input-verification-code" class="input" type="text" placeholder="000000" autocomplete="one-time-code" style="width:100%; text-align:center; font-size:24px; letter-spacing:8px; font-weight:bold; font-family:monospace;" maxlength="6" pattern="[0-9]{6}" />
+                  <p style="margin-top:8px; font-size:12px; color:var(--muted); text-align:center;">Revisa tu correo electrónico. El código expira en 10 minutos.</p>
+                </div>
+                
+                <div style="margin-bottom:16px;">
+                  <button id="btn-verify-code" class="btn" type="button" style="width:100%;">Verificar código</button>
+                </div>
+                
+                <div style="margin-bottom:16px;">
+                  <button id="btn-resend-code" class="btn secondary" type="button" style="width:100%;">Reenviar código</button>
+                </div>
+                
+                <div style="text-align:center; margin-top:16px;">
+                  <button id="btn-back-to-email" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">← Volver a verificar correo</button>
+                </div>
+                
+                <div id="msg-register-step2" class="msg" role="alert" aria-live="polite"></div>
+              </div>
+              
+              <!-- Paso 3: Crear contraseña (oculto inicialmente) -->
+              <div id="register-step-3" style="display:none;">
+                <div style="margin-bottom:12px; padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; font-size:14px;">
+                  <span style="color:var(--accent); font-weight:600;">✓ Correo y código verificados</span>
+                </div>
+                
+                <div style="margin-bottom:16px;">
                   <label for="input-register-password" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Contraseña</label>
                   <input id="input-register-password" class="input" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" style="width:100%;" />
                 </div>
-                
+
                 <div style="margin-bottom:16px;">
                   <label for="input-register-password-confirm" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Confirmar contraseña</label>
                   <input id="input-register-password-confirm" class="input" type="password" placeholder="Repite la contraseña" autocomplete="new-password" style="width:100%;" />
                 </div>
-                
+
                 <div style="margin-bottom:16px;">
                   <button id="btn-register" class="btn" type="button" style="width:100%;">Crear cuenta</button>
                 </div>
-                
+
                 <div style="text-align:center; margin-top:16px;">
-                  <button id="btn-back-to-verify" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">← Volver a verificar correo</button>
+                  <button id="btn-back-to-verify" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">← Volver a verificar código</button>
                 </div>
-                
-                <div id="msg-register-step2" class="msg" role="alert" aria-live="polite"></div>
+
+                <div id="msg-register-step3" class="msg" role="alert" aria-live="polite"></div>
               </div>
             </form>
 
