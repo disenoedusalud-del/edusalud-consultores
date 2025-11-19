@@ -12,6 +12,13 @@ const resend = new Resend(resendApiKey);
 
 // ✅ Cloud Function para enviar código de verificación
 exports.sendVerificationCode = functions.https.onRequest(async (req, res) => {
+  // ✅ Logging para diagnóstico
+  console.log('=== REQUEST RECIBIDA ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Headers:', JSON.stringify(req.headers));
+  console.log('Body:', JSON.stringify(req.body));
+  
   // ✅ Habilitar CORS para permitir llamadas desde el frontend
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -19,20 +26,25 @@ exports.sendVerificationCode = functions.https.onRequest(async (req, res) => {
   
   // ✅ Manejar preflight OPTIONS request
   if (req.method === 'OPTIONS') {
+    console.log('OPTIONS request - enviando CORS headers');
     res.status(204).send('');
     return;
   }
   
   // ✅ Solo permitir método POST
   if (req.method !== 'POST') {
+    console.log('Método no permitido:', req.method);
     res.status(405).json({ error: 'Método no permitido. Use POST.' });
     return;
   }
   
   const { email, code } = req.body;
+  console.log('Email recibido:', email);
+  console.log('Código recibido:', code);
   
   // Validar parámetros
   if (!email || !code) {
+    console.log('Error: Email o código faltante');
     res.status(400).json({ error: 'Email y código son requeridos' });
     return;
   }
@@ -40,11 +52,15 @@ exports.sendVerificationCode = functions.https.onRequest(async (req, res) => {
   // Validar formato de email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
+    console.log('Error: Email inválido:', email);
     res.status(400).json({ error: 'Email inválido' });
     return;
   }
   
   try {
+    console.log('Intentando enviar email a:', email);
+    console.log('API Key configurada:', resendApiKey ? 'Sí (longitud: ' + resendApiKey.length + ')' : 'No');
+    
     // Enviar email con Resend
     const result = await resend.emails.send({
       from: 'EduSalud <onboarding@resend.dev>', // Cambia esto después de verificar tu dominio
@@ -66,10 +82,11 @@ exports.sendVerificationCode = functions.https.onRequest(async (req, res) => {
       `
     });
     
-    console.log('Email enviado exitosamente:', result);
+    console.log('✅ Email enviado exitosamente:', JSON.stringify(result, null, 2));
     res.status(200).json({ success: true, messageId: result.id });
   } catch (error) {
-    console.error('Error enviando email:', error);
+    console.error('❌ Error enviando email:', error);
+    console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     res.status(500).json({ error: 'Error enviando email: ' + error.message });
   }
 });
