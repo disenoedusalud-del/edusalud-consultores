@@ -2703,6 +2703,14 @@ function setupSettingsMenu() {
     showGeneralEmailsModal();
   });
   
+  // ✅ Gestión de Administradores
+  dropdown.querySelector('[data-action="manage-admins"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
+    showAdminsModal();
+  });
+  
   // ✅ Actualizar UI del toggle según el tema actual
   const currentTheme = getTheme();
   updateThemeToggleUI(currentTheme);
@@ -6039,6 +6047,8 @@ function showAuthMessage(elementId, message, isError) {
 
 // ✅ Constantes para gestión de correos permitidos por curso
 const COURSE_EMAILS_PATH = 'courseEmails';
+// ✅ Ruta para administradores (emails con acceso master)
+const ADMINS_PATH = 'admins';
 
 // ✅ Normalizar email para usar como key en Firebase
 function normalizeEmailKey(email) {
@@ -6256,6 +6266,126 @@ async function getCoursesForEmail(email) {
       return [];
     }
     
+    return [];
+  }
+}
+
+/* ============ Gestión de Administradores ============ */
+
+// ✅ Verificar si un email es administrador
+async function checkIsAdmin(email) {
+  try {
+    const db = getFirebaseDB();
+    if (!db) {
+      warn('[ADMIN] Firebase no disponible, retornando false');
+      return false;
+    }
+    
+    const emailKey = normalizeEmailKey(email);
+    const adminRef = db.ref(`${ADMINS_PATH}/${emailKey}`);
+    const snapshot = await adminRef.once('value');
+    
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      return data && data.active !== false; // Verificar que esté activo
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('[ADMIN] Error verificando si es admin:', error);
+    return false;
+  }
+}
+
+// ✅ Agregar administrador
+async function addAdmin(email) {
+  try {
+    if (!email || !email.includes('@')) {
+      throw new Error('Correo inválido');
+    }
+    
+    const db = getFirebaseDB();
+    if (!db) {
+      throw new Error('Firebase no disponible');
+    }
+    
+    const emailKey = normalizeEmailKey(email);
+    const currentUser = window.firebaseAuth?.currentUser;
+    const addedBy = currentUser?.email || 'master';
+    
+    const adminData = {
+      email: email.toLowerCase().trim(),
+      role: 'admin',
+      addedBy: addedBy,
+      addedAt: new Date().toISOString(),
+      active: true
+    };
+    
+    const ref = db.ref(`${ADMINS_PATH}/${emailKey}`);
+    await ref.set(adminData);
+    
+    log('[ADMIN] ✅ Administrador agregado:', email);
+    return true;
+  } catch (error) {
+    console.error('[ADMIN] ❌ Error agregando administrador:', error);
+    throw error;
+  }
+}
+
+// ✅ Eliminar administrador
+async function removeAdmin(email) {
+  try {
+    const db = getFirebaseDB();
+    if (!db) {
+      throw new Error('Firebase no disponible');
+    }
+    
+    const emailKey = normalizeEmailKey(email);
+    await db.ref(`${ADMINS_PATH}/${emailKey}`).remove();
+    
+    log('[ADMIN] ✅ Administrador eliminado:', email);
+    return true;
+  } catch (error) {
+    console.error('[ADMIN] ❌ Error eliminando administrador:', error);
+    throw error;
+  }
+}
+
+// ✅ Obtener lista de administradores
+async function getAdmins() {
+  try {
+    const db = getFirebaseDB();
+    if (!db) {
+      return [];
+    }
+    
+    const adminsRef = db.ref(ADMINS_PATH);
+    const snapshot = await adminsRef.once('value');
+    
+    if (!snapshot.exists()) {
+      return [];
+    }
+    
+    const admins = [];
+    snapshot.forEach((childSnapshot) => {
+      const data = childSnapshot.val();
+      if (data && data.active !== false) {
+        admins.push({
+          email: data.email,
+          role: data.role || 'admin',
+          addedBy: data.addedBy || 'desconocido',
+          addedAt: data.addedAt || new Date().toISOString(),
+          key: childSnapshot.key
+        });
+      }
+    });
+    
+    // Ordenar por fecha de agregado (más recientes primero)
+    admins.sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
+    
+    return admins;
+  } catch (error) {
+    console.error('[ADMIN] Error obteniendo administradores:', error);
     return [];
   }
 }
@@ -6702,10 +6832,204 @@ window.removeEmailFromGeneral = async function(email, courseHex) {
   }
 };
 
+/* ============ Gestión de Administradores (UI) ============ */
+
+// ✅ Mostrar modal de administradores
+async function showAdminsModal() {
+  const modal = $('#modalAdmins');
+  if (!modal) {
+    console.error('[ADMIN] Modal de administradores no encontrado');
+    return;
+  }
+  
+  modal.classList.add('show');
+  await renderAdminsList();
+  
+  // Enfocar el input de email
+  const emailInput = $('#input-admin-email');
+  if (emailInput) {
+    setTimeout(() => emailInput.focus(), 100);
+  }
+}
+
+// ✅ Cerrar modal de administradores
+function closeAdminsModal() {
+  const modal = $('#modalAdmins');
+  if (modal) {
+    modal.classList.remove('show');
+  }
+}
+
+// ✅ Renderizar lista de administradores
+async function renderAdminsList() {
+  const container = $('#admins-list');
+  if (!container) return;
+  
+  container.innerHTML = '<p style="color:var(--muted); text-align:center; padding:20px; margin:0;">Cargando administradores...</p>';
+  
+  try {
+    const admins = await getAdmins();
+    
+    if (admins.length === 0) {
+      container.innerHTML = '<p style="color:var(--muted); text-align:center; padding:40px; margin:0;">No hay administradores registrados.</p>';
+      return;
+    }
+    
+    container.innerHTML = '';
+    
+    admins.forEach((admin) => {
+      const item = document.createElement('div');
+      item.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:8px;';
+      
+      const info = document.createElement('div');
+      info.style.cssText = 'flex:1; min-width:0;';
+      
+      const email = document.createElement('div');
+      email.style.cssText = 'font-weight:500; color:var(--text); margin-bottom:4px;';
+      email.textContent = admin.email;
+      
+      const meta = document.createElement('div');
+      meta.style.cssText = 'font-size:12px; color:var(--muted);';
+      const addedDate = admin.addedAt ? new Date(admin.addedAt).toLocaleDateString('es-ES', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      }) : 'Fecha desconocida';
+      meta.textContent = `Agregado el ${addedDate} por ${admin.addedBy}`;
+      
+      info.appendChild(email);
+      info.appendChild(meta);
+      
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'btn secondary';
+      removeBtn.type = 'button';
+      removeBtn.textContent = 'Eliminar';
+      removeBtn.style.cssText = 'white-space:nowrap;';
+      removeBtn.setAttribute('aria-label', `Eliminar administrador ${admin.email}`);
+      removeBtn.addEventListener('click', async () => {
+        if (!confirm(`¿Eliminar acceso de administrador para "${admin.email}"?\n\nEl usuario ya no tendrá acceso master.`)) {
+          return;
+        }
+        
+        try {
+          await removeAdmin(admin.email);
+          if (typeof window.showToast === 'function') {
+            window.showToast('Administrador eliminado', `"${admin.email}" ya no tiene acceso master`, 'success');
+          }
+          await renderAdminsList();
+        } catch (error) {
+          if (typeof window.showToast === 'function') {
+            window.showToast('Error', `No se pudo eliminar: ${error.message}`, 'error');
+          }
+        }
+      });
+      
+      item.appendChild(info);
+      item.appendChild(removeBtn);
+      container.appendChild(item);
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error renderizando lista:', error);
+    container.innerHTML = '<p style="color:var(--error); text-align:center; padding:20px; margin:0;">Error al cargar administradores.</p>';
+  }
+}
+
+// ✅ Agregar administrador desde UI
+async function addAdminUI() {
+  const input = $('#input-admin-email');
+  const msgEl = $('#msg-admins');
+  
+  if (!input) return;
+  
+  const email = input.value.trim();
+  
+  if (!email || !email.includes('@')) {
+    if (msgEl) {
+      msgEl.textContent = '❌ Ingresa un correo válido.';
+      msgEl.classList.add('error');
+    }
+    return;
+  }
+  
+  try {
+    await addAdmin(email);
+    
+    // Limpiar input
+    input.value = '';
+    if (msgEl) {
+      msgEl.textContent = `✅ Administrador "${email}" agregado exitosamente.`;
+      msgEl.classList.remove('error');
+    }
+    if (typeof window.showToast === 'function') {
+      window.showToast('Administrador agregado', `"${email}" ahora tiene acceso master`, 'success');
+    }
+    
+    // Refrescar la lista
+    await renderAdminsList();
+    
+    setTimeout(() => {
+      if (msgEl) msgEl.textContent = '';
+    }, 3000);
+  } catch (error) {
+    console.error('[ADMIN] Error agregando administrador:', error);
+    const errorMessage = error.message || 'No se pudo agregar el administrador.';
+    
+    if (msgEl) {
+      msgEl.textContent = `❌ Error: ${errorMessage}`;
+      msgEl.classList.add('error');
+    }
+    if (typeof window.showToast === 'function') {
+      window.showToast('Error', errorMessage, 'error');
+    }
+  }
+}
+
 // ✅ Función para manejar autenticación exitosa con email (mostrar solo cursos permitidos)
 async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
   log('[AUTH] ✅ Mostrando cursos permitidos para:', userEmail);
   
+  // ✅ VERIFICAR SI ES ADMINISTRADOR (otorgar acceso master)
+  const isAdmin = await checkIsAdmin(userEmail);
+  if (isAdmin) {
+    log('[AUTH] ✅ Usuario es administrador, otorgando acceso master');
+    // Establecer flags de master
+    isMasterAuthenticated = true;
+    currentKeyHex = MASTER_HASH;
+    
+    // ✅ Refresh en background (no bloquear login)
+    if (hasRemote()) {
+      log('[SYNC] Iniciando refresh de todos los cursos en background...');
+      const mergedMap = getMergedAccessHashMap();
+      const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
+      log('[SYNC] Total de cursos a refrescar:', hexes.length);
+      
+      Promise.allSettled(hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
+        warn('[SYNC] Error refrescando', h.substring(0, 8), ':', e);
+        return false;
+      }))).then(() => {
+        log('[SYNC] ✅ Refresh completado');
+      });
+    }
+    
+    try { 
+      await runLoader(); 
+    } catch (e) {}
+    
+    clearAttempts();
+    
+    refreshCustomCourses().catch(e => {
+      warn('[MASTER] Error cargando cursos remotos (continuando):', e);
+    });
+    
+    // ✅ Mostrar vista master para administradores
+    buildMasterGrid();
+    setupMasterSearch();
+    $('#year_master').textContent = new Date().getFullYear();
+    showMaster();
+    return;
+  }
+  
+  // ✅ Si NO es admin, comportamiento normal (vista de usuario)
   // Guardar cursos permitidos en variable global para filtrar
   window.allowedCoursesForUser = allowedCourses;
   
@@ -7135,6 +7459,33 @@ const modalGeneralEmailsClose = $('#modalGeneralEmailsClose');
 if (modalGeneralEmailsClose) {
   modalGeneralEmailsClose.addEventListener('click', () => {
     closeGeneralEmailsModal();
+  });
+}
+
+// ✅ Event listeners para modal de administradores
+const modalAdminsClose = $('#modalAdminsClose');
+if (modalAdminsClose) {
+  modalAdminsClose.addEventListener('click', () => {
+    closeAdminsModal();
+  });
+}
+
+// Event listener para botón agregar administrador
+const btnAddAdmin = $('#btn-add-admin');
+if (btnAddAdmin) {
+  btnAddAdmin.addEventListener('click', () => {
+    addAdminUI();
+  });
+}
+
+// Event listener para input de administrador (Enter)
+const inputAdminEmail = $('#input-admin-email');
+if (inputAdminEmail) {
+  inputAdminEmail.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addAdminUI();
+    }
   });
 }
 
