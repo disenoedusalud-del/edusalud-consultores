@@ -5488,6 +5488,10 @@ async function tryLoginByCode(code) {
 
     // master
     if (hex === MASTER_HASH) {
+      // ✅ Establecer flag de master autenticado (CRÍTICO para validación de seguridad)
+      isMasterAuthenticated = true;
+      currentKeyHex = MASTER_HASH;
+      
       // ✅ Refresh en background (no bloquear login) con timeout corto
       if (hasRemote()) {
         log('[SYNC] Iniciando refresh de todos los cursos en background...');
