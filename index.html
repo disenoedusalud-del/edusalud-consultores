@@ -634,7 +634,7 @@
           <!-- Formulario de acceso por cuenta (Email/Password) -->
           <div id="form-account" class="auth-form hidden">
             <!-- Formulario de Login -->
-            <div id="form-login">
+            <form id="form-login" onsubmit="event.preventDefault(); return false;">
               <h3 style="margin:0 0 8px 0; font-size:20px; font-weight:600;">Iniciar sesión</h3>
               <p style="color:var(--muted); font-size:14px; margin-bottom:24px;">
                 Accede con tu correo y contraseña
@@ -661,10 +661,10 @@
               </div>
               
               <div id="msg-auth" class="msg" role="alert" aria-live="polite"></div>
-            </div>
+            </form>
 
             <!-- Formulario de Registro -->
-            <div id="form-register" class="hidden">
+            <form id="form-register" class="hidden" onsubmit="event.preventDefault(); return false;">
               <h3 style="margin:0 0 8px 0; font-size:20px; font-weight:600;">Crear cuenta</h3>
               <p style="color:var(--muted); font-size:14px; margin-bottom:24px;">
                 Ingresa tu correo para verificar si estás autorizado
@@ -715,7 +715,7 @@
                 
                 <div id="msg-register-step2" class="msg" role="alert" aria-live="polite"></div>
               </div>
-            </div>
+            </form>
 
             <!-- Formulario de Reset Password -->
             <div id="form-reset" class="hidden">
