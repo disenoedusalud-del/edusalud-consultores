@@ -3278,6 +3278,8 @@ function getBackupHistory() {
 
 /* ============ estado & helpers ============ */
 let currentKeyHex = null;
+// ✅ Variable global para identificar si el usuario es master autenticado
+let isMasterAuthenticated = false;
 const ATTEMPT_KEY = 'edusalud_attempts_session';
 
 function recordAttempt() {
@@ -3307,6 +3309,13 @@ function maybeShowAttemptsWarning() {
 
 /* ============ vistas ============ */
 function showAccess() {
+  // ✅ Limpiar flags de autenticación al mostrar acceso
+  isMasterAuthenticated = false;
+  currentKeyHex = null;
+  window.currentUserEmail = null;
+  window.allowedCoursesForUser = null;
+  window.isFromUserView = false;
+  
   // ✅ Transición suave: ocultar otras vistas primero
   $('#content').classList.add('hidden');
   $('#master').classList.add('hidden');
@@ -3446,16 +3455,29 @@ function showContent() {
   // ✅ Forzar reflow para que la transición se active
   void contentEl.offsetWidth;
   
-  // ✅ Mostrar/ocultar botón "Volver" según el origen
+  // ✅ Mostrar/ocultar botones "Volver" según el origen
   const btnBackToUser = $('#btn-back-to-user');
+  const btnBackToMaster = $('#btn-back-to-master');
+  
   // ✅ Viene de vista de usuario si tiene email, cursos permitidos y el flag está activo
   const isFromUserView = window.currentUserEmail && window.allowedCoursesForUser && window.isFromUserView;
+  
+  // ✅ Viene de vista maestra si NO viene de usuario y hay un curso abierto (y es master autenticado)
+  const isFromMasterView = !isFromUserView && currentKeyHex && currentKeyHex !== MASTER_HASH && isMasterAuthenticated;
   
   if (btnBackToUser) {
     if (isFromUserView) {
       btnBackToUser.classList.remove('hidden');
     } else {
       btnBackToUser.classList.add('hidden');
+    }
+  }
+  
+  if (btnBackToMaster) {
+    if (isFromMasterView) {
+      btnBackToMaster.classList.remove('hidden');
+    } else {
+      btnBackToMaster.classList.add('hidden');
     }
   }
   
@@ -3489,6 +3511,17 @@ function showUserView() {
 }
 
 function showMaster() {
+  // ✅ VALIDACIÓN DE SEGURIDAD: Solo permitir acceso si el usuario es master autenticado
+  if (!isMasterAuthenticated && currentKeyHex !== MASTER_HASH) {
+    console.error('[SECURITY] ❌ Intento de acceso no autorizado a vista maestra');
+    // Redirigir a vista de acceso
+    showAccess();
+    if (typeof window.showToast === 'function') {
+      window.showToast('Acceso denegado', 'No tienes permiso para acceder a la vista maestra', 'error');
+    }
+    return;
+  }
+  
   // ✅ Transición suave: ocultar otras vistas primero
   $('#access').classList.add('hidden');
   $('#content').classList.add('hidden');
@@ -3845,6 +3878,18 @@ function buildUserGrid() {
 
 /* ============ render master ============ */
 function buildMasterGrid() {
+  // ✅ VALIDACIÓN: Si no es master, redirigir
+  if (!isMasterAuthenticated && currentKeyHex !== MASTER_HASH) {
+    console.error('[SECURITY] ❌ Intento de construir grid master sin autorización');
+    // Si el usuario está autenticado con email, redirigir a vista de usuario
+    if (window.currentUserEmail && window.allowedCoursesForUser) {
+      showUserView();
+    } else {
+      showAccess();
+    }
+    return;
+  }
+  
   // ✅ Iniciar medición de renderizado del grid
   const gridStart = startPerformanceMeasure('Renderizado del grid');
   
@@ -6694,6 +6739,9 @@ async function logoutFirebase() {
       await window.firebaseAuth.signOut();
       log('[AUTH] ✅ Logout exitoso');
     }
+    // ✅ Limpiar flag de master al cerrar sesión
+    isMasterAuthenticated = false;
+    currentKeyHex = null;
   } catch (error) {
     console.error('[AUTH] ❌ Error en logout:', error);
   }
@@ -6705,6 +6753,9 @@ async function handleSuccessfulAuth(hex, method = 'code') {
   
   // Si es master, mostrar vista master
   if (hex === MASTER_HASH) {
+    // ✅ Establecer flag de master autenticado
+    isMasterAuthenticated = true;
+    currentKeyHex = MASTER_HASH; // ✅ Establecer currentKeyHex para validación
     // ✅ Refresh en background (no bloquear login)
     if (hasRemote()) {
       log('[SYNC] Iniciando refresh de todos los cursos en background...');
@@ -7173,6 +7224,21 @@ if (btnBackToUser) {
     setQueryParam('code', null);
     // Regresar a vista de usuario
     showUserView();
+  });
+}
+
+// ✅ Event listener para botón "Volver a Master" (desde vista de contenido a vista maestra)
+const btnBackToMaster = $('#btn-back-to-master');
+if (btnBackToMaster) {
+  btnBackToMaster.addEventListener('click', () => {
+    // Limpiar curso actual
+    currentKeyHex = MASTER_HASH; // ✅ Mantener como master para validación
+    window.isFromUserView = false;
+    setQueryParam('code', null);
+    // Regresar a vista maestra
+    buildMasterGrid();
+    setupMasterSearch();
+    showMaster();
   });
 }
 
