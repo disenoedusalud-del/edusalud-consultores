@@ -6094,6 +6094,11 @@ function showAuthMessage(elementId, message, isError) {
 const COURSE_EMAILS_PATH = 'courseEmails';
 // ✅ Ruta para administradores (emails con acceso master)
 const ADMINS_PATH = 'admins';
+// ✅ Super administradores hardcodeados (siempre tienen acceso, incluso si se borran de Firebase)
+const SUPER_ADMINS = [
+  'diseno.edusalud@gmail.com',
+  'diseno.edusalud@unah.edu.hn'
+];
 
 // ✅ Normalizar email para usar como key en Firebase
 function normalizeEmailKey(email) {
@@ -6319,6 +6324,14 @@ async function getCoursesForEmail(email) {
 
 // ✅ Verificar si un email es administrador
 async function checkIsAdmin(email) {
+  // ✅ PRIMERO: Verificar si es super admin (hardcodeado - siempre disponible)
+  const normalizedEmail = email.toLowerCase().trim();
+  if (SUPER_ADMINS.includes(normalizedEmail)) {
+    log('[ADMIN] ✅ Email es super administrador (hardcodeado):', normalizedEmail);
+    return true;
+  }
+  
+  // ✅ Luego verificar en Firebase
   try {
     const db = getFirebaseDB();
     if (!db) {
