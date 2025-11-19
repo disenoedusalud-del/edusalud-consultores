@@ -791,6 +791,11 @@
                 ← Volver
               </button>
               
+              <!-- ✅ Botón Volver a Master (solo visible cuando viene de vista maestra) -->
+              <button id="btn-back-to-master" class="btn secondary hidden" type="button" aria-label="Volver a vista maestra" title="Volver a vista maestra">
+                ← Volver
+              </button>
+              
               <!-- ✅ Botón de Ajustes para consultores -->
               <div style="position: relative;">
                 <button id="btn-settings-content" class="btn secondary" type="button" aria-label="Abrir menú de ajustes" aria-expanded="false" aria-haspopup="true" title="Ajustes">
@@ -1647,7 +1652,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=94" defer></script>
+  <script src="assets/js/app.js?v=95" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
