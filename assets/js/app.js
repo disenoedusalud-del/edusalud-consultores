@@ -3836,10 +3836,10 @@ function buildUserGrid() {
       
       await runLoader();
       
-      // ✅ Marcar que venimos de la vista maestra
-      window.isFromMasterView = true;
-      // Limpiar flag de user view si existe
-      window.isFromUserView = false;
+      // ✅ Marcar que venimos de la vista de usuario
+      window.isFromUserView = true;
+      // Limpiar flag de master view si existe
+      window.isFromMasterView = false;
       currentKeyHex = hex;
       renderCourse(hex);
       showContent();
