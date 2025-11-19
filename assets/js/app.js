@@ -6795,41 +6795,35 @@ function setupAuthStateListener() {
       log('[AUTH] ✅ Usuario autenticado:', user.email);
       const userEmail = user.email.toLowerCase().trim();
       
-      const urlParams = new URLSearchParams(window.location.search);
-      const masterEl = document.getElementById('master');
-      const userViewEl = document.getElementById('user-view');
-      const contentEl = document.getElementById('content');
-      const accessEl = document.getElementById('access');
-      const isInMaster = currentKeyHex === MASTER_HASH || (masterEl && !masterEl.classList.contains('hidden'));
-      const isInUserView = userViewEl && !userViewEl.classList.contains('hidden');
-      const isInContent = contentEl && !contentEl.classList.contains('hidden');
-      const isInAccess = accessEl && !accessEl.classList.contains('hidden');
+      // ✅ SOLO mantener el estado sincronizado, NO redirigir automáticamente
+      // La redirección solo debe ocurrir cuando el usuario inicia sesión explícitamente
+      window.currentUserEmail = userEmail;
       
-      if (!urlParams.has('code') && !isInMaster && !isInUserView && !isInContent) {
-        log('[AUTH] 🔍 Verificando cursos para usuario con email...');
-        const allowedCourses = await getCoursesForEmail(userEmail);
-        log('[AUTH] 📚 Cursos encontrados en listener:', allowedCourses.length);
-        
-        if (allowedCourses.length > 0) {
-          log('[AUTH] ✅ Mostrando vista de usuario desde listener');
-          window.currentUserEmail = userEmail;
-          window.allowedCoursesForUser = allowedCourses;
-          
-          if (isInAccess && accessEl) {
-            accessEl.classList.add('hidden');
-          }
-          
-          await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
-        }
-      }
+      // ✅ Obtener cursos permitidos para mantener el estado actualizado
+      // pero NO redirigir automáticamente
+      const allowedCourses = await getCoursesForEmail(userEmail);
+      window.allowedCoursesForUser = allowedCourses;
+      
+      log('[AUTH] ✅ Estado de autenticación sincronizado (sin redirección automática)');
+      log('[AUTH] 📚 Cursos permitidos:', allowedCourses.length);
+      
+      // ❌ NO redirigir automáticamente - solo mantener estado
+      // La redirección se hace explícitamente desde los formularios de login/registro
+      
     } else {
       log('[AUTH] Usuario no autenticado');
-      window.currentUserEmail = null;
-      window.allowedCoursesForUser = null;
-      if (currentKeyHex === MASTER_HASH || (document.getElementById('user-view') && !document.getElementById('user-view').classList.contains('hidden'))) {
-        currentKeyHex = null;
-        setQueryParam('code', null);
-        showAccess();
+      
+      // ✅ Limpiar estado solo si el usuario hace logout explícitamente
+      // NO limpiar si solo está navegando por la plataforma con código master
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasCodeParam = urlParams.has('code');
+      const isInMaster = currentKeyHex === MASTER_HASH;
+      const isInContent = document.getElementById('content') && !document.getElementById('content').classList.contains('hidden');
+      
+      // Solo limpiar si NO hay código master activo y NO está viendo un curso
+      if (!hasCodeParam && !isInMaster && !isInContent) {
+        window.currentUserEmail = null;
+        window.allowedCoursesForUser = null;
       }
     }
   });
