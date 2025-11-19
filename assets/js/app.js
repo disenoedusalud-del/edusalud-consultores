@@ -5832,7 +5832,40 @@ async function verifyEmailForRegistration() {
   showAuthMessage('msg-register', 'Verificando autorización del correo…', false);
   
   try {
-    // Verificar si el correo está permitido en algún curso
+    // ✅ PRIMERO: Verificar si es administrador
+    const isAdmin = await checkIsAdmin(normalizedEmail);
+    if (isAdmin) {
+      // ✅ Es administrador, permitir registro (tendrá acceso master)
+      showAuthMessage('msg-register', '', false); // Limpiar mensaje
+      
+      // Guardar el correo verificado (sin cursos, pero es admin)
+      window.verifiedEmailForRegistration = normalizedEmail;
+      window.verifiedCoursesForRegistration = []; // Array vacío, pero es admin
+      window.verifiedIsAdmin = true; // ✅ Flag para indicar que es admin
+      
+      // Ocultar paso 1 y mostrar paso 2
+      const step1 = $('#register-step-1');
+      const step2 = $('#register-step-2');
+      if (step1) step1.style.display = 'none';
+      if (step2) step2.style.display = 'block';
+      const verifiedEmailDisplay = $('#verified-email-display');
+      if (verifiedEmailDisplay) verifiedEmailDisplay.textContent = normalizedEmail;
+      
+      // Limpiar campos de contraseña
+      const passwordInput = $('#input-register-password');
+      const passwordConfirmInput = $('#input-register-password-confirm');
+      if (passwordInput) passwordInput.value = '';
+      if (passwordConfirmInput) passwordConfirmInput.value = '';
+      
+      // Enfocar el primer campo de contraseña
+      setTimeout(() => {
+        if (passwordInput) passwordInput.focus();
+      }, 100);
+      
+      return true;
+    }
+    
+    // ✅ Si NO es admin, verificar si está en algún curso
     const allowedCourses = await getCoursesForEmail(normalizedEmail);
     
     if (allowedCourses.length === 0) {
@@ -5841,12 +5874,13 @@ async function verifyEmailForRegistration() {
       return false;
     }
     
-    // ✅ Correo autorizado, mostrar paso 2
+    // ✅ Correo autorizado (tiene cursos), mostrar paso 2
     showAuthMessage('msg-register', '', false); // Limpiar mensaje
     
     // Guardar el correo verificado y los cursos permitidos
     window.verifiedEmailForRegistration = normalizedEmail;
     window.verifiedCoursesForRegistration = allowedCourses;
+    window.verifiedIsAdmin = false; // ✅ No es admin
     
     // Ocultar paso 1 y mostrar paso 2
     const step1 = $('#register-step-1');
@@ -5921,7 +5955,7 @@ async function tryRegister() {
     
     showAuthMessage('msg-register-step2', '¡Cuenta creada exitosamente! Cargando tus cursos…', false);
     
-    // ✅ Usar los cursos ya verificados
+    // ✅ Usar los cursos ya verificados (puede ser array vacío si es admin)
     const allowedCourses = window.verifiedCoursesForRegistration || [];
     window.currentUserEmail = email;
     await handleSuccessfulAuthWithEmail(email, allowedCourses);
@@ -5929,6 +5963,7 @@ async function tryRegister() {
     // Limpiar variables temporales
     window.verifiedEmailForRegistration = null;
     window.verifiedCoursesForRegistration = null;
+    window.verifiedIsAdmin = null; // ✅ Limpiar flag de admin
     
     return true;
     
