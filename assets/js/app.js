@@ -5758,7 +5758,30 @@ async function tryLoginByEmail() {
     window.currentUserEmail = userEmail;
     
     // ✅ PRIMERO: Verificar si es administrador
-    const isAdmin = await checkIsAdmin(userEmail);
+    let isAdmin = false;
+    try {
+      log('[AUTH] 🔍 Verificando si', userEmail, 'es administrador...');
+      isAdmin = await checkIsAdmin(userEmail);
+      log('[AUTH] 🔍 Resultado de checkIsAdmin para', userEmail, ':', isAdmin);
+      
+      // ✅ Verificación adicional: verificar directamente si es super admin (por si checkIsAdmin falla)
+      if (!isAdmin) {
+        const normalizedEmail = userEmail.toLowerCase().trim();
+        const isSuperAdmin = SUPER_ADMINS.includes(normalizedEmail);
+        log('[AUTH] 🔍 Verificación directa de super admin:', isSuperAdmin, 'para', normalizedEmail);
+        if (isSuperAdmin) {
+          log('[AUTH] ✅ Detectado como super admin directamente');
+          isAdmin = true;
+        }
+      }
+    } catch (error) {
+      console.error('[AUTH] ❌ Error verificando si es admin:', error);
+      // Si hay error, intentar verificar directamente los super admins
+      const normalizedEmail = userEmail.toLowerCase().trim();
+      isAdmin = SUPER_ADMINS.includes(normalizedEmail);
+      log('[AUTH] 🔍 Verificación directa de super admin (fallback):', isAdmin);
+    }
+    
     if (isAdmin) {
       // ✅ Es administrador, otorgar acceso master directamente
       log('[AUTH] ✅ Usuario es administrador, otorgando acceso master');
