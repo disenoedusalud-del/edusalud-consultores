@@ -21,6 +21,7 @@ if (!BASE_PATH || BASE_PATH === '') {
 }
 const STATIC_ASSETS = IS_DEVELOPMENT ? [] : [
   BASE_PATH + 'index.html',
+  BASE_PATH + 'assets/css/style.css',
   BASE_PATH + 'assets/js/electric-card.js',
   BASE_PATH + 'assets/js/app.js',
   BASE_PATH + 'assets/logo-edusalud.png',
