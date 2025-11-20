@@ -99,6 +99,18 @@ function validateCertConfig() {
     showToast('warning', 'Configuración requerida', 'Configura la URL del Google Apps Script Web App');
     return false;
   }
+  
+  // Validar que la URL sea correcta
+  if (!certConfig.scriptWebAppUrl.startsWith('https://script.google.com/')) {
+    showToast('warning', 'URL inválida', 'La URL debe comenzar con https://script.google.com/');
+    return false;
+  }
+  
+  // Validar que termine en /exec (no /dev)
+  if (!certConfig.scriptWebAppUrl.includes('/exec')) {
+    console.warn('[CERT] ⚠️ La URL parece estar en modo desarrollo (/dev). Usa la URL de producción (/exec)');
+  }
+  
   return true;
 }
 
@@ -108,8 +120,28 @@ async function listGoogleResources(type) {
   if (!validateCertConfig()) return [];
   
   try {
-    const response = await fetch(`${certConfig.scriptWebAppUrl}?action=list${type}`);
+    const url = `${certConfig.scriptWebAppUrl}?action=list${type}`;
+    console.log('[CERT] 🔗 Conectando a:', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-cache',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    console.log('[CERT] 📡 Respuesta recibida:', response.status, response.statusText);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[CERT] ❌ Error HTTP:', response.status, errorText);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
     const data = await response.json();
+    console.log('[CERT] 📦 Datos recibidos:', data);
     
     if (data.success) {
       return data.data || [];
@@ -118,7 +150,15 @@ async function listGoogleResources(type) {
     }
   } catch (error) {
     console.error(`[CERT] ❌ Error listando ${type}:`, error);
-    showToast('error', 'Error', `Error al listar ${type}: ${error.message}`);
+    console.error('[CERT] URL intentada:', certConfig.scriptWebAppUrl);
+    console.error('[CERT] Stack trace:', error.stack);
+    
+    let errorMessage = error.message;
+    if (error.message.includes('Failed to fetch')) {
+      errorMessage = 'No se pudo conectar al script. Verifica que:\n1. La URL del Web App sea correcta\n2. El script esté desplegado como Web App\n3. El acceso sea "Cualquiera, incluso anónimos"';
+    }
+    
+    showToast('error', 'Error de conexión', errorMessage);
     return [];
   }
 }
@@ -257,16 +297,29 @@ async function createNewSheet() {
   }
   
   try {
+    console.log('[CERT] 🔗 Creando hoja:', name);
     const response = await fetch(certConfig.scriptWebAppUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      mode: 'cors',
+      cache: 'no-cache',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({
         action: 'createSheet',
         params: { name }
       })
     });
     
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[CERT] ❌ Error HTTP:', response.status, errorText);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
     const data = await response.json();
+    console.log('[CERT] 📦 Respuesta:', data);
     
     if (data.success) {
       showToast('success', 'Hoja creada', `Hoja "${data.name}" creada exitosamente`);
@@ -296,7 +349,7 @@ async function createNewFolder(folderType) {
   const name = nameInput?.value.trim();
   
   if (!name) {
-    showToast('⚠️ Ingresa un nombre para la carpeta', 'warning');
+    showToast('warning', 'Nombre requerido', 'Ingresa un nombre para la carpeta');
     return;
   }
   
@@ -307,16 +360,29 @@ async function createNewFolder(folderType) {
   }
   
   try {
+    console.log('[CERT] 🔗 Creando carpeta:', name);
     const response = await fetch(certConfig.scriptWebAppUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      mode: 'cors',
+      cache: 'no-cache',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({
         action: 'createFolder',
         params: { name }
       })
     });
     
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[CERT] ❌ Error HTTP:', response.status, errorText);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
     const data = await response.json();
+    console.log('[CERT] 📦 Respuesta:', data);
     
     if (data.success) {
       showToast('success', 'Carpeta creada', `Carpeta "${data.name}" creada exitosamente`);
@@ -366,9 +432,20 @@ async function generatePDFs() {
   detailsEl.textContent = '';
   
   try {
+    console.log('[CERT] 🔗 Generando PDFs con parámetros:', {
+      slideTemplateId: certConfig.slideTemplateId,
+      outputFolderId: certConfig.folderOriginalesId,
+      sheetId: certConfig.sheetId
+    });
+    
     const response = await fetch(certConfig.scriptWebAppUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      mode: 'cors',
+      cache: 'no-cache',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({
         action: 'generatePDFs',
         params: {
@@ -379,7 +456,14 @@ async function generatePDFs() {
       })
     });
     
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[CERT] ❌ Error HTTP:', response.status, errorText);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
     const data = await response.json();
+    console.log('[CERT] 📦 Respuesta:', data);
     
     if (data.success) {
       statusEl.textContent = '✅ Certificados generados exitosamente';
@@ -435,9 +519,21 @@ async function generateLinks() {
   detailsEl.textContent = '';
   
   try {
+    console.log('[CERT] 🔗 Generando enlaces con parámetros:', {
+      sheetId: certConfig.sheetId,
+      folderProtegidosId: certConfig.folderProtegidosId,
+      webinarTitle: certConfig.webinarTitle,
+      webinarDate: certConfig.webinarDate
+    });
+    
     const response = await fetch(certConfig.scriptWebAppUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      mode: 'cors',
+      cache: 'no-cache',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({
         action: 'generateLinks',
         params: {
@@ -449,7 +545,14 @@ async function generateLinks() {
       })
     });
     
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[CERT] ❌ Error HTTP:', response.status, errorText);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
     const data = await response.json();
+    console.log('[CERT] 📦 Respuesta:', data);
     
     if (data.success) {
       statusEl.textContent = '✅ Enlaces generados exitosamente';
