@@ -560,23 +560,61 @@ async function generatePDFs() {
       statusEl.textContent = '✅ Certificados generados exitosamente';
       progressBar.style.width = '100%';
       progressBar.style.background = '#4ade80';
-      detailsEl.innerHTML = `
+      
+      let detailsHTML = `
         <div style="color:#4ade80; margin-top:8px;">
           ✅ Total procesados: ${data.total || 0}<br>
           ✅ Generados: ${data.generated || 0}<br>
-          ${data.errors > 0 ? `<span style="color:#ff7a7a;">❌ Errores: ${data.errors}</span>` : ''}
-        </div>
       `;
-      showToast('success', 'Certificados generados', 'Los certificados se han generado correctamente');
+      
+      if (data.errors > 0) {
+        detailsHTML += `<span style="color:#ff7a7a;">❌ Errores: ${data.errors}</span><br>`;
+        
+        if (data.errorMessages && data.errorMessages.length > 0) {
+          detailsHTML += '<div style="margin-top:8px; font-size:12px; color:var(--muted);">';
+          detailsHTML += '<strong>Detalles de errores:</strong><ul style="margin:4px 0; padding-left:20px;">';
+          data.errorMessages.forEach(msg => {
+            detailsHTML += `<li>${msg}</li>`;
+          });
+          detailsHTML += '</ul></div>';
+        }
+      }
+      
+      if (data.message) {
+        detailsHTML += `<div style="margin-top:8px; font-size:12px; color:var(--muted);">${data.message}</div>`;
+      }
+      
+      detailsHTML += '</div>';
+      detailsEl.innerHTML = detailsHTML;
+      
+      const successMsg = data.errors > 0 
+        ? `Se generaron ${data.generated} certificados. Hubo ${data.errors} error(es).`
+        : `Se generaron ${data.generated} certificados exitosamente.`;
+      
+      showToast('success', 'Certificados generados', successMsg);
     } else {
       throw new Error(data.error || 'Error desconocido');
     }
   } catch (error) {
     console.error('[CERT] ❌ Error generando certificados:', error);
+    console.error('[CERT] Tipo de error:', error.name);
+    console.error('[CERT] Mensaje:', error.message);
+    console.error('[CERT] Stack:', error.stack);
+    
     statusEl.textContent = '❌ Error al generar certificados';
     progressBar.style.background = '#ff7a7a';
-    detailsEl.textContent = error.message;
-    showToast('error', 'Error', error.message);
+    
+    // Mejorar mensajes de error
+    let errorMessage = error.message;
+    
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      errorMessage = 'Error de conexión. Verifica:\n1. El script está desplegado correctamente\n2. La URL es correcta\n3. El Web App permite acceso anónimo\n4. Revisa la consola del navegador para más detalles';
+    } else if (error.message.includes('Failed to fetch')) {
+      errorMessage = 'No se pudo conectar al script. Posibles causas:\n- Permisos del script\n- Timeout (aunque solo son 3 certificados)\n- Error en el script de Google Apps Script\n\nRevisa los logs del script en Google Apps Script (Ver → Logs de ejecución)';
+    }
+    
+    detailsEl.textContent = errorMessage;
+    showToast('error', 'Error al generar certificados', errorMessage);
   } finally {
     if (btn) {
       btn.disabled = false;
