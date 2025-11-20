@@ -478,10 +478,12 @@
             </div>
           </div>
 
-          <div style="display:flex; gap:10px; margin-top:20px;">
+          <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
             <button id="btn-save-cert-config" class="btn secondary" type="button">💾 Guardar Configuración</button>
             <button id="btn-load-cert-config" class="btn secondary" type="button">📥 Cargar Configuración</button>
+            <button id="btn-test-connection" class="btn secondary" type="button">🧪 Probar Conexión</button>
           </div>
+          <div id="test-connection-status" style="margin-top:12px; font-size:13px; color:var(--muted); min-height:20px;"></div>
         </div>
 
         <!-- Paso 1: Configurar Plantilla -->
@@ -1007,7 +1009,7 @@
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
   <script src="assets/js/app.js?v=109" defer></script>
-  <script src="assets/js/certificates.js?v=2" defer></script>
+  <script src="assets/js/certificates.js?v=3" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
