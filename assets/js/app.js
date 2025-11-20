@@ -7479,6 +7479,31 @@ function setupAuthStateListener() {
       const isInContent = contentEl && !contentEl.classList.contains('hidden');
       const isInAccess = accessEl && !accessEl.classList.contains('hidden');
       
+      // ✅ PRIMERO: Verificar si el usuario está en vista de usuario y perdió acceso
+      if (isInUserView && !isInMaster) {
+        log('[AUTH] 🔍 Verificando acceso del usuario en vista de usuario...');
+        const allowedCourses = await getCoursesForEmail(userEmail);
+        
+        if (allowedCourses.length === 0) {
+          log('[AUTH] ⚠️ Usuario perdió acceso a todos los cursos, cerrando sesión...');
+          window.currentUserEmail = null;
+          window.allowedCoursesForUser = null;
+          
+          // Cerrar sesión de Firebase
+          await logoutFirebase();
+          
+          // Limpiar estado
+          currentKeyHex = null;
+          setQueryParam('code', null);
+          
+          // Mostrar mensaje y redirigir a pantalla de acceso
+          showAccess();
+          showAuthMessage('msg-auth', 'Tu acceso a los cursos ha sido revocado. Contacta al administrador para solicitar acceso nuevamente.', true);
+          return; // Salir temprano
+        }
+      }
+      
+      // ✅ SEGUNDO: Verificar cursos para usuarios que no están en ninguna vista específica
       if (!urlParams.has('code') && !isInMaster && !isInUserView && !isInContent) {
         log('[AUTH] 🔍 Verificando cursos para usuario con email...');
         const allowedCourses = await getCoursesForEmail(userEmail);
