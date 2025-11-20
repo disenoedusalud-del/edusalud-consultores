@@ -7534,6 +7534,7 @@ if (tabAccount) {
 
 // ✅ Función para configurar event listeners de autenticación email/password
 function setupEmailPasswordListeners() {
+  console.log('[SETUP] 🔧 Configurando event listeners de autenticación...');
   // Event listeners para autenticación email/password
   const btnLogin = $('#btn-login');
   if (btnLogin) {
@@ -7564,11 +7565,15 @@ function setupEmailPasswordListeners() {
 
   // ✅ Event listener para verificar correo antes de registrar
   const btnVerifyEmail = $('#btn-verify-email');
+  console.log('[SETUP] 🔍 Buscando botón btn-verify-email:', btnVerifyEmail);
   if (btnVerifyEmail) {
+    console.log('[SETUP] ✅ Botón encontrado, registrando event listener');
     btnVerifyEmail.addEventListener('click', async () => {
       console.log('[VERIFICATION] 🖱️ Botón "Verificar correo" clickeado');
       await verifyEmailForRegistration();
     });
+  } else {
+    console.error('[SETUP] ❌ Botón btn-verify-email NO encontrado');
   }
   
   // Enter en campo de correo para verificar
