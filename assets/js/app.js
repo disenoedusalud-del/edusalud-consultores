@@ -3598,8 +3598,47 @@ function runLoader(durationMs = LOAD_DURATION_MS) {
   return new Promise((resolve) => {
     if (!loaderEl) { resolve(); return; }
     showLoader();
-    // ✅ El nuevo loader tiene animación automática, solo esperamos el tiempo especificado
-    setTimeout(() => { hideLoader(); resolve(); }, durationMs);
+    
+    // ✅ Obtener el elemento de la barra de progreso
+    const liquidFill = loaderEl.querySelector('.liquid-fill');
+    if (!liquidFill) {
+      setTimeout(() => { hideLoader(); resolve(); }, durationMs);
+      return;
+    }
+    
+    // ✅ Iniciar la barra en 4px (mínimo)
+    liquidFill.style.width = '4px';
+    
+    const start = performance.now();
+    
+    function frame(now) {
+      const elapsed = now - start;
+      const progress = Math.min(1, elapsed / durationMs);
+      
+      // ✅ Función de easing para animación suave
+      const ease = progress < 0.5 
+        ? 2 * progress * progress 
+        : -1 + (4 - 2 * progress) * progress;
+      
+      // ✅ Calcular ancho (de 4px a 100% - 4px)
+      const trackWidth = 180; // Ancho del track
+      const padding = 4; // Padding total (2px cada lado)
+      const maxWidth = trackWidth - padding;
+      const currentWidth = 4 + (ease * (maxWidth - 4));
+      const percentWidth = (currentWidth / trackWidth) * 100;
+      
+      liquidFill.style.width = percentWidth + '%';
+      
+      if (progress < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        // ✅ Asegurar que se llene completamente al final
+        liquidFill.style.width = 'calc(100% - 4px)';
+        setTimeout(() => { hideLoader(); resolve(); }, 200);
+      }
+    }
+    
+    requestAnimationFrame(frame);
   });
 }
 
