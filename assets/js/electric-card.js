@@ -137,7 +137,27 @@
   function setCardImage(wrapper, src) {
     if (!wrapper) return;
     const img = wrapper.querySelector('.ec-card-img');
-    if (img) img.src = src;
+    if (img) {
+      img.src = src;
+      
+      // ✅ Manejador de errores para imágenes rotas
+      img.onerror = function() {
+        console.error('[ELECTRIC-CARD] ❌ Error cargando imagen:', src);
+        // Mostrar placeholder
+        img.style.background = 'linear-gradient(135deg, rgba(255,122,122,0.2), rgba(255,122,122,0.05))';
+        img.style.display = 'flex';
+        img.style.alignItems = 'center';
+        img.style.justifyContent = 'center';
+        img.style.color = '#ff7a7a';
+        img.alt = 'Imagen no disponible';
+        // Intentar usar un placeholder de imagen
+        img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzYwIiBoZWlnaHQ9IjIyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWExYTFhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmN2E3YSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlbiBubyBkaXNwb25pYmxlPC90ZXh0Pjwvc3ZnPg==';
+      };
+      
+      img.onload = function() {
+        console.log('[ELECTRIC-CARD] ✅ Imagen cargada:', src);
+      };
+    }
   }
 
   // Exponer
