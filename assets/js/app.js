@@ -6289,13 +6289,13 @@ async function sendVerificationCode(email, code) {
     
     console.log('[VERIFICATION] 🔧 Service ID:', SERVICE_ID);
     console.log('[VERIFICATION] 🔧 Template ID:', TEMPLATE_ID);
-    console.log('[VERIFICATION] 🔧 Datos:', { to_email: email, code: code, from_name: 'EduSalud' });
+    console.log('[VERIFICATION] 🔧 Datos:', { email: email, code: code, from_name: 'EduSalud' });
     
     const result = await emailjs.send(
       SERVICE_ID,
       TEMPLATE_ID,
       {
-        to_email: email,
+        email: email,
         code: code,
         from_name: 'EduSalud'
       }
