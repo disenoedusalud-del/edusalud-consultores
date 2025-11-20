@@ -415,11 +415,11 @@
       top: 2px;
       left: 2px;
       height: calc(100% - 4px);
+      width: 4px; /* ✅ Iniciar en 4px */
       background: linear-gradient(90deg, #4f46e5, #7c3aed, #ec4899, #f59e0b);
       border-radius: 14px;
-      animation:
-        fillProgress 4s ease-out infinite,
-        colorShift 3s linear infinite;
+      animation: colorShift 3s linear infinite; /* ✅ Solo colorShift, sin fillProgress */
+      transition: width 0.1s ease-out; /* ✅ Transición suave para cambios de ancho */
       box-shadow:
         0 0 12px rgba(124, 58, 237, 0.4),
         inset 0 1px 2px rgba(255, 255, 255, 0.2);
@@ -450,23 +450,7 @@
       animation-delay: 0.6s;
     }
 
-    @keyframes fillProgress {
-      0% {
-        width: 4px;
-      }
-      25% {
-        width: 25%;
-      }
-      50% {
-        width: 50%;
-      }
-      75% {
-        width: 75%;
-      }
-      100% {
-        width: calc(100% - 4px);
-      }
-    }
+    /* ✅ @keyframes fillProgress eliminado - ahora se controla manualmente desde JavaScript */
 
     @keyframes colorShift {
       0% {
@@ -1836,7 +1820,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=104" defer></script>
+  <script src="assets/js/app.js?v=105" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
