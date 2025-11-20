@@ -1,0 +1,542 @@
+// Generador de Certificados - EduSalud
+// Maneja la generación de certificados y enlaces desde Google Apps Script
+
+const CERT_CONFIG_KEY = 'edusalud_cert_config';
+const SCRIPT_WEB_APP_URL_KEY = 'edusalud_script_web_app_url';
+
+// Configuración por defecto
+let certConfig = {
+  scriptWebAppUrl: '',
+  slideTemplateId: '',
+  sheetId: '',
+  folderOriginalesId: '',
+  folderProtegidosId: '',
+  webinarTitle: '',
+  webinarDate: ''
+};
+
+// ===== FUNCIONES DE CONFIGURACIÓN =====
+
+function loadCertConfig() {
+  try {
+    const saved = localStorage.getItem(CERT_CONFIG_KEY);
+    const scriptUrl = localStorage.getItem(SCRIPT_WEB_APP_URL_KEY);
+    
+    if (saved) {
+      certConfig = { ...certConfig, ...JSON.parse(saved) };
+    }
+    
+    if (scriptUrl) {
+      certConfig.scriptWebAppUrl = scriptUrl;
+    }
+    
+    // Llenar inputs
+    const scriptUrlInput = $('#input-script-web-app-url');
+    if (scriptUrlInput) scriptUrlInput.value = certConfig.scriptWebAppUrl || '';
+    
+    const slideInput = $('#select-slide-template');
+    if (slideInput && certConfig.slideTemplateId) {
+      slideInput.value = certConfig.slideTemplateId;
+    }
+    
+    const sheetInput = $('#select-google-sheet');
+    if (sheetInput && certConfig.sheetId) {
+      sheetInput.value = certConfig.sheetId;
+    }
+    
+    const folderOrigInput = $('#select-folder-originales');
+    if (folderOrigInput && certConfig.folderOriginalesId) {
+      folderOrigInput.value = certConfig.folderOriginalesId;
+    }
+    
+    const folderProtInput = $('#select-folder-protegidos');
+    if (folderProtInput && certConfig.folderProtegidosId) {
+      folderProtInput.value = certConfig.folderProtegidosId;
+    }
+    
+    const titleInput = $('#input-webinar-title');
+    if (titleInput) titleInput.value = certConfig.webinarTitle || '';
+    
+    const dateInput = $('#input-webinar-date');
+    if (dateInput) dateInput.value = certConfig.webinarDate || '';
+    
+    console.log('[CERT] ✅ Configuración cargada');
+  } catch (e) {
+    console.error('[CERT] ❌ Error cargando configuración:', e);
+  }
+}
+
+function saveCertConfig() {
+  const scriptUrlInput = $('#input-script-web-app-url');
+  const slideInput = $('#select-slide-template');
+  const sheetInput = $('#select-google-sheet');
+  const folderOrigInput = $('#select-folder-originales');
+  const folderProtInput = $('#select-folder-protegidos');
+  const titleInput = $('#input-webinar-title');
+  const dateInput = $('#input-webinar-date');
+  
+  certConfig = {
+    scriptWebAppUrl: scriptUrlInput?.value.trim() || '',
+    slideTemplateId: slideInput?.value || '',
+    sheetId: sheetInput?.value || '',
+    folderOriginalesId: folderOrigInput?.value || '',
+    folderProtegidosId: folderProtInput?.value || '',
+    webinarTitle: titleInput?.value.trim() || '',
+    webinarDate: dateInput?.value.trim() || ''
+  };
+  
+  localStorage.setItem(CERT_CONFIG_KEY, JSON.stringify(certConfig));
+  if (certConfig.scriptWebAppUrl) {
+    localStorage.setItem(SCRIPT_WEB_APP_URL_KEY, certConfig.scriptWebAppUrl);
+  }
+  
+  showToast('success', 'Configuración guardada', 'La configuración se ha guardado correctamente');
+  console.log('[CERT] 💾 Configuración guardada:', certConfig);
+}
+
+function validateCertConfig() {
+  if (!certConfig.scriptWebAppUrl) {
+    showToast('warning', 'Configuración requerida', 'Configura la URL del Google Apps Script Web App');
+    return false;
+  }
+  return true;
+}
+
+// ===== FUNCIONES PARA LISTAR RECURSOS =====
+
+async function listGoogleResources(type) {
+  if (!validateCertConfig()) return [];
+  
+  try {
+    const response = await fetch(`${certConfig.scriptWebAppUrl}?action=list${type}`);
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.data || [];
+    } else {
+      throw new Error(data.error || 'Error desconocido');
+    }
+  } catch (error) {
+    console.error(`[CERT] ❌ Error listando ${type}:`, error);
+    showToast('error', 'Error', `Error al listar ${type}: ${error.message}`);
+    return [];
+  }
+}
+
+async function loadTemplates() {
+  const btn = $('#btn-refresh-templates');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '🔄 Cargando...';
+  }
+  
+  const templates = await listGoogleResources('Slides');
+  const select = $('#select-slide-template');
+  
+  if (select) {
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">-- Seleccionar plantilla --</option>';
+    
+    templates.forEach(t => {
+      const option = document.createElement('option');
+      option.value = t.id;
+      option.textContent = `${t.name} (${new Date(t.modified).toLocaleDateString()})`;
+      option.title = t.url;
+      select.appendChild(option);
+    });
+    
+    if (currentValue) {
+      select.value = currentValue;
+    }
+  }
+  
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '🔄 Actualizar lista';
+  }
+  
+  if (templates.length > 0) {
+    showToast('success', 'Plantillas encontradas', `${templates.length} plantilla(s) encontrada(s)`);
+  }
+}
+
+async function loadSheets() {
+  const btn = $('#btn-refresh-sheets');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '🔄 Cargando...';
+  }
+  
+  const sheets = await listGoogleResources('Sheets');
+  const select = $('#select-google-sheet');
+  
+  if (select) {
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">-- Seleccionar hoja --</option>';
+    
+    sheets.forEach(s => {
+      const option = document.createElement('option');
+      option.value = s.id;
+      option.textContent = `${s.name} (${new Date(s.modified).toLocaleDateString()})`;
+      option.title = s.url;
+      select.appendChild(option);
+    });
+    
+    if (currentValue) {
+      select.value = currentValue;
+    }
+  }
+  
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '🔄 Actualizar lista';
+  }
+  
+  if (sheets.length > 0) {
+    showToast('success', 'Hojas encontradas', `${sheets.length} hoja(s) encontrada(s)`);
+  }
+}
+
+async function loadFolders() {
+  const btn = $('#btn-refresh-folders');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '🔄 Cargando...';
+  }
+  
+  const folders = await listGoogleResources('Folders');
+  const selectOrig = $('#select-folder-originales');
+  const selectProt = $('#select-folder-protegidos');
+  
+  [selectOrig, selectProt].forEach(select => {
+    if (select) {
+      const currentValue = select.value;
+      select.innerHTML = '<option value="">-- Seleccionar carpeta --</option>';
+      
+      folders.forEach(f => {
+        const option = document.createElement('option');
+        option.value = f.id;
+        option.textContent = f.name;
+        option.title = f.url;
+        select.appendChild(option);
+      });
+      
+      if (currentValue) {
+        select.value = currentValue;
+      }
+    }
+  });
+  
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '🔄 Actualizar lista';
+  }
+  
+  if (folders.length > 0) {
+    showToast('success', 'Carpetas encontradas', `${folders.length} carpeta(s) encontrada(s)`);
+  }
+}
+
+// ===== FUNCIONES PARA CREAR RECURSOS =====
+
+async function createNewSheet() {
+  if (!validateCertConfig()) return;
+  
+  const nameInput = $('#input-new-sheet-name');
+  const name = nameInput?.value.trim();
+  
+  if (!name) {
+    showToast('warning', 'Nombre requerido', 'Ingresa un nombre para la hoja');
+    return;
+  }
+  
+  const btn = $('#btn-create-sheet');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Creando...';
+  }
+  
+  try {
+    const response = await fetch(certConfig.scriptWebAppUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'createSheet',
+        params: { name }
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showToast('success', 'Hoja creada', `Hoja "${data.name}" creada exitosamente`);
+      if (nameInput) nameInput.value = '';
+      await loadSheets();
+      const select = $('#select-google-sheet');
+      if (select) select.value = data.id;
+      saveCertConfig();
+    } else {
+      throw new Error(data.error || 'Error desconocido');
+    }
+  } catch (error) {
+    console.error('[CERT] ❌ Error creando hoja:', error);
+    showToast('error', 'Error', error.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '➕ Crear nueva hoja';
+    }
+  }
+}
+
+async function createNewFolder(folderType) {
+  if (!validateCertConfig()) return;
+  
+  const nameInput = $(`#input-new-folder-${folderType}`);
+  const name = nameInput?.value.trim();
+  
+  if (!name) {
+    showToast('⚠️ Ingresa un nombre para la carpeta', 'warning');
+    return;
+  }
+  
+  const btn = $(`#btn-create-folder-${folderType}`);
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Creando...';
+  }
+  
+  try {
+    const response = await fetch(certConfig.scriptWebAppUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'createFolder',
+        params: { name }
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showToast('success', 'Carpeta creada', `Carpeta "${data.name}" creada exitosamente`);
+      if (nameInput) nameInput.value = '';
+      await loadFolders();
+      const select = $(`#select-folder-${folderType}`);
+      if (select) select.value = data.id;
+      saveCertConfig();
+    } else {
+      throw new Error(data.error || 'Error desconocido');
+    }
+  } catch (error) {
+    console.error('[CERT] ❌ Error creando carpeta:', error);
+    showToast('error', 'Error', error.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '➕ Crear nueva carpeta';
+    }
+  }
+}
+
+// ===== FUNCIONES PARA GENERAR CERTIFICADOS =====
+
+async function generatePDFs() {
+  if (!validateCertConfig()) return;
+  
+  if (!certConfig.slideTemplateId || !certConfig.sheetId || !certConfig.folderOriginalesId) {
+    showToast('warning', 'Configuración incompleta', 'Completa la plantilla, hoja y carpeta de originales');
+    return;
+  }
+  
+  const progressEl = $('#cert-gen-progress');
+  const statusEl = $('#cert-gen-status');
+  const progressBar = $('#cert-gen-progress-bar');
+  const detailsEl = $('#cert-gen-details');
+  const btn = $('#btn-generate-pdfs');
+  
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Generando...';
+  }
+  
+  progressEl.style.display = 'block';
+  statusEl.textContent = 'Iniciando generación de certificados...';
+  progressBar.style.width = '10%';
+  detailsEl.textContent = '';
+  
+  try {
+    const response = await fetch(certConfig.scriptWebAppUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'generatePDFs',
+        params: {
+          slideTemplateId: certConfig.slideTemplateId,
+          outputFolderId: certConfig.folderOriginalesId,
+          sheetId: certConfig.sheetId
+        }
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      statusEl.textContent = '✅ Certificados generados exitosamente';
+      progressBar.style.width = '100%';
+      progressBar.style.background = '#4ade80';
+      detailsEl.innerHTML = `
+        <div style="color:#4ade80; margin-top:8px;">
+          ✅ Total procesados: ${data.total || 0}<br>
+          ✅ Generados: ${data.generated || 0}<br>
+          ${data.errors > 0 ? `<span style="color:#ff7a7a;">❌ Errores: ${data.errors}</span>` : ''}
+        </div>
+      `;
+      showToast('success', 'Certificados generados', 'Los certificados se han generado correctamente');
+    } else {
+      throw new Error(data.error || 'Error desconocido');
+    }
+  } catch (error) {
+    console.error('[CERT] ❌ Error generando certificados:', error);
+    statusEl.textContent = '❌ Error al generar certificados';
+    progressBar.style.background = '#ff7a7a';
+    detailsEl.textContent = error.message;
+    showToast('error', 'Error', error.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '📄 Generar PDFs desde Plantilla';
+    }
+  }
+}
+
+async function generateLinks() {
+  if (!validateCertConfig()) return;
+  
+  if (!certConfig.sheetId || !certConfig.folderProtegidosId || !certConfig.webinarTitle || !certConfig.webinarDate) {
+    showToast('warning', 'Configuración incompleta', 'Completa la hoja, carpeta de protegidos, título y fecha del evento');
+    return;
+  }
+  
+  const progressEl = $('#cert-links-progress');
+  const statusEl = $('#cert-links-status');
+  const progressBar = $('#cert-links-progress-bar');
+  const detailsEl = $('#cert-links-details');
+  const btn = $('#btn-generate-links');
+  
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Generando...';
+  }
+  
+  progressEl.style.display = 'block';
+  statusEl.textContent = 'Generando enlaces...';
+  progressBar.style.width = '10%';
+  detailsEl.textContent = '';
+  
+  try {
+    const response = await fetch(certConfig.scriptWebAppUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'generateLinks',
+        params: {
+          sheetId: certConfig.sheetId,
+          folderProtegidosId: certConfig.folderProtegidosId,
+          webinarTitle: certConfig.webinarTitle,
+          webinarDate: certConfig.webinarDate
+        }
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      statusEl.textContent = '✅ Enlaces generados exitosamente';
+      progressBar.style.width = '100%';
+      progressBar.style.background = '#4ade80';
+      detailsEl.innerHTML = `
+        <div style="color:#4ade80; margin-top:8px;">
+          ✅ Total procesados: ${data.total || 0}<br>
+          ✅ Enlaces creados: ${data.created || 0}<br>
+          ${data.notFound > 0 ? `<span style="color:#fbbf24;">⚠️ No encontrados: ${data.notFound}</span>` : ''}
+        </div>
+      `;
+      showToast('success', 'Enlaces generados', 'Los enlaces se han generado correctamente');
+    } else {
+      throw new Error(data.error || 'Error desconocido');
+    }
+  } catch (error) {
+    console.error('[CERT] ❌ Error generando enlaces:', error);
+    statusEl.textContent = '❌ Error al generar enlaces';
+    progressBar.style.background = '#ff7a7a';
+    detailsEl.textContent = error.message;
+    showToast('error', 'Error', error.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🔗 Generar Enlaces';
+    }
+  }
+}
+
+// ===== SETUP DE EVENT LISTENERS =====
+
+function setupCertificatesListeners() {
+  // Botones de configuración
+  $('#btn-save-cert-config')?.addEventListener('click', () => {
+    saveCertConfig();
+  });
+  
+  $('#btn-load-cert-config')?.addEventListener('click', () => {
+    loadCertConfig();
+    showToast('success', 'Configuración cargada', 'La configuración se ha cargado correctamente');
+  });
+  
+  // Botones de listar recursos
+  $('#btn-refresh-templates')?.addEventListener('click', loadTemplates);
+  $('#btn-refresh-sheets')?.addEventListener('click', loadSheets);
+  $('#btn-refresh-folders')?.addEventListener('click', loadFolders);
+  
+  // Botones de crear recursos
+  $('#btn-create-sheet')?.addEventListener('click', createNewSheet);
+  $('#btn-create-folder-originales')?.addEventListener('click', () => createNewFolder('originales'));
+  $('#btn-create-folder-protegidos')?.addEventListener('click', () => createNewFolder('protegidos'));
+  
+  // Botones de generar
+  $('#btn-generate-pdfs')?.addEventListener('click', generatePDFs);
+  $('#btn-generate-links')?.addEventListener('click', generateLinks);
+  
+  // Guardar configuración al cambiar selects
+  ['select-slide-template', 'select-google-sheet', 'select-folder-originales', 
+   'select-folder-protegidos', 'input-webinar-title', 'input-webinar-date',
+   'input-script-web-app-url'].forEach(id => {
+    const el = $(`#${id}`);
+    if (el) {
+      el.addEventListener('change', () => {
+        saveCertConfig();
+      });
+    }
+  });
+  
+  // Cargar configuración cuando se muestra la vista
+  const certView = $('#master-certificates-view');
+  if (certView) {
+    const observer = new MutationObserver((mutations) => {
+      if (!certView.classList.contains('hidden')) {
+        loadCertConfig();
+      }
+    });
+    observer.observe(certView, { attributes: true, attributeFilter: ['class'] });
+  }
+  
+  console.log('[CERT] ✅ Event listeners configurados');
+}
+
+// Inicializar cuando el DOM esté listo
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupCertificatesListeners);
+} else {
+  setupCertificatesListeners();
+}
+
