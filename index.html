@@ -490,6 +490,67 @@
       }
     }
 
+    /* Header de navegación para vista maestra */
+    .master-header-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.06));
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(4px);
+    }
+
+    .master-nav-tab {
+      padding: 10px 20px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .master-nav-tab:hover {
+      color: var(--text);
+      background: rgba(255,255,255,.05);
+    }
+
+    .master-nav-tab.active {
+      color: var(--accent);
+      background: rgba(90,169,255,.1);
+    }
+
+    .master-nav-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 20px;
+      right: 20px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      border-radius: 2px 2px 0 0;
+    }
+
+    /* Adaptación para tema claro */
+    :root[data-theme="light"] .master-header-nav {
+      background: linear-gradient(180deg, rgba(255,255,255,.8), rgba(255,255,255,.6));
+      border: 1px solid rgba(0,0,0,.08);
+    }
+
+    :root[data-theme="light"] .master-nav-tab:hover {
+      background: rgba(59,130,246,.05);
+    }
+
+    :root[data-theme="light"] .master-nav-tab.active {
+      background: rgba(59,130,246,.1);
+    }
+
     /* Adaptación para tema claro */
     :root[data-theme="light"] .edu-loader {
       background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(245,247,250,0.98));
@@ -953,8 +1014,20 @@
 
     <!-- VISTA MAESTRA -->
     <section id="master" class="hidden">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
-        <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
+      <!-- Header de navegación -->
+      <div class="master-header-nav">
+        <button id="nav-tab-courses" class="master-nav-tab active" type="button" data-view="courses">
+          📚 Cursos
+        </button>
+        <button id="nav-tab-certificates" class="master-nav-tab" type="button" data-view="certificates">
+          🎓 Generador de Certificados
+        </button>
+      </div>
+
+      <!-- Vista de Cursos (contenido actual) -->
+      <div id="master-courses-view">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+          <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
         <div class="row">
           <button id="btn-add-course" class="btn" type="button" aria-label="Agregar nuevo curso" title="Agregar nuevo curso (Ctrl+N)">➕ Agregar curso</button>
           
@@ -1082,6 +1155,25 @@
 
       <div class="master-grid" id="masterGrid" role="list" aria-label="Lista de cursos disponibles"></div>
       <p class="footer">© <span id="year_master"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
+      </div>
+
+      <!-- Vista de Generador de Certificados -->
+      <div id="master-certificates-view" class="hidden">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+          <h3 style="margin:0">🎓 Generador de Certificados</h3>
+          <button id="btn-master-exit-cert" class="btn secondary" type="button" aria-label="Salir de la vista maestra" title="Volver a la pantalla de acceso">Salir</button>
+        </div>
+        
+        <div class="card" style="padding: 40px; text-align: center;">
+          <p style="font-size: 18px; color: var(--muted); margin-bottom: 20px;">
+            Generador de Certificados
+          </p>
+          <p style="color: var(--muted);">
+            Aquí podrás generar certificados para los participantes de los cursos.
+          </p>
+          <!-- Aquí irá el contenido del generador de certificados -->
+        </div>
+      </div>
     </section>
   </div>
 
@@ -1820,7 +1912,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=105" defer></script>
+  <script src="assets/js/app.js?v=106" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
