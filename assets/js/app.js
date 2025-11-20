@@ -5892,7 +5892,7 @@ async function verifyEmailForRegistration() {
     
     try {
       const code = generateVerificationCode();
-      console.log('[VERIFICATION] 🔑 Código generado:', code);
+      console.log('[VERIFICATION] 🔑 Código generado: ***'); // Código oculto por seguridad
       await saveVerificationCode(normalizedEmail, code);
       console.log('[VERIFICATION] 💾 Código guardado en Firebase');
       
@@ -6289,7 +6289,7 @@ async function sendVerificationCode(email, code) {
     
     console.log('[VERIFICATION] 🔧 Service ID:', SERVICE_ID);
     console.log('[VERIFICATION] 🔧 Template ID:', TEMPLATE_ID);
-    console.log('[VERIFICATION] 🔧 Datos:', { email: email, code: code, from_name: 'EduSalud' });
+    console.log('[VERIFICATION] 🔧 Datos:', { email: email, code: '***', from_name: 'EduSalud' }); // Código oculto por seguridad
     
     const result = await emailjs.send(
       SERVICE_ID,
