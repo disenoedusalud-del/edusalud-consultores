@@ -6268,10 +6268,21 @@ async function saveVerificationCode(email, code) {
 // ✅ Enviar código de verificación usando EmailJS
 async function sendVerificationCode(email, code) {
   try {
-    log('[VERIFICATION] 📤 Enviando código a:', email);
+    // ✅ Verificar que EmailJS esté cargado
+    if (typeof emailjs === 'undefined') {
+      console.error('[VERIFICATION] ❌ EmailJS no está cargado');
+      throw new Error('EmailJS no está disponible. Por favor, recarga la página.');
+    }
+    
+    console.log('[VERIFICATION] 📤 Enviando código a:', email);
+    console.log('[VERIFICATION] 🔧 EmailJS disponible:', typeof emailjs !== 'undefined');
     
     const SERVICE_ID = 'service_ectemf7';
     const TEMPLATE_ID = 'template_g9pmmxm';
+    
+    console.log('[VERIFICATION] 🔧 Service ID:', SERVICE_ID);
+    console.log('[VERIFICATION] 🔧 Template ID:', TEMPLATE_ID);
+    console.log('[VERIFICATION] 🔧 Datos:', { to_email: email, code: code, from_name: 'EduSalud' });
     
     const result = await emailjs.send(
       SERVICE_ID,
@@ -6283,10 +6294,16 @@ async function sendVerificationCode(email, code) {
       }
     );
     
-    log('[VERIFICATION] ✅ Código enviado exitosamente:', result);
+    console.log('[VERIFICATION] ✅ Código enviado exitosamente:', result);
     return { success: true };
   } catch (error) {
-    error('[VERIFICATION] ❌ Error enviando código:', error);
+    console.error('[VERIFICATION] ❌ Error enviando código:', error);
+    console.error('[VERIFICATION] ❌ Detalles:', {
+      message: error.message,
+      text: error.text,
+      status: error.status,
+      stack: error.stack
+    });
     throw error;
   }
 }
