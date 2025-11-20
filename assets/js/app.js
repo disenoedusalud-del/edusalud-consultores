@@ -3590,32 +3590,16 @@ function showMaster() {
 
 /* ============ loader ============ */
 const loaderEl = document.getElementById('eduLoader');
-const loaderBar = document.getElementById('loaderBar');
-const loaderPercent = document.getElementById('loaderPercent');
+// ✅ Referencias a elementos antiguos del loader eliminadas (nuevo loader tiene animación automática)
 function showLoader() { if (!loaderEl) return; loaderEl.classList.remove('hidden'); loaderEl.setAttribute('aria-hidden', 'false'); }
 function hideLoader() { if (!loaderEl) return; loaderEl.classList.add('hidden'); loaderEl.setAttribute('aria-hidden', 'true'); }
 const LOAD_DURATION_MS = 1600;
 function runLoader(durationMs = LOAD_DURATION_MS) {
   return new Promise((resolve) => {
-    if (!loaderBar || !loaderPercent) { resolve(); return; }
+    if (!loaderEl) { resolve(); return; }
     showLoader();
-    loaderBar.style.width = '0%';
-    loaderPercent.textContent = '0%';
-    const start = performance.now();
-    function frame(now) {
-      const t = Math.min(1, (now - start) / durationMs);
-      const ease = t < 0.5 ? (2*t*t) : (-1 + (4-2*t)*t);
-      const percent = Math.round(ease * 100);
-      loaderBar.style.width = percent + '%';
-      loaderPercent.textContent = percent + '%';
-      if (t < 1) { requestAnimationFrame(frame); }
-      else {
-        loaderBar.style.width = '100%';
-        loaderPercent.textContent = '100%';
-        setTimeout(() => { hideLoader(); resolve(); }, 200);
-      }
-    }
-    requestAnimationFrame(frame);
+    // ✅ El nuevo loader tiene animación automática, solo esperamos el tiempo especificado
+    setTimeout(() => { hideLoader(); resolve(); }, durationMs);
   });
 }
 
