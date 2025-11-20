@@ -176,6 +176,11 @@
 
     header{ display:grid; grid-template-columns: 1fr 360px; gap:20px; align-items:center; margin-bottom:18px; }
     @media (max-width:980px){ header{ grid-template-columns:1fr } .hero{ display:none } }
+    
+    /* Ocultar header principal cuando se muestra la vista maestra */
+    body.master-view header {
+      display: none;
+    }
 
     .logo {
       width:56px;
@@ -494,13 +499,41 @@
     .master-header-nav {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 16px;
       padding: 16px 20px;
       background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.06));
       border: 1px solid rgba(255,255,255,.08);
       border-radius: 12px;
       margin-bottom: 20px;
       backdrop-filter: blur(4px);
+    }
+
+    .master-header-nav .logo {
+      width: 48px;
+      height: 48px;
+      padding: 6px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 6px 20px rgba(90,169,255,.2);
+      flex-shrink: 0;
+    }
+
+    .master-header-nav .logo-img {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .master-nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
     }
 
     .master-nav-tab {
@@ -1016,12 +1049,17 @@
     <section id="master" class="hidden">
       <!-- Header de navegación -->
       <div class="master-header-nav">
-        <button id="nav-tab-courses" class="master-nav-tab active" type="button" data-view="courses">
-          📚 Cursos
-        </button>
-        <button id="nav-tab-certificates" class="master-nav-tab" type="button" data-view="certificates">
-          🎓 Generador de Certificados
-        </button>
+        <div class="logo" aria-hidden="false">
+          <img src="assets/logo-edusalud.png" alt="EduSalud" class="logo-img" />
+        </div>
+        <div class="master-nav-tabs">
+          <button id="nav-tab-courses" class="master-nav-tab active" type="button" data-view="courses">
+            📚 Cursos
+          </button>
+          <button id="nav-tab-certificates" class="master-nav-tab" type="button" data-view="certificates">
+            🎓 Generador de Certificados
+          </button>
+        </div>
       </div>
 
       <!-- Vista de Cursos (contenido actual) -->
@@ -1912,7 +1950,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=106" defer></script>
+  <script src="assets/js/app.js?v=107" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
