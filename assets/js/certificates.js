@@ -114,6 +114,81 @@ function validateCertConfig() {
   return true;
 }
 
+// ===== FUNCIÓN DE PRUEBA DE CONEXIÓN =====
+
+async function testScriptConnection() {
+  if (!certConfig.scriptWebAppUrl) {
+    showToast('warning', 'URL requerida', 'Configura la URL del Google Apps Script primero');
+    return false;
+  }
+  
+  const btn = $('#btn-test-connection');
+  const statusEl = $('#test-connection-status');
+  
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Probando...';
+  }
+  
+  if (statusEl) {
+    statusEl.textContent = 'Probando conexión...';
+    statusEl.style.color = 'var(--accent)';
+  }
+  
+  try {
+    const testUrl = `${certConfig.scriptWebAppUrl}?action=test`;
+    console.log('[CERT] 🧪 Probando conexión:', testUrl);
+    
+    const response = await fetch(testUrl, {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-cache',
+      redirect: 'follow',
+      credentials: 'omit',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    console.log('[CERT] 📡 Respuesta de prueba:', response.status, response.statusText);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('[CERT] ✅ Conexión exitosa:', data);
+      
+      if (statusEl) {
+        statusEl.textContent = '✅ Conexión exitosa';
+        statusEl.style.color = '#4ade80';
+      }
+      
+      showToast('success', 'Conexión exitosa', 'El script está respondiendo correctamente');
+      return true;
+    } else {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+  } catch (error) {
+    console.error('[CERT] ❌ Error en prueba de conexión:', error);
+    
+    if (statusEl) {
+      statusEl.textContent = `❌ Error: ${error.message}`;
+      statusEl.style.color = '#ff7a7a';
+    }
+    
+    let errorMsg = error.message;
+    if (error.message.includes('Failed to fetch')) {
+      errorMsg = 'No se pudo conectar. Verifica:\n1. La URL es correcta\n2. El script está desplegado\n3. El acceso es "Cualquiera, incluso anónimos"';
+    }
+    
+    showToast('error', 'Error de conexión', errorMsg);
+    return false;
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🧪 Probar Conexión';
+    }
+  }
+}
+
 // ===== FUNCIONES PARA LISTAR RECURSOS =====
 
 async function listGoogleResources(type) {
@@ -127,6 +202,8 @@ async function listGoogleResources(type) {
       method: 'GET',
       mode: 'cors',
       cache: 'no-cache',
+      redirect: 'follow',
+      credentials: 'omit',
       headers: {
         'Accept': 'application/json'
       }
@@ -302,6 +379,8 @@ async function createNewSheet() {
       method: 'POST',
       mode: 'cors',
       cache: 'no-cache',
+      redirect: 'follow',
+      credentials: 'omit',
       headers: { 
         'Content-Type': 'application/json',
         'Accept': 'application/json'
@@ -365,6 +444,8 @@ async function createNewFolder(folderType) {
       method: 'POST',
       mode: 'cors',
       cache: 'no-cache',
+      redirect: 'follow',
+      credentials: 'omit',
       headers: { 
         'Content-Type': 'application/json',
         'Accept': 'application/json'
@@ -442,6 +523,8 @@ async function generatePDFs() {
       method: 'POST',
       mode: 'cors',
       cache: 'no-cache',
+      redirect: 'follow',
+      credentials: 'omit',
       headers: { 
         'Content-Type': 'application/json',
         'Accept': 'application/json'
@@ -530,6 +613,8 @@ async function generateLinks() {
       method: 'POST',
       mode: 'cors',
       cache: 'no-cache',
+      redirect: 'follow',
+      credentials: 'omit',
       headers: { 
         'Content-Type': 'application/json',
         'Accept': 'application/json'
@@ -595,6 +680,9 @@ function setupCertificatesListeners() {
     loadCertConfig();
     showToast('success', 'Configuración cargada', 'La configuración se ha cargado correctamente');
   });
+  
+  // Botón de prueba de conexión
+  $('#btn-test-connection')?.addEventListener('click', testScriptConnection);
   
   // Botones de listar recursos
   $('#btn-refresh-templates')?.addEventListener('click', loadTemplates);
