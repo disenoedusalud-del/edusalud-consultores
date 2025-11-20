@@ -377,56 +377,150 @@
       }
     }
 
-    /* Loader (original) */
+    /* Loader (liquid style) */
     .edu-loader {
       position: fixed;
       inset: 0;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 14px;
       background: linear-gradient(180deg, rgba(2,6,12,0.94), rgba(0,0,0,0.96));
-      color: #fff;
       z-index: 99999;
-      padding: 18px;
-      text-align: center;
-      font-family: "Roboto Mono", monospace;
     }
     .edu-loader.hidden { display: none !important; }
-    .loader-ring {
-      width: 88px;
-      height: 88px;
-      border-radius: 50%;
-      display:grid;
-      place-items:center;
-      box-shadow: 0 8px 40px rgba(90,169,255,0.08), inset 0 0 16px rgba(63,176,255,0.04);
+    
+    .liquid-loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 20px;
+      font-family: system-ui, sans-serif;
     }
-    .loader-ring:after{
-      content: "";
-      width: 62px;
-      height: 62px;
-      border-radius:50%;
-      border: 4px solid rgba(255,255,255,0.06);
-      border-top-color: #6ee7ff;
-      animation: spin 900ms linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loader-text { font-weight:700; font-size:15px; letter-spacing:0.6px; color:#dff7ff; }
-    .loader-progress {
-      width: 380px;
-      max-width: calc(100% - 48px);
-      height: 10px;
-      background: rgba(255,255,255,0.04);
-      border-radius: 999px;
+
+    .loader-track {
+      position: relative;
+      width: 180px;
+      height: 32px;
+      background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+      border-radius: 16px;
       overflow: hidden;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+      box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.6),
+        0 1px 3px rgba(255, 255, 255, 0.1);
     }
-    .loader-progress > i {
-      display:block; height:100%; width:0%; background: linear-gradient(90deg,#6ee7ff,#7c5cff); border-radius:999px;
-      transition: width .14s linear;
+
+    .liquid-fill {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      height: calc(100% - 4px);
+      background: linear-gradient(90deg, #4f46e5, #7c3aed, #ec4899, #f59e0b);
+      border-radius: 14px;
+      animation:
+        fillProgress 4s ease-out infinite,
+        colorShift 3s linear infinite;
+      box-shadow:
+        0 0 12px rgba(124, 58, 237, 0.4),
+        inset 0 1px 2px rgba(255, 255, 255, 0.2);
     }
-    .loader-percent { font-size:13px; color:rgba(255,255,255,0.75); margin-top:6px; }
+
+    .loading-text {
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      animation: textGlow 1s ease-in-out infinite;
+    }
+
+    .dot {
+      margin-left: 3px;
+      animation: blink 1.5s infinite;
+    }
+
+    .dot:nth-of-type(1) {
+      animation-delay: 0s;
+    }
+
+    .dot:nth-of-type(2) {
+      animation-delay: 0.3s;
+    }
+
+    .dot:nth-of-type(3) {
+      animation-delay: 0.6s;
+    }
+
+    @keyframes fillProgress {
+      0% {
+        width: 4px;
+      }
+      25% {
+        width: 25%;
+      }
+      50% {
+        width: 50%;
+      }
+      75% {
+        width: 75%;
+      }
+      100% {
+        width: calc(100% - 4px);
+      }
+    }
+
+    @keyframes colorShift {
+      0% {
+        filter: hue-rotate(0deg) brightness(1);
+      }
+      33% {
+        filter: hue-rotate(120deg) brightness(1.1);
+      }
+      66% {
+        filter: hue-rotate(240deg) brightness(0.9);
+      }
+      100% {
+        filter: hue-rotate(360deg) brightness(1);
+      }
+    }
+
+    @keyframes textGlow {
+      0%,
+      100% {
+        opacity: 0.7;
+        text-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+      }
+      50% {
+        opacity: 1;
+        text-shadow: 0 0 16px rgba(139, 92, 246, 0.6);
+      }
+    }
+
+    @keyframes blink {
+      0%,
+      50% {
+        opacity: 1;
+      }
+      51%,
+      100% {
+        opacity: 0;
+      }
+    }
+
+    /* Adaptación para tema claro */
+    :root[data-theme="light"] .edu-loader {
+      background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(245,247,250,0.98));
+    }
+
+    :root[data-theme="light"] .loader-track {
+      background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+      box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.1),
+        0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    :root[data-theme="light"] .loading-text {
+      color: #1e293b;
+    }
 
     /* Layout curso */
     .course-row { display:flex; gap:18px; align-items:flex-start; }
@@ -1017,10 +1111,14 @@
 
   <!-- Loader -->
   <div id="eduLoader" class="edu-loader hidden" aria-hidden="true" role="alert" aria-live="polite">
-    <div class="loader-ring" aria-hidden="true"></div>
-    <div class="loader-text">Cargando recursos...</div>
-    <div class="loader-progress" aria-hidden="true"><i id="loaderBar"></i></div>
-    <div id="loaderPercent" class="loader-percent">0%</div>
+    <div class="liquid-loader">
+      <div class="loading-text">
+        Cargando recursos<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+      </div>
+      <div class="loader-track">
+        <div class="liquid-fill"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Modal Agregar Curso -->
@@ -1738,7 +1836,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=7" defer></script>
-  <script src="assets/js/app.js?v=103" defer></script>
+  <script src="assets/js/app.js?v=104" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
