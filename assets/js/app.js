@@ -5850,7 +5850,9 @@ async function tryLoginByEmail() {
 
 // ✅ Función para verificar correo antes de registrar
 async function verifyEmailForRegistration() {
+  console.log('[VERIFICATION] 🚀 Iniciando verificación de email...');
   const email = $('#input-register-email').value.trim();
+  console.log('[VERIFICATION] 📧 Email ingresado:', email);
   
   if (!email) {
     showAuthMessage('msg-register', 'Por favor, ingresa tu correo electrónico.', true);
@@ -5865,6 +5867,7 @@ async function verifyEmailForRegistration() {
   
   clearFieldErrors();
   const normalizedEmail = email.toLowerCase().trim();
+  console.log('[VERIFICATION] 📧 Email normalizado:', normalizedEmail);
   
   showAuthMessage('msg-register', 'Verificando autorización del correo…', false);
   
@@ -5889,10 +5892,14 @@ async function verifyEmailForRegistration() {
     
     try {
       const code = generateVerificationCode();
+      console.log('[VERIFICATION] 🔑 Código generado:', code);
       await saveVerificationCode(normalizedEmail, code);
+      console.log('[VERIFICATION] 💾 Código guardado en Firebase');
       
       try {
+        console.log('[VERIFICATION] 🔄 Llamando a sendVerificationCode...');
         await sendVerificationCode(normalizedEmail, code);
+        console.log('[VERIFICATION] ✅ sendVerificationCode completado');
       } catch (sendError) {
         // Si falla el envío, mostrar error pero no bloquear el flujo
         // El código ya está guardado en Firebase, el usuario puede pedir reenvío
@@ -7559,6 +7566,7 @@ function setupEmailPasswordListeners() {
   const btnVerifyEmail = $('#btn-verify-email');
   if (btnVerifyEmail) {
     btnVerifyEmail.addEventListener('click', async () => {
+      console.log('[VERIFICATION] 🖱️ Botón "Verificar correo" clickeado');
       await verifyEmailForRegistration();
     });
   }
