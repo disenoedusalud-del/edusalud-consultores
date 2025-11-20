@@ -3546,6 +3546,9 @@ function showMaster() {
   // ❌ NO iniciar polling automático (el usuario sincroniza manualmente con el botón)
   // startPeriodicRefresh(MASTER_HASH);
   
+  // ✅ Configurar navegación entre pestañas
+  setupMasterNavigation();
+  
   // ✅ Mostrar botón flotante cuando está autenticado
   const fabBtn = document.getElementById('btn-speed-refresh');
   if (fabBtn) fabBtn.classList.add('visible');
@@ -3585,6 +3588,42 @@ function showMaster() {
         buildMasterGrid();
       }
     }, 500); // Esperar 500ms después de mostrar para no bloquear
+  }
+}
+
+// ✅ Navegación entre pestañas en vista maestra
+function setupMasterNavigation() {
+  const navTabCourses = $('#nav-tab-courses');
+  const navTabCertificates = $('#nav-tab-certificates');
+  const coursesView = $('#master-courses-view');
+  const certificatesView = $('#master-certificates-view');
+
+  if (navTabCourses && navTabCertificates) {
+    // Navegar a Cursos
+    navTabCourses.addEventListener('click', () => {
+      navTabCourses.classList.add('active');
+      navTabCertificates.classList.remove('active');
+      if (coursesView) coursesView.classList.remove('hidden');
+      if (certificatesView) certificatesView.classList.add('hidden');
+    });
+
+    // Navegar a Certificados
+    navTabCertificates.addEventListener('click', () => {
+      navTabCertificates.classList.add('active');
+      navTabCourses.classList.remove('active');
+      if (certificatesView) certificatesView.classList.remove('hidden');
+      if (coursesView) coursesView.classList.add('hidden');
+    });
+  }
+
+  // Botón salir desde vista de certificados
+  const btnMasterExitCert = $('#btn-master-exit-cert');
+  if (btnMasterExitCert) {
+    btnMasterExitCert.addEventListener('click', () => {
+      // Usar la misma función de salir que el botón principal
+      const btnMasterExit = $('#btn-master-exit');
+      if (btnMasterExit) btnMasterExit.click();
+    });
   }
 }
 
