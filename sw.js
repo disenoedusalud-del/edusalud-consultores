@@ -5,7 +5,7 @@
 const IS_DEVELOPMENT = false; // Cambiar a false en producción
 const VERSION = IS_DEVELOPMENT 
   ? 'edusalud-dev-' + Date.now() // Versión única cada vez en desarrollo
-  : 'edusalud-v1'; // Versión estable en producción
+  : 'edusalud-v2'; // Versión estable en producción
 
 const CACHE_NAME = VERSION;
 const RUNTIME_CACHE = 'edusalud-runtime-' + (IS_DEVELOPMENT ? Date.now() : 'v1');
