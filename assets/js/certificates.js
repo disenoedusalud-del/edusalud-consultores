@@ -519,6 +519,19 @@ async function generatePDFs() {
       sheetId: certConfig.sheetId
     });
     
+    console.log('[CERT] URL del script:', certConfig.scriptWebAppUrl);
+    
+    const requestBody = {
+      action: 'generatePDFs',
+      params: {
+        slideTemplateId: certConfig.slideTemplateId,
+        outputFolderId: certConfig.folderOriginalesId,
+        sheetId: certConfig.sheetId
+      }
+    };
+    
+    console.log('[CERT] Body a enviar:', JSON.stringify(requestBody));
+    
     const response = await fetch(certConfig.scriptWebAppUrl, {
       method: 'POST',
       mode: 'cors',
@@ -529,17 +542,11 @@ async function generatePDFs() {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({
-        action: 'generatePDFs',
-        params: {
-          slideTemplateId: certConfig.slideTemplateId,
-          outputFolderId: certConfig.folderOriginalesId,
-          sheetId: certConfig.sheetId
-        }
-      })
+      body: JSON.stringify(requestBody)
     });
     
     console.log('[CERT] 📡 Respuesta recibida:', response.status, response.statusText);
+    console.log('[CERT] Headers de respuesta:', [...response.headers.entries()]);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -554,7 +561,7 @@ async function generatePDFs() {
     }
     
     const data = await response.json();
-    console.log('[CERT] 📦 Respuesta:', data);
+    console.log('[CERT] 📦 Respuesta completa:', data);
     
     if (data.success) {
       statusEl.textContent = '✅ Certificados generados exitosamente';
@@ -596,21 +603,25 @@ async function generatePDFs() {
       throw new Error(data.error || 'Error desconocido');
     }
   } catch (error) {
-    console.error('[CERT] ❌ Error generando certificados:', error);
-    console.error('[CERT] Tipo de error:', error.name);
+    console.error('[CERT] ❌ Error COMPLETO generando certificados:');
+    console.error('[CERT] Nombre del error:', error.name);
     console.error('[CERT] Mensaje:', error.message);
     console.error('[CERT] Stack:', error.stack);
+    console.error('[CERT] Error completo (objeto):', error);
+    console.error('[CERT] Error completo (stringify):', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     
     statusEl.textContent = '❌ Error al generar certificados';
     progressBar.style.background = '#ff7a7a';
     
-    // Mejorar mensajes de error
-    let errorMessage = error.message;
+    // Mostrar el error REAL con más detalles
+    let errorMessage = `Error: ${error.name}\nMensaje: ${error.message}`;
     
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      errorMessage = 'Error de conexión. Verifica:\n1. El script está desplegado correctamente\n2. La URL es correcta\n3. El Web App permite acceso anónimo\n4. Revisa la consola del navegador para más detalles';
-    } else if (error.message.includes('Failed to fetch')) {
-      errorMessage = 'No se pudo conectar al script. Posibles causas:\n- Permisos del script\n- Timeout (aunque solo son 3 certificados)\n- Error en el script de Google Apps Script\n\nRevisa los logs del script en Google Apps Script (Ver → Logs de ejecución)';
+    if (error.message.includes('Failed to fetch')) {
+      errorMessage = `No se pudo conectar al script. Esto puede ser porque:\n\n1. El script no está recibiendo la petición\n2. El script está tardando demasiado (timeout)\n3. Hay un error de red\n4. Hay un error en el script que lo hace fallar silenciosamente\n\n🔍 DIAGNÓSTICO:\n- Revisa los logs de Google Apps Script (Ver → Logs de ejecución)\n- Si NO aparece "[DOPOST] ===== Iniciando doPost =====", la petición no está llegando\n- Si SÍ aparece, verifica el error específico en los logs\n- Revisa la consola del navegador (F12) para más detalles`;
+    } else if (error.message.includes('NetworkError') || error.message.includes('Network error')) {
+      errorMessage = `Error de red. Verifica tu conexión a internet.`;
+    } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      errorMessage = `Error de conexión (TypeError). Verifica:\n1. El script está desplegado correctamente\n2. La URL es correcta\n3. El Web App permite acceso anónimo\n4. Revisa la consola del navegador para más detalles\n\nError específico: ${error.message}`;
     }
     
     detailsEl.textContent = errorMessage;
