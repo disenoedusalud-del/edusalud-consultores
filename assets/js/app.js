@@ -6218,7 +6218,7 @@ const ADMINS_PATH = 'admins';
 // ✅ Ruta para códigos de verificación
 const VERIFICATION_CODES_PATH = 'verificationCodes';
 // ✅ URL de la Cloud Function para enviar códigos de verificación
-const VERIFICATION_FUNCTION_URL = 'https://sendverificationcode-nzqxumxiba-uc.a.run.app';
+// const VERIFICATION_FUNCTION_URL = 'https://sendverificationcode-nzqxumxiba-uc.a.run.app'; // ⚠️ Ya no se usa (reemplazado por EmailJS)
 // ✅ Super administradores hardcodeados (siempre tienen acceso, incluso si se borran de Firebase)
 const SUPER_ADMINS = [
   'diseno.edusalud@gmail.com',
@@ -6265,23 +6265,24 @@ async function saveVerificationCode(email, code) {
   }
 }
 
-// ✅ Enviar código de verificación usando Cloud Function
+// ✅ Enviar código de verificación usando EmailJS
 async function sendVerificationCode(email, code) {
   try {
-    const response = await fetch(VERIFICATION_FUNCTION_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, code })
-    });
+    log('[VERIFICATION] 📤 Enviando código a:', email);
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-      throw new Error(errorData.error || `Error HTTP: ${response.status}`);
-    }
+    const SERVICE_ID = 'service_ectemf7';
+    const TEMPLATE_ID = 'template_g9pmmxm';
     
-    const result = await response.json();
+    const result = await emailjs.send(
+      SERVICE_ID,
+      TEMPLATE_ID,
+      {
+        to_email: email,
+        code: code,
+        from_name: 'EduSalud'
+      }
+    );
+    
     log('[VERIFICATION] ✅ Código enviado exitosamente:', result);
     return { success: true };
   } catch (error) {
