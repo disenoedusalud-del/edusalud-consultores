@@ -7783,10 +7783,13 @@ function setupEmailPasswordListeners() {
 }
 
 // ✅ Configurar listeners cuando el DOM esté listo
+console.log('[SETUP] 🔍 Verificando estado del DOM. readyState:', document.readyState);
 if (document.readyState === 'loading') {
+  console.log('[SETUP] ⏳ DOM aún cargando, esperando DOMContentLoaded...');
   document.addEventListener('DOMContentLoaded', setupEmailPasswordListeners);
 } else {
   // DOM ya está listo
+  console.log('[SETUP] ✅ DOM ya está listo, ejecutando setupEmailPasswordListeners inmediatamente');
   setupEmailPasswordListeners();
 }
 
