@@ -3920,31 +3920,55 @@ function buildUserGrid() {
     
     // ✅ Imagen del curso
     if (data.card?.img) {
+      const imgContainer = document.createElement('div');
+      imgContainer.style.cssText = 'position:relative; width:100%; height:220px; border-radius:12px 12px 0 0; overflow:hidden;';
+      
+      // ✅ Placeholder de carga (skeleton)
+      const loadingPlaceholder = document.createElement('div');
+      loadingPlaceholder.className = 'image-loading-placeholder';
+      loadingPlaceholder.style.cssText = 'position:absolute; inset:0; background:linear-gradient(90deg, rgba(90,169,255,0.1) 0%, rgba(90,169,255,0.2) 50%, rgba(90,169,255,0.1) 100%); background-size:200% 100%; animation:shimmer 1.5s infinite; display:flex; align-items:center; justify-content:center;';
+      loadingPlaceholder.innerHTML = '<div style="font-size:24px; opacity:0.5;">🖼️</div>';
+      imgContainer.appendChild(loadingPlaceholder);
+      
       const img = document.createElement('img');
       const imgUrl = addCacheBuster(data.card.img);
-      img.src = imgUrl;
+      img.style.cssText = 'width:100%; height:100%; object-fit:cover; display:block; opacity:0; transition:opacity 0.3s ease;';
       img.alt = data.title || 'Curso';
-      img.style.cssText = 'width:100%; height:220px; object-fit:cover; display:block; border-radius:12px 12px 0 0;';
       img.loading = 'lazy';
+      
+      // ✅ Manejador de carga exitosa
+      img.onload = function() {
+        console.log('[IMAGE] ✅ Imagen cargada correctamente:', imgUrl);
+        // Ocultar placeholder y mostrar imagen
+        if (loadingPlaceholder.parentNode) {
+          loadingPlaceholder.style.opacity = '0';
+          setTimeout(() => {
+            if (loadingPlaceholder.parentNode) {
+              loadingPlaceholder.remove();
+            }
+          }, 300);
+        }
+        img.style.opacity = '1';
+      };
       
       // ✅ Manejador de errores para imágenes rotas
       img.onerror = function() {
         console.error('[IMAGE] ❌ Error cargando imagen:', imgUrl);
-        // Reemplazar con placeholder
-        const placeholder = document.createElement('div');
-        placeholder.style.cssText = 'width:100%; height:220px; background:linear-gradient(135deg, rgba(255,122,122,0.2), rgba(255,122,122,0.05)); display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--danger); border-radius:12px 12px 0 0; gap:8px;';
-        placeholder.innerHTML = '<span style="font-size:32px;">🖼️</span><span style="font-size:12px; text-align:center; padding:0 12px;">Imagen no disponible</span>';
-        if (img.parentNode) {
-          img.parentNode.replaceChild(placeholder, img);
+        // Ocultar placeholder
+        if (loadingPlaceholder.parentNode) {
+          loadingPlaceholder.remove();
         }
+        // Reemplazar con placeholder de error
+        img.style.display = 'none';
+        const errorPlaceholder = document.createElement('div');
+        errorPlaceholder.style.cssText = 'width:100%; height:100%; background:linear-gradient(135deg, rgba(255,122,122,0.2), rgba(255,122,122,0.05)); display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--danger); gap:8px;';
+        errorPlaceholder.innerHTML = '<span style="font-size:32px;">🖼️</span><span style="font-size:12px; text-align:center; padding:0 12px;">Imagen no disponible</span>';
+        imgContainer.appendChild(errorPlaceholder);
       };
       
-      // ✅ Log para debugging
-      img.onload = function() {
-        console.log('[IMAGE] ✅ Imagen cargada correctamente:', imgUrl);
-      };
-      
-      cardContent.appendChild(img);
+      img.src = imgUrl;
+      imgContainer.appendChild(img);
+      cardContent.appendChild(imgContainer);
     } else {
       const placeholder = document.createElement('div');
       placeholder.style.cssText = 'width:100%; height:220px; background:linear-gradient(135deg, rgba(90,169,255,0.2), rgba(90,169,255,0.05)); display:flex; align-items:center; justify-content:center; color:var(--muted); border-radius:12px 12px 0 0;';
