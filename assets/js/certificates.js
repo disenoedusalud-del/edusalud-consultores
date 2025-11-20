@@ -539,10 +539,18 @@ async function generatePDFs() {
       })
     });
     
+    console.log('[CERT] 📡 Respuesta recibida:', response.status, response.statusText);
+    
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[CERT] ❌ Error HTTP:', response.status, errorText);
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      
+      // Mejorar mensaje de error para Failed to fetch
+      if (response.status === 0 || !response.status) {
+        throw new Error('No se pudo conectar al script. Verifica que:\n1. El Web App esté configurado como "Cualquiera, incluso anónimos"\n2. El script esté desplegado correctamente\n3. La URL sea correcta');
+      }
+      
+      throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText.substring(0, 200)}`);
     }
     
     const data = await response.json();
@@ -630,10 +638,18 @@ async function generateLinks() {
       })
     });
     
+    console.log('[CERT] 📡 Respuesta recibida:', response.status, response.statusText);
+    
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[CERT] ❌ Error HTTP:', response.status, errorText);
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      
+      // Mejorar mensaje de error para Failed to fetch
+      if (response.status === 0 || !response.status) {
+        throw new Error('No se pudo conectar al script. Verifica que:\n1. El Web App esté configurado como "Cualquiera, incluso anónimos"\n2. El script esté desplegado correctamente\n3. La URL sea correcta');
+      }
+      
+      throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText.substring(0, 200)}`);
     }
     
     const data = await response.json();
