@@ -414,6 +414,31 @@ async function verifyImageExists(imageUrl) {
  */
 function addCacheBuster(url, version = '2') {
   if (!url) return url;
+  
+  // ✅ Convertir URLs de GitHub blob a raw si es necesario
+  // De: https://github.com/user/repo/blob/branch/path?raw=true
+  // A: https://raw.githubusercontent.com/user/repo/branch/path
+  if (url.includes('github.com') && url.includes('/blob/')) {
+    try {
+      // Remover parámetros de consulta primero
+      const urlWithoutParams = url.split('?')[0];
+      
+      // Extraer la parte antes de /blob/
+      const blobIndex = urlWithoutParams.indexOf('/blob/');
+      if (blobIndex !== -1) {
+        const beforeBlob = urlWithoutParams.substring(0, blobIndex);
+        const afterBlob = urlWithoutParams.substring(blobIndex + 6); // +6 para saltar '/blob/'
+        
+        // Construir URL raw de GitHub
+        const githubPath = beforeBlob.replace('https://github.com', '');
+        url = `https://raw.githubusercontent.com${githubPath}/${afterBlob}`;
+        console.log('[IMAGE] 🔄 URL de GitHub convertida:', url);
+      }
+    } catch (e) {
+      console.error('[IMAGE] ❌ Error convirtiendo URL de GitHub:', e);
+    }
+  }
+  
   // Si la URL ya tiene parámetros de consulta, usar '&', si no, usar '?'
   const separator = url.includes('?') ? '&' : '?';
   return `${url}${separator}v=${version}`;
@@ -3896,10 +3921,29 @@ function buildUserGrid() {
     // ✅ Imagen del curso
     if (data.card?.img) {
       const img = document.createElement('img');
-      img.src = addCacheBuster(data.card.img);
+      const imgUrl = addCacheBuster(data.card.img);
+      img.src = imgUrl;
       img.alt = data.title || 'Curso';
       img.style.cssText = 'width:100%; height:220px; object-fit:cover; display:block; border-radius:12px 12px 0 0;';
       img.loading = 'lazy';
+      
+      // ✅ Manejador de errores para imágenes rotas
+      img.onerror = function() {
+        console.error('[IMAGE] ❌ Error cargando imagen:', imgUrl);
+        // Reemplazar con placeholder
+        const placeholder = document.createElement('div');
+        placeholder.style.cssText = 'width:100%; height:220px; background:linear-gradient(135deg, rgba(255,122,122,0.2), rgba(255,122,122,0.05)); display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--danger); border-radius:12px 12px 0 0; gap:8px;';
+        placeholder.innerHTML = '<span style="font-size:32px;">🖼️</span><span style="font-size:12px; text-align:center; padding:0 12px;">Imagen no disponible</span>';
+        if (img.parentNode) {
+          img.parentNode.replaceChild(placeholder, img);
+        }
+      };
+      
+      // ✅ Log para debugging
+      img.onload = function() {
+        console.log('[IMAGE] ✅ Imagen cargada correctamente:', imgUrl);
+      };
+      
       cardContent.appendChild(img);
     } else {
       const placeholder = document.createElement('div');
