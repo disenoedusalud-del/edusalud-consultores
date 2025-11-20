@@ -1118,3 +1118,58 @@ label{ display:block; font-weight:600; margin-bottom:8px; }
   animation: shimmer 1.5s infinite;
 }
 
+/* ✅ Estilos para generador de certificados */
+#cert-gen-progress,
+#cert-links-progress {
+  padding: 16px;
+  background: rgba(90,169,255,0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(90,169,255,0.1);
+}
+
+#cert-gen-progress-bar,
+#cert-links-progress-bar {
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+.cert-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.cert-preview-table th,
+.cert-preview-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.cert-preview-table th {
+  background: rgba(90,169,255,0.1);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.cert-preview-table tr:hover {
+  background: rgba(90,169,255,0.05);
+}
+
+/* Adaptación para tema claro */
+:root[data-theme="light"] #cert-gen-progress,
+:root[data-theme="light"] #cert-links-progress {
+  background: rgba(59,130,246,0.05);
+  border-color: rgba(59,130,246,0.1);
+}
+
+:root[data-theme="light"] .cert-preview-table th {
+  background: rgba(59,130,246,0.1);
+}
+
+:root[data-theme="light"] .cert-preview-table tr:hover {
+  background: rgba(59,130,246,0.05);
+}
+
