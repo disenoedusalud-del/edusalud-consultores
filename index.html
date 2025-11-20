@@ -30,7 +30,7 @@
   <!-- /EmailJS -->
   
   <!-- Estilos principales -->
-  <link rel="stylesheet" href="assets/css/style.css?v=2" />
+  <link rel="stylesheet" href="assets/css/style.css?v=3" />
 </head>
 <body>
   <div class="wrap">
@@ -457,19 +457,182 @@
 
       <!-- Vista de Generador de Certificados -->
       <div id="master-certificates-view" class="hidden">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px;">
           <h3 style="margin:0">🎓 Generador de Certificados</h3>
           <button id="btn-master-exit-cert" class="btn secondary" type="button" aria-label="Salir de la vista maestra" title="Volver a la pantalla de acceso">Salir</button>
         </div>
-        
-        <div class="card" style="padding: 40px; text-align: center;">
-          <p style="font-size: 18px; color: var(--muted); margin-bottom: 20px;">
-            Generador de Certificados
+
+        <!-- Configuración del Script -->
+        <div class="card" style="margin-bottom:20px;">
+          <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
+            ⚙️ Configuración del Google Apps Script
+          </h4>
+          
+          <div class="form-group">
+            <label for="input-script-web-app-url">URL del Google Apps Script Web App *</label>
+            <input id="input-script-web-app-url" class="input" type="url" placeholder="https://script.google.com/macros/s/..." />
+            <div style="font-size:12px; color:var(--muted); margin-top:4px;">
+              🔗 URL del script desplegado como Web App. Debe tener acceso: "Cualquiera, incluso anónimos"
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px; margin-top:20px;">
+            <button id="btn-save-cert-config" class="btn secondary" type="button">💾 Guardar Configuración</button>
+            <button id="btn-load-cert-config" class="btn secondary" type="button">📥 Cargar Configuración</button>
+          </div>
+        </div>
+
+        <!-- Paso 1: Configurar Plantilla -->
+        <div class="card" style="margin-bottom:20px;">
+          <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
+            📄 Paso 1: Plantilla de Certificado
+          </h4>
+          
+          <div class="form-group">
+            <label for="select-slide-template">Seleccionar plantilla existente *</label>
+            <div style="display:flex; gap:8px;">
+              <select id="select-slide-template" class="input" style="flex:1;">
+                <option value="">-- Seleccionar plantilla --</option>
+              </select>
+              <button id="btn-refresh-templates" class="btn secondary" type="button">🔄 Actualizar lista</button>
+            </div>
+            <div style="font-size:12px; color:var(--muted); margin-top:4px;">
+              📊 Selecciona una plantilla de Google Slides que contenga {{NOMBRE}} como placeholder
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 2: Configurar Google Sheet -->
+        <div class="card" style="margin-bottom:20px;">
+          <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
+            📊 Paso 2: Hoja de Cálculo
+          </h4>
+          
+          <div class="form-group">
+            <label for="select-google-sheet">Seleccionar Google Sheet *</label>
+            <div style="display:flex; gap:8px;">
+              <select id="select-google-sheet" class="input" style="flex:1;">
+                <option value="">-- Seleccionar hoja --</option>
+              </select>
+              <button id="btn-refresh-sheets" class="btn secondary" type="button">🔄 Actualizar lista</button>
+            </div>
+            <div style="font-size:12px; color:var(--muted); margin-top:4px;">
+              📋 La hoja debe tener columnas: Nombre, Correo, Teléfono, Correo link, WhatsApp link, Link PDF, Estado, Certificado generado
+            </div>
+          </div>
+          
+          <div class="form-group" style="margin-top:16px;">
+            <label for="input-new-sheet-name">O crear nueva hoja</label>
+            <div style="display:flex; gap:8px;">
+              <input id="input-new-sheet-name" class="input" type="text" placeholder="Nombre de la hoja" style="flex:1;" />
+              <button id="btn-create-sheet" class="btn secondary" type="button">➕ Crear nueva hoja</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 3: Configurar Carpetas -->
+        <div class="card" style="margin-bottom:20px;">
+          <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
+            📁 Paso 3: Carpetas de Drive
+          </h4>
+          
+          <div class="form-group">
+            <label for="select-folder-originales">Carpeta para PDFs originales *</label>
+            <div style="display:flex; gap:8px;">
+              <select id="select-folder-originales" class="input" style="flex:1;">
+                <option value="">-- Seleccionar carpeta --</option>
+              </select>
+              <button id="btn-refresh-folders" class="btn secondary" type="button">🔄 Actualizar lista</button>
+            </div>
+            <div style="font-size:12px; color:var(--muted); margin-top:4px;">
+              📁 Carpeta donde se guardarán los PDFs sin proteger
+            </div>
+          </div>
+          
+          <div class="form-group" style="margin-top:16px;">
+            <div style="display:flex; gap:8px;">
+              <input id="input-new-folder-originales" class="input" type="text" placeholder="Nombre de la carpeta" style="flex:1;" />
+              <button id="btn-create-folder-originales" class="btn secondary" type="button">➕ Crear nueva carpeta</button>
+            </div>
+          </div>
+          
+          <div class="form-group" style="margin-top:16px;">
+            <label for="select-folder-protegidos">Carpeta para PDFs protegidos *</label>
+            <select id="select-folder-protegidos" class="input">
+              <option value="">-- Seleccionar carpeta --</option>
+            </select>
+            <div style="font-size:12px; color:var(--muted); margin-top:4px;">
+              🔒 Carpeta con PDFs ya protegidos (para generar enlaces)
+            </div>
+          </div>
+          
+          <div class="form-group" style="margin-top:16px;">
+            <div style="display:flex; gap:8px;">
+              <input id="input-new-folder-protegidos" class="input" type="text" placeholder="Nombre de la carpeta" style="flex:1;" />
+              <button id="btn-create-folder-protegidos" class="btn secondary" type="button">➕ Crear nueva carpeta</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 4: Configurar Mensajes -->
+        <div class="card" style="margin-bottom:20px;">
+          <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
+            ✉️ Paso 4: Mensajes Personalizados
+          </h4>
+          
+          <div class="form-group">
+            <label for="input-webinar-title">Título del Webinar/Evento *</label>
+            <input id="input-webinar-title" class="input" type="text" placeholder="Webinar: Título del Evento" />
+          </div>
+          
+          <div class="form-group">
+            <label for="input-webinar-date">Fecha del Evento *</label>
+            <input id="input-webinar-date" class="input" type="text" placeholder="15 de noviembre de 2024" />
+          </div>
+        </div>
+
+        <!-- Paso 5: Ejecutar Procesos -->
+        <div class="card">
+          <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
+            🚀 Paso 5: Generar Certificados
+          </h4>
+          
+          <p style="color:var(--muted); font-size:14px; margin-bottom:16px;">
+            Ejecuta los procesos para generar los certificados y enlaces. Asegúrate de haber completado todos los pasos anteriores.
           </p>
-          <p style="color: var(--muted);">
-            Aquí podrás generar certificados para los participantes de los cursos.
-          </p>
-          <!-- Aquí irá el contenido del generador de certificados -->
+          
+          <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+            <button id="btn-generate-pdfs" class="btn" type="button">
+              📄 Generar PDFs desde Plantilla
+            </button>
+            <button id="btn-generate-links" class="btn" type="button">
+              🔗 Generar Enlaces
+            </button>
+          </div>
+          
+          <!-- Progreso de generación de PDFs -->
+          <div id="cert-gen-progress" style="display:none; padding:16px; background:rgba(90,169,255,0.05); border-radius:8px; border:1px solid rgba(90,169,255,0.1); margin-bottom:16px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+              <div class="loading-spinner" style="width:16px; height:16px; border-width:2px;"></div>
+              <span id="cert-gen-status" style="font-weight:500;">Generando certificados...</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.05); border-radius:8px; height:8px; overflow:hidden;">
+              <div id="cert-gen-progress-bar" style="background:var(--accent); height:100%; width:0%; transition:width 0.3s;"></div>
+            </div>
+            <div id="cert-gen-details" style="font-size:12px; color:var(--muted); margin-top:8px;"></div>
+          </div>
+          
+          <!-- Progreso de generación de enlaces -->
+          <div id="cert-links-progress" style="display:none; padding:16px; background:rgba(90,169,255,0.05); border-radius:8px; border:1px solid rgba(90,169,255,0.1);">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+              <div class="loading-spinner" style="width:16px; height:16px; border-width:2px;"></div>
+              <span id="cert-links-status" style="font-weight:500;">Generando enlaces...</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.05); border-radius:8px; height:8px; overflow:hidden;">
+              <div id="cert-links-progress-bar" style="background:var(--accent); height:100%; width:0%; transition:width 0.3s;"></div>
+            </div>
+            <div id="cert-links-details" style="font-size:12px; color:var(--muted); margin-top:8px;"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -842,6 +1005,7 @@
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
   <script src="assets/js/app.js?v=109" defer></script>
+  <script src="assets/js/certificates.js?v=1" defer></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
