@@ -3324,6 +3324,9 @@ function showAccess() {
   window.allowedCoursesForUser = null;
   window.isFromUserView = false;
   
+  // ✅ Quitar clase master-view para mostrar header principal
+  document.body.classList.remove('master-view');
+  
   // ✅ Transición suave: ocultar otras vistas primero
   $('#content').classList.add('hidden');
   $('#master').classList.add('hidden');
@@ -3452,6 +3455,9 @@ function stopPeriodicRefresh() {
 }
 
 function showContent() {
+  // ✅ Quitar clase master-view para mostrar header principal
+  document.body.classList.remove('master-view');
+  
   // ✅ Transición suave: ocultar otras vistas primero
   $('#access').classList.add('hidden');
   $('#master').classList.add('hidden');
@@ -3498,6 +3504,9 @@ function showContent() {
 }
 // ✅ Mostrar vista de usuario (diferente a vista master)
 function showUserView() {
+  // ✅ Quitar clase master-view para mostrar header principal
+  document.body.classList.remove('master-view');
+  
   // ✅ Transición suave: ocultar otras vistas primero
   $('#access').classList.add('hidden');
   $('#content').classList.add('hidden');
@@ -3537,6 +3546,9 @@ function showMaster() {
   
   // ✅ Limpiar flag cuando se muestra la vista master
   window.isFromUserView = false;
+  
+  // ✅ Ocultar header principal cuando se muestra vista maestra
+  document.body.classList.add('master-view');
   
   // ✅ Mostrar master con transición
   const masterEl = $('#master');
