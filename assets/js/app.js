@@ -407,6 +407,19 @@ async function verifyImageExists(imageUrl) {
 }
 
 /**
+ * ✅ Agrega parámetro de caché a una URL (maneja URLs con parámetros existentes)
+ * @param {string} url - URL de la imagen
+ * @param {string|number} version - Versión del caché (default: '2')
+ * @returns {string} URL con parámetro de caché agregado
+ */
+function addCacheBuster(url, version = '2') {
+  if (!url) return url;
+  // Si la URL ya tiene parámetros de consulta, usar '&', si no, usar '?'
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}v=${version}`;
+}
+
+/**
  * ✅ Genera sugerencias de código basadas en el título
  */
 function generateCodeSuggestions(title) {
@@ -3811,7 +3824,7 @@ function renderCourse(keyHex) {
         wrapper = window.insertElectricCard(left, variant, accent);
       }
       if (wrapper && data.card?.img && window.setCardImage) {
-        window.setCardImage(wrapper, `${data.card.img}?v=2`);
+        window.setCardImage(wrapper, addCacheBuster(data.card.img));
       }
     }
   } catch (e) { warn('No se pudo insertar la tarjeta:', e); }
@@ -3883,7 +3896,7 @@ function buildUserGrid() {
     // ✅ Imagen del curso
     if (data.card?.img) {
       const img = document.createElement('img');
-      img.src = `${data.card.img}?v=2`;
+      img.src = addCacheBuster(data.card.img);
       img.alt = data.title || 'Curso';
       img.style.cssText = 'width:100%; height:220px; object-fit:cover; display:block; border-radius:12px 12px 0 0;';
       img.loading = 'lazy';
@@ -4902,7 +4915,7 @@ function buildMasterGrid() {
     }
     if (wrapper && data.card?.img && window.setCardImage) {
       // ✅ Lazy loading: usar data-src y cargar solo cuando es visible
-      const imgUrl = `${data.card.img}?v=2`;
+      const imgUrl = addCacheBuster(data.card.img);
       const imgElement = wrapper.querySelector('img');
       if (imgElement) {
         imgElement.setAttribute('data-src', imgUrl);
