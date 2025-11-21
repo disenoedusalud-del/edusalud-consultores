@@ -7,6 +7,7 @@ const SCRIPT_WEB_APP_URL_KEY = 'edusalud_script_web_app_url';
 // Configuración por defecto
 let certConfig = {
   scriptWebAppUrl: '',
+  certMode: 'webinar',   // 'webinar' o 'with-code'
   slideTemplateId: '',
   sheetId: '',
   folderOriginalesId: '',
@@ -35,6 +36,9 @@ function loadCertConfig() {
     // Llenar inputs
     const scriptUrlInput = $('#input-script-web-app-url');
     if (scriptUrlInput) scriptUrlInput.value = certConfig.scriptWebAppUrl || '';
+    
+    const modeInput = $('#select-cert-mode');
+    if (modeInput) modeInput.value = certConfig.certMode || 'webinar';
     
     const slideInput = $('#select-slide-template');
     if (slideInput && certConfig.slideTemplateId) {
@@ -76,6 +80,7 @@ function loadCertConfig() {
 
 function saveCertConfig() {
   const scriptUrlInput = $('#input-script-web-app-url');
+  const modeInput = $('#select-cert-mode');
   const slideInput = $('#select-slide-template');
   const sheetInput = $('#select-google-sheet');
   const folderOrigInput = $('#select-folder-originales');
@@ -87,6 +92,7 @@ function saveCertConfig() {
   
   certConfig = {
     scriptWebAppUrl: scriptUrlInput?.value.trim() || '',
+    certMode: modeInput?.value || 'webinar',
     slideTemplateId: slideInput?.value || '',
     sheetId: sheetInput?.value || '',
     folderOriginalesId: folderOrigInput?.value || '',
@@ -402,7 +408,10 @@ async function createNewSheet() {
       },
       body: JSON.stringify({
         action: 'createSheet',
-        params: { name }
+        params: { 
+          name,
+          mode: certConfig.certMode || 'webinar'
+        }
       })
     });
     
@@ -706,7 +715,8 @@ async function generatePDFs() {
       params: {
         slideTemplateId: certConfig.slideTemplateId,
         outputFolderId: certConfig.folderOriginalesId,
-        sheetId: certConfig.sheetId
+        sheetId: certConfig.sheetId,
+        mode: certConfig.certMode || 'webinar'
       }
     };
     
@@ -958,7 +968,8 @@ async function generateLinks() {
           webinarTitle: certConfig.webinarTitle,
           webinarDate: certConfig.webinarDate,
           emailMessage: certConfig.emailMessage || '',      // Mensaje personalizado de correo (opcional)
-          whatsappMessage: certConfig.whatsappMessage || ''  // Mensaje personalizado de WhatsApp (opcional)
+          whatsappMessage: certConfig.whatsappMessage || '', // Mensaje personalizado de WhatsApp (opcional)
+          mode: certConfig.certMode || 'webinar'            // Modo de certificado (webinar o with-code)
         }
       })
     });
@@ -1068,6 +1079,15 @@ function setupCertificatesListeners() {
       });
     }
   });
+  
+  // Guardar configuración al cambiar el modo
+  const modeSelect = $('#select-cert-mode');
+  if (modeSelect) {
+    modeSelect.addEventListener('change', () => {
+      saveCertConfig();
+      showToast('info', 'Modo actualizado', 'El modo se ha guardado. Recuerda que la estructura de la hoja de cálculo debe coincidir con el modo seleccionado.');
+    });
+  }
   
   // Guardar configuración al cambiar textareas (input event para capturar cambios en tiempo real)
   ['textarea-email-message', 'textarea-whatsapp-message'].forEach(id => {
