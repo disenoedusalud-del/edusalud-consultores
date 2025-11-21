@@ -5,7 +5,7 @@
 const IS_DEVELOPMENT = false; // Cambiar a false en producción
 const VERSION = IS_DEVELOPMENT 
   ? 'edusalud-dev-' + Date.now() // Versión única cada vez en desarrollo
-  : 'edusalud-v2'; // Versión estable en producción
+  : 'edusalud-v3'; // Versión estable en producción (actualizada para limpiar cache de certificates.js)
 
 const CACHE_NAME = VERSION;
 const RUNTIME_CACHE = 'edusalud-runtime-' + (IS_DEVELOPMENT ? Date.now() : 'v1');
@@ -153,6 +153,36 @@ self.addEventListener('fetch', (event) => {
     );
   } else {
     // Modo producción: Cache-First (estrategia original)
+    // ✅ EXCEPCIÓN: Archivos JS/CSS con parámetros ?v= siempre Network-First
+    const hasVersionParam = url.searchParams.has('v');
+    const isVersionedJS = isJS(url) && hasVersionParam;
+    const isVersionedCSS = isCSS(url) && hasVersionParam;
+    
+    if (isVersionedJS || isVersionedCSS) {
+      // Network-First para archivos versionados (siempre obtener la última versión)
+      console.log('[SW] Archivo versionado, Network-First:', url.pathname + url.search);
+      event.respondWith(
+        fetch(request, { cache: 'no-store' })
+          .then((response) => {
+            // No cachear archivos versionados para forzar actualizaciones
+            return response;
+          })
+          .catch((err) => {
+            console.error('[SW] ❌ Error en fetch (versionado):', url.pathname, err);
+            // Fallback: intentar desde cache como último recurso
+            return caches.match(request).then(cached => {
+              if (cached) {
+                console.log('[SW] Usando cache como fallback:', url.pathname);
+                return cached;
+              }
+              return new Response('Sin conexión', { status: 503 });
+            });
+          })
+      );
+      return;
+    }
+    
+    // Para el resto: Cache-First normal
     event.respondWith(
       caches.match(request)
         .then((cachedResponse) => {
