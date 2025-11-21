@@ -12,7 +12,9 @@ let certConfig = {
   folderOriginalesId: '',
   folderProtegidosId: '',
   webinarTitle: '',
-  webinarDate: ''
+  webinarDate: '',
+  emailMessage: '',      // Mensaje personalizado de correo (opcional)
+  whatsappMessage: ''    // Mensaje personalizado de WhatsApp (opcional)
 };
 
 // ===== FUNCIONES DE CONFIGURACIÓN =====
@@ -60,6 +62,12 @@ function loadCertConfig() {
     const dateInput = $('#input-webinar-date');
     if (dateInput) dateInput.value = certConfig.webinarDate || '';
     
+    const emailMsgInput = $('#textarea-email-message');
+    if (emailMsgInput) emailMsgInput.value = certConfig.emailMessage || '';
+    
+    const whatsappMsgInput = $('#textarea-whatsapp-message');
+    if (whatsappMsgInput) whatsappMsgInput.value = certConfig.whatsappMessage || '';
+    
     console.log('[CERT] ✅ Configuración cargada');
   } catch (e) {
     console.error('[CERT] ❌ Error cargando configuración:', e);
@@ -74,6 +82,8 @@ function saveCertConfig() {
   const folderProtInput = $('#select-folder-protegidos');
   const titleInput = $('#input-webinar-title');
   const dateInput = $('#input-webinar-date');
+  const emailMsgInput = $('#textarea-email-message');
+  const whatsappMsgInput = $('#textarea-whatsapp-message');
   
   certConfig = {
     scriptWebAppUrl: scriptUrlInput?.value.trim() || '',
@@ -82,7 +92,9 @@ function saveCertConfig() {
     folderOriginalesId: folderOrigInput?.value || '',
     folderProtegidosId: folderProtInput?.value || '',
     webinarTitle: titleInput?.value.trim() || '',
-    webinarDate: dateInput?.value.trim() || ''
+    webinarDate: dateInput?.value.trim() || '',
+    emailMessage: emailMsgInput?.value.trim() || '',
+    whatsappMessage: whatsappMsgInput?.value.trim() || ''
   };
   
   localStorage.setItem(CERT_CONFIG_KEY, JSON.stringify(certConfig));
@@ -559,12 +571,15 @@ function disableCertConfig() {
     'select-folder-protegidos',
     'input-webinar-title',
     'input-webinar-date',
+    'textarea-email-message',
+    'textarea-whatsapp-message',
     'btn-create-sheet',
     'btn-create-folder-originales',
     'btn-create-folder-protegidos',
     'btn-refresh-slides',
     'btn-refresh-sheets',
     'btn-refresh-folders',
+    'btn-refresh-folders-prot',
     'btn-save-cert-config',
     'btn-load-cert-config'
   ];
@@ -591,12 +606,15 @@ function enableCertConfig() {
     'select-folder-protegidos',
     'input-webinar-title',
     'input-webinar-date',
+    'textarea-email-message',
+    'textarea-whatsapp-message',
     'btn-create-sheet',
     'btn-create-folder-originales',
     'btn-create-folder-protegidos',
     'btn-refresh-slides',
     'btn-refresh-sheets',
     'btn-refresh-folders',
+    'btn-refresh-folders-prot',
     'btn-save-cert-config',
     'btn-load-cert-config'
   ];
@@ -861,7 +879,9 @@ async function generateLinks() {
       sheetId: certConfig.sheetId,
       folderProtegidosId: certConfig.folderProtegidosId,
       webinarTitle: certConfig.webinarTitle,
-      webinarDate: certConfig.webinarDate
+      webinarDate: certConfig.webinarDate,
+      emailMessage: certConfig.emailMessage ? 'Personalizado' : 'Por defecto',
+      whatsappMessage: certConfig.whatsappMessage ? 'Personalizado' : 'Por defecto'
     });
     
     const response = await fetch(certConfig.scriptWebAppUrl, {
@@ -879,7 +899,9 @@ async function generateLinks() {
           sheetId: certConfig.sheetId,
           folderProtegidosId: certConfig.folderProtegidosId,
           webinarTitle: certConfig.webinarTitle,
-          webinarDate: certConfig.webinarDate
+          webinarDate: certConfig.webinarDate,
+          emailMessage: certConfig.emailMessage || '',      // Mensaje personalizado de correo (opcional)
+          whatsappMessage: certConfig.whatsappMessage || ''  // Mensaje personalizado de WhatsApp (opcional)
         }
       })
     });
@@ -986,6 +1008,17 @@ function setupCertificatesListeners() {
         // Validar botones después de cada cambio
         validatePDFGeneration();
         validateLinksGeneration();
+      });
+    }
+  });
+  
+  // Guardar configuración al cambiar textareas (input event para capturar cambios en tiempo real)
+  ['textarea-email-message', 'textarea-whatsapp-message'].forEach(id => {
+    const el = $(`#${id}`);
+    if (el) {
+      el.addEventListener('input', () => {
+        saveCertConfig();
+        // Los mensajes no afectan la validación de botones, pero se guardan
       });
     }
   });
