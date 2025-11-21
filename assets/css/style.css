@@ -1197,6 +1197,18 @@ label{ display:block; font-weight:600; margin-bottom:8px; }
   transform: scale(1.1);
 }
 
+:root[data-theme="light"] .help-icon {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1e40af;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+:root[data-theme="light"] .help-icon:hover {
+  background: rgba(59, 130, 246, 0.25);
+  color: #1e3a8a;
+  border: 1px solid rgba(59, 130, 246, 0.6);
+}
+
 .help-modal {
   display: none;
   position: fixed;
