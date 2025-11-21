@@ -1715,7 +1715,7 @@ function listMyFolders() {
 
 function createNewSheet(params) {
   try {
-    const { name } = params;
+    const { name, mode } = params;
     
     if (!name || name.trim() === '') {
       throw new Error('El nombre de la hoja es requerido');
@@ -1724,14 +1724,30 @@ function createNewSheet(params) {
     const spreadsheet = SpreadsheetApp.create(name.trim());
     const sheet = spreadsheet.getActiveSheet();
     
-    // Crear encabezados
-    sheet.getRange(1, 1, 1, 8).setValues([[
-      'Nombre', 'Correo', 'Teléfono', 'Correo link', 
-      'WhatsApp link', 'Link PDF', 'Estado', 'Certificado generado'
-    ]]);
+    // ✅ Crear encabezados según el modo
+    let headers;
+    let numColumns;
+    
+    if (mode === 'with-code') {
+      // Modo con código: 9 columnas (incluye Código Validación)
+      headers = [
+        'Nombre', 'Código Validación', 'Correo', 'Teléfono', 
+        'Correo link', 'WhatsApp link', 'Link PDF', 'Estado', 'Certificado generado'
+      ];
+      numColumns = 9;
+    } else {
+      // Modo webinar: 8 columnas (sin código)
+      headers = [
+        'Nombre', 'Correo', 'Teléfono', 'Correo link', 
+        'WhatsApp link', 'Link PDF', 'Estado', 'Certificado generado'
+      ];
+      numColumns = 8;
+    }
+    
+    sheet.getRange(1, 1, 1, numColumns).setValues([headers]);
     
     // Formatear encabezados
-    const headerRange = sheet.getRange(1, 1, 1, 8);
+    const headerRange = sheet.getRange(1, 1, 1, numColumns);
     headerRange.setFontWeight('bold');
     headerRange.setBackground('#4285f4');
     headerRange.setFontColor('#ffffff');
@@ -1777,11 +1793,14 @@ function generarCertificadosYGuardarPDF(params) {
     const startTime = new Date().getTime();
     const MAX_EXECUTION_TIME = 330000; // 5.5 minutos en milisegundos (dejamos margen de 30 segundos)
     
-    const { slideTemplateId, outputFolderId, sheetId } = params;
+    const { slideTemplateId, outputFolderId, sheetId, mode } = params;
+    const certMode = mode || 'webinar'; // Por defecto modo webinar
     
     if (!slideTemplateId || !outputFolderId || !sheetId) {
       throw new Error('Faltan parámetros requeridos. Verifica: slideTemplateId, outputFolderId, sheetId');
     }
+    
+    console.log('[GENERATOR] Modo de certificado:', certMode);
     
     console.log('[GENERATOR] Abriendo hoja de cálculo:', sheetId);
     let spreadsheet;
@@ -1807,8 +1826,17 @@ function generarCertificadosYGuardarPDF(params) {
       };
     }
     
-    const datos = hoja.getRange(2, 1, lastRow - 1, 8).getValues();
+    // ✅ Determinar número de columnas según el modo
+    const numColumns = certMode === 'with-code' ? 9 : 8;
+    const COL_NOMBRE = 0; // Columna A
+    const COL_CODIGO = certMode === 'with-code' ? 1 : -1; // Columna B solo en modo with-code
+    const COL_CORREO = certMode === 'with-code' ? 2 : 1; // Columna C o B según modo
+    const COL_TELEFONO = certMode === 'with-code' ? 3 : 2; // Columna D o C según modo
+    const COL_CERTIFICADO_GENERADO = certMode === 'with-code' ? 8 : 7; // Columna I o H según modo
+    
+    const datos = hoja.getRange(2, 1, lastRow - 1, numColumns).getValues();
     console.log('[GENERATOR] Filas de datos encontradas:', datos.length);
+    console.log('[GENERATOR] Modo:', certMode, 'Columnas:', numColumns);
     
     // Validar plantilla
     console.log('[GENERATOR] Validando plantilla:', slideTemplateId);
@@ -1839,8 +1867,8 @@ function generarCertificadosYGuardarPDF(params) {
     
     // ✅ Primero contar cuántos hay pendientes
     for (let i = 0; i < datos.length; i++) {
-      const nombre = datos[i][0];
-      const yaGenerado = datos[i][7];
+      const nombre = datos[i][COL_NOMBRE];
+      const yaGenerado = datos[i][COL_CERTIFICADO_GENERADO];
       
       if (!nombre || nombre.toString().trim() === '') {
         continue;
@@ -1863,8 +1891,8 @@ function generarCertificadosYGuardarPDF(params) {
           // Contar cuántos quedan pendientes
           let remaining = 0;
           for (let j = i; j < datos.length; j++) {
-            const nombreRestante = datos[j][0];
-            const yaGeneradoRestante = datos[j][7];
+            const nombreRestante = datos[j][COL_NOMBRE];
+            const yaGeneradoRestante = datos[j][COL_CERTIFICADO_GENERADO];
             if (nombreRestante && nombreRestante.toString().trim() !== '' && 
                 yaGeneradoRestante !== '✅' && yaGeneradoRestante !== 'OK') {
               remaining++;
@@ -1884,12 +1912,24 @@ function generarCertificadosYGuardarPDF(params) {
         }
       }
       
-      const nombre = datos[i][0];
-      const yaGenerado = datos[i][7]; // Columna H: estado
+      const nombre = datos[i][COL_NOMBRE];
+      const codigoValidacion = certMode === 'with-code' ? datos[i][COL_CODIGO] : null;
+      const yaGenerado = datos[i][COL_CERTIFICADO_GENERADO];
       
       if (!nombre || nombre.toString().trim() === '') {
         console.log('[GENERATOR] Fila ' + (i + 2) + ': Nombre vacío, omitiendo');
         continue;
+      }
+      
+      // ✅ Validar código de validación si es modo with-code
+      if (certMode === 'with-code') {
+        if (!codigoValidacion || codigoValidacion.toString().trim() === '') {
+          console.log('[GENERATOR] Fila ' + (i + 2) + ': Código de validación vacío, omitiendo');
+          hoja.getRange(i + 2, COL_CERTIFICADO_GENERADO + 1).setValue('❌ Error: Código de validación faltante');
+          errors++;
+          errorMessages.push('Fila ' + (i + 2) + ' (' + nombre + '): Código de validación faltante');
+          continue;
+        }
       }
       
       total++;
@@ -1913,12 +1953,21 @@ function generarCertificadosYGuardarPDF(params) {
         console.log('[GENERATOR] Abriendo presentación:', copiaId);
         const presentacion = SlidesApp.openById(copiaId);
         
-        // Reemplazar {{NOMBRE}} en todas las diapositivas
+        // ✅ Reemplazar variables según el modo
         console.log('[GENERATOR] Reemplazando texto en diapositivas');
         const slides = presentacion.getSlides();
         slides.forEach(function(slide, index) {
+          // Reemplazar {{NOMBRE}}
           slide.replaceAllText('{{NOMBRE}}', nombre);
-          console.log('[GENERATOR] Diapositiva ' + (index + 1) + ' actualizada');
+          
+          // ✅ Si es modo with-code, reemplazar {{CODIGO_VALIDACION}}
+          if (certMode === 'with-code' && codigoValidacion) {
+            const codigoStr = codigoValidacion.toString().trim();
+            slide.replaceAllText('{{CODIGO_VALIDACION}}', codigoStr);
+            console.log('[GENERATOR] Diapositiva ' + (index + 1) + ' actualizada (Nombre: ' + nombre + ', Código: ' + codigoStr + ')');
+          } else {
+            console.log('[GENERATOR] Diapositiva ' + (index + 1) + ' actualizada (Nombre: ' + nombre + ')');
+          }
         });
         
         console.log('[GENERATOR] Guardando y cerrando presentación');
@@ -1938,7 +1987,7 @@ function generarCertificadosYGuardarPDF(params) {
         
         // Marcar como generado en la hoja
         console.log('[GENERATOR] Marcando como generado en hoja');
-        hoja.getRange(i + 2, 8).setValue('✅');
+        hoja.getRange(i + 2, COL_CERTIFICADO_GENERADO + 1).setValue('✅');
         generated++;
         
         console.log('[GENERATOR] ✅ Certificado generado exitosamente para:', nombre);
@@ -1951,7 +2000,7 @@ function generarCertificadosYGuardarPDF(params) {
         console.error('[GENERATOR] Stack:', error.stack);
         
         try {
-          hoja.getRange(i + 2, 8).setValue('❌ Error: ' + error.message.substring(0, 50));
+          hoja.getRange(i + 2, COL_CERTIFICADO_GENERADO + 1).setValue('❌ Error: ' + error.message.substring(0, 50));
         } catch (writeError) {
           console.error('[GENERATOR] ❌ No se pudo escribir error en hoja:', writeError.message);
         }
@@ -1982,11 +2031,14 @@ function generarCertificadosYGuardarPDF(params) {
 
 function generarLinksDesdePDFProtegido(params) {
   try {
-    const { sheetId, folderProtegidosId, webinarTitle, webinarDate, emailMessage, whatsappMessage } = params;
+    const { sheetId, folderProtegidosId, webinarTitle, webinarDate, emailMessage, whatsappMessage, mode } = params;
+    const certMode = mode || 'webinar'; // Por defecto modo webinar
     
     if (!sheetId || !folderProtegidosId || !webinarTitle || !webinarDate) {
       throw new Error('Faltan parámetros requeridos');
     }
+    
+    console.log('[LINKS] Modo de certificado:', certMode);
     
     // ✅ Mensajes por defecto si no se proporcionan personalizados
     const defaultEmailMessage = 'Estimada/o {{NOMBRE}},\n\nGracias por participar en el webinar {{TITULO}}, realizado el {{FECHA}}.\n\nAquí puede descargar su certificado de participación:\n{{ENLACE_PDF}}\n\nCordialmente,\nPrograma Educación Continua en Salud – EduSalud\nFacultad de Ciencias Médicas – UNAH';
@@ -2012,8 +2064,20 @@ function generarLinksDesdePDFProtegido(params) {
       throw new Error('No se encontró la hoja "Hoja 1"');
     }
     
-    const datos = hoja.getRange(2, 1, hoja.getLastRow() - 1, 7).getValues();
+    // ✅ Determinar número de columnas según el modo y índices de columnas
+    const numColumns = certMode === 'with-code' ? 9 : 8;
+    const COL_NOMBRE = 0; // Columna A
+    const COL_CORREO = certMode === 'with-code' ? 2 : 1; // Columna C o B según modo
+    const COL_TELEFONO = certMode === 'with-code' ? 3 : 2; // Columna D o C según modo
+    const COL_CORREO_LINK = certMode === 'with-code' ? 4 : 3; // Columna E o D según modo
+    const COL_WHATSAPP_LINK = certMode === 'with-code' ? 5 : 4; // Columna F o E según modo
+    const COL_PDF_LINK = certMode === 'with-code' ? 6 : 5; // Columna G o F según modo
+    const COL_ESTADO = certMode === 'with-code' ? 7 : 6; // Columna H o G según modo
+    
+    const datos = hoja.getRange(2, 1, hoja.getLastRow() - 1, numColumns).getValues();
     const folder = DriveApp.getFolderById(folderProtegidosId);
+    
+    console.log('[LINKS] Modo:', certMode, 'Columnas:', numColumns);
     
     // Crear mapa de archivos PDF
     const mapaPDF = {};
@@ -2030,13 +2094,13 @@ function generarLinksDesdePDFProtegido(params) {
     let notFound = 0;
     
     for (let i = 0; i < datos.length; i++) {
-      const nombre = datos[i][0];
-      const correo = datos[i][1];
-      const telefono = datos[i][2];
-      const estado = datos[i][6]; // Columna G
+      const nombre = datos[i][COL_NOMBRE];
+      const correo = datos[i][COL_CORREO];
+      const telefono = datos[i][COL_TELEFONO];
+      const estado = datos[i][COL_ESTADO];
       const fila = i + 2;
       
-      if (!nombre || nombre.trim() === '') continue;
+      if (!nombre || nombre.toString().trim() === '') continue;
       total++;
       
       if (estado === '✅ Encontrado') {
@@ -2069,20 +2133,20 @@ function generarLinksDesdePDFProtegido(params) {
         const enlaceWhatsAppEscapado = enlaceWhatsApp ? enlaceWhatsApp.replace(/"/g, '""') : '';
         const enlacePDFEscapado = enlacePDF.replace(/"/g, '""');
         
-        // Escribir enlaces en la hoja
-        hoja.getRange(fila, 4).setFormula('=HYPERLINK("' + enlaceCorreoEscapado + '", "Enviar correo")');
+        // Escribir enlaces en la hoja (usar índices base 1 para getRange)
+        hoja.getRange(fila, COL_CORREO_LINK + 1).setFormula('=HYPERLINK("' + enlaceCorreoEscapado + '", "Enviar correo")');
         if (enlaceWhatsApp) {
-          hoja.getRange(fila, 5).setFormula('=HYPERLINK("' + enlaceWhatsAppEscapado + '", "Enviar WhatsApp")');
+          hoja.getRange(fila, COL_WHATSAPP_LINK + 1).setFormula('=HYPERLINK("' + enlaceWhatsAppEscapado + '", "Enviar WhatsApp")');
         } else {
-          hoja.getRange(fila, 5).setValue('Sin teléfono');
+          hoja.getRange(fila, COL_WHATSAPP_LINK + 1).setValue('Sin teléfono');
         }
-        hoja.getRange(fila, 6).setFormula('=HYPERLINK("' + enlacePDFEscapado + '", "Ver PDF protegido")');
-        hoja.getRange(fila, 7).setValue('✅ Encontrado');
+        hoja.getRange(fila, COL_PDF_LINK + 1).setFormula('=HYPERLINK("' + enlacePDFEscapado + '", "Ver PDF protegido")');
+        hoja.getRange(fila, COL_ESTADO + 1).setValue('✅ Encontrado');
         
         created++;
       } else {
-        hoja.getRange(fila, 4, 1, 3).clearContent();
-        hoja.getRange(fila, 7).setValue('❌ No encontrado');
+        hoja.getRange(fila, COL_CORREO_LINK + 1, 1, 3).clearContent();
+        hoja.getRange(fila, COL_ESTADO + 1).setValue('❌ No encontrado');
         notFound++;
       }
     }
