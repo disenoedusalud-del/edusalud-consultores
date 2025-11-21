@@ -1011,6 +1011,16 @@
   <script src="assets/js/app.js?v=109" defer></script>
   <script src="assets/js/certificates.js?v=8" defer></script>
   <script>
+    // ✅ Forzar actualización del Service Worker si hay una nueva versión
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          registration.update(); // Forzar verificación de actualización
+          console.log('[SW] 🔄 Verificando actualización del Service Worker...');
+        });
+      });
+    }
+    
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
       if (!refreshBtn) return;
