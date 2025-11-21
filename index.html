@@ -1469,22 +1469,13 @@
   // Esperar a que el DOM esté listo
   document.addEventListener('DOMContentLoaded', function() {
     // Código completo del Google Apps Script
-    const GOOGLE_APPS_SCRIPT_CODE = `// Generador de Certificados - EduSalud
-// Google Apps Script - Backend para la plataforma web
-
-// ===== FUNCIONES PRINCIPALES (doGet y doPost) =====
-
-function doGet(e) {
+    const GOOGLE_APPS_SCRIPT_CODE = `function doGet(e) {
   const action = e.parameter.action;
   let result;
-  
-  // ✅ Nota: Los headers CORS se manejan automáticamente cuando el Web App
-  // está configurado como "Cualquiera, incluso anónimos"
   
   try {
     switch(action) {
       case 'test':
-        // ✅ Función de prueba de conexión
         return ContentService.createTextOutput(JSON.stringify({
           success: true,
           message: 'Conexión exitosa',
@@ -1517,9 +1508,6 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  // ✅ Nota: Los headers CORS se manejan automáticamente cuando el Web App
-  // está configurado como "Cualquiera, incluso anónimos"
-  
   console.log('[DOPOST] ===== Iniciando doPost =====');
   console.log('[DOPOST] postData existe:', !!e.postData);
   if (e.postData) {
@@ -1530,13 +1518,11 @@ function doPost(e) {
   
   let data;
   try {
-    // Intentar parsear como JSON primero
     if (e.postData && (e.postData.type === 'application/json' || e.postData.type === 'text/plain')) {
       console.log('[DOPOST] Parseando como JSON (tipo:', e.postData.type + ')');
       data = JSON.parse(e.postData.contents);
       console.log('[DOPOST] Datos parseados (primeros 200 chars):', JSON.stringify(data).substring(0, 200));
     } else if (e.postData && e.postData.contents) {
-      // Intentar parsear aunque no diga que es JSON
       console.log('[DOPOST] Intentando parsear postData.contents como JSON');
       try {
         data = JSON.parse(e.postData.contents);
@@ -1546,7 +1532,6 @@ function doPost(e) {
         throw new Error('No se pudo parsear el JSON: ' + parseError.message);
       }
     } else {
-      // Si es form data, leer desde parameters
       console.log('[DOPOST] Leyendo desde parameters (form data)');
       const params = e.parameter;
       data = {
@@ -1621,19 +1606,12 @@ function doPost(e) {
   }
 }
 
-// ✅ Función para manejar preflight CORS (OPTIONS) - OPCIONAL
-// Google Apps Script maneja CORS automáticamente cuando está configurado como "Cualquiera, incluso anónimos"
 function doOptions() {
-  // ✅ Respuesta para solicitudes OPTIONS (preflight CORS)
-  // Google Apps Script maneja CORS automáticamente, pero esta función
-  // asegura que las solicitudes preflight se respondan correctamente
   return ContentService.createTextOutput(JSON.stringify({
     success: true,
     message: 'CORS preflight OK'
   })).setMimeType(ContentService.MimeType.JSON);
 }
-
-// ===== FUNCIONES PARA LISTAR RECURSOS =====
 
 function listMySlides() {
   try {
@@ -1691,11 +1669,9 @@ function listMyFolders() {
       });
     }
     
-    // También buscar en "Mi unidad" directamente
     const myDriveFolders = DriveApp.getFolders();
     while (myDriveFolders.hasNext()) {
       const folder = myDriveFolders.next();
-      // Evitar duplicados
       if (!folders.find(f => f.id === folder.getId())) {
         folders.push({
           id: folder.getId(),
@@ -1711,8 +1687,6 @@ function listMyFolders() {
   }
 }
 
-// ===== FUNCIONES PARA CREAR RECURSOS =====
-
 function createNewSheet(params) {
   try {
     const { name, mode } = params;
@@ -1724,19 +1698,16 @@ function createNewSheet(params) {
     const spreadsheet = SpreadsheetApp.create(name.trim());
     const sheet = spreadsheet.getActiveSheet();
     
-    // ✅ Crear encabezados según el modo
     let headers;
     let numColumns;
     
     if (mode === 'with-code') {
-      // Modo con código: 9 columnas (incluye Código Validación)
       headers = [
         'Nombre', 'Código Validación', 'Correo', 'Teléfono', 
         'Correo link', 'WhatsApp link', 'Link PDF', 'Estado', 'Certificado generado'
       ];
       numColumns = 9;
     } else {
-      // Modo webinar: 8 columnas (sin código)
       headers = [
         'Nombre', 'Correo', 'Teléfono', 'Correo link', 
         'WhatsApp link', 'Link PDF', 'Estado', 'Certificado generado'
@@ -1746,7 +1717,6 @@ function createNewSheet(params) {
     
     sheet.getRange(1, 1, 1, numColumns).setValues([headers]);
     
-    // Formatear encabezados
     const headerRange = sheet.getRange(1, 1, 1, numColumns);
     headerRange.setFontWeight('bold');
     headerRange.setBackground('#4285f4');
@@ -1782,19 +1752,16 @@ function createNewFolder(params) {
   }
 }
 
-// ===== FUNCIONES PARA GENERAR CERTIFICADOS =====
-
 function generarCertificadosYGuardarPDF(params) {
   try {
     console.log('[GENERATOR] Iniciando generación de certificados');
     console.log('[GENERATOR] Parámetros recibidos:', params);
     
-    // ✅ Registrar tiempo de inicio y límite máximo
     const startTime = new Date().getTime();
-    const MAX_EXECUTION_TIME = 330000; // 5.5 minutos en milisegundos (dejamos margen de 30 segundos)
+    const MAX_EXECUTION_TIME = 330000;
     
     const { slideTemplateId, outputFolderId, sheetId, mode } = params;
-    const certMode = mode || 'webinar'; // Por defecto modo webinar
+    const certMode = mode || 'webinar';
     
     if (!slideTemplateId || !outputFolderId || !sheetId) {
       throw new Error('Faltan parámetros requeridos. Verifica: slideTemplateId, outputFolderId, sheetId');
@@ -1826,19 +1793,17 @@ function generarCertificadosYGuardarPDF(params) {
       };
     }
     
-    // ✅ Determinar número de columnas según el modo
     const numColumns = certMode === 'with-code' ? 9 : 8;
-    const COL_NOMBRE = 0; // Columna A
-    const COL_CODIGO = certMode === 'with-code' ? 1 : -1; // Columna B solo en modo with-code
-    const COL_CORREO = certMode === 'with-code' ? 2 : 1; // Columna C o B según modo
-    const COL_TELEFONO = certMode === 'with-code' ? 3 : 2; // Columna D o C según modo
-    const COL_CERTIFICADO_GENERADO = certMode === 'with-code' ? 8 : 7; // Columna I o H según modo
+    const COL_NOMBRE = 0;
+    const COL_CODIGO = certMode === 'with-code' ? 1 : -1;
+    const COL_CORREO = certMode === 'with-code' ? 2 : 1;
+    const COL_TELEFONO = certMode === 'with-code' ? 3 : 2;
+    const COL_CERTIFICADO_GENERADO = certMode === 'with-code' ? 8 : 7;
     
     const datos = hoja.getRange(2, 1, lastRow - 1, numColumns).getValues();
     console.log('[GENERATOR] Filas de datos encontradas:', datos.length);
     console.log('[GENERATOR] Modo:', certMode, 'Columnas:', numColumns);
     
-    // Validar plantilla
     console.log('[GENERATOR] Validando plantilla:', slideTemplateId);
     let templateFile;
     try {
@@ -1848,7 +1813,6 @@ function generarCertificadosYGuardarPDF(params) {
       throw new Error('No se puede acceder a la plantilla. Verifica el ID y los permisos: ' + e.message);
     }
     
-    // Validar carpeta de salida
     console.log('[GENERATOR] Validando carpeta de salida:', outputFolderId);
     let outputFolder;
     try {
@@ -1861,11 +1825,10 @@ function generarCertificadosYGuardarPDF(params) {
     let total = 0;
     let generated = 0;
     let errors = 0;
-    let skipped = 0; // ✅ Contador para omitidos
+    let skipped = 0;
     const errorMessages = [];
-    let pendingCount = 0; // ✅ Contar cuántos quedan pendientes
+    let pendingCount = 0;
     
-    // ✅ Primero contar cuántos hay pendientes
     for (let i = 0; i < datos.length; i++) {
       const nombre = datos[i][COL_NOMBRE];
       const yaGenerado = datos[i][COL_CERTIFICADO_GENERADO];
@@ -1882,13 +1845,11 @@ function generarCertificadosYGuardarPDF(params) {
     console.log('[GENERATOR] Total pendientes: ' + pendingCount);
     
     for (let i = 0; i < datos.length; i++) {
-      // ✅ Verificar tiempo transcurrido cada 5 certificados
       if (i > 0 && i % 5 === 0) {
-        const elapsed = new Date().getTime() - startTime; // tiempo en milisegundos
+        const elapsed = new Date().getTime() - startTime;
         if (elapsed >= MAX_EXECUTION_TIME) {
           console.log('[GENERATOR] ⏰ Límite de tiempo alcanzado. Deteniendo para evitar timeout.');
           
-          // Contar cuántos quedan pendientes
           let remaining = 0;
           for (let j = i; j < datos.length; j++) {
             const nombreRestante = datos[j][COL_NOMBRE];
@@ -1921,7 +1882,6 @@ function generarCertificadosYGuardarPDF(params) {
         continue;
       }
       
-      // ✅ Validar código de validación si es modo with-code
       if (certMode === 'with-code') {
         if (!codigoValidacion || codigoValidacion.toString().trim() === '') {
           console.log('[GENERATOR] Fila ' + (i + 2) + ': Código de validación vacío, omitiendo');
@@ -1943,24 +1903,19 @@ function generarCertificadosYGuardarPDF(params) {
       console.log('[GENERATOR] Procesando certificado ' + (generated + 1) + ' de ' + total + ': ' + nombre);
       
       try {
-        // Crear copia de la plantilla
         console.log('[GENERATOR] Creando copia de plantilla para:', nombre);
         const copia = templateFile.makeCopy('Certificado - ' + nombre);
         const copiaId = copia.getId();
         console.log('[GENERATOR] Copia creada:', copiaId);
         
-        // Abrir presentación
         console.log('[GENERATOR] Abriendo presentación:', copiaId);
         const presentacion = SlidesApp.openById(copiaId);
         
-        // ✅ Reemplazar variables según el modo
         console.log('[GENERATOR] Reemplazando texto en diapositivas');
         const slides = presentacion.getSlides();
         slides.forEach(function(slide, index) {
-          // Reemplazar {{NOMBRE}}
           slide.replaceAllText('{{NOMBRE}}', nombre);
           
-          // ✅ Si es modo with-code, reemplazar {{CODIGO_VALIDACION}}
           if (certMode === 'with-code' && codigoValidacion) {
             const codigoStr = codigoValidacion.toString().trim();
             slide.replaceAllText('{{CODIGO_VALIDACION}}', codigoStr);
@@ -1973,19 +1928,15 @@ function generarCertificadosYGuardarPDF(params) {
         console.log('[GENERATOR] Guardando y cerrando presentación');
         presentacion.saveAndClose();
         
-        // Generar PDF
         console.log('[GENERATOR] Generando PDF');
         const pdf = DriveApp.getFileById(copiaId).getAs(MimeType.PDF);
         
-        // Guardar PDF en carpeta de salida
         console.log('[GENERATOR] Guardando PDF en carpeta');
         outputFolder.createFile(pdf).setName('Certificado - ' + nombre + '.pdf');
         
-        // Eliminar la copia del Slide
         console.log('[GENERATOR] Eliminando copia temporal del Slide');
         copia.setTrashed(true);
         
-        // Marcar como generado en la hoja
         console.log('[GENERATOR] Marcando como generado en hoja');
         hoja.getRange(i + 2, COL_CERTIFICADO_GENERADO + 1).setValue('✅');
         generated++;
@@ -2027,12 +1978,10 @@ function generarCertificadosYGuardarPDF(params) {
   }
 }
 
-// ===== FUNCIONES PARA GENERAR ENLACES =====
-
 function generarLinksDesdePDFProtegido(params) {
   try {
     const { sheetId, folderProtegidosId, webinarTitle, webinarDate, emailMessage, whatsappMessage, mode } = params;
-    const certMode = mode || 'webinar'; // Por defecto modo webinar
+    const certMode = mode || 'webinar';
     
     if (!sheetId || !folderProtegidosId || !webinarTitle || !webinarDate) {
       throw new Error('Faltan parámetros requeridos');
@@ -2040,16 +1989,13 @@ function generarLinksDesdePDFProtegido(params) {
     
     console.log('[LINKS] Modo de certificado:', certMode);
     
-    // ✅ Mensajes por defecto si no se proporcionan personalizados
     const defaultEmailMessage = 'Estimada/o {{NOMBRE}},\n\nGracias por participar en el webinar {{TITULO}}, realizado el {{FECHA}}.\n\nAquí puede descargar su certificado de participación:\n{{ENLACE_PDF}}\n\nCordialmente,\nPrograma Educación Continua en Salud – EduSalud\nFacultad de Ciencias Médicas – UNAH';
     
     const defaultWhatsappMessage = 'Hola {{NOMBRE}}, gracias por participar en el webinar "{{TITULO}}", realizado el {{FECHA}}.\n\nAquí puede descargar su certificado de participación:\n{{ENLACE_PDF}}\n\nSaludos cordiales,\nEduSalud – UNAH';
     
-    // Usar mensajes personalizados si existen, sino usar los por defecto
     const emailTemplate = emailMessage || defaultEmailMessage;
     const whatsappTemplate = whatsappMessage || defaultWhatsappMessage;
     
-    // ✅ Función para reemplazar variables en los mensajes
     function replaceVariables(template, nombre, titulo, fecha, enlacePDF) {
       return template
         .replace(/\{\{NOMBRE\}\}/g, nombre)
@@ -2064,22 +2010,20 @@ function generarLinksDesdePDFProtegido(params) {
       throw new Error('No se encontró la hoja "Hoja 1"');
     }
     
-    // ✅ Determinar número de columnas según el modo y índices de columnas
     const numColumns = certMode === 'with-code' ? 9 : 8;
-    const COL_NOMBRE = 0; // Columna A
-    const COL_CORREO = certMode === 'with-code' ? 2 : 1; // Columna C o B según modo
-    const COL_TELEFONO = certMode === 'with-code' ? 3 : 2; // Columna D o C según modo
-    const COL_CORREO_LINK = certMode === 'with-code' ? 4 : 3; // Columna E o D según modo
-    const COL_WHATSAPP_LINK = certMode === 'with-code' ? 5 : 4; // Columna F o E según modo
-    const COL_PDF_LINK = certMode === 'with-code' ? 6 : 5; // Columna G o F según modo
-    const COL_ESTADO = certMode === 'with-code' ? 7 : 6; // Columna H o G según modo
+    const COL_NOMBRE = 0;
+    const COL_CORREO = certMode === 'with-code' ? 2 : 1;
+    const COL_TELEFONO = certMode === 'with-code' ? 3 : 2;
+    const COL_CORREO_LINK = certMode === 'with-code' ? 4 : 3;
+    const COL_WHATSAPP_LINK = certMode === 'with-code' ? 5 : 4;
+    const COL_PDF_LINK = certMode === 'with-code' ? 6 : 5;
+    const COL_ESTADO = certMode === 'with-code' ? 7 : 6;
     
     const datos = hoja.getRange(2, 1, hoja.getLastRow() - 1, numColumns).getValues();
     const folder = DriveApp.getFolderById(folderProtegidosId);
     
     console.log('[LINKS] Modo:', certMode, 'Columnas:', numColumns);
     
-    // Crear mapa de archivos PDF
     const mapaPDF = {};
     const archivos = folder.getFiles();
     while (archivos.hasNext()) {
@@ -2104,7 +2048,7 @@ function generarLinksDesdePDFProtegido(params) {
       total++;
       
       if (estado === '✅ Encontrado') {
-        continue; // Ya procesado
+        continue;
       }
       
       const nombreArchivo = 'Certificado - ' + nombre + '.pdf';
@@ -2113,27 +2057,20 @@ function generarLinksDesdePDFProtegido(params) {
         const fileId = mapaPDF[nombreArchivo];
         const enlacePDF = 'https://drive.google.com/file/d/' + fileId + '/view';
         
-        // ✅ Generar mensajes personalizados usando plantillas
         const emailBody = replaceVariables(emailTemplate, nombre, webinarTitle, webinarDate, enlacePDF);
         const mensajeWA = replaceVariables(whatsappTemplate, nombre, webinarTitle, webinarDate, enlacePDF);
         
-        // Crear enlace de correo con el mensaje personalizado
-        // Codificar el body completo para URL (encodeURIComponent maneja saltos de línea y caracteres especiales)
         const emailBodyUriEncoded = encodeURIComponent(emailBody);
         
         const enlaceCorreo = 'mailto:' + correo + '?subject=Entrega de certificado - ' + encodeURIComponent(webinarTitle) + '&body=' + emailBodyUriEncoded;
         
-        // ✅ Convertir teléfono a string y limpiar (quitar caracteres no numéricos)
         const telefonoStr = telefono ? String(telefono).replace(/[^0-9]/g, '') : '';
         const enlaceWhatsApp = telefonoStr ? 'https://wa.me/' + telefonoStr + '?text=' + encodeURIComponent(mensajeWA) : '';
         
-        // ✅ Escapar comillas dobles para las fórmulas HYPERLINK (duplicar comillas)
-        // En Google Sheets, las comillas dobles dentro de strings deben duplicarse
         const enlaceCorreoEscapado = enlaceCorreo.replace(/"/g, '""');
         const enlaceWhatsAppEscapado = enlaceWhatsApp ? enlaceWhatsApp.replace(/"/g, '""') : '';
         const enlacePDFEscapado = enlacePDF.replace(/"/g, '""');
         
-        // Escribir enlaces en la hoja (usar índices base 1 para getRange)
         hoja.getRange(fila, COL_CORREO_LINK + 1).setFormula('=HYPERLINK("' + enlaceCorreoEscapado + '", "Enviar correo")');
         if (enlaceWhatsApp) {
           hoja.getRange(fila, COL_WHATSAPP_LINK + 1).setFormula('=HYPERLINK("' + enlaceWhatsAppEscapado + '", "Enviar WhatsApp")');
