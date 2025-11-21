@@ -90,6 +90,10 @@ function saveCertConfig() {
     localStorage.setItem(SCRIPT_WEB_APP_URL_KEY, certConfig.scriptWebAppUrl);
   }
   
+  // ✅ Validar botones después de guardar
+  validatePDFGeneration();
+  validateLinksGeneration();
+  
   showToast('success', 'Configuración guardada', 'La configuración se ha guardado correctamente');
   console.log('[CERT] 💾 Configuración guardada:', certConfig);
 }
@@ -406,6 +410,8 @@ async function createNewSheet() {
       const select = $('#select-google-sheet');
       if (select) select.value = data.id;
       saveCertConfig();
+      validatePDFGeneration();
+      validateLinksGeneration();
     } else {
       throw new Error(data.error || 'Error desconocido');
     }
@@ -470,6 +476,8 @@ async function createNewFolder(folderType) {
       const select = $(`#select-folder-${folderType}`);
       if (select) select.value = data.id;
       saveCertConfig();
+      validatePDFGeneration();
+      validateLinksGeneration();
     } else {
       throw new Error(data.error || 'Error desconocido');
     }
@@ -481,6 +489,61 @@ async function createNewFolder(folderType) {
       btn.disabled = false;
       btn.textContent = '➕ Crear nueva carpeta';
     }
+  }
+}
+
+// ===== FUNCIONES DE VALIDACIÓN Y ESTADO DE BOTONES =====
+
+function validatePDFGeneration() {
+  const missing = [];
+  
+  if (!certConfig.scriptWebAppUrl) missing.push('URL del Google Apps Script');
+  if (!certConfig.slideTemplateId) missing.push('Plantilla de Slides');
+  if (!certConfig.sheetId) missing.push('Hoja de Cálculo');
+  if (!certConfig.folderOriginalesId) missing.push('Carpeta para PDFs originales');
+  
+  const btn = $('#btn-generate-pdfs');
+  const statusEl = $('#pdf-validation-status');
+  const missingListEl = $('#pdf-missing-fields');
+  
+  if (missing.length > 0) {
+    if (btn) btn.disabled = true;
+    if (statusEl) statusEl.style.display = 'block';
+    if (missingListEl) {
+      missingListEl.innerHTML = missing.map(item => `<li>${item}</li>`).join('');
+    }
+    return false;
+  } else {
+    if (btn) btn.disabled = false;
+    if (statusEl) statusEl.style.display = 'none';
+    return true;
+  }
+}
+
+function validateLinksGeneration() {
+  const missing = [];
+  
+  if (!certConfig.scriptWebAppUrl) missing.push('URL del Google Apps Script');
+  if (!certConfig.sheetId) missing.push('Hoja de Cálculo');
+  if (!certConfig.folderProtegidosId) missing.push('Carpeta para PDFs protegidos');
+  if (!certConfig.webinarTitle) missing.push('Título del Webinar/Evento');
+  if (!certConfig.webinarDate) missing.push('Fecha del Evento');
+  
+  const btn = $('#btn-generate-links');
+  const statusEl = $('#links-validation-status');
+  const missingListEl = $('#links-missing-fields');
+  
+  if (missing.length > 0) {
+    if (btn) btn.disabled = true;
+    if (statusEl) statusEl.style.display = 'block';
+    if (missingListEl) {
+      missingListEl.innerHTML = missing.map(item => `<li>${item}</li>`).join('');
+    }
+    return false;
+  } else {
+    if (btn) btn.disabled = false;
+    if (statusEl) statusEl.style.display = 'none';
+    return true;
   }
 }
 
@@ -881,6 +944,8 @@ function setupCertificatesListeners() {
   $('#btn-refresh-templates')?.addEventListener('click', loadTemplates);
   $('#btn-refresh-sheets')?.addEventListener('click', loadSheets);
   $('#btn-refresh-folders')?.addEventListener('click', loadFolders);
+  $('#btn-refresh-folders-prot')?.addEventListener('click', loadFolders);
+  $('#btn-refresh-folders-prot')?.addEventListener('click', loadFolders);
   
   // Botones de crear recursos
   $('#btn-create-sheet')?.addEventListener('click', createNewSheet);
@@ -891,7 +956,7 @@ function setupCertificatesListeners() {
   $('#btn-generate-pdfs')?.addEventListener('click', generatePDFs);
   $('#btn-generate-links')?.addEventListener('click', generateLinks);
   
-  // Guardar configuración al cambiar selects
+  // Guardar configuración al cambiar selects y validar botones
   ['select-slide-template', 'select-google-sheet', 'select-folder-originales', 
    'select-folder-protegidos', 'input-webinar-title', 'input-webinar-date',
    'input-script-web-app-url'].forEach(id => {
@@ -899,9 +964,18 @@ function setupCertificatesListeners() {
     if (el) {
       el.addEventListener('change', () => {
         saveCertConfig();
+        // Validar botones después de cada cambio
+        validatePDFGeneration();
+        validateLinksGeneration();
       });
     }
   });
+  
+  // ✅ Validar botones al cargar la configuración inicial
+  setTimeout(() => {
+    validatePDFGeneration();
+    validateLinksGeneration();
+  }, 500);
   
   // Cargar configuración cuando se muestra la vista
   const certView = $('#master-certificates-view');
