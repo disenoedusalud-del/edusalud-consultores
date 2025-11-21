@@ -751,42 +751,75 @@ async function generatePDFs() {
         spinnerEl.style.display = 'none';
       }
       
+      // ✅ Detener la simulación de progreso
+      clearInterval(progressInterval);
+      
       // ✅ Completar la barra al 100%
       progressBar.style.width = '100%';
-      progressBar.style.background = '#4ade80';
-      statusEl.textContent = '✅ Certificados generados exitosamente';
       
-      let detailsHTML = `
-        <div style="color:#4ade80; margin-top:8px;">
-          ✅ Total procesados: ${data.total || 0}<br>
-          ✅ Generados: ${data.generated || 0}<br>
-      `;
-      
-      if (data.errors > 0) {
-        detailsHTML += `<span style="color:#ff7a7a;">❌ Errores: ${data.errors}</span><br>`;
+      // ✅ Verificar si hubo timeout
+      if (data.timeout) {
+        progressBar.style.background = '#fbbf24'; // Amarillo para timeout
+        statusEl.textContent = '⏰ Límite de tiempo alcanzado';
         
-        if (data.errorMessages && data.errorMessages.length > 0) {
-          detailsHTML += '<div style="margin-top:8px; font-size:12px; color:var(--muted);">';
-          detailsHTML += '<strong>Detalles de errores:</strong><ul style="margin:4px 0; padding-left:20px;">';
-          data.errorMessages.forEach(msg => {
-            detailsHTML += `<li>${msg}</li>`;
-          });
-          detailsHTML += '</ul></div>';
+        let detailsHTML = `
+          <div style="color:#fbbf24; margin-top:8px;">
+            ⏰ El script alcanzó el límite de tiempo (6 minutos).<br>
+            ✅ Procesados: ${data.generated || 0}<br>
+            ⏳ Pendientes: ${data.pending || 0}<br>
+            ${data.errors > 0 ? `<span style="color:#ff7a7a;">❌ Errores: ${data.errors}</span><br>` : ''}
+          </div>
+          <div style="margin-top:12px; padding:12px; background:var(--bg-secondary); border-radius:8px; font-size:13px;">
+            <strong>📋 Próximos pasos:</strong><br>
+            1. Verifica que los certificados procesados tengan ✅ en la columna H<br>
+            2. Haz clic en "Generar PDFs" nuevamente<br>
+            3. El script omitirá los que ya tienen ✅ y procesará los pendientes<br>
+            4. Repite hasta completar todos los certificados
+          </div>
+        `;
+        
+        if (data.message) {
+          detailsHTML += `<div style="margin-top:8px; font-size:12px; color:var(--muted);">${data.message}</div>`;
         }
+        
+        detailsEl.innerHTML = detailsHTML;
+        showToast('warning', 'Proceso parcialmente completado', `Procesados ${data.generated || 0} certificados. Ejecuta nuevamente para continuar.`);
+      } else {
+        progressBar.style.background = '#4ade80';
+        statusEl.textContent = '✅ Certificados generados exitosamente';
+        
+        let detailsHTML = `
+          <div style="color:#4ade80; margin-top:8px;">
+            ✅ Total procesados: ${data.total || 0}<br>
+            ✅ Generados: ${data.generated || 0}<br>
+        `;
+        
+        if (data.errors > 0) {
+          detailsHTML += `<span style="color:#ff7a7a;">❌ Errores: ${data.errors}</span><br>`;
+          
+          if (data.errorMessages && data.errorMessages.length > 0) {
+            detailsHTML += '<div style="margin-top:8px; font-size:12px; color:var(--muted);">';
+            detailsHTML += '<strong>Detalles de errores:</strong><ul style="margin:4px 0; padding-left:20px;">';
+            data.errorMessages.forEach(msg => {
+              detailsHTML += `<li>${msg}</li>`;
+            });
+            detailsHTML += '</ul></div>';
+          }
+        }
+        
+        if (data.message) {
+          detailsHTML += `<div style="margin-top:8px; font-size:12px; color:var(--muted);">${data.message}</div>`;
+        }
+        
+        detailsHTML += '</div>';
+        detailsEl.innerHTML = detailsHTML;
+        
+        const successMsg = data.errors > 0 
+          ? `Se generaron ${data.generated} certificados. Hubo ${data.errors} error(es).`
+          : `Se generaron ${data.generated} certificados exitosamente.`;
+        
+        showToast('success', 'Certificados generados', successMsg);
       }
-      
-      if (data.message) {
-        detailsHTML += `<div style="margin-top:8px; font-size:12px; color:var(--muted);">${data.message}</div>`;
-      }
-      
-      detailsHTML += '</div>';
-      detailsEl.innerHTML = detailsHTML;
-      
-      const successMsg = data.errors > 0 
-        ? `Se generaron ${data.generated} certificados. Hubo ${data.errors} error(es).`
-        : `Se generaron ${data.generated} certificados exitosamente.`;
-      
-      showToast('success', 'Certificados generados', successMsg);
     } else {
       throw new Error(data.error || 'Error desconocido');
     }
@@ -814,15 +847,39 @@ async function generatePDFs() {
     let errorMessage = `Error: ${error.name}\nMensaje: ${error.message}`;
     
     if (error.message.includes('Failed to fetch')) {
-      errorMessage = `No se pudo conectar al script. Esto puede ser porque:\n\n1. El script no está recibiendo la petición\n2. El script está tardando demasiado (timeout)\n3. Hay un error de red\n4. Hay un error en el script que lo hace fallar silenciosamente\n\n🔍 DIAGNÓSTICO:\n- Revisa los logs de Google Apps Script (Ver → Logs de ejecución)\n- Si NO aparece "[DOPOST] ===== Iniciando doPost =====", la petición no está llegando\n- Si SÍ aparece, verifica el error específico en los logs\n- Revisa la consola del navegador (F12) para más detalles`;
+      errorMessage = `⏰ Timeout o error de conexión detectado.
+
+Esto generalmente ocurre cuando:
+1. El script alcanza el límite de tiempo (6 minutos)
+2. Hay un error de red
+3. El script está tardando demasiado en responder
+
+🔍 DIAGNÓSTICO:
+1. Revisa la hoja de cálculo:
+   - ¿Hay certificados con ✅ en la columna H? → El script SÍ procesó algunos
+   - Si SÍ hay ✅ → Ejecuta nuevamente, el script omitirá los procesados
+   - Si NO hay ✅ → Puede ser un error de conexión real
+
+2. Revisa los logs de Google Apps Script:
+   - Ve a tu script en script.google.com
+   - Ver → Logs de ejecución
+   - Busca errores o mensajes de timeout
+
+3. Si hay certificados procesados (con ✅), ejecuta nuevamente para continuar con los pendientes.`;
+      
+      // ✅ Mostrar como HTML en lugar de texto plano para mejor formato
+      detailsEl.innerHTML = `<div style="white-space: pre-line; font-size: 13px;">${errorMessage}</div>`;
     } else if (error.message.includes('NetworkError') || error.message.includes('Network error')) {
       errorMessage = `Error de red. Verifica tu conexión a internet.`;
+      detailsEl.textContent = errorMessage;
     } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
       errorMessage = `Error de conexión (TypeError). Verifica:\n1. El script está desplegado correctamente\n2. La URL es correcta\n3. El Web App permite acceso anónimo\n4. Revisa la consola del navegador para más detalles\n\nError específico: ${error.message}`;
+      detailsEl.textContent = errorMessage;
+    } else {
+      detailsEl.textContent = errorMessage;
     }
     
-    detailsEl.textContent = errorMessage;
-    showToast('error', 'Error al generar certificados', errorMessage);
+    showToast('error', 'Error al generar certificados', errorMessage.replace(/\n/g, ' '));
   } finally {
     // ✅ Asegurar que el botón vuelva a su estado normal
     if (btn) {
