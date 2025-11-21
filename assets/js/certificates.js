@@ -484,6 +484,72 @@ async function createNewFolder(folderType) {
   }
 }
 
+// ===== FUNCIONES PARA DESHABILITAR/HABILITAR CONFIGURACIÓN =====
+
+function disableCertConfig() {
+  // Deshabilitar todos los campos de configuración
+  const configElements = [
+    'input-script-web-app-url',
+    'select-slide-template',
+    'select-google-sheet',
+    'select-folder-originales',
+    'select-folder-protegidos',
+    'input-webinar-title',
+    'input-webinar-date',
+    'btn-create-sheet',
+    'btn-create-folder-originales',
+    'btn-create-folder-protegidos',
+    'btn-refresh-slides',
+    'btn-refresh-sheets',
+    'btn-refresh-folders',
+    'btn-save-cert-config',
+    'btn-load-cert-config'
+  ];
+  
+  configElements.forEach(id => {
+    const el = $(`#${id}`);
+    if (el) {
+      el.disabled = true;
+      el.style.opacity = '0.6';
+      el.style.cursor = 'not-allowed';
+    }
+  });
+  
+  console.log('[CERT] 🔒 Campos de configuración deshabilitados');
+}
+
+function enableCertConfig() {
+  // Habilitar todos los campos de configuración
+  const configElements = [
+    'input-script-web-app-url',
+    'select-slide-template',
+    'select-google-sheet',
+    'select-folder-originales',
+    'select-folder-protegidos',
+    'input-webinar-title',
+    'input-webinar-date',
+    'btn-create-sheet',
+    'btn-create-folder-originales',
+    'btn-create-folder-protegidos',
+    'btn-refresh-slides',
+    'btn-refresh-sheets',
+    'btn-refresh-folders',
+    'btn-save-cert-config',
+    'btn-load-cert-config'
+  ];
+  
+  configElements.forEach(id => {
+    const el = $(`#${id}`);
+    if (el) {
+      el.disabled = false;
+      el.style.opacity = '1';
+      el.style.cursor = '';
+    }
+  });
+  
+  console.log('[CERT] 🔓 Campos de configuración habilitados');
+}
+
 // ===== FUNCIONES PARA GENERAR CERTIFICADOS =====
 
 async function generatePDFs() {
@@ -518,6 +584,9 @@ async function generatePDFs() {
   if (spinnerEl) {
     spinnerEl.style.display = 'block';
   }
+  
+  // ✅ Deshabilitar campos de configuración durante la generación
+  disableCertConfig();
   
   // ✅ Simular progreso mientras se procesa
   let progressInterval;
@@ -684,6 +753,8 @@ async function generatePDFs() {
     if (progressInterval) {
       clearInterval(progressInterval);
     }
+    // ✅ Habilitar campos de configuración al finalizar
+    enableCertConfig();
   }
 }
 
@@ -710,6 +781,9 @@ async function generateLinks() {
   statusEl.textContent = 'Generando enlaces...';
   progressBar.style.width = '10%';
   detailsEl.textContent = '';
+  
+  // ✅ Deshabilitar campos de configuración durante la generación
+  disableCertConfig();
   
   try {
     console.log('[CERT] 🔗 Generando enlaces con parámetros:', {
@@ -782,6 +856,8 @@ async function generateLinks() {
       btn.disabled = false;
       btn.textContent = '🔗 Generar Enlaces';
     }
+    // ✅ Habilitar campos de configuración al finalizar
+    enableCertConfig();
   }
 }
 
