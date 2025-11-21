@@ -2090,26 +2090,44 @@ function generarLinksDesdePDFProtegido(params) {
     
     // Mostrar modal cuando se hace clic en "Ver Código del Script"
     if (btnShowCertScript && modalCertScript) {
-      btnShowCertScript.addEventListener('click', function() {
+      btnShowCertScript.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
         console.log('[CERT SCRIPT] Click en botón mostrar código');
         
-        // Cargar el código en el modal
+        // Mostrar el modal primero (sin cargar código aún)
+        modalCertScript.style.display = 'flex';
+        modalCertScript.classList.add('show');
+        
+        // Mostrar indicador de carga
         if (certScriptCode) {
           const codeElement = certScriptCode.querySelector('code');
           if (codeElement) {
-            codeElement.textContent = GOOGLE_APPS_SCRIPT_CODE;
-            console.log('[CERT SCRIPT] Código cargado en code element, longitud:', GOOGLE_APPS_SCRIPT_CODE.length);
-          } else {
-            // Si no hay elemento code, poner el código directamente en el pre
-            certScriptCode.textContent = GOOGLE_APPS_SCRIPT_CODE;
-            console.log('[CERT SCRIPT] Código cargado directamente en pre, longitud:', GOOGLE_APPS_SCRIPT_CODE.length);
+            codeElement.textContent = '⏳ Cargando código...';
           }
-        } else {
-          console.error('[CERT SCRIPT] No se encontró certScriptCode');
         }
         
-        // Mostrar el modal
-        modalCertScript.style.display = 'flex';
+        // Cargar el código de forma asíncrona para no bloquear la página
+        setTimeout(function() {
+          if (certScriptCode) {
+            const codeElement = certScriptCode.querySelector('code');
+            if (codeElement) {
+              // Usar requestAnimationFrame para mejor rendimiento
+              requestAnimationFrame(function() {
+                codeElement.textContent = GOOGLE_APPS_SCRIPT_CODE;
+                console.log('[CERT SCRIPT] Código cargado en code element, longitud:', GOOGLE_APPS_SCRIPT_CODE.length);
+              });
+            } else {
+              // Si no hay elemento code, poner el código directamente en el pre
+              requestAnimationFrame(function() {
+                certScriptCode.textContent = GOOGLE_APPS_SCRIPT_CODE;
+                console.log('[CERT SCRIPT] Código cargado directamente en pre, longitud:', GOOGLE_APPS_SCRIPT_CODE.length);
+              });
+            }
+          }
+        }, 50); // Pequeño delay para asegurar que el modal se muestre primero
+        
         console.log('[CERT SCRIPT] Modal mostrado');
       });
     } else {
@@ -2190,14 +2208,14 @@ function generarLinksDesdePDFProtegido(params) {
   </script>
   
   <!-- Modal para mostrar código del Google Apps Script -->
-  <div id="modalCertScript" class="modal" style="display: none;">
-    <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
-      <div class="modal-header">
-        <h2>📝 Código del Google Apps Script</h2>
-        <button class="modal-close" id="modalCertScriptClose" aria-label="Cerrar" title="Cerrar (Escape)">&times;</button>
+  <div id="modalCertScript" class="modal" style="display: none; z-index: 10000;">
+    <div class="modal-content" style="max-width: 95%; max-height: 95vh; overflow: hidden; display: flex; flex-direction: column;">
+      <div class="modal-header" style="flex-shrink: 0;">
+        <h2 style="margin: 0;">📝 Código del Google Apps Script</h2>
+        <button class="modal-close" id="modalCertScriptClose" aria-label="Cerrar" title="Cerrar (Escape)" style="background: transparent; border: none; font-size: 28px; cursor: pointer; color: var(--text); padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">&times;</button>
       </div>
-      <div style="padding: 20px;">
-        <div style="margin-bottom: 16px; padding: 12px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 14px;">
+      <div style="padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; min-height: 0;">
+        <div style="margin-bottom: 16px; padding: 12px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 14px; flex-shrink: 0;">
           <strong>📋 Instrucciones:</strong>
           <ol style="margin: 8px 0 0 20px; padding: 0;">
             <li>Copia el código completo de abajo</li>
@@ -2207,12 +2225,12 @@ function generarLinksDesdePDFProtegido(params) {
             <li>Guarda y despliega como Web App (acceso: "Cualquiera, incluso anónimos")</li>
           </ol>
         </div>
-        <div style="margin-bottom: 12px;">
-          <button id="btn-copy-cert-script" class="btn" type="button" style="width: 100%;">
+        <div style="margin-bottom: 12px; flex-shrink: 0;">
+          <button id="btn-copy-cert-script" class="btn" type="button" style="width: 100%; padding: 12px; font-size: 16px; font-weight: 600;">
             📋 Copiar Código Completo
           </button>
         </div>
-        <pre id="cert-script-code" style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; overflow-x: auto; max-height: 500px; font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; font-family: 'Courier New', monospace; color: var(--text); margin: 0;"><code style="display: block; color: inherit; font-family: inherit;">// El código se cargará aquí cuando hagas clic en "Ver Código del Script"</code></pre>
+        <pre id="cert-script-code" style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; overflow-x: auto; overflow-y: auto; flex: 1; min-height: 300px; font-size: 12px; line-height: 1.6; white-space: pre; word-wrap: normal; font-family: 'Courier New', 'Monaco', monospace; color: var(--text); margin: 0; border: 1px solid rgba(255,255,255,0.1);"><code style="display: block; color: inherit; font-family: inherit;">// El código se cargará aquí cuando hagas clic en "Ver Código del Script"</code></pre>
       </div>
     </div>
   </div>
