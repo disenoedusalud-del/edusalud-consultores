@@ -835,6 +835,9 @@ async function generateLinks() {
   const detailsEl = $('#cert-links-details');
   const btn = $('#btn-generate-links');
   
+  // ✅ Obtener referencia al spinner
+  const spinnerEl = progressEl ? progressEl.querySelector('.loading-spinner') : null;
+  
   if (btn) {
     btn.disabled = true;
     btn.textContent = '⏳ Generando...';
@@ -844,6 +847,11 @@ async function generateLinks() {
   statusEl.textContent = 'Generando enlaces...';
   progressBar.style.width = '10%';
   detailsEl.textContent = '';
+  
+  // ✅ Mostrar el spinner al iniciar
+  if (spinnerEl) {
+    spinnerEl.style.display = 'block';
+  }
   
   // ✅ Deshabilitar campos de configuración durante la generación
   disableCertConfig();
@@ -894,6 +902,11 @@ async function generateLinks() {
     console.log('[CERT] 📦 Respuesta:', data);
     
     if (data.success) {
+      // ✅ Ocultar el spinner cuando termine exitosamente
+      if (spinnerEl) {
+        spinnerEl.style.display = 'none';
+      }
+      
       statusEl.textContent = '✅ Enlaces generados exitosamente';
       progressBar.style.width = '100%';
       progressBar.style.background = '#4ade80';
@@ -909,8 +922,14 @@ async function generateLinks() {
       throw new Error(data.error || 'Error desconocido');
     }
   } catch (error) {
+    // ✅ Ocultar el spinner en caso de error
+    if (spinnerEl) {
+      spinnerEl.style.display = 'none';
+    }
+    
     console.error('[CERT] ❌ Error generando enlaces:', error);
     statusEl.textContent = '❌ Error al generar enlaces';
+    progressBar.style.width = '100%';
     progressBar.style.background = '#ff7a7a';
     detailsEl.textContent = error.message;
     showToast('error', 'Error', error.message);
