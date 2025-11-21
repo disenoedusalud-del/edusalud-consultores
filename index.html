@@ -30,7 +30,7 @@
   <!-- /EmailJS -->
   
   <!-- Estilos principales -->
-  <link rel="stylesheet" href="assets/css/style.css?v=3" />
+  <link rel="stylesheet" href="assets/css/style.css?v=4" />
 </head>
 <body>
   <div class="wrap">
@@ -470,13 +470,11 @@
           </h4>
           
           <div class="form-group">
-            <label for="input-script-web-app-url">URL del Google Apps Script Web App *</label>
+            <label for="input-script-web-app-url" class="label-with-help">
+              URL del Google Apps Script Web App *
+              <span class="help-icon" data-help="script-url" title="Haz clic para ver ayuda">?</span>
+            </label>
             <input id="input-script-web-app-url" class="input" type="url" placeholder="https://script.google.com/macros/s/APP_ID/exec" />
-            <div style="font-size:12px; color:var(--muted); margin-top:4px;">
-              🔗 URL del script desplegado como Web App. Debe tener acceso: "Cualquiera, incluso anónimos"<br>
-              ⚠️ <strong>Importante:</strong> Usa la URL de producción que termina en <code>/exec</code>, no la de desarrollo (<code>/dev</code>)<br>
-              📖 Ver instrucciones en <code>GOOGLE_APPS_SCRIPT_CERTIFICADOS.md</code>
-            </div>
           </div>
 
           <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
@@ -495,15 +493,15 @@
           </h4>
           
           <div class="form-group">
-            <label for="select-slide-template">Seleccionar plantilla existente *</label>
+            <label for="select-slide-template" class="label-with-help">
+              Seleccionar plantilla existente *
+              <span class="help-icon" data-help="slide-template" title="Haz clic para ver ayuda">?</span>
+            </label>
             <div style="display:flex; gap:8px;">
               <select id="select-slide-template" class="input" style="flex:1;">
                 <option value="">-- Seleccionar plantilla --</option>
               </select>
               <button id="btn-refresh-templates" class="btn secondary" type="button">🔄 Actualizar lista</button>
-            </div>
-            <div style="font-size:12px; color:var(--muted); margin-top:4px;">
-              📊 Selecciona una plantilla de Google Slides que contenga {{NOMBRE}} como placeholder
             </div>
           </div>
         </div>
@@ -515,15 +513,15 @@
           </h4>
           
           <div class="form-group">
-            <label for="select-google-sheet">Seleccionar Google Sheet *</label>
+            <label for="select-google-sheet" class="label-with-help">
+              Seleccionar Google Sheet *
+              <span class="help-icon" data-help="google-sheet" title="Haz clic para ver ayuda">?</span>
+            </label>
             <div style="display:flex; gap:8px;">
               <select id="select-google-sheet" class="input" style="flex:1;">
                 <option value="">-- Seleccionar hoja --</option>
               </select>
               <button id="btn-refresh-sheets" class="btn secondary" type="button">🔄 Actualizar lista</button>
-            </div>
-            <div style="font-size:12px; color:var(--muted); margin-top:4px;">
-              📋 La hoja debe tener columnas: Nombre, Correo, Teléfono, Correo link, WhatsApp link, Link PDF, Estado, Certificado generado
             </div>
           </div>
           
@@ -543,15 +541,15 @@
           </h4>
           
           <div class="form-group">
-            <label for="select-folder-originales">Carpeta para PDFs originales *</label>
+            <label for="select-folder-originales" class="label-with-help">
+              Carpeta para PDFs originales *
+              <span class="help-icon" data-help="folder-originales" title="Haz clic para ver ayuda">?</span>
+            </label>
             <div style="display:flex; gap:8px;">
               <select id="select-folder-originales" class="input" style="flex:1;">
                 <option value="">-- Seleccionar carpeta --</option>
               </select>
               <button id="btn-refresh-folders" class="btn secondary" type="button">🔄 Actualizar lista</button>
-            </div>
-            <div style="font-size:12px; color:var(--muted); margin-top:4px;">
-              📁 Carpeta donde se guardarán los PDFs sin proteger
             </div>
           </div>
           
@@ -607,15 +605,15 @@
           
           <!-- Paso 4: Carpeta de Protegidos -->
           <div class="form-group" style="margin-bottom:16px;">
-            <label for="select-folder-protegidos">Carpeta para PDFs protegidos *</label>
+            <label for="select-folder-protegidos" class="label-with-help">
+              Carpeta para PDFs protegidos *
+              <span class="help-icon" data-help="folder-protegidos" title="Haz clic para ver ayuda">?</span>
+            </label>
             <div style="display:flex; gap:8px;">
               <select id="select-folder-protegidos" class="input" style="flex:1;">
                 <option value="">-- Seleccionar carpeta --</option>
               </select>
               <button id="btn-refresh-folders-prot" class="btn secondary" type="button">🔄 Actualizar</button>
-            </div>
-            <div style="font-size:12px; color:var(--muted); margin-top:4px;">
-              🔒 Carpeta donde subiste los PDFs ya protegidos (después de protegerlos manualmente)
             </div>
           </div>
           
@@ -628,29 +626,35 @@
 
           <!-- Paso 5: Mensajes Personalizados -->
           <div class="form-group" style="margin-bottom:16px;">
-            <label for="input-webinar-title">Título del Webinar/Evento *</label>
+            <label for="input-webinar-title" class="label-with-help">
+              Título del Webinar/Evento *
+              <span class="help-icon" data-help="webinar-title" title="Haz clic para ver ayuda">?</span>
+            </label>
             <input id="input-webinar-title" class="input" type="text" placeholder="Webinar: Título del Evento" />
           </div>
           
           <div class="form-group" style="margin-bottom:16px;">
-            <label for="input-webinar-date">Fecha del Evento *</label>
+            <label for="input-webinar-date" class="label-with-help">
+              Fecha del Evento *
+              <span class="help-icon" data-help="webinar-date" title="Haz clic para ver ayuda">?</span>
+            </label>
             <input id="input-webinar-date" class="input" type="text" placeholder="15 de noviembre de 2024" />
           </div>
           
           <div class="form-group" style="margin-bottom:16px;">
-            <label for="textarea-email-message">Mensaje de Correo Electrónico (Opcional)</label>
+            <label for="textarea-email-message" class="label-with-help">
+              Mensaje de Correo Electrónico (Opcional)
+              <span class="help-icon" data-help="email-message" title="Haz clic para ver ayuda">?</span>
+            </label>
             <textarea id="textarea-email-message" class="input" rows="6" placeholder="Mensaje por defecto se usará si está vacío. Variables disponibles: {{NOMBRE}}, {{TITULO}}, {{FECHA}}, {{ENLACE_PDF}}"></textarea>
-            <div style="font-size:11px; color:var(--muted); margin-top:4px;">
-              💡 Variables disponibles: <code>{{NOMBRE}}</code>, <code>{{TITULO}}</code>, <code>{{FECHA}}</code>, <code>{{ENLACE_PDF}}</code>
-            </div>
           </div>
           
           <div class="form-group" style="margin-bottom:16px;">
-            <label for="textarea-whatsapp-message">Mensaje de WhatsApp (Opcional)</label>
+            <label for="textarea-whatsapp-message" class="label-with-help">
+              Mensaje de WhatsApp (Opcional)
+              <span class="help-icon" data-help="whatsapp-message" title="Haz clic para ver ayuda">?</span>
+            </label>
             <textarea id="textarea-whatsapp-message" class="input" rows="6" placeholder="Mensaje por defecto se usará si está vacío. Variables disponibles: {{NOMBRE}}, {{TITULO}}, {{FECHA}}, {{ENLACE_PDF}}"></textarea>
-            <div style="font-size:11px; color:var(--muted); margin-top:4px;">
-              💡 Variables disponibles: <code>{{NOMBRE}}</code>, <code>{{TITULO}}</code>, <code>{{FECHA}}</code>, <code>{{ENLACE_PDF}}</code>
-            </div>
           </div>
           
           <div id="links-validation-status" style="padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; margin-bottom:16px; font-size:13px; display:none;">
@@ -2234,5 +2238,119 @@ function generarLinksDesdePDFProtegido(params) {
       </div>
     </div>
   </div>
+
+  <!-- Modal de Ayuda Genérico -->
+  <div id="helpModal" class="help-modal">
+    <div class="help-modal-content">
+      <div class="help-modal-header">
+        <h3 id="helpModalTitle">Ayuda</h3>
+        <button class="help-modal-close" id="helpModalClose" aria-label="Cerrar">&times;</button>
+      </div>
+      <div class="help-modal-body" id="helpModalBody">
+        <!-- El contenido se cargará aquí -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // Sistema de ayuda con iconos
+  document.addEventListener('DOMContentLoaded', function() {
+    // Contenido de ayuda para cada campo
+    const helpContent = {
+      'script-url': {
+        title: 'URL del Google Apps Script Web App',
+        body: '<p><strong>🔗 URL del script desplegado como Web App</strong></p><p>Debe tener acceso: <strong>"Cualquiera, incluso anónimos"</strong></p><p><strong>⚠️ Importante:</strong> Usa la URL de producción que termina en <code>/exec</code>, no la de desarrollo (<code>/dev</code>)</p><p><strong>📖 Pasos:</strong></p><ol><li>Copia el código del script (botón "📋 Ver Código del Script")</li><li>Ve a <a href="https://script.google.com" target="_blank" style="color: var(--accent);">script.google.com</a></li><li>Crea un nuevo proyecto y pega el código</li><li>Despliega como Web App</li><li>Configura: Ejecutar como "Yo", Acceso: "Cualquiera, incluso anónimos"</li><li>Copia la URL que termina en <code>/exec</code></li></ol>'
+      },
+      'slide-template': {
+        title: 'Plantilla de Google Slides',
+        body: '<p><strong>📊 Selecciona una plantilla de Google Slides</strong></p><p>La plantilla debe contener <code>{{NOMBRE}}</code> como placeholder en el lugar donde quieres que aparezca el nombre de la persona.</p><p><strong>Ejemplo:</strong> Si tu plantilla tiene el texto "Certificado para {{NOMBRE}}", el sistema reemplazará <code>{{NOMBRE}}</code> con el nombre de cada persona de la lista.</p><p><strong>💡 Tip:</strong> Puedes usar "Actualizar lista" para ver todas tus plantillas de Google Slides.</p>'
+      },
+      'google-sheet': {
+        title: 'Google Sheet (Hoja de Cálculo)',
+        body: '<p><strong>📋 La hoja debe tener estas columnas:</strong></p><ol><li><strong>Nombre</strong> - Nombre completo de la persona</li><li><strong>Correo</strong> - Correo electrónico</li><li><strong>Teléfono</strong> - Número de teléfono (solo números)</li><li><strong>Correo link</strong> - Se genera automáticamente</li><li><strong>WhatsApp link</strong> - Se genera automáticamente</li><li><strong>Link PDF</strong> - Se genera automáticamente</li><li><strong>Estado</strong> - Estado del proceso (✅ Encontrado, ❌ No encontrado)</li><li><strong>Certificado generado</strong> - ✅ cuando está generado</li></ol><p><strong>💡 Tip:</strong> Puedes crear una nueva hoja desde aquí si no tienes una lista preparada.</p>'
+      },
+      'folder-originales': {
+        title: 'Carpeta para PDFs Originales',
+        body: '<p><strong>📁 Carpeta donde se guardarán los PDFs sin proteger</strong></p><p>Aquí se guardarán los certificados PDF generados directamente desde la plantilla.</p><p><strong>⚠️ Importante:</strong> Después de generar los PDFs, deberás protegerlos manualmente (usando PDF24 u otra herramienta) antes de generar los enlaces.</p><p><strong>💡 Tip:</strong> Puedes crear una nueva carpeta desde aquí si no tienes una preparada.</p>'
+      },
+      'folder-protegidos': {
+        title: 'Carpeta para PDFs Protegidos',
+        body: '<p><strong>🔒 Carpeta donde subiste los PDFs ya protegidos</strong></p><p>Esta carpeta debe contener los PDFs que ya protegiste manualmente después de generarlos.</p><p><strong>⚠️ Importante:</strong> Los archivos deben llamarse exactamente: <code>Certificado - [NOMBRE].pdf</code> (donde [NOMBRE] es el nombre completo de la persona).</p><p><strong>📝 Pasos:</strong></p><ol><li>Genera los certificados PDF primero (botón "Generar PDFs")</li><li>Protege los PDFs manualmente usando PDF24 u otra herramienta</li><li>Sube los PDFs protegidos a esta carpeta</li><li>Luego usa "Generar Enlaces" para crear los enlaces de entrega</li></ol>'
+      },
+      'webinar-title': {
+        title: 'Título del Webinar/Evento',
+        body: '<p><strong>📝 Título que aparecerá en los mensajes</strong></p><p>Este título se usará en los mensajes de correo y WhatsApp.</p><p><strong>Ejemplo:</strong> "Webinar: Salud Mental en Pandemia"</p>'
+      },
+      'webinar-date': {
+        title: 'Fecha del Evento',
+        body: '<p><strong>📅 Fecha que aparecerá en los mensajes</strong></p><p>Esta fecha se usará en los mensajes de correo y WhatsApp.</p><p><strong>Ejemplo:</strong> "15 de noviembre de 2024" o "20/11/2024"</p>'
+      },
+      'email-message': {
+        title: 'Mensaje de Correo Electrónico',
+        body: '<p><strong>✉️ Mensaje personalizado para el correo (Opcional)</strong></p><p>Si dejas este campo vacío, se usará un mensaje por defecto.</p><p><strong>Variables disponibles:</strong></p><ul><li><code>{{NOMBRE}}</code> - Se reemplaza con el nombre de la persona</li><li><code>{{TITULO}}</code> - Se reemplaza con el título del webinar</li><li><code>{{FECHA}}</code> - Se reemplaza con la fecha del evento</li><li><code>{{ENLACE_PDF}}</code> - Se reemplaza con el enlace al PDF</li></ul><p><strong>Ejemplo:</strong></p><pre style="background: rgba(90,169,255,0.1); padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto;">Estimada/o {{NOMBRE}},\n\nGracias por participar en "{{TITULO}}" realizado el {{FECHA}}.\n\nTu certificado: {{ENLACE_PDF}}</pre>'
+      },
+      'whatsapp-message': {
+        title: 'Mensaje de WhatsApp',
+        body: '<p><strong>📱 Mensaje personalizado para WhatsApp (Opcional)</strong></p><p>Si dejas este campo vacío, se usará un mensaje por defecto.</p><p><strong>Variables disponibles:</strong></p><ul><li><code>{{NOMBRE}}</code> - Se reemplaza con el nombre de la persona</li><li><code>{{TITULO}}</code> - Se reemplaza con el título del webinar</li><li><code>{{FECHA}}</code> - Se reemplaza con la fecha del evento</li><li><code>{{ENLACE_PDF}}</code> - Se reemplaza con el enlace al PDF</li></ul><p><strong>Ejemplo:</strong></p><pre style="background: rgba(90,169,255,0.1); padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto;">Hola {{NOMBRE}}! \n\nGracias por participar en "{{TITULO}}" el {{FECHA}}.\n\nDescarga tu certificado: {{ENLACE_PDF}}</pre>'
+      }
+    };
+
+    // Elementos del modal
+    const helpModal = document.querySelector('#helpModal');
+    const helpModalTitle = document.querySelector('#helpModalTitle');
+    const helpModalBody = document.querySelector('#helpModalBody');
+    const helpModalClose = document.querySelector('#helpModalClose');
+
+    // Mostrar modal de ayuda
+    function showHelp(helpId) {
+      const content = helpContent[helpId];
+      if (content && helpModal) {
+        helpModalTitle.textContent = content.title;
+        helpModalBody.innerHTML = content.body;
+        helpModal.classList.add('show');
+      }
+    }
+
+    // Cerrar modal
+    function closeHelp() {
+      if (helpModal) {
+        helpModal.classList.remove('show');
+      }
+    }
+
+    // Event listeners para iconos de ayuda
+    document.querySelectorAll('.help-icon').forEach(function(icon) {
+      icon.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const helpId = this.getAttribute('data-help');
+        if (helpId) {
+          showHelp(helpId);
+        }
+      });
+    });
+
+    // Cerrar modal
+    if (helpModalClose) {
+      helpModalClose.addEventListener('click', closeHelp);
+    }
+
+    // Cerrar al hacer click fuera
+    if (helpModal) {
+      helpModal.addEventListener('click', function(e) {
+        if (e.target === helpModal) {
+          closeHelp();
+        }
+      });
+    }
+
+    // Cerrar con ESC
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && helpModal && helpModal.classList.contains('show')) {
+        closeHelp();
+      }
+    });
+  });
+  </script>
 </body>
 </html>
