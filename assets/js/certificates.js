@@ -507,8 +507,32 @@ async function generatePDFs() {
   
   progressEl.style.display = 'block';
   statusEl.textContent = 'Iniciando generación de certificados...';
-  progressBar.style.width = '10%';
+  progressBar.style.width = '5%';
+  progressBar.style.background = '#5aa9ff';
   detailsEl.textContent = '';
+  
+  // ✅ Simular progreso mientras se procesa
+  let progressInterval;
+  let currentProgress = 5;
+  const startTime = Date.now();
+  
+  // Función para simular progreso
+  const simulateProgress = () => {
+    const elapsed = Date.now() - startTime;
+    // Calcular progreso basado en tiempo (máximo 90% hasta recibir respuesta)
+    // Asumimos que puede tardar entre 2-10 segundos por certificado
+    const estimatedTime = 5000; // 5 segundos base
+    const progressFromTime = Math.min(90, 5 + (elapsed / estimatedTime) * 85);
+    
+    if (currentProgress < progressFromTime) {
+      currentProgress = Math.min(progressFromTime, 90);
+      progressBar.style.width = currentProgress + '%';
+      statusEl.textContent = `Procesando certificados... (${Math.round(currentProgress)}%)`;
+    }
+  };
+  
+  // Actualizar progreso cada 500ms
+  progressInterval = setInterval(simulateProgress, 500);
   
   try {
     console.log('[CERT] 🔗 Generando PDFs con parámetros:', {
@@ -542,6 +566,9 @@ async function generatePDFs() {
       body: JSON.stringify(requestBody)
     });
     
+    // ✅ Detener la simulación de progreso
+    clearInterval(progressInterval);
+    
     console.log('[CERT] 📡 Respuesta recibida:', response.status, response.statusText);
     console.log('[CERT] Headers de respuesta:', [...response.headers.entries()]);
     
@@ -561,9 +588,10 @@ async function generatePDFs() {
     console.log('[CERT] 📦 Respuesta completa:', data);
     
     if (data.success) {
-      statusEl.textContent = '✅ Certificados generados exitosamente';
+      // ✅ Completar la barra al 100%
       progressBar.style.width = '100%';
       progressBar.style.background = '#4ade80';
+      statusEl.textContent = '✅ Certificados generados exitosamente';
       
       let detailsHTML = `
         <div style="color:#4ade80; margin-top:8px;">
@@ -600,6 +628,9 @@ async function generatePDFs() {
       throw new Error(data.error || 'Error desconocido');
     }
   } catch (error) {
+    // ✅ Detener la simulación de progreso en caso de error
+    clearInterval(progressInterval);
+    
     console.error('[CERT] ❌ Error COMPLETO generando certificados:');
     console.error('[CERT] Nombre del error:', error.name);
     console.error('[CERT] Mensaje:', error.message);
@@ -608,6 +639,7 @@ async function generatePDFs() {
     console.error('[CERT] Error completo (stringify):', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     
     statusEl.textContent = '❌ Error al generar certificados';
+    progressBar.style.width = '100%';
     progressBar.style.background = '#ff7a7a';
     
     // Mostrar el error REAL con más detalles
@@ -624,9 +656,15 @@ async function generatePDFs() {
     detailsEl.textContent = errorMessage;
     showToast('error', 'Error al generar certificados', errorMessage);
   } finally {
+    // ✅ Asegurar que el botón vuelva a su estado normal
     if (btn) {
       btn.disabled = false;
       btn.textContent = '📄 Generar PDFs desde Plantilla';
+    }
+    // ✅ Asegurar que no quede ningún indicador de carga activo
+    // (el intervalo ya se detuvo arriba, pero por si acaso)
+    if (progressInterval) {
+      clearInterval(progressInterval);
     }
   }
 }
