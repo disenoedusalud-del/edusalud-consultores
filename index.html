@@ -635,6 +635,22 @@
             <input id="input-webinar-date" class="input" type="text" placeholder="15 de noviembre de 2024" />
           </div>
           
+          <div class="form-group" style="margin-bottom:16px;">
+            <label for="textarea-email-message">Mensaje de Correo Electrónico (Opcional)</label>
+            <textarea id="textarea-email-message" class="input" rows="6" placeholder="Mensaje por defecto se usará si está vacío. Variables disponibles: {{NOMBRE}}, {{TITULO}}, {{FECHA}}, {{ENLACE_PDF}}"></textarea>
+            <div style="font-size:11px; color:var(--muted); margin-top:4px;">
+              💡 Variables disponibles: <code>{{NOMBRE}}</code>, <code>{{TITULO}}</code>, <code>{{FECHA}}</code>, <code>{{ENLACE_PDF}}</code>
+            </div>
+          </div>
+          
+          <div class="form-group" style="margin-bottom:16px;">
+            <label for="textarea-whatsapp-message">Mensaje de WhatsApp (Opcional)</label>
+            <textarea id="textarea-whatsapp-message" class="input" rows="6" placeholder="Mensaje por defecto se usará si está vacío. Variables disponibles: {{NOMBRE}}, {{TITULO}}, {{FECHA}}, {{ENLACE_PDF}}"></textarea>
+            <div style="font-size:11px; color:var(--muted); margin-top:4px;">
+              💡 Variables disponibles: <code>{{NOMBRE}}</code>, <code>{{TITULO}}</code>, <code>{{FECHA}}</code>, <code>{{ENLACE_PDF}}</code>
+            </div>
+          </div>
+          
           <div id="links-validation-status" style="padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; margin-bottom:16px; font-size:13px; display:none;">
             <div style="font-weight:600; margin-bottom:8px;">⚠️ Faltan los siguientes campos:</div>
             <ul id="links-missing-fields" style="margin:0; padding-left:20px; color:var(--muted);"></ul>
@@ -1028,7 +1044,7 @@
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
   <script src="assets/js/app.js?v=109" defer></script>
-  <script src="assets/js/certificates.js?v=13" defer></script>
+  <script src="assets/js/certificates.js?v=14" defer></script>
   <script>
     // ✅ Forzar actualización del Service Worker si hay una nueva versión
     if ('serviceWorker' in navigator) {
