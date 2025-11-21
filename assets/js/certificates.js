@@ -500,6 +500,9 @@ async function generatePDFs() {
   const detailsEl = $('#cert-gen-details');
   const btn = $('#btn-generate-pdfs');
   
+  // ✅ Obtener referencia al spinner
+  const spinnerEl = progressEl ? progressEl.querySelector('.loading-spinner') : null;
+  
   if (btn) {
     btn.disabled = true;
     btn.textContent = '⏳ Generando...';
@@ -510,6 +513,11 @@ async function generatePDFs() {
   progressBar.style.width = '5%';
   progressBar.style.background = '#5aa9ff';
   detailsEl.textContent = '';
+  
+  // ✅ Mostrar el spinner al iniciar
+  if (spinnerEl) {
+    spinnerEl.style.display = 'block';
+  }
   
   // ✅ Simular progreso mientras se procesa
   let progressInterval;
@@ -588,6 +596,11 @@ async function generatePDFs() {
     console.log('[CERT] 📦 Respuesta completa:', data);
     
     if (data.success) {
+      // ✅ Ocultar el spinner cuando termine exitosamente
+      if (spinnerEl) {
+        spinnerEl.style.display = 'none';
+      }
+      
       // ✅ Completar la barra al 100%
       progressBar.style.width = '100%';
       progressBar.style.background = '#4ade80';
@@ -630,6 +643,11 @@ async function generatePDFs() {
   } catch (error) {
     // ✅ Detener la simulación de progreso en caso de error
     clearInterval(progressInterval);
+    
+    // ✅ Ocultar el spinner en caso de error
+    if (spinnerEl) {
+      spinnerEl.style.display = 'none';
+    }
     
     console.error('[CERT] ❌ Error COMPLETO generando certificados:');
     console.error('[CERT] Nombre del error:', error.name);
