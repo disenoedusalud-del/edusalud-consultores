@@ -382,8 +382,7 @@ async function createNewSheet() {
       redirect: 'follow',
       credentials: 'omit',
       headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Content-Type': 'text/plain'  // ✅ Solo text/plain para evitar preflight CORS
       },
       body: JSON.stringify({
         action: 'createSheet',
@@ -447,8 +446,7 @@ async function createNewFolder(folderType) {
       redirect: 'follow',
       credentials: 'omit',
       headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Content-Type': 'text/plain'  // ✅ Solo text/plain para evitar preflight CORS
       },
       body: JSON.stringify({
         action: 'createFolder',
@@ -539,8 +537,7 @@ async function generatePDFs() {
       redirect: 'follow',
       credentials: 'omit',
       headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Content-Type': 'text/plain'  // ✅ Solo text/plain para evitar preflight CORS
       },
       body: JSON.stringify(requestBody)
     });
@@ -673,8 +670,7 @@ async function generateLinks() {
       redirect: 'follow',
       credentials: 'omit',
       headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Content-Type': 'text/plain'  // ✅ Solo text/plain para evitar preflight CORS
       },
       body: JSON.stringify({
         action: 'generateLinks',
