@@ -1227,7 +1227,7 @@ label{ display:block; font-weight:600; margin-bottom:8px; }
 }
 
 .help-modal-content {
-  background: var(--bg-primary);
+  background: var(--bg);
   border-radius: 12px;
   padding: 24px;
   max-width: 500px;
@@ -1295,6 +1295,55 @@ label{ display:block; font-weight:600; margin-bottom:8px; }
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 13px;
+}
+
+:root[data-theme="light"] .help-modal {
+  background: rgba(0,0,0,0.5);
+}
+
+:root[data-theme="light"] .help-modal-content {
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.15);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+
+:root[data-theme="light"] .help-modal-header {
+  border-bottom: 1px solid rgba(0,0,0,0.15);
+}
+
+:root[data-theme="light"] .help-modal-header h3 {
+  color: #1e293b;
+}
+
+:root[data-theme="light"] .help-modal-close {
+  color: #1e293b;
+}
+
+:root[data-theme="light"] .help-modal-close:hover {
+  background: rgba(0,0,0,0.1);
+  color: #0f172a;
+}
+
+:root[data-theme="light"] .help-modal-body {
+  color: #334155;
+}
+
+:root[data-theme="light"] .help-modal-body code {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1e40af;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+:root[data-theme="light"] .help-modal-body a {
+  color: #2563eb;
+}
+
+:root[data-theme="light"] .help-modal-body a:hover {
+  color: #1e40af;
+}
+
+:root[data-theme="light"] .help-modal-body strong {
+  color: #0f172a;
 }
 
 .label-with-help {
