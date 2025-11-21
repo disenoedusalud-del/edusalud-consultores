@@ -396,17 +396,6 @@
                     </div>
               </div>
               
-              <!-- Categoría: Script de Certificados -->
-              <div class="settings-category" data-category="certificates-script" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones del script de certificados">
-                <span class="settings-category-icon">📝</span>
-                <span class="settings-category-label">Script de Certificados</span>
-                <span class="settings-category-arrow">▶</span>
-              </div>
-              <div class="settings-submenu" data-submenu="certificates-script" style="display: none;">
-                <div class="settings-menu-item" data-action="show-cert-script" role="menuitem" tabindex="0" title="Ver y copiar el código del Google Apps Script">
-                  📋 Ver Código del Script
-                </div>
-              </div>
             </div>
           </div>
           
@@ -494,6 +483,7 @@
             <button id="btn-save-cert-config" class="btn secondary" type="button">💾 Guardar Configuración</button>
             <button id="btn-load-cert-config" class="btn secondary" type="button">📥 Cargar Configuración</button>
             <button id="btn-test-connection" class="btn secondary" type="button">🧪 Probar Conexión</button>
+            <button id="btn-show-cert-script" class="btn secondary" type="button" style="background: rgba(90,169,255,0.15); border-color: var(--accent);">📋 Ver Código del Script</button>
           </div>
           <div id="test-connection-status" style="margin-top:12px; font-size:13px; color:var(--muted); min-height:20px;"></div>
         </div>
@@ -2083,7 +2073,7 @@ function generarLinksDesdePDFProtegido(params) {
 
   // Modal para mostrar el código
   const modalCertScript = $('#modalCertScript');
-  const btnShowCertScript = $('[data-action="show-cert-script"]');
+  const btnShowCertScript = $('#btn-show-cert-script');
   const btnCopyCertScript = $('#btn-copy-cert-script');
   const certScriptCode = $('#cert-script-code');
   const modalCertScriptClose = $('#modalCertScriptClose');
@@ -2093,7 +2083,13 @@ function generarLinksDesdePDFProtegido(params) {
     btnShowCertScript.addEventListener('click', function() {
       // Cargar el código en el modal
       if (certScriptCode) {
-        certScriptCode.textContent = GOOGLE_APPS_SCRIPT_CODE;
+        const codeElement = certScriptCode.querySelector('code');
+        if (codeElement) {
+          codeElement.textContent = GOOGLE_APPS_SCRIPT_CODE;
+        } else {
+          // Si no hay elemento code, poner el código directamente en el pre
+          certScriptCode.textContent = GOOGLE_APPS_SCRIPT_CODE;
+        }
       }
       
       // Mostrar el modal
@@ -2188,7 +2184,7 @@ function generarLinksDesdePDFProtegido(params) {
             📋 Copiar Código Completo
           </button>
         </div>
-        <pre id="cert-script-code" style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; overflow-x: auto; max-height: 500px; font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; font-family: 'Courier New', monospace;"><code><!-- El código se cargará aquí --></code></pre>
+        <pre id="cert-script-code" style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; overflow-x: auto; max-height: 500px; font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; font-family: 'Courier New', monospace; color: var(--text); margin: 0;"><code style="display: block; color: inherit; font-family: inherit;">// El código se cargará aquí cuando hagas clic en "Ver Código del Script"</code></pre>
       </div>
     </div>
   </div>
