@@ -324,8 +324,8 @@
 
       <!-- Vista de Cursos (contenido actual) -->
       <div id="master-courses-view">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
-          <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+        <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
         <div class="row">
           <button id="btn-add-course" class="btn" type="button" aria-label="Agregar nuevo curso" title="Agregar nuevo curso (Ctrl+N)">➕ Agregar curso</button>
           
@@ -484,6 +484,27 @@
             <button id="btn-show-cert-script" class="btn secondary" type="button" style="background: rgba(90,169,255,0.15); border-color: var(--accent);">📋 Ver Código del Script</button>
           </div>
           <div id="test-connection-status" style="margin-top:12px; font-size:13px; color:var(--muted); min-height:20px;"></div>
+        </div>
+
+        <!-- Selector de Modo -->
+        <div class="card" style="margin-bottom:20px; border:2px solid rgba(90,169,255,0.3);">
+          <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
+            🎯 Modo de Generación
+          </h4>
+          
+          <div class="form-group">
+            <label for="select-cert-mode" class="label-with-help">
+              Seleccionar modo de certificado *
+              <span class="help-icon" data-help="cert-mode" title="Haz clic para ver ayuda">?</span>
+            </label>
+            <select id="select-cert-mode" class="input">
+              <option value="webinar">🎓 Modo Webinar (solo {{NOMBRE}})</option>
+              <option value="with-code">🔐 Modo con Código de Validación ({{NOMBRE}} + {{CODIGO_VALIDACION}})</option>
+            </select>
+            <div style="font-size:12px; color:var(--muted); margin-top:8px; padding:12px; background:rgba(90,169,255,0.1); border-radius:8px;">
+              <strong>ℹ️ Información:</strong> El modo seleccionado determinará qué variables se usarán en la plantilla y la estructura de la hoja de cálculo.
+            </div>
+          </div>
         </div>
 
         <!-- Paso 1: Configurar Plantilla -->
@@ -1050,7 +1071,7 @@
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
   <script src="assets/js/app.js?v=109" defer></script>
-  <script src="assets/js/certificates.js?v=15" defer></script>
+  <script src="assets/js/certificates.js?v=16" defer></script>
   <script>
     // ✅ Forzar actualización del Service Worker si hay una nueva versión
     if ('serviceWorker' in navigator) {
@@ -2267,7 +2288,7 @@ function generarLinksDesdePDFProtegido(params) {
       },
       'google-sheet': {
         title: 'Google Sheet (Hoja de Cálculo)',
-        body: '<p><strong>📋 La hoja debe tener estas columnas:</strong></p><ol><li><strong>Nombre</strong> - Nombre completo de la persona</li><li><strong>Correo</strong> - Correo electrónico</li><li><strong>Teléfono</strong> - Número de teléfono (solo números)</li><li><strong>Correo link</strong> - Se genera automáticamente</li><li><strong>WhatsApp link</strong> - Se genera automáticamente</li><li><strong>Link PDF</strong> - Se genera automáticamente</li><li><strong>Estado</strong> - Estado del proceso (✅ Encontrado, ❌ No encontrado)</li><li><strong>Certificado generado</strong> - ✅ cuando está generado</li></ol><p><strong>💡 Tip:</strong> Puedes crear una nueva hoja desde aquí si no tienes una lista preparada.</p>'
+        body: '<p><strong>📋 La estructura de la hoja depende del modo seleccionado:</strong></p><p><strong>🎓 Modo Webinar (8 columnas):</strong></p><ol><li><strong>Nombre</strong> - Nombre completo de la persona</li><li><strong>Correo</strong> - Correo electrónico</li><li><strong>Teléfono</strong> - Número de teléfono (solo números)</li><li><strong>Correo link</strong> - Se genera automáticamente</li><li><strong>WhatsApp link</strong> - Se genera automáticamente</li><li><strong>Link PDF</strong> - Se genera automáticamente</li><li><strong>Estado</strong> - Estado del proceso (✅ Encontrado, ❌ No encontrado)</li><li><strong>Certificado generado</strong> - ✅ cuando está generado</li></ol><p><strong>🔐 Modo con Código (9 columnas):</strong></p><ol><li><strong>Nombre</strong> - Nombre completo de la persona</li><li><strong>Código Validación</strong> - Código único de validación (obligatorio)</li><li><strong>Correo</strong> - Correo electrónico</li><li><strong>Teléfono</strong> - Número de teléfono (solo números)</li><li><strong>Correo link</strong> - Se genera automáticamente</li><li><strong>WhatsApp link</strong> - Se genera automáticamente</li><li><strong>Link PDF</strong> - Se genera automáticamente</li><li><strong>Estado</strong> - Estado del proceso (✅ Encontrado, ❌ No encontrado)</li><li><strong>Certificado generado</strong> - ✅ cuando está generado</li></ol><p><strong>💡 Tip:</strong> Puedes crear una nueva hoja desde aquí si no tienes una lista preparada. La estructura se creará automáticamente según el modo seleccionado.</p>'
       },
       'folder-originales': {
         title: 'Carpeta para PDFs Originales',
@@ -2292,6 +2313,10 @@ function generarLinksDesdePDFProtegido(params) {
       'whatsapp-message': {
         title: 'Mensaje de WhatsApp',
         body: '<p><strong>📱 Mensaje personalizado para WhatsApp (Opcional)</strong></p><p>Si dejas este campo vacío, se usará un mensaje por defecto.</p><p><strong>Variables disponibles:</strong></p><ul><li><code>{{NOMBRE}}</code> - Se reemplaza con el nombre de la persona</li><li><code>{{TITULO}}</code> - Se reemplaza con el título del webinar</li><li><code>{{FECHA}}</code> - Se reemplaza con la fecha del evento</li><li><code>{{ENLACE_PDF}}</code> - Se reemplaza con el enlace al PDF</li></ul><p><strong>Ejemplo:</strong></p><pre style="background: rgba(90,169,255,0.1); padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto;">Hola {{NOMBRE}}! \n\nGracias por participar en "{{TITULO}}" el {{FECHA}}.\n\nDescarga tu certificado: {{ENLACE_PDF}}</pre>'
+      },
+      'cert-mode': {
+        title: 'Modo de Generación de Certificados',
+        body: '<p><strong>🎯 Selecciona el modo de generación de certificados</strong></p><p><strong>🎓 Modo Webinar:</strong></p><ul><li>Usa solo la variable <code>{{NOMBRE}}</code> en la plantilla</li><li>La hoja de cálculo tendrá 8 columnas: Nombre, Correo, Teléfono, Correo link, WhatsApp link, Link PDF, Estado, Certificado generado</li><li>Ideal para webinars y eventos simples</li></ul><p><strong>🔐 Modo con Código de Validación:</strong></p><ul><li>Usa las variables <code>{{NOMBRE}}</code> y <code>{{CODIGO_VALIDACION}}</code> en la plantilla</li><li>La hoja de cálculo tendrá 9 columnas: Nombre, Código Validación, Correo, Teléfono, Correo link, WhatsApp link, Link PDF, Estado, Certificado generado</li><li>Ideal para certificados que requieren validación mediante código único</li><li><strong>⚠️ Importante:</strong> Cada fila debe tener un código de validación único en la columna "Código Validación"</li></ul><p><strong>💡 Tip:</strong> El modo seleccionado afecta la estructura de la hoja de cálculo. Si cambias el modo después de crear una hoja, necesitarás ajustar las columnas manualmente o crear una nueva hoja.</p>'
       }
     };
 
