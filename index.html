@@ -1441,8 +1441,10 @@
   
   // ===== MODAL PARA MOSTRAR CÓDIGO DEL GOOGLE APPS SCRIPT =====
   
-  // Código completo del Google Apps Script
-  const GOOGLE_APPS_SCRIPT_CODE = `// Generador de Certificados - EduSalud
+  // Esperar a que el DOM esté listo
+  document.addEventListener('DOMContentLoaded', function() {
+    // Código completo del Google Apps Script
+    const GOOGLE_APPS_SCRIPT_CODE = `// Generador de Certificados - EduSalud
 // Google Apps Script - Backend para la plataforma web
 
 // ===== FUNCIONES PRINCIPALES (doGet y doPost) =====
@@ -2071,93 +2073,119 @@ function generarLinksDesdePDFProtegido(params) {
   }
 }`;
 
-  // Modal para mostrar el código
-  const modalCertScript = $('#modalCertScript');
-  const btnShowCertScript = $('#btn-show-cert-script');
-  const btnCopyCertScript = $('#btn-copy-cert-script');
-  const certScriptCode = $('#cert-script-code');
-  const modalCertScriptClose = $('#modalCertScriptClose');
-  
-  // Mostrar modal cuando se hace clic en "Ver Código del Script"
-  if (btnShowCertScript) {
-    btnShowCertScript.addEventListener('click', function() {
-      // Cargar el código en el modal
-      if (certScriptCode) {
-        const codeElement = certScriptCode.querySelector('code');
-        if (codeElement) {
-          codeElement.textContent = GOOGLE_APPS_SCRIPT_CODE;
-        } else {
-          // Si no hay elemento code, poner el código directamente en el pre
-          certScriptCode.textContent = GOOGLE_APPS_SCRIPT_CODE;
-        }
-      }
-      
-      // Mostrar el modal
-      if (modalCertScript) {
-        modalCertScript.style.display = 'flex';
-      }
+    // Usar document.querySelector directamente (no depende de $ de app.js)
+    const modalCertScript = document.querySelector('#modalCertScript');
+    const btnShowCertScript = document.querySelector('#btn-show-cert-script');
+    const btnCopyCertScript = document.querySelector('#btn-copy-cert-script');
+    const certScriptCode = document.querySelector('#cert-script-code');
+    const modalCertScriptClose = document.querySelector('#modalCertScriptClose');
+    
+    console.log('[CERT SCRIPT] Elementos encontrados:', {
+      modalCertScript: !!modalCertScript,
+      btnShowCertScript: !!btnShowCertScript,
+      btnCopyCertScript: !!btnCopyCertScript,
+      certScriptCode: !!certScriptCode,
+      modalCertScriptClose: !!modalCertScriptClose
     });
-  }
-  
-  // Copiar código al portapapeles
-  if (btnCopyCertScript) {
-    btnCopyCertScript.addEventListener('click', async function() {
-      try {
-        await navigator.clipboard.writeText(GOOGLE_APPS_SCRIPT_CODE);
-        const originalText = btnCopyCertScript.textContent;
-        btnCopyCertScript.textContent = '✅ Código Copiado!';
-        btnCopyCertScript.style.background = '#4ade80';
+    
+    // Mostrar modal cuando se hace clic en "Ver Código del Script"
+    if (btnShowCertScript && modalCertScript) {
+      btnShowCertScript.addEventListener('click', function() {
+        console.log('[CERT SCRIPT] Click en botón mostrar código');
         
-        setTimeout(function() {
-          btnCopyCertScript.textContent = originalText;
-          btnCopyCertScript.style.background = '';
-        }, 2000);
-      } catch (err) {
-        console.error('Error copiando código:', err);
-        // Fallback: seleccionar el texto
-        const textarea = document.createElement('textarea');
-        textarea.value = GOOGLE_APPS_SCRIPT_CODE;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        try {
-          document.execCommand('copy');
-          btnCopyCertScript.textContent = '✅ Código Copiado!';
-          setTimeout(function() {
-            btnCopyCertScript.textContent = '📋 Copiar Código Completo';
-          }, 2000);
-        } catch (fallbackErr) {
-          alert('No se pudo copiar automáticamente. Selecciona y copia el código manualmente.');
+        // Cargar el código en el modal
+        if (certScriptCode) {
+          const codeElement = certScriptCode.querySelector('code');
+          if (codeElement) {
+            codeElement.textContent = GOOGLE_APPS_SCRIPT_CODE;
+            console.log('[CERT SCRIPT] Código cargado en code element, longitud:', GOOGLE_APPS_SCRIPT_CODE.length);
+          } else {
+            // Si no hay elemento code, poner el código directamente en el pre
+            certScriptCode.textContent = GOOGLE_APPS_SCRIPT_CODE;
+            console.log('[CERT SCRIPT] Código cargado directamente en pre, longitud:', GOOGLE_APPS_SCRIPT_CODE.length);
+          }
+        } else {
+          console.error('[CERT SCRIPT] No se encontró certScriptCode');
         }
-        document.body.removeChild(textarea);
-      }
-    });
-  }
-  
-  // Cerrar modal
-  if (modalCertScriptClose) {
-    modalCertScriptClose.addEventListener('click', function() {
-      if (modalCertScript) {
-        modalCertScript.style.display = 'none';
-      }
-    });
-  }
-  
-  // Cerrar al hacer click fuera del modal
-  if (modalCertScript) {
-    modalCertScript.addEventListener('click', function(e) {
-      if (e.target === modalCertScript) {
-        modalCertScript.style.display = 'none';
-      }
-    });
-  }
-  
-  // Cerrar con ESC
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && modalCertScript && modalCertScript.style.display === 'flex') {
-      modalCertScript.style.display = 'none';
+        
+        // Mostrar el modal
+        modalCertScript.style.display = 'flex';
+        console.log('[CERT SCRIPT] Modal mostrado');
+      });
+    } else {
+      console.error('[CERT SCRIPT] No se encontraron elementos necesarios:', {
+        btnShowCertScript: !!btnShowCertScript,
+        modalCertScript: !!modalCertScript
+      });
     }
+    
+    // Copiar código al portapapeles
+    if (btnCopyCertScript) {
+      btnCopyCertScript.addEventListener('click', async function() {
+        console.log('[CERT SCRIPT] Intentando copiar código');
+        try {
+          await navigator.clipboard.writeText(GOOGLE_APPS_SCRIPT_CODE);
+          const originalText = btnCopyCertScript.textContent;
+          btnCopyCertScript.textContent = '✅ Código Copiado!';
+          btnCopyCertScript.style.background = '#4ade80';
+          
+          setTimeout(function() {
+            btnCopyCertScript.textContent = originalText;
+            btnCopyCertScript.style.background = '';
+          }, 2000);
+          console.log('[CERT SCRIPT] Código copiado exitosamente');
+        } catch (err) {
+          console.error('[CERT SCRIPT] Error copiando código:', err);
+          // Fallback: seleccionar el texto
+          const textarea = document.createElement('textarea');
+          textarea.value = GOOGLE_APPS_SCRIPT_CODE;
+          textarea.style.position = 'fixed';
+          textarea.style.opacity = '0';
+          document.body.appendChild(textarea);
+          textarea.select();
+          try {
+            document.execCommand('copy');
+            btnCopyCertScript.textContent = '✅ Código Copiado!';
+            setTimeout(function() {
+              btnCopyCertScript.textContent = '📋 Copiar Código Completo';
+            }, 2000);
+            console.log('[CERT SCRIPT] Código copiado con fallback');
+          } catch (fallbackErr) {
+            console.error('[CERT SCRIPT] Error en fallback:', fallbackErr);
+            alert('No se pudo copiar automáticamente. Selecciona y copia el código manualmente.');
+          }
+          document.body.removeChild(textarea);
+        }
+      });
+    } else {
+      console.error('[CERT SCRIPT] No se encontró btnCopyCertScript');
+    }
+    
+    // Cerrar modal
+    if (modalCertScriptClose && modalCertScript) {
+      modalCertScriptClose.addEventListener('click', function() {
+        modalCertScript.style.display = 'none';
+        console.log('[CERT SCRIPT] Modal cerrado');
+      });
+    }
+    
+    // Cerrar al hacer click fuera del modal
+    if (modalCertScript) {
+      modalCertScript.addEventListener('click', function(e) {
+        if (e.target === modalCertScript) {
+          modalCertScript.style.display = 'none';
+          console.log('[CERT SCRIPT] Modal cerrado (click fuera)');
+        }
+      });
+    }
+    
+    // Cerrar con ESC
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && modalCertScript && modalCertScript.style.display === 'flex') {
+        modalCertScript.style.display = 'none';
+        console.log('[CERT SCRIPT] Modal cerrado (ESC)');
+      }
+    });
   });
   </script>
   
