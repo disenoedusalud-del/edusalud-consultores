@@ -6819,7 +6819,20 @@ function setupAdvancedFilters() {
   const activeFiltersCount = $('#activeFiltersCount');
   const filtersCount = $('#filtersCount');
   
-  if (!filtersPanel || !btnShowFilters) return;
+  // ✅ Verificar que los elementos existan, si no, intentar más tarde
+  if (!filtersPanel || !btnShowFilters) {
+    warn('[FILTERS] Elementos no encontrados, reintentando en 100ms...');
+    setTimeout(() => setupAdvancedFilters(), 100);
+    return;
+  }
+  
+  // ✅ Verificar si ya se configuraron los listeners (evitar duplicados)
+  if (btnShowFilters.dataset.configured === 'true') {
+    log('[FILTERS] Los filtros ya están configurados, omitiendo...');
+    return;
+  }
+  btnShowFilters.dataset.configured = 'true';
+  log('[FILTERS] ✅ Configurando filtros avanzados...');
   
   // ✅ Función para aplicar filtros (accesible desde setupMasterSearch)
   window.applyAdvancedFilter = function() {
@@ -6915,23 +6928,31 @@ function setupAdvancedFilters() {
   }
   
   // ✅ Mostrar/ocultar panel de filtros
-  btnShowFilters?.addEventListener('click', () => {
+  btnShowFilters.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     const isVisible = filtersPanel.style.display !== 'none';
     filtersPanel.style.display = isVisible ? 'none' : 'block';
     btnShowFilters.setAttribute('aria-expanded', isVisible ? 'false' : 'true');
     btnShowFilters.innerHTML = isVisible 
       ? '<i class="ph ph-funnel"></i> Filtros Avanzados'
       : '<i class="ph ph-funnel-simple"></i> Ocultar Filtros';
+    log('[FILTERS] Panel de filtros:', isVisible ? 'ocultado' : 'mostrado');
   });
   
-  btnCloseFilters?.addEventListener('click', () => {
+  btnCloseFilters?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     filtersPanel.style.display = 'none';
     btnShowFilters.setAttribute('aria-expanded', 'false');
     btnShowFilters.innerHTML = '<i class="ph ph-funnel"></i> Filtros Avanzados';
+    log('[FILTERS] Panel de filtros cerrado');
   });
   
   // ✅ Aplicar filtros
-  btnApplyFilters?.addEventListener('click', () => {
+  btnApplyFilters?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     advancedFiltersState.type = filterType?.value || '';
     advancedFiltersState.sort = filterSort?.value || 'title-asc';
     advancedFiltersState.tag = filterTag?.value || '';
@@ -6948,7 +6969,9 @@ function setupAdvancedFilters() {
   });
   
   // ✅ Restablecer filtros
-  btnResetFilters?.addEventListener('click', () => {
+  btnResetFilters?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     filterType.value = '';
     filterSort.value = 'title-asc';
     filterTag.value = '';
@@ -7336,9 +7359,12 @@ async function tryLoginByCode(code) {
       
       buildMasterGrid();
       setupMasterSearch();
-      setupAdvancedFilters();
       $('#year_master').textContent = new Date().getFullYear();
       showMaster();
+      // ✅ Llamar setupAdvancedFilters DESPUÉS de showMaster para asegurar que los elementos estén visibles
+      setTimeout(() => {
+        setupAdvancedFilters();
+      }, 50);
       
       // ✅ Google Analytics: Tracking login exitoso Master
       if (typeof gtag !== 'undefined') {
