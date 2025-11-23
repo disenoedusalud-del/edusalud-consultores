@@ -3771,16 +3771,16 @@ async function showImportPreview(file) {
         </div>
         <div style="padding: 20px;">
           <div style="background: rgba(90,169,255,0.1); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-            <h3 style="margin: 0 0 12px 0; font-size: 16px;">📋 Contenido del Backup</h3>
+            <h3 style="margin: 0 0 12px 0; font-size: 16px;"><i class="ph ph-clipboard"></i> Contenido del Backup</h3>
             <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
-              <div>📚 Cursos: <strong>${sanitizeHTML(String(coursesCount))}</strong></div>
-              <div>🔗 Sets de links: <strong>${sanitizeHTML(String(overridesCount))}</strong></div>
-              <div>📅 Fecha de exportación: <strong>${sanitizeHTML(exportDate)}</strong></div>
-              <div>🏷️ Filtro aplicado: <strong>${sanitizeHTML(filterType === 'all' ? 'Todos' : filterType)}</strong></div>
+              <div><i class="ph ph-book"></i> Cursos: <strong>${sanitizeHTML(String(coursesCount))}</strong></div>
+              <div><i class="ph ph-link"></i> Sets de links: <strong>${sanitizeHTML(String(overridesCount))}</strong></div>
+              <div><i class="ph ph-calendar"></i> Fecha de exportación: <strong>${sanitizeHTML(exportDate)}</strong></div>
+              <div><i class="ph ph-tag"></i> Filtro aplicado: <strong>${sanitizeHTML(filterType === 'all' ? 'Todos' : filterType)}</strong></div>
             </div>
           </div>
           <p style="color: var(--muted); margin-bottom: 16px; font-size: 13px;">
-            ⚠️ Esta acción importará los cursos y links del backup. Los cursos existentes con el mismo código serán sobrescritos.
+            <i class="ph ph-warning"></i> Esta acción importará los cursos y links del backup. Los cursos existentes con el mismo código serán sobrescritos.
           </p>
           <div style="display: flex; gap: 12px; justify-content: flex-end;">
             <button class="btn secondary" onclick="this.closest('.modal').remove()">Cancelar</button>
