@@ -984,6 +984,58 @@ function renderActivity(filter = 'all') {
   });
 }
 
+// ✅ Configurar búsqueda de archivos
+function setupFilesSearch(hex, filelist) {
+  const searchInput = $('#search-files');
+  if (!searchInput || !filelist) return;
+  
+  // ✅ Función para filtrar archivos
+  function filterFiles() {
+    const query = (searchInput.value || '').trim().toLowerCase();
+    const fileRows = filelist.querySelectorAll('.file');
+    
+    if (!query) {
+      fileRows.forEach(row => {
+        row.style.display = '';
+      });
+      return;
+    }
+    
+    let visibleCount = 0;
+    fileRows.forEach(row => {
+      const label = row.dataset.fileLabel || '';
+      const host = row.dataset.fileHost || '';
+      const match = label.includes(query) || host.includes(query);
+      row.style.display = match ? '' : 'none';
+      if (match) visibleCount++;
+    });
+    
+    // ✅ Actualizar contador de resultados
+    const filesCountEl = $('#files-count');
+    if (filesCountEl) {
+      const total = fileRows.length;
+      if (visibleCount < total) {
+        filesCountEl.textContent = `${visibleCount} de ${total} archivo(s)`;
+      } else {
+        filesCountEl.textContent = `${total} archivo(s)`;
+      }
+    }
+  }
+  
+  // ✅ Event listener con debounce
+  const debouncedFilter = debounce(filterFiles, 300);
+  searchInput.addEventListener('input', debouncedFilter);
+  
+  // ✅ Limpiar búsqueda con Escape
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      searchInput.value = '';
+      filterFiles();
+      searchInput.blur();
+    }
+  });
+}
+
 // Exponer globalmente
 window.showToast = showToast;
 
@@ -5959,22 +6011,75 @@ function buildMasterGrid() {
     header.appendChild(headerActions);
     right.appendChild(header);
 
+    // ✅ Actualizar estadísticas de archivos
+    const files = getFilesForHex(hex);
+    const filesCountEl = $('#files-count');
+    if (filesCountEl) {
+      filesCountEl.textContent = (files || []).length;
+    }
+    
     // lista de archivos (editable con DnD)
     const list = document.createElement('div');
     list.className = 'filelist';
-    const files = getFilesForHex(hex);
+    list.id = 'filelist';
+    
+    // ✅ Configurar búsqueda de archivos
+    setupFilesSearch(hex, list);
+    
     (files || []).forEach((item, idx) => {
       const row = document.createElement('div');
       row.className = 'file';
       row.draggable = true;
       row.dataset.index = String(idx);
       let host = '';
-      try { host = new URL(item.url).hostname; } catch { host = ''; }
+      let fileType = 'file';
+      try { 
+        const url = new URL(item.url);
+        host = url.hostname;
+        // Detectar tipo de archivo por extensión o dominio
+        const path = url.pathname.toLowerCase();
+        if (path.includes('.pdf')) fileType = 'pdf';
+        else if (path.includes('.doc') || path.includes('.docx')) fileType = 'doc';
+        else if (path.includes('.xls') || path.includes('.xlsx')) fileType = 'sheet';
+        else if (path.includes('.ppt') || path.includes('.pptx')) fileType = 'presentation';
+        else if (path.includes('.zip') || path.includes('.rar')) fileType = 'archive';
+        else if (path.includes('.jpg') || path.includes('.png') || path.includes('.gif')) fileType = 'image';
+        else if (host.includes('drive.google.com')) fileType = 'drive';
+        else if (host.includes('youtube.com') || host.includes('youtu.be')) fileType = 'video';
+      } catch { host = ''; }
+      
       const leftInfo = document.createElement('div');
+      leftInfo.style.cssText = 'display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;';
+      
+      // ✅ Icono según tipo de archivo
+      const icon = document.createElement('div');
+      icon.style.cssText = 'font-size: 24px; flex-shrink: 0;';
+      const icons = {
+        'pdf': '📄',
+        'doc': '📝',
+        'sheet': '📊',
+        'presentation': '📽️',
+        'archive': '📦',
+        'image': '🖼️',
+        'drive': '☁️',
+        'video': '🎥',
+        'file': '📎'
+      };
+      icon.textContent = icons[fileType] || icons.file;
+      
+      const info = document.createElement('div');
+      info.style.cssText = 'flex: 1; min-width: 0;';
       // ✅ Sanitizar para prevenir XSS
       const safeLabel = escapeHTML(item.label || '');
       const safeHost = escapeHTML(host);
-      leftInfo.innerHTML = `<strong>${safeLabel}</strong><div class="meta">${safeHost}</div>`;
+      info.innerHTML = `<strong style="display: block; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${safeLabel}</strong><div class="meta" style="font-size: 12px; color: var(--muted);">${safeHost}</div>`;
+      
+      leftInfo.appendChild(icon);
+      leftInfo.appendChild(info);
+      
+      // ✅ Agregar atributos para búsqueda
+      row.dataset.fileLabel = (item.label || '').toLowerCase();
+      row.dataset.fileHost = host.toLowerCase();
 
       const actions = document.createElement('div');
       actions.style.display = 'flex';
@@ -6053,6 +6158,12 @@ function buildMasterGrid() {
             buildMasterGrid();
           } else {
             renderCourse(hex);
+            // ✅ Actualizar contador de archivos
+            const filesCountEl = $('#files-count');
+            if (filesCountEl) {
+              const updatedFiles = getFilesForHex(hex);
+              filesCountEl.textContent = (updatedFiles || []).length;
+            }
           }
           
           // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
@@ -6146,6 +6257,12 @@ function buildMasterGrid() {
               } else {
                 log('[REMOVE] ♻️ Re-renderizando Curso');
                 renderCourse(hex);
+                // ✅ Actualizar contador de archivos
+                const filesCountEl = $('#files-count');
+                if (filesCountEl) {
+                  const updatedFiles = getFilesForHex(hex);
+                  filesCountEl.textContent = (updatedFiles || []).length;
+                }
               }
               
               return;
@@ -6168,6 +6285,12 @@ function buildMasterGrid() {
             buildMasterGrid();
           } else {
             renderCourse(hex);
+            // ✅ Actualizar contador de archivos
+            const filesCountEl = $('#files-count');
+            if (filesCountEl) {
+              const updatedFiles = getFilesForHex(hex);
+              filesCountEl.textContent = (updatedFiles || []).length;
+            }
           }
           
           // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
@@ -6237,6 +6360,12 @@ function buildMasterGrid() {
         buildMasterGrid();
       } else {
         renderCourse(hex);
+        // ✅ Actualizar contador de archivos
+        const filesCountEl = $('#files-count');
+        if (filesCountEl) {
+          const updatedFiles = getFilesForHex(hex);
+          filesCountEl.textContent = (updatedFiles || []).length;
+        }
       }
       
       // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
