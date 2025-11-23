@@ -1088,27 +1088,44 @@ function setupCertificatesListeners() {
     
     // Cargar el código de forma asíncrona
     setTimeout(function() {
-      if (certScriptCode) {
-        const codeElement = certScriptCode.querySelector('code');
-        if (codeElement) {
-          // Obtener el código del script desde el HTML (variable global)
-          const scriptCode = window.GOOGLE_APPS_SCRIPT_CODE || '';
-          if (scriptCode) {
-            codeElement.textContent = scriptCode;
-            console.log('[CERT SCRIPT] Código cargado en code element, longitud:', scriptCode.length);
-          } else {
-            codeElement.textContent = '// Error: No se pudo cargar el código del script';
-            console.error('[CERT SCRIPT] GOOGLE_APPS_SCRIPT_CODE no está disponible');
+      try {
+        if (certScriptCode) {
+          // ✅ Obtener el código usando la función (más eficiente)
+          let scriptCode = '';
+          if (typeof window.getGoogleAppsScriptCode === 'function') {
+            scriptCode = window.getGoogleAppsScriptCode();
+          } else if (window.GOOGLE_APPS_SCRIPT_CODE) {
+            scriptCode = window.GOOGLE_APPS_SCRIPT_CODE;
           }
-        } else {
-          // Si no hay elemento code, poner el código directamente en el pre
-          const scriptCode = window.GOOGLE_APPS_SCRIPT_CODE || '';
-          if (scriptCode) {
-            certScriptCode.textContent = scriptCode;
-            console.log('[CERT SCRIPT] Código cargado directamente en pre, longitud:', scriptCode.length);
+          
+          const codeElement = certScriptCode.querySelector('code');
+          if (codeElement) {
+            if (scriptCode) {
+              codeElement.textContent = scriptCode;
+              console.log('[CERT SCRIPT] Código cargado en code element, longitud:', scriptCode.length);
+            } else {
+              codeElement.textContent = '// Error: No se pudo cargar el código del script';
+              console.error('[CERT SCRIPT] GOOGLE_APPS_SCRIPT_CODE no está disponible');
+            }
           } else {
-            certScriptCode.textContent = '// Error: No se pudo cargar el código del script';
-            console.error('[CERT SCRIPT] GOOGLE_APPS_SCRIPT_CODE no está disponible');
+            // Si no hay elemento code, poner el código directamente en el pre
+            if (scriptCode) {
+              certScriptCode.textContent = scriptCode;
+              console.log('[CERT SCRIPT] Código cargado directamente en pre, longitud:', scriptCode.length);
+            } else {
+              certScriptCode.textContent = '// Error: No se pudo cargar el código del script';
+              console.error('[CERT SCRIPT] GOOGLE_APPS_SCRIPT_CODE no está disponible');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[CERT SCRIPT] Error cargando código:', error);
+        if (certScriptCode) {
+          const codeElement = certScriptCode.querySelector('code');
+          if (codeElement) {
+            codeElement.textContent = '// Error: ' + error.message;
+          } else {
+            certScriptCode.textContent = '// Error: ' + error.message;
           }
         }
       }
