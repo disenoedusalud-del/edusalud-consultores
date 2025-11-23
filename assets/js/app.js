@@ -472,6 +472,322 @@ function generateCodeSuggestions(title) {
   return suggestions.filter((v, i, a) => a.indexOf(v) === i).slice(0, 3); // Únicos, máximo 3
 }
 
+/* ===================== SISTEMA DE VALIDACIÓN EN TIEMPO REAL ===================== */
+
+/**
+ * ✅ Valida título de curso
+ * @param {string} title - Título a validar
+ * @param {number} minLength - Longitud mínima (default: 5)
+ * @param {number} maxLength - Longitud máxima (default: 100)
+ * @returns {object} {valid: boolean, error: string}
+ */
+function validateTitle(title, minLength = 5, maxLength = 100) {
+  if (!title || typeof title !== 'string') {
+    return { valid: false, error: 'El título es requerido' };
+  }
+  
+  const trimmed = title.trim();
+  
+  if (trimmed.length < minLength) {
+    return { valid: false, error: `El título debe tener al menos ${minLength} caracteres` };
+  }
+  
+  if (trimmed.length > maxLength) {
+    return { valid: false, error: `El título no puede tener más de ${maxLength} caracteres` };
+  }
+  
+  // Validar caracteres especiales peligrosos
+  if (/<script|javascript:|onerror=/i.test(trimmed)) {
+    return { valid: false, error: 'El título contiene caracteres no permitidos' };
+  }
+  
+  return { valid: true };
+}
+
+/**
+ * ✅ Valida descripción/meta
+ * @param {string} meta - Descripción a validar
+ * @param {number} minLength - Longitud mínima (default: 10)
+ * @param {number} maxLength - Longitud máxima (default: 200)
+ * @returns {object} {valid: boolean, error: string}
+ */
+function validateMeta(meta, minLength = 10, maxLength = 200) {
+  if (!meta || typeof meta !== 'string') {
+    return { valid: false, error: 'La descripción es requerida' };
+  }
+  
+  const trimmed = meta.trim();
+  
+  if (trimmed.length < minLength) {
+    return { valid: false, error: `La descripción debe tener al menos ${minLength} caracteres` };
+  }
+  
+  if (trimmed.length > maxLength) {
+    return { valid: false, error: `La descripción no puede tener más de ${maxLength} caracteres` };
+  }
+  
+  return { valid: true };
+}
+
+/**
+ * ✅ Valida código secreto
+ * @param {string} code - Código a validar
+ * @param {number} minLength - Longitud mínima (default: 5)
+ * @param {number} maxLength - Longitud máxima (default: 50)
+ * @returns {object} {valid: boolean, error: string}
+ */
+function validateCode(code, minLength = 5, maxLength = 50) {
+  if (!code || typeof code !== 'string') {
+    return { valid: false, error: 'El código es requerido' };
+  }
+  
+  const trimmed = code.trim();
+  
+  if (trimmed.length < minLength) {
+    return { valid: false, error: `El código debe tener al menos ${minLength} caracteres` };
+  }
+  
+  if (trimmed.length > maxLength) {
+    return { valid: false, error: `El código no puede tener más de ${maxLength} caracteres` };
+  }
+  
+  // Validar formato: solo letras, números, guiones y guiones bajos
+  if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+    return { valid: false, error: 'El código solo puede contener letras, números, guiones (-) y guiones bajos (_)' };
+  }
+  
+  return { valid: true };
+}
+
+/**
+ * ✅ Valida tag del curso
+ * @param {string} tag - Tag a validar
+ * @param {number} minLength - Longitud mínima (default: 2)
+ * @param {number} maxLength - Longitud máxima (default: 10)
+ * @returns {object} {valid: boolean, error: string}
+ */
+function validateTag(tag, minLength = 2, maxLength = 10) {
+  if (!tag || typeof tag !== 'string') {
+    return { valid: false, error: 'El tag es requerido' };
+  }
+  
+  const trimmed = tag.trim();
+  
+  if (trimmed.length < minLength) {
+    return { valid: false, error: `El tag debe tener al menos ${minLength} caracteres` };
+  }
+  
+  if (trimmed.length > maxLength) {
+    return { valid: false, error: `El tag no puede tener más de ${maxLength} caracteres` };
+  }
+  
+  // Validar formato: solo letras y números
+  if (!/^[a-zA-Z0-9]+$/.test(trimmed)) {
+    return { valid: false, error: 'El tag solo puede contener letras y números' };
+  }
+  
+  return { valid: true };
+}
+
+/**
+ * ✅ Valida email
+ * @param {string} email - Email a validar
+ * @returns {object} {valid: boolean, error: string}
+ */
+function validateEmail(email) {
+  if (!email || typeof email !== 'string') {
+    return { valid: false, error: 'El correo electrónico es requerido' };
+  }
+  
+  const trimmed = email.trim().toLowerCase();
+  
+  // Expresión regular mejorada para validar email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  
+  if (!emailRegex.test(trimmed)) {
+    return { valid: false, error: 'Formato de correo electrónico inválido' };
+  }
+  
+  // Validar longitud máxima
+  if (trimmed.length > 254) {
+    return { valid: false, error: 'El correo electrónico es demasiado largo' };
+  }
+  
+  return { valid: true };
+}
+
+/**
+ * ✅ Valida contraseña
+ * @param {string} password - Contraseña a validar
+ * @param {number} minLength - Longitud mínima (default: 6)
+ * @returns {object} {valid: boolean, error: string}
+ */
+function validatePassword(password, minLength = 6) {
+  if (!password || typeof password !== 'string') {
+    return { valid: false, error: 'La contraseña es requerida' };
+  }
+  
+  if (password.length < minLength) {
+    return { valid: false, error: `La contraseña debe tener al menos ${minLength} caracteres` };
+  }
+  
+  return { valid: true };
+}
+
+/**
+ * ✅ Valida código de verificación (6 dígitos)
+ * @param {string} code - Código a validar
+ * @returns {object} {valid: boolean, error: string}
+ */
+function validateVerificationCode(code) {
+  if (!code || typeof code !== 'string') {
+    return { valid: false, error: 'El código de verificación es requerido' };
+  }
+  
+  const trimmed = code.trim();
+  
+  if (!/^\d{6}$/.test(trimmed)) {
+    return { valid: false, error: 'El código debe tener 6 dígitos numéricos' };
+  }
+  
+  return { valid: true };
+}
+
+/**
+ * ✅ Valida color hexadecimal
+ * @param {string} color - Color a validar
+ * @returns {object} {valid: boolean, error: string}
+ */
+function validateHexColor(color) {
+  if (!color || typeof color !== 'string') {
+    return { valid: false, error: 'El color es requerido' };
+  }
+  
+  const trimmed = color.trim();
+  
+  if (!/^#[0-9A-Fa-f]{6}$/.test(trimmed)) {
+    return { valid: false, error: 'El color debe ser un código hexadecimal válido (ej: #5aa9ff)' };
+  }
+  
+  return { valid: true };
+}
+
+/**
+ * ✅ Sistema de validación en tiempo real para inputs
+ * @param {HTMLElement} input - Input a validar
+ * @param {function} validator - Función validadora
+ * @param {object} options - Opciones adicionales
+ */
+function setupRealTimeValidation(input, validator, options = {}) {
+  if (!input || !validator) return;
+  
+  const {
+    minLength = 0,
+    maxLength = Infinity,
+    debounceMs = 300,
+    showIndicator = true,
+    showMessage = true
+  } = options;
+  
+  // Crear contenedor para mensaje de error si no existe
+  let errorContainer = input.parentElement.querySelector('.validation-error');
+  if (!errorContainer && showMessage) {
+    errorContainer = document.createElement('div');
+    errorContainer.className = 'validation-error';
+    errorContainer.setAttribute('role', 'alert');
+    errorContainer.setAttribute('aria-live', 'polite');
+    input.parentElement.appendChild(errorContainer);
+  }
+  
+  // Agregar indicador visual si no existe
+  let indicator = input.parentElement.querySelector('.validation-indicator');
+  if (!indicator && showIndicator) {
+    indicator = document.createElement('span');
+    indicator.className = 'validation-indicator';
+    indicator.setAttribute('aria-hidden', 'true');
+    input.parentElement.style.position = 'relative';
+    input.parentElement.appendChild(indicator);
+  }
+  
+  // Función de validación con debounce
+  let timeoutId;
+  const validate = () => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      const value = input.value;
+      const result = validator(value, minLength, maxLength);
+      
+      // Actualizar estado visual
+      if (indicator) {
+        if (value.length === 0) {
+          indicator.className = 'validation-indicator';
+          input.classList.remove('input-valid', 'input-invalid');
+        } else if (result.valid) {
+          indicator.className = 'validation-indicator validation-indicator-valid';
+          input.classList.add('input-valid');
+          input.classList.remove('input-invalid');
+          input.setAttribute('aria-invalid', 'false');
+        } else {
+          indicator.className = 'validation-indicator validation-indicator-invalid';
+          input.classList.add('input-invalid');
+          input.classList.remove('input-valid');
+          input.setAttribute('aria-invalid', 'true');
+        }
+      }
+      
+      // Mostrar mensaje de error
+      if (errorContainer) {
+        if (!result.valid && value.length > 0) {
+          errorContainer.textContent = result.error;
+          errorContainer.style.display = 'block';
+          input.setAttribute('aria-describedby', errorContainer.id || 'validation-error');
+        } else {
+          errorContainer.textContent = '';
+          errorContainer.style.display = 'none';
+          input.removeAttribute('aria-describedby');
+        }
+      }
+      
+      // Guardar estado en el input
+      input.dataset.valid = result.valid ? 'true' : 'false';
+    }, debounceMs);
+  };
+  
+  // Event listeners
+  input.addEventListener('input', validate);
+  input.addEventListener('blur', validate);
+  
+  // Validación inicial si hay valor
+  if (input.value) {
+    validate();
+  }
+}
+
+/**
+ * ✅ Valida todo un formulario
+ * @param {HTMLFormElement} form - Formulario a validar
+ * @returns {boolean} true si el formulario es válido
+ */
+function validateForm(form) {
+  if (!form) return false;
+  
+  const inputs = form.querySelectorAll('input[data-valid], select[data-valid]');
+  let isValid = true;
+  
+  inputs.forEach(input => {
+    if (input.dataset.valid === 'false') {
+      isValid = false;
+      // Enfocar el primer input inválido
+      if (isValid === false) {
+        input.focus();
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  });
+  
+  return isValid;
+}
+
 /**
  * ✅ Valida límites de caracteres y muestra contador
  */
@@ -7982,11 +8298,74 @@ function setupEmailPasswordListeners() {
     });
   }
   if (inputPassword) {
+    // ✅ Validación en tiempo real
+    setupRealTimeValidation(inputPassword, validatePassword, { minLength: 6, showIndicator: true });
+    
     inputPassword.addEventListener('input', () => {
       if (inputPassword.style.borderColor === '#ff7a7a') {
         clearFieldErrors();
       }
     });
+  }
+  
+  // ✅ Validación en tiempo real para email de login
+  if (inputEmail) {
+    setupRealTimeValidation(inputEmail, validateEmail, { showIndicator: true });
+  }
+  
+  // ✅ Validación en tiempo real para formulario de registro
+  // Nota: Las variables ya están declaradas arriba, solo agregamos validación
+  if (inputRegisterEmail) {
+    setupRealTimeValidation(inputRegisterEmail, validateEmail, { showIndicator: true });
+  }
+  
+  // Buscar variables de registro que ya están declaradas
+  const inputRegPassword = $('#input-register-password');
+  const inputRegPasswordConfirm = $('#input-register-password-confirm');
+  const inputVerifCode = $('#input-verification-code');
+  
+  if (inputRegPassword) {
+    setupRealTimeValidation(inputRegPassword, validatePassword, { minLength: 6, showIndicator: true });
+  }
+  
+  if (inputRegPasswordConfirm) {
+    // Validación personalizada para confirmación de contraseña
+    inputRegPasswordConfirm.addEventListener('input', () => {
+      const password = inputRegPassword?.value || '';
+      const confirm = inputRegPasswordConfirm.value;
+      
+      if (confirm.length === 0) {
+        inputRegPasswordConfirm.classList.remove('input-valid', 'input-invalid');
+        inputRegPasswordConfirm.dataset.valid = '';
+        return;
+      }
+      
+      if (password === confirm) {
+        inputRegPasswordConfirm.classList.add('input-valid');
+        inputRegPasswordConfirm.classList.remove('input-invalid');
+        inputRegPasswordConfirm.setAttribute('aria-invalid', 'false');
+        inputRegPasswordConfirm.dataset.valid = 'true';
+      } else {
+        inputRegPasswordConfirm.classList.add('input-invalid');
+        inputRegPasswordConfirm.classList.remove('input-valid');
+        inputRegPasswordConfirm.setAttribute('aria-invalid', 'true');
+        inputRegPasswordConfirm.dataset.valid = 'false';
+        
+        let errorMsg = inputRegPasswordConfirm.parentElement.querySelector('.validation-error');
+        if (!errorMsg) {
+          errorMsg = document.createElement('div');
+          errorMsg.className = 'validation-error';
+          errorMsg.setAttribute('role', 'alert');
+          inputRegPasswordConfirm.parentElement.appendChild(errorMsg);
+        }
+        errorMsg.textContent = 'Las contraseñas no coinciden';
+        errorMsg.style.display = 'block';
+      }
+    });
+  }
+  
+  if (inputVerifCode) {
+    setupRealTimeValidation(inputVerifCode, validateVerificationCode, { showIndicator: true });
   }
 }
 
@@ -8070,10 +8449,22 @@ if (btnAddAdmin) {
 // Event listener para input de administrador (Enter)
 const inputAdminEmail = $('#input-admin-email');
 if (inputAdminEmail) {
+  // ✅ Validación en tiempo real
+  setupRealTimeValidation(inputAdminEmail, validateEmail, { showIndicator: true });
+  
   inputAdminEmail.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      addAdminUI();
+      // Validar antes de agregar
+      const emailValue = inputAdminEmail.value.trim();
+      const emailValidation = validateEmail(emailValue);
+      if (emailValidation.valid) {
+        addAdminUI();
+      } else {
+        if (typeof window.showToast === 'function') {
+          window.showToast('error', 'Correo inválido', emailValidation.error);
+        }
+      }
     }
   });
 }
@@ -8137,10 +8528,22 @@ if (btnAddCourseEmail) {
 // Event listener para input de correo (Enter)
 const inputCourseEmail = $('#input-course-email');
 if (inputCourseEmail) {
+  // ✅ Validación en tiempo real
+  setupRealTimeValidation(inputCourseEmail, validateEmail, { showIndicator: true });
+  
   inputCourseEmail.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      addCourseEmailUI();
+      // Validar antes de agregar
+      const emailValue = inputCourseEmail.value.trim();
+      const emailValidation = validateEmail(emailValue);
+      if (emailValidation.valid) {
+        addCourseEmailUI();
+      } else {
+        if (typeof window.showToast === 'function') {
+          window.showToast('error', 'Correo inválido', emailValidation.error);
+        }
+      }
     }
   });
 }
@@ -8481,6 +8884,25 @@ function setupAddCourseModal() {
   if (inputTag) setupCharacterCounter(inputTag, 10, 2);
   if (inputCode) setupCharacterCounter(inputCode, 50, 5);
 
+  // ✅ Validación en tiempo real
+  if (inputTitle) {
+    setupRealTimeValidation(inputTitle, validateTitle, { minLength: 5, maxLength: 100 });
+  }
+  if (inputMeta) {
+    setupRealTimeValidation(inputMeta, validateMeta, { minLength: 10, maxLength: 200 });
+  }
+  if (inputTag) {
+    setupRealTimeValidation(inputTag, validateTag, { minLength: 2, maxLength: 10 });
+  }
+  if (inputCode) {
+    setupRealTimeValidation(inputCode, validateCode, { minLength: 5, maxLength: 50 });
+  }
+  
+  // Validación de color hexadecimal
+  if (inputCourseAccentHex) {
+    setupRealTimeValidation(inputCourseAccentHex, validateHexColor, { showIndicator: true });
+  }
+
   // ✅ Sugerencias automáticas de código basadas en el título
   if (inputTitle && inputCode) {
     let lastTitle = '';
@@ -8632,6 +9054,14 @@ function setupAddCourseModal() {
   formAddCourse.addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    // ✅ Validar formulario completo antes de continuar
+    if (!validateForm(formAddCourse)) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('error', 'Formulario inválido', 'Por favor, corrige los errores antes de continuar');
+      }
+      return;
+    }
+    
     // ✅ Obtener botón submit
     const submitBtn = formAddCourse.querySelector('button[type="submit"]');
     let restoreButton = null;
@@ -8649,7 +9079,7 @@ function setupAddCourseModal() {
     const codeRaw = $('#inputCourseCode').value.trim();
     const type = $('#selectCourseType').value || 'curso'; // ✅ Clasificación del curso
     
-    // Validaciones básicas de longitud
+    // Validaciones básicas de longitud (redundantes pero por seguridad)
     if (!titleRaw || titleRaw.length < 5 || titleRaw.length > 100) {
       alert('El título debe tener entre 5 y 100 caracteres');
       $('#inputCourseTitle').focus();
@@ -8874,6 +9304,74 @@ function setupEditCourseModal() {
     modalEditCourse.classList.remove('show');
   });
 
+  // ✅ Configurar validación en tiempo real para formulario de edición
+  const inputEditTitle = $('#inputEditCourseTitle');
+  const inputEditMeta = $('#inputEditCourseMeta');
+  const inputEditTag = $('#inputEditCourseTag');
+  const inputEditImage = $('#inputEditCourseImage');
+  
+  if (inputEditTitle) {
+    setupRealTimeValidation(inputEditTitle, validateTitle, { minLength: 5, maxLength: 100 });
+  }
+  if (inputEditMeta) {
+    setupRealTimeValidation(inputEditMeta, validateMeta, { minLength: 10, maxLength: 200 });
+  }
+  if (inputEditTag) {
+    setupRealTimeValidation(inputEditTag, validateTag, { minLength: 2, maxLength: 10 });
+  }
+  if (inputEditCourseAccentHex) {
+    setupRealTimeValidation(inputEditCourseAccentHex, validateHexColor, { showIndicator: true });
+  }
+  
+  // Validación de URL de imagen (similar a agregar curso)
+  if (inputEditImage) {
+    let imageCheckTimeout = null;
+    let lastValidatedUrl = '';
+    
+    inputEditImage.addEventListener('blur', async () => {
+      const imageUrl = inputEditImage.value.trim();
+      
+      if (!imageUrl) return;
+      if (imageUrl === lastValidatedUrl) return;
+      
+      const urlValidation = validateURL(imageUrl);
+      if (!urlValidation.valid) {
+        inputEditImage.classList.add('input-invalid');
+        inputEditImage.setAttribute('aria-invalid', 'true');
+        if (inputEditImage.parentElement) {
+          let errorMsg = inputEditImage.parentElement.querySelector('.url-error');
+          if (!errorMsg) {
+            errorMsg = document.createElement('div');
+            errorMsg.className = 'url-error validation-error';
+            errorMsg.id = 'inputEditCourseImage-error';
+            errorMsg.setAttribute('role', 'alert');
+            inputEditImage.parentElement.appendChild(errorMsg);
+          }
+          errorMsg.textContent = urlValidation.error;
+          inputEditImage.setAttribute('aria-describedby', 'inputEditCourseImage-error');
+        }
+        return;
+      }
+      
+      inputEditImage.setAttribute('aria-invalid', 'false');
+      const existingError = inputEditImage.parentElement.querySelector('.url-error');
+      if (existingError) {
+        inputEditImage.removeAttribute('aria-describedby');
+        existingError.remove();
+      }
+      
+      const imageCheck = await verifyImageExists(urlValidation.url);
+      if (imageCheck.exists) {
+        inputEditImage.classList.add('input-valid');
+        inputEditImage.classList.remove('input-invalid');
+        lastValidatedUrl = imageUrl;
+      } else {
+        inputEditImage.classList.add('input-invalid');
+        inputEditImage.classList.remove('input-valid');
+      }
+    });
+  }
+
   // Función global para abrir el modal con datos del curso
   window.openEditCourseModal = function(hex, courseData) {
     // Pre-llenar formulario con datos del curso
@@ -8892,12 +9390,31 @@ function setupEditCourseModal() {
     // El código no se puede obtener directamente del hex, así que lo dejamos vacío o mostramos un mensaje
     $('#inputEditCourseCode').value = 'No se puede cambiar';
     
+    // ✅ Disparar validación inicial si hay valores
+    if (inputEditTitle && inputEditTitle.value) {
+      inputEditTitle.dispatchEvent(new Event('input'));
+    }
+    if (inputEditMeta && inputEditMeta.value) {
+      inputEditMeta.dispatchEvent(new Event('input'));
+    }
+    if (inputEditTag && inputEditTag.value) {
+      inputEditTag.dispatchEvent(new Event('input'));
+    }
+    
     modalEditCourse.classList.add('show');
   };
 
   // Submit formulario
   formEditCourse.addEventListener('submit', async (e) => {
     e.preventDefault();
+    
+    // ✅ Validar formulario completo antes de continuar
+    if (!validateForm(formEditCourse)) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('error', 'Formulario inválido', 'Por favor, corrige los errores antes de continuar');
+      }
+      return;
+    }
     
     // ✅ Obtener botón submit
     const submitBtn = formEditCourse.querySelector('button[type="submit"]');
