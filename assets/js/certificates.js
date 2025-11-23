@@ -90,17 +90,25 @@ function saveCertConfig() {
   const emailMsgInput = $('#textarea-email-message');
   const whatsappMsgInput = $('#textarea-whatsapp-message');
   
+  // ✅ Sanitizar inputs (usar funciones de app.js si están disponibles, sino sanitizar manualmente)
+  const sanitizeText = (str) => {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str.trim();
+    return div.innerHTML;
+  };
+  
   certConfig = {
-    scriptWebAppUrl: scriptUrlInput?.value.trim() || '',
-    certMode: modeInput?.value || 'webinar',
-    slideTemplateId: slideInput?.value || '',
-    sheetId: sheetInput?.value || '',
-    folderOriginalesId: folderOrigInput?.value || '',
-    folderProtegidosId: folderProtInput?.value || '',
-    webinarTitle: titleInput?.value.trim() || '',
-    webinarDate: dateInput?.value.trim() || '',
-    emailMessage: emailMsgInput?.value.trim() || '',
-    whatsappMessage: whatsappMsgInput?.value.trim() || ''
+    scriptWebAppUrl: sanitizeText(scriptUrlInput?.value || ''), // URL se sanitiza pero se valida después
+    certMode: (modeInput?.value || 'webinar').trim(),
+    slideTemplateId: (slideInput?.value || '').trim(),
+    sheetId: (sheetInput?.value || '').trim(),
+    folderOriginalesId: (folderOrigInput?.value || '').trim(),
+    folderProtegidosId: (folderProtInput?.value || '').trim(),
+    webinarTitle: sanitizeText(titleInput?.value || ''),
+    webinarDate: sanitizeText(dateInput?.value || ''),
+    emailMessage: sanitizeText(emailMsgInput?.value || ''),
+    whatsappMessage: sanitizeText(whatsappMsgInput?.value || '')
   };
   
   localStorage.setItem(CERT_CONFIG_KEY, JSON.stringify(certConfig));
