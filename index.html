@@ -52,7 +52,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
   
   <!-- Estilos principales -->
-  <link rel="stylesheet" href="assets/css/style.css?v=6" />
+  <link rel="stylesheet" href="assets/css/style.css?v=7" />
 </head>
 <body>
   <div class="wrap">
@@ -1099,7 +1099,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
-  <script src="assets/js/app.min.js?v=114" defer></script>
+  <script src="assets/js/app.min.js?v=115" defer></script>
   <script src="assets/js/certificates.js?v=17" defer></script>
   <script>
     // ✅ Forzar actualización del Service Worker si hay una nueva versión
@@ -1332,7 +1332,7 @@
       
       // Event listeners (solo una vez)
       if (btnConfirm) {
-        btnConfirm.addEventListener('click', handleConfirm);
+        btnConfirm.addEventListener('click', () => handleConfirm());
       }
       if (btnCancel) {
         btnCancel.addEventListener('click', closeModal);
@@ -1367,6 +1367,16 @@
         }
       });
       
+      // ✅ Validación en tiempo real para código duplicado
+      if (input) {
+        // Configurar validación cuando el input esté disponible
+        input.addEventListener('focus', () => {
+          if (typeof setupRealTimeValidation === 'function' && typeof validateCode === 'function') {
+            setupRealTimeValidation(input, validateCode, { minLength: 5, maxLength: 50 });
+          }
+        });
+      }
+      
       // Función global para mostrar el modal
       window.showDuplicateCodeModal = function(defaultCode, onConfirm) {
         if (!modal || !input) {
@@ -1382,9 +1392,48 @@
         input.value = defaultCode || '';
         onConfirmCallback = onConfirm;
         
+        // ✅ Configurar validación en tiempo real
+        if (typeof setupRealTimeValidation === 'function' && typeof validateCode === 'function') {
+          setupRealTimeValidation(input, validateCode, { minLength: 5, maxLength: 50 });
+        }
+        
         // Mostrar modal y enfocar input
         modal.classList.add('show');
         setTimeout(() => input.focus(), 100);
+      };
+      
+      // ✅ Mejorar handleConfirm para validar antes de confirmar
+      const originalHandleConfirm = handleConfirm;
+      handleConfirm = () => {
+        const code = input.value.trim();
+        if (!code) {
+          if (typeof window.showSuccessModal === 'function') {
+            window.showSuccessModal('Error', 'Por favor ingresa un código secreto');
+          } else {
+            alert('Por favor ingresa un código secreto');
+          }
+          return;
+        }
+        
+        // ✅ Validar código antes de confirmar
+        if (typeof validateCode === 'function') {
+          const validation = validateCode(code);
+          if (!validation.valid) {
+            if (typeof window.showToast === 'function') {
+              window.showToast('error', 'Código inválido', validation.error);
+            } else if (typeof window.showSuccessModal === 'function') {
+              window.showSuccessModal('Error', validation.error);
+            } else {
+              alert(validation.error);
+            }
+            return;
+          }
+        }
+        
+        if (onConfirmCallback) {
+          onConfirmCallback(code);
+        }
+        closeModal();
       };
     })();
 
