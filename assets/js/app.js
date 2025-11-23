@@ -5223,37 +5223,53 @@ function buildMasterGrid() {
     log('[MASTER] Filtrando cursos para email:', window.currentUserEmail, '- Cursos permitidos:', coursesArray.length);
   }
   
-  // ✅ Aplicar filtro por tipo
-  const filterType = $('#filterByType')?.value || 'all';
-  if (filterType !== 'all') {
-    coursesArray = coursesArray.filter(([hex, data]) => {
-      const courseType = data?.type || 'curso';
-      return courseType === filterType;
+  // ✅ Aplicar filtros avanzados (si están activos)
+  if (advancedFiltersState && advancedFiltersState.active) {
+    // Filtro por tipo
+    if (advancedFiltersState.type) {
+      coursesArray = coursesArray.filter(([hex, data]) => {
+        const courseType = (data?.type || 'curso').toLowerCase();
+        return courseType === advancedFiltersState.type.toLowerCase();
+      });
+    }
+    
+    // Filtro por tag
+    if (advancedFiltersState.tag) {
+      const tagFilter = advancedFiltersState.tag.trim().toLowerCase();
+      coursesArray = coursesArray.filter(([hex, data]) => {
+        const tag = (data?.card?.tag || '').toLowerCase();
+        return tag.includes(tagFilter);
+      });
+    }
+    
+    // Aplicar ordenamiento
+    const sortBy = advancedFiltersState.sort || 'title-asc';
+    coursesArray.sort(([hexA, dataA], [hexB, dataB]) => {
+      if (sortBy === 'title-asc') {
+        return (dataA.title || '').localeCompare(dataB.title || '');
+      } else if (sortBy === 'title-desc') {
+        return (dataB.title || '').localeCompare(dataA.title || '');
+      } else if (sortBy === 'tag-asc') {
+        const tagA = (dataA.card?.tag || '').toLowerCase();
+        const tagB = (dataB.card?.tag || '').toLowerCase();
+        return tagA.localeCompare(tagB);
+      } else if (sortBy === 'date-desc') {
+        const dateA = dataA.createdAt || dataA.updatedAt || 0;
+        const dateB = dataB.createdAt || dataB.updatedAt || 0;
+        return dateB - dateA; // Más recientes primero
+      } else if (sortBy === 'date-asc') {
+        const dateA = dataA.createdAt || dataA.updatedAt || 0;
+        const dateB = dataB.createdAt || dataB.updatedAt || 0;
+        return dateA - dateB; // Más antiguos primero
+      }
+      return 0;
+    });
+  } else {
+    // ✅ Si no hay filtros avanzados activos, ordenar por defecto (título A-Z)
+    coursesArray.sort(([hexA, dataA], [hexB, dataB]) => {
+      return (dataA.title || '').localeCompare(dataB.title || '');
     });
   }
-  
-  // ✅ Aplicar ordenamiento
-  const sortBy = $('#sortBy')?.value || 'title-asc';
-  coursesArray.sort(([hexA, dataA], [hexB, dataB]) => {
-    if (sortBy === 'title-asc') {
-      return (dataA.title || '').localeCompare(dataB.title || '');
-    } else if (sortBy === 'title-desc') {
-      return (dataB.title || '').localeCompare(dataA.title || '');
-    } else if (sortBy === 'type-asc') {
-      const typeA = (dataA.type || 'curso').toLowerCase();
-      const typeB = (dataB.type || 'curso').toLowerCase();
-      return typeA.localeCompare(typeB);
-    } else if (sortBy === 'date-desc') {
-      const dateA = dataA.createdAt || dataA.updatedAt || 0;
-      const dateB = dataB.createdAt || dataB.updatedAt || 0;
-      return dateB - dateA; // Más recientes primero
-    } else if (sortBy === 'date-asc') {
-      const dateA = dataA.createdAt || dataA.updatedAt || 0;
-      const dateB = dataB.createdAt || dataB.updatedAt || 0;
-      return dateA - dateB; // Más antiguos primero
-    }
-    return 0;
-  });
   
   const COURSES_PER_PAGE = 12;
   const totalPages = Math.ceil(coursesArray.length / COURSES_PER_PAGE);
@@ -6766,38 +6782,6 @@ function setupMasterSearch(){
     }
   });
 
-  // ✅ Event listeners para filtro y ordenamiento
-  const filterByType = $('#filterByType');
-  const sortBy = $('#sortBy');
-  
-  if (filterByType) {
-    filterByType.addEventListener('change', () => {
-      // Resetear página a 1 cuando cambia el filtro
-      try { sessionStorage.setItem('masterGridCurrentPage', '1'); } catch (e) {}
-      buildMasterGrid();
-      // Re-aplicar búsqueda si hay texto
-      if (input.value.trim()) {
-        setTimeout(() => {
-          applyFilter();
-          showAutocomplete(input.value.trim());
-        }, 100);
-      }
-    });
-  }
-  
-  if (sortBy) {
-    sortBy.addEventListener('change', () => {
-      buildMasterGrid();
-      // Re-aplicar búsqueda si hay texto
-      if (input.value.trim()) {
-        setTimeout(() => {
-          applyFilter();
-          showAutocomplete(input.value.trim());
-        }, 100);
-      }
-    });
-  }
-  
   clear?.addEventListener('click', () => {
     input.value = '';
     autocompleteContainer.style.display = 'none';
