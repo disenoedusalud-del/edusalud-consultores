@@ -525,6 +525,371 @@ function debounce(func, wait, immediate = false) {
   };
 }
 
+/* ===================== SISTEMA DE RETRY AUTOMÁTICO ===================== */
+
+/**
+ * ✅ Retry automático con backoff exponencial
+ * @param {Function} fn - Función a ejecutar (debe retornar Promise)
+ * @param {Object} options - Opciones de retry
+ * @param {number} options.maxRetries - Número máximo de reintentos (default: 3)
+ * @param {number} options.initialDelay - Delay inicial en ms (default: 1000)
+ * @param {number} options.maxDelay - Delay máximo en ms (default: 10000)
+ * @param {Function} options.shouldRetry - Función que determina si se debe reintentar (default: siempre true)
+ * @param {Function} options.onRetry - Callback cuando se hace un retry
+ * @returns {Promise} Promise que se resuelve con el resultado o rechaza después de todos los intentos
+ */
+async function retryWithBackoff(fn, options = {}) {
+  const {
+    maxRetries = 3,
+    initialDelay = 1000,
+    maxDelay = 10000,
+    shouldRetry = () => true,
+    onRetry = null
+  } = options;
+  
+  let lastError;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await fn();
+      // ✅ Si es el primer intento, no loguear
+      if (attempt > 0) {
+        log(`[RETRY] ✅ Éxito después de ${attempt} reintento(s)`);
+      }
+      return result;
+    } catch (error) {
+      lastError = error;
+      
+      // ✅ Verificar si se debe reintentar
+      if (attempt < maxRetries && shouldRetry(error)) {
+        // Calcular delay con backoff exponencial
+        const delay = Math.min(initialDelay * Math.pow(2, attempt), maxDelay);
+        
+        if (onRetry) {
+          onRetry(attempt + 1, maxRetries, delay, error);
+        } else {
+          warn(`[RETRY] ⚠️ Intento ${attempt + 1}/${maxRetries} falló, reintentando en ${delay}ms...`, error.message);
+        }
+        
+        // Esperar antes del siguiente intento
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        // No más reintentos o no se debe reintentar
+        if (attempt >= maxRetries) {
+          error('[RETRY] ❌ Todos los intentos fallaron después de', maxRetries, 'reintentos');
+        }
+        throw lastError;
+      }
+    }
+  }
+  
+  throw lastError;
+}
+
+/**
+ * ✅ Determina si un error de red debe ser reintentado
+ */
+function shouldRetryNetworkError(error) {
+  // Reintentar errores de red, timeout, o errores 5xx
+  if (!error) return false;
+  
+  const errorMessage = error.message || String(error);
+  const errorCode = error.code || error.status;
+  
+  // Errores de red
+  if (errorMessage.includes('network') || 
+      errorMessage.includes('fetch') ||
+      errorMessage.includes('timeout') ||
+      errorMessage.includes('ECONNREFUSED') ||
+      errorMessage.includes('ENOTFOUND')) {
+    return true;
+  }
+  
+  // Errores HTTP 5xx (errores del servidor)
+  if (errorCode >= 500 && errorCode < 600) {
+    return true;
+  }
+  
+  // Errores específicos de Firebase
+  if (errorMessage.includes('permission-denied') ||
+      errorMessage.includes('unavailable') ||
+      errorMessage.includes('deadline-exceeded')) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * ✅ Wrapper para operaciones de Firebase con retry
+ */
+async function firebaseOperationWithRetry(operation, options = {}) {
+  return retryWithBackoff(
+    () => operation(),
+    {
+      maxRetries: 3,
+      initialDelay: 1000,
+      maxDelay: 5000,
+      shouldRetry: shouldRetryNetworkError,
+      onRetry: (attempt, maxRetries, delay) => {
+        log(`[FIREBASE RETRY] Reintento ${attempt}/${maxRetries} en ${delay}ms...`);
+      },
+      ...options
+    }
+  );
+}
+
+/**
+ * ✅ Wrapper para operaciones de red con retry
+ */
+async function networkOperationWithRetry(operation, options = {}) {
+  return retryWithBackoff(
+    () => operation(),
+    {
+      maxRetries: 3,
+      initialDelay: 2000,
+      maxDelay: 10000,
+      shouldRetry: shouldRetryNetworkError,
+      onRetry: (attempt, maxRetries, delay) => {
+        log(`[NETWORK RETRY] Reintento ${attempt}/${maxRetries} en ${delay}ms...`);
+      },
+      ...options
+    }
+  );
+}
+
+/* ===================== MEMOIZACIÓN Y OPTIMIZACIÓN DE RE-RENDERS ===================== */
+
+/**
+ * ✅ Sistema de memoización para evitar re-renders innecesarios
+ */
+const renderCache = new Map();
+
+/**
+ * ✅ Genera un hash simple de los datos para comparación rápida
+ */
+function generateDataHash(data) {
+  try {
+    return JSON.stringify(data);
+  } catch (e) {
+    return String(data);
+  }
+}
+
+/**
+ * ✅ Verifica si los datos han cambiado desde el último render
+ * @param {string} cacheKey - Clave única para este render
+ * @param {any} newData - Nuevos datos a comparar
+ * @returns {boolean} true si los datos cambiaron
+ */
+function hasDataChanged(cacheKey, newData) {
+  const newHash = generateDataHash(newData);
+  const cachedHash = renderCache.get(cacheKey);
+  
+  if (cachedHash === newHash) {
+    return false; // No hay cambios
+  }
+  
+  // Actualizar caché
+  renderCache.set(cacheKey, newHash);
+  return true; // Hay cambios
+}
+
+/**
+ * ✅ Limpia el caché de renders
+ */
+function clearRenderCache() {
+  renderCache.clear();
+  log('[RENDER CACHE] ✅ Caché de renders limpiado');
+}
+
+/**
+ * ✅ Limpia el caché de un render específico
+ */
+function clearRenderCacheFor(key) {
+  renderCache.delete(key);
+}
+
+/**
+ * ✅ Wrapper para renderCourse con memoización
+ */
+let lastRenderCourseData = null;
+let lastRenderCourseHex = null;
+
+function shouldRenderCourse(hex, data) {
+  const cacheKey = `course_${hex}`;
+  const dataToCompare = {
+    title: data?.title,
+    meta: data?.meta,
+    filesCount: (data?.files || []).length,
+    type: data?.type,
+    card: data?.card
+  };
+  
+  // Si es el mismo curso y los datos no cambiaron, no renderizar
+  if (hex === lastRenderCourseHex && !hasDataChanged(cacheKey, dataToCompare)) {
+    log('[RENDER] ⏸️ Datos del curso no cambiaron, omitiendo re-render');
+    return false;
+  }
+  
+  lastRenderCourseHex = hex;
+  lastRenderCourseData = dataToCompare;
+  return true;
+}
+
+/**
+ * ✅ Wrapper para buildMasterGrid con memoización
+ */
+let lastMasterGridData = null;
+
+function shouldBuildMasterGrid(coursesData) {
+  const cacheKey = 'master_grid';
+  const dataToCompare = {
+    coursesCount: Object.keys(coursesData || {}).length,
+    courses: Object.entries(coursesData || {}).map(([hex, data]) => ({
+      hex: hex.substring(0, 8),
+      title: data?.title,
+      type: data?.type,
+      filesCount: (data?.files || []).length
+    }))
+  };
+  
+  // Si los datos no cambiaron, no renderizar
+  if (!hasDataChanged(cacheKey, dataToCompare)) {
+    log('[RENDER] ⏸️ Datos del grid no cambiaron, omitiendo re-render');
+    return false;
+  }
+  
+  lastMasterGridData = dataToCompare;
+  return true;
+}
+
+/* ===================== CACHÉ DE BÚSQUEDAS ===================== */
+
+/**
+ * ✅ Sistema de caché para resultados de búsqueda
+ * Almacena resultados para evitar recalcular filtros
+ */
+const searchCache = new Map();
+const SEARCH_CACHE_MAX_SIZE = 50; // Máximo de entradas en caché
+const SEARCH_CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
+/**
+ * ✅ Genera una clave única para la búsqueda
+ */
+function getSearchCacheKey(query, filters) {
+  return JSON.stringify({
+    q: (query || '').toLowerCase().trim(),
+    type: filters?.type || '',
+    tag: filters?.tag || '',
+    sort: filters?.sort || 'title-asc'
+  });
+}
+
+/**
+ * ✅ Obtiene resultado de búsqueda del caché
+ */
+function getCachedSearchResult(key) {
+  const cached = searchCache.get(key);
+  if (!cached) return null;
+  
+  // Verificar si el caché expiró
+  if (Date.now() - cached.timestamp > SEARCH_CACHE_TTL) {
+    searchCache.delete(key);
+    return null;
+  }
+  
+  return cached.result;
+}
+
+/**
+ * ✅ Guarda resultado de búsqueda en caché
+ */
+function setCachedSearchResult(key, result) {
+  // Limpiar caché si está lleno
+  if (searchCache.size >= SEARCH_CACHE_MAX_SIZE) {
+    // Eliminar la entrada más antigua
+    const firstKey = searchCache.keys().next().value;
+    searchCache.delete(firstKey);
+  }
+  
+  searchCache.set(key, {
+    result: result,
+    timestamp: Date.now()
+  });
+}
+
+/**
+ * ✅ Limpia el caché de búsquedas
+ */
+function clearSearchCache() {
+  searchCache.clear();
+  log('[SEARCH CACHE] ✅ Caché limpiado');
+}
+
+/**
+ * ✅ Debounce mejorado con cancelación inteligente
+ * Permite cancelar la ejecución si hay una nueva llamada
+ */
+function smartDebounce(func, wait, options = {}) {
+  let timeout;
+  let lastArgs;
+  let lastContext;
+  const { immediate = false, maxWait = null } = options;
+  let maxTimeout;
+  
+  const later = () => {
+    timeout = null;
+    if (maxTimeout) {
+      clearTimeout(maxTimeout);
+      maxTimeout = null;
+    }
+    if (!immediate) func.apply(lastContext, lastArgs);
+  };
+  
+  const debounced = function(...args) {
+    lastArgs = args;
+    lastContext = this;
+    
+    const callNow = immediate && !timeout;
+    
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+    
+    timeout = setTimeout(later, wait);
+    
+    // Max wait: forzar ejecución después de un tiempo máximo
+    if (maxWait && !maxTimeout) {
+      maxTimeout = setTimeout(() => {
+        if (timeout) {
+          clearTimeout(timeout);
+          timeout = null;
+        }
+        func.apply(lastContext, lastArgs);
+        maxTimeout = null;
+      }, maxWait);
+    }
+    
+    if (callNow) {
+      func.apply(lastContext, lastArgs);
+    }
+  };
+  
+  debounced.cancel = () => {
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = null;
+    }
+    if (maxTimeout) {
+      clearTimeout(maxTimeout);
+      maxTimeout = null;
+    }
+  };
+  
+  return debounced;
+}
+
 /* ===================== SKELETON SCREENS Y LAZY LOADING ===================== */
 
 /**
@@ -1897,7 +2262,12 @@ async function updateCustomCourse(hex, courseData){
         createdAt: existingCourse.createdAt || firebase.database.ServerValue.TIMESTAMP,
         updatedAt: firebase.database.ServerValue.TIMESTAMP
       };
-      await db.ref(`customCourses/${hex}`).set(firebasePayload);
+      
+      // ✅ Usar retry automático para operaciones de Firebase
+      await firebaseOperationWithRetry(
+        () => db.ref(`customCourses/${hex}`).set(firebasePayload)
+      );
+      
       log('[UPDATE COURSE] ✅ Curso actualizado en Firebase Realtime Database');
       if (typeof window.showToast === 'function') {
         window.showToast('success', 'Curso actualizado', `"${courseData.card?.tag || 'Curso'}" actualizado exitosamente`);
@@ -2467,13 +2837,15 @@ window.agregarLinkFirebase = async function(courseHex, label, url) {
     
     log('[FIRESTORE] 📤 Enviando datos a Realtime Database...');
     
-    // Generar nuevo ID y agregar link
+    // Generar nuevo ID y agregar link con retry
     const newLinkRef = linksRef.push();
-    await newLinkRef.set({
-      label: label.trim(),
-      url: url.trim(),
-      createdAt: firebase.database.ServerValue.TIMESTAMP
-    });
+    await firebaseOperationWithRetry(
+      () => newLinkRef.set({
+        label: label.trim(),
+        url: url.trim(),
+        createdAt: firebase.database.ServerValue.TIMESTAMP
+      })
+    );
     
     log('[FIRESTORE] ✅ Link agregado con ID:', newLinkRef.key);
     log('[FIRESTORE] ⏳ El cambio se detectará automáticamente en todos los dispositivos...');
@@ -2520,7 +2892,11 @@ window.eliminarLinkFirebase = async function(courseHex, firebaseId) {
     
     // Referencia al link específico (Realtime Database)
     const linkRef = db.ref(`courses/${courseHex}/links/${firebaseId}`);
-    await linkRef.remove();
+    
+    // ✅ Usar retry automático para operaciones de Firebase
+    await firebaseOperationWithRetry(
+      () => linkRef.remove()
+    );
     
     log('[FIRESTORE] ✅ Link eliminado de Firebase');
     
@@ -2766,7 +3142,12 @@ async function remoteSaveFiles(hex, files){
 }
 async function refreshFromRemote(hex, context){
   try {
-    const remote = await remoteGetFiles(hex);
+    // ✅ Usar retry automático para operaciones de red
+    const remote = await networkOperationWithRetry(
+      () => remoteGetFiles(hex),
+      { maxRetries: 2, initialDelay: 1500 }
+    );
+    
     if (!remote || !Array.isArray(remote)) return false;
     const current = getFilesForHex(hex);
     if (stableStringify(remote) !== stableStringify(current)) {
@@ -2783,7 +3164,7 @@ async function refreshFromRemote(hex, context){
     }
     return false;
   } catch (e) {
-    warn('Error en refreshFromRemote:', e);
+    warn('Error en refreshFromRemote después de reintentos:', e);
     return false;
   }
 }
@@ -5350,6 +5731,17 @@ function renderCourse(keyHex) {
   const mergedMap = getMergedAccessHashMap();
   const data = mergedMap[keyHex];
   if (!data) return;
+  
+  // ✅ Verificar si es necesario renderizar (memoización)
+  if (!shouldRenderCourse(keyHex, data)) {
+    // Solo actualizar contador de archivos si es necesario
+    const files = getFilesForHex(keyHex);
+    const filesCountEl = $('#files-count');
+    if (filesCountEl) {
+      filesCountEl.textContent = (files || []).length;
+    }
+    return;
+  }
 
   // ✅ Guardar hex globalmente para el botón de sincronización forzada
   window.currentCourseHex = keyHex;
@@ -5693,13 +6085,25 @@ function buildMasterGrid() {
     return;
   }
   
+  // ✅ Limpiar cachés cuando se reconstruye el grid
+  clearSearchCache();
+  if (typeof window.invalidateSuggestionsCache === 'function') {
+    window.invalidateSuggestionsCache();
+  }
+  
   // ✅ Iniciar medición de renderizado del grid
   const gridStart = startPerformanceMeasure('Renderizado del grid');
   
+  const mergedMap = getMergedAccessHashMap();
+  
+  // ✅ Verificar si es necesario renderizar (memoización)
+  if (!shouldBuildMasterGrid(mergedMap)) {
+    log('[RENDER] ⏸️ Grid no necesita re-render, datos sin cambios');
+    return;
+  }
+  
   const grid = $('#masterGrid');
   grid.innerHTML = '';
-
-  const mergedMap = getMergedAccessHashMap();
 
   initFirebaseCustomCoursesRealtime();
   
@@ -7335,8 +7739,19 @@ function setupMasterSearch(){
     }
   }
 
-  // ✅ Función para obtener todas las sugerencias disponibles
+  // ✅ Función para obtener todas las sugerencias disponibles (con caché)
+  let suggestionsCache = null;
+  let suggestionsCacheTimestamp = 0;
+  const SUGGESTIONS_CACHE_TTL = 2 * 60 * 1000; // 2 minutos
+  
   function getSuggestions() {
+    // ✅ Usar caché si está disponible y no ha expirado
+    const now = Date.now();
+    if (suggestionsCache && (now - suggestionsCacheTimestamp) < SUGGESTIONS_CACHE_TTL) {
+      return suggestionsCache;
+    }
+    
+    // ✅ Recalcular sugerencias
     const mergedMap = getMergedAccessHashMap();
     const suggestions = new Set();
     
@@ -7365,8 +7780,23 @@ function setupMasterSearch(){
       suggestions.add(typeLabels[type] || 'curso');
     });
     
-    return Array.from(suggestions);
+    const result = Array.from(suggestions);
+    
+    // ✅ Guardar en caché
+    suggestionsCache = result;
+    suggestionsCacheTimestamp = now;
+    
+    return result;
   }
+  
+  // ✅ Limpiar caché de sugerencias cuando se reconstruye el grid
+  function invalidateSuggestionsCache() {
+    suggestionsCache = null;
+    suggestionsCacheTimestamp = 0;
+  }
+  
+  // ✅ Exponer función para limpiar caché desde fuera
+  window.invalidateSuggestionsCache = invalidateSuggestionsCache;
 
   // ✅ Función para mostrar autocompletado
   function showAutocomplete(query) {
@@ -7501,38 +7931,51 @@ function setupMasterSearch(){
     const q = (input.value || '').trim().toLowerCase();
     const cards = Array.from(grid.querySelectorAll('.master-card'));
     
-    // ✅ Aplicar filtros avanzados
-    let filteredCards = cards;
+    // ✅ Generar clave de caché
+    const cacheKey = getSearchCacheKey(q, advancedFiltersState);
     
-    // Filtro por búsqueda de texto
-    if (q) {
-      filteredCards = filteredCards.filter(c => {
-        const t = (c.dataset.title || '').toLowerCase();
-        const tg = (c.dataset.tag || '').toLowerCase();
-        const type = (c.dataset.type || '').toLowerCase();
-        return t.includes(q) || tg.includes(q) || type.includes(q);
-      });
+    // ✅ Intentar obtener del caché
+    let filteredCards = getCachedSearchResult(cacheKey);
+    
+    if (!filteredCards) {
+      // ✅ Si no está en caché, calcular resultado
+      filteredCards = cards;
+      
+      // Filtro por búsqueda de texto
+      if (q) {
+        filteredCards = filteredCards.filter(c => {
+          const t = (c.dataset.title || '').toLowerCase();
+          const tg = (c.dataset.tag || '').toLowerCase();
+          const type = (c.dataset.type || '').toLowerCase();
+          return t.includes(q) || tg.includes(q) || type.includes(q);
+        });
+      }
+      
+      // Filtro por tipo
+      if (advancedFiltersState.type) {
+        filteredCards = filteredCards.filter(c => {
+          const type = (c.dataset.type || 'curso').toLowerCase();
+          return type === advancedFiltersState.type.toLowerCase();
+        });
+      }
+      
+      // Filtro por tag
+      if (advancedFiltersState.tag) {
+        const tagFilter = advancedFiltersState.tag.trim().toLowerCase();
+        filteredCards = filteredCards.filter(c => {
+          const tg = (c.dataset.tag || '').toLowerCase();
+          return tg.includes(tagFilter);
+        });
+      }
+      
+      // ✅ Aplicar ordenamiento
+      filteredCards = sortCards(filteredCards, advancedFiltersState.sort);
+      
+      // ✅ Guardar en caché (solo si hay filtros activos o búsqueda)
+      if (q || advancedFiltersState.type || advancedFiltersState.tag) {
+        setCachedSearchResult(cacheKey, filteredCards);
+      }
     }
-    
-    // Filtro por tipo
-    if (advancedFiltersState.type) {
-      filteredCards = filteredCards.filter(c => {
-        const type = (c.dataset.type || 'curso').toLowerCase();
-        return type === advancedFiltersState.type.toLowerCase();
-      });
-    }
-    
-    // Filtro por tag
-    if (advancedFiltersState.tag) {
-      const tagFilter = advancedFiltersState.tag.trim().toLowerCase();
-      filteredCards = filteredCards.filter(c => {
-        const tg = (c.dataset.tag || '').toLowerCase();
-        return tg.includes(tagFilter);
-      });
-    }
-    
-    // ✅ Aplicar ordenamiento
-    filteredCards = sortCards(filteredCards, advancedFiltersState.sort);
     
     // ✅ Mostrar/ocultar tarjetas
     cards.forEach(c => {
@@ -7614,10 +8057,10 @@ function setupMasterSearch(){
   // ✅ Event listeners
   let selectedIndex = -1;
   
-  // ✅ Debounce para optimizar búsqueda (300ms)
-  const debouncedFilter = debounce(() => {
+  // ✅ Debounce mejorado para optimizar búsqueda (250ms con maxWait de 1s)
+  const debouncedFilter = smartDebounce(() => {
     applyFilter();
-  }, 300);
+  }, 250, { maxWait: 1000 });
   
   // Mostrar autocompletado inmediatamente, filtrar con delay
   input.addEventListener('input', (e) => {
@@ -8138,6 +8581,278 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', setupKeyboardShortcuts);
 } else {
   setupKeyboardShortcuts();
+}
+
+/* ===================== SISTEMA DE SHORTCUTS DE TECLADO ===================== */
+
+/**
+ * ✅ Configura todos los shortcuts de teclado de la aplicación
+ */
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    // ✅ Ignorar si el usuario está escribiendo en un input/textarea
+    const activeElement = document.activeElement;
+    const isInputFocused = activeElement && (
+      activeElement.tagName === 'INPUT' || 
+      activeElement.tagName === 'TEXTAREA' ||
+      activeElement.isContentEditable
+    );
+    
+    // ✅ Detectar si es Ctrl/Cmd
+    const isCtrl = e.ctrlKey || e.metaKey;
+    const isShift = e.shiftKey;
+    const key = e.key.toLowerCase();
+    
+    // ✅ Shortcuts globales (funcionan en cualquier vista)
+    
+    // Ctrl/Cmd + K: Búsqueda rápida (solo si no hay input enfocado)
+    if (isCtrl && key === 'k' && !isInputFocused) {
+      e.preventDefault();
+      const masterSearch = $('#masterSearch');
+      const searchFiles = $('#search-files');
+      
+      if (masterSearch && document.getElementById('master') && !document.getElementById('master').classList.contains('hidden')) {
+        masterSearch.focus();
+        masterSearch.select();
+      } else if (searchFiles && document.getElementById('content') && !document.getElementById('content').classList.contains('hidden')) {
+        searchFiles.focus();
+        searchFiles.select();
+      }
+      return;
+    }
+    
+    // ✅ Shortcuts solo en vista maestra
+    const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+    
+    if (isMasterView && !isInputFocused) {
+      // Ctrl/Cmd + N: Agregar nuevo curso
+      if (isCtrl && key === 'n') {
+        e.preventDefault();
+        const btnAddCourse = $('#btn-add-course');
+        if (btnAddCourse) {
+          btnAddCourse.click();
+        }
+        return;
+      }
+      
+      // Ctrl/Cmd + F: Enfocar búsqueda
+      if (isCtrl && key === 'f') {
+        e.preventDefault();
+        const masterSearch = $('#masterSearch');
+        if (masterSearch) {
+          masterSearch.focus();
+          masterSearch.select();
+        }
+        return;
+      }
+      
+      // Ctrl/Cmd + E: Exportar backup
+      if (isCtrl && key === 'e') {
+        e.preventDefault();
+        const exportBtn = document.querySelector('[data-action="export-all"]');
+        if (exportBtn) {
+          exportBtn.click();
+        }
+        return;
+      }
+      
+      // Ctrl/Cmd + I: Importar backup
+      if (isCtrl && key === 'i') {
+        e.preventDefault();
+        const importBtn = document.querySelector('[data-action="import"]');
+        if (importBtn) {
+          importBtn.click();
+        }
+        return;
+      }
+      
+      // Ctrl/Cmd + , (coma): Abrir ajustes
+      if (isCtrl && key === ',') {
+        e.preventDefault();
+        const btnSettings = $('#btn-settings');
+        if (btnSettings) {
+          btnSettings.click();
+        }
+        return;
+      }
+      
+      // Ctrl/Cmd + B: Abrir notificaciones
+      if (isCtrl && key === 'b') {
+        e.preventDefault();
+        const btnNotifications = $('#btn-notifications');
+        if (btnNotifications) {
+          btnNotifications.click();
+        }
+        return;
+      }
+    }
+    
+    // ✅ Shortcuts en vista de contenido (curso individual)
+    const isContentView = document.getElementById('content') && !document.getElementById('content').classList.contains('hidden');
+    
+    if (isContentView && !isInputFocused) {
+      // Ctrl/Cmd + F: Buscar archivos
+      if (isCtrl && key === 'f') {
+        e.preventDefault();
+        const searchFiles = $('#search-files');
+        if (searchFiles) {
+          searchFiles.focus();
+          searchFiles.select();
+        }
+        return;
+      }
+      
+      // Escape: Volver a vista maestra o usuario
+      if (key === 'escape') {
+        const btnBackToMaster = $('#btn-back-to-master');
+        const btnBackToUser = $('#btn-back-to-user');
+        
+        if (btnBackToMaster && !btnBackToMaster.classList.contains('hidden')) {
+          btnBackToMaster.click();
+        } else if (btnBackToUser && !btnBackToUser.classList.contains('hidden')) {
+          btnBackToUser.click();
+        }
+        return;
+      }
+    }
+    
+    // ✅ Shortcuts globales para modales
+    if (key === 'escape') {
+      // Cerrar modales abiertos
+      const openModal = document.querySelector('.modal.show');
+      if (openModal) {
+        const closeBtn = openModal.querySelector('.modal-close');
+        if (closeBtn) {
+          closeBtn.click();
+        }
+      }
+      
+      // Cerrar paneles abiertos
+      const notificationsPanel = $('#notifications-panel');
+      if (notificationsPanel && notificationsPanel.style.display !== 'none') {
+        const btnClose = $('#btn-close-notifications');
+        if (btnClose) btnClose.click();
+      }
+      
+      const settingsDropdown = $('#settingsDropdown');
+      if (settingsDropdown && settingsDropdown.style.display !== 'none') {
+        settingsDropdown.style.display = 'none';
+        const btnSettings = $('#btn-settings');
+        if (btnSettings) btnSettings.setAttribute('aria-expanded', 'false');
+      }
+      
+      const settingsDropdownContent = $('#settingsDropdownContent');
+      if (settingsDropdownContent && settingsDropdownContent.style.display !== 'none') {
+        settingsDropdownContent.style.display = 'none';
+        const btnSettingsContent = $('#btn-settings-content');
+        if (btnSettingsContent) btnSettingsContent.setAttribute('aria-expanded', 'false');
+      }
+      
+      // Cerrar autocompletado de búsqueda
+      const autocomplete = $('#searchAutocomplete');
+      if (autocomplete) {
+        autocomplete.style.display = 'none';
+      }
+    }
+    
+    // ✅ Ctrl/Cmd + S: Guardar (si hay formulario de edición abierto)
+    if (isCtrl && key === 's') {
+      const editForm = document.querySelector('[data-edit-form="true"]');
+      if (editForm && !isInputFocused) {
+        e.preventDefault();
+        const btnSave = editForm.querySelector('button.btn:not(.btn-secondary)');
+        if (btnSave && !btnSave.disabled) {
+          btnSave.click();
+        }
+        return;
+      }
+    }
+    
+    // ✅ Ctrl/Cmd + /: Mostrar ayuda de shortcuts
+    if (isCtrl && key === '/' && !isInputFocused) {
+      e.preventDefault();
+      showKeyboardShortcutsHelp();
+      return;
+    }
+  });
+  
+  log('[SHORTCUTS] ✅ Sistema de shortcuts de teclado configurado');
+}
+
+/**
+ * ✅ Muestra un modal con la lista de shortcuts disponibles
+ */
+function showKeyboardShortcutsHelp() {
+  const existingModal = document.getElementById('shortcutsHelpModal');
+  if (existingModal) {
+    existingModal.classList.add('show');
+    return;
+  }
+  
+  const modal = document.createElement('div');
+  modal.id = 'shortcutsHelpModal';
+  modal.className = 'modal show';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h2><i class="ph ph-keyboard"></i> Atajos de Teclado</h2>
+        <button class="modal-close" onclick="this.closest('.modal').classList.remove('show')">&times;</button>
+      </div>
+      <div style="padding: 20px; max-height: 70vh; overflow-y: auto;">
+        <div style="margin-bottom: 24px;">
+          <h3 style="margin: 0 0 12px 0; font-size: 16px; color: var(--accent);">Vista Maestra</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
+            <div><kbd style="background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-family: monospace;">Ctrl+N</kbd> <span style="margin-left: 8px;">Agregar curso</span></div>
+            <div><kbd style="background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-family: monospace;">Ctrl+F</kbd> <span style="margin-left: 8px;">Buscar cursos</span></div>
+            <div><kbd style="background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-family: monospace;">Ctrl+K</kbd> <span style="margin-left: 8px;">Búsqueda rápida</span></div>
+            <div><kbd style="background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-family: monospace;">Ctrl+E</kbd> <span style="margin-left: 8px;">Exportar backup</span></div>
+            <div><kbd style="background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-family: monospace;">Ctrl+I</kbd> <span style="margin-left: 8px;">Importar backup</span></div>
+            <div><kbd style="background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-family: monospace;">Ctrl+,</kbd> <span style="margin-left: 8px;">Ajustes</span></div>
+            <div><kbd style="background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-family: monospace;">Ctrl+B</kbd> <span style="margin-left: 8px;">Notificaciones</span></div>
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 24px;">
+          <h3 style="margin: 0 0 12px 0; font-size: 16px; color: var(--accent);">Vista de Curso</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
+            <div><kbd style="background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-family: monospace;">Ctrl+F</kbd> <span style="margin-left: 8px;">Buscar archivos</span></div>
+            <div><kbd style="background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-family: monospace;">Esc</kbd> <span style="margin-left: 8px;">Volver</span></div>
+            <div><kbd style="background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-family: monospace;">Ctrl+S</kbd> <span style="margin-left: 8px;">Guardar (en edición)</span></div>
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 24px;">
+          <h3 style="margin: 0 0 12px 0; font-size: 16px; color: var(--accent);">Globales</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
+            <div><kbd style="background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-family: monospace;">Esc</kbd> <span style="margin-left: 8px;">Cerrar modales/paneles</span></div>
+            <div><kbd style="background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-family: monospace;">Ctrl+/</kbd> <span style="margin-left: 8px;">Ver esta ayuda</span></div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 20px; padding: 12px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 13px; color: var(--muted);">
+          <strong>💡 Tip:</strong> Los shortcuts no funcionan cuando estás escribiendo en un campo de texto.
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Cerrar al hacer click fuera
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.classList.remove('show');
+    }
+  });
+  
+  // Cerrar con Escape
+  const handleEscape = (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('show')) {
+      modal.classList.remove('show');
+      document.removeEventListener('keydown', handleEscape);
+    }
+  };
+  document.addEventListener('keydown', handleEscape);
 }
 
 /* ============ login ============ */
