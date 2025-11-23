@@ -1092,44 +1092,67 @@ function setupCertificatesListeners() {
         if (certScriptCode) {
           // ✅ Obtener el código usando la función (más eficiente)
           let scriptCode = '';
+          
+          // Verificar si la función existe
           if (typeof window.getGoogleAppsScriptCode === 'function') {
-            scriptCode = window.getGoogleAppsScriptCode();
-          } else if (window.GOOGLE_APPS_SCRIPT_CODE) {
-            scriptCode = window.GOOGLE_APPS_SCRIPT_CODE;
+            try {
+              scriptCode = window.getGoogleAppsScriptCode();
+              console.log('[CERT SCRIPT] Código obtenido de getGoogleAppsScriptCode(), longitud:', scriptCode.length);
+            } catch (funcError) {
+              console.error('[CERT SCRIPT] Error ejecutando getGoogleAppsScriptCode():', funcError);
+              scriptCode = '';
+            }
+          } else {
+            console.warn('[CERT SCRIPT] getGoogleAppsScriptCode no es una función, tipo:', typeof window.getGoogleAppsScriptCode);
+          }
+          
+          // Fallback: intentar acceder directamente a la propiedad
+          if (!scriptCode && window.GOOGLE_APPS_SCRIPT_CODE) {
+            try {
+              scriptCode = window.GOOGLE_APPS_SCRIPT_CODE;
+              console.log('[CERT SCRIPT] Código obtenido de GOOGLE_APPS_SCRIPT_CODE, longitud:', scriptCode.length);
+            } catch (propError) {
+              console.error('[CERT SCRIPT] Error accediendo a GOOGLE_APPS_SCRIPT_CODE:', propError);
+            }
           }
           
           const codeElement = certScriptCode.querySelector('code');
           if (codeElement) {
-            if (scriptCode) {
+            if (scriptCode && scriptCode.length > 0) {
               codeElement.textContent = scriptCode;
-              console.log('[CERT SCRIPT] Código cargado en code element, longitud:', scriptCode.length);
+              console.log('[CERT SCRIPT] ✅ Código cargado en code element, longitud:', scriptCode.length);
             } else {
-              codeElement.textContent = '// Error: No se pudo cargar el código del script';
-              console.error('[CERT SCRIPT] GOOGLE_APPS_SCRIPT_CODE no está disponible');
+              codeElement.textContent = '// Error: No se pudo cargar el código del script\n// Verifica la consola para más detalles';
+              console.error('[CERT SCRIPT] ❌ GOOGLE_APPS_SCRIPT_CODE no está disponible o está vacío');
+              console.log('[CERT SCRIPT] Debug info:', {
+                hasFunction: typeof window.getGoogleAppsScriptCode === 'function',
+                hasProperty: 'GOOGLE_APPS_SCRIPT_CODE' in window,
+                functionType: typeof window.getGoogleAppsScriptCode
+              });
             }
           } else {
             // Si no hay elemento code, poner el código directamente en el pre
-            if (scriptCode) {
+            if (scriptCode && scriptCode.length > 0) {
               certScriptCode.textContent = scriptCode;
-              console.log('[CERT SCRIPT] Código cargado directamente en pre, longitud:', scriptCode.length);
+              console.log('[CERT SCRIPT] ✅ Código cargado directamente en pre, longitud:', scriptCode.length);
             } else {
-              certScriptCode.textContent = '// Error: No se pudo cargar el código del script';
-              console.error('[CERT SCRIPT] GOOGLE_APPS_SCRIPT_CODE no está disponible');
+              certScriptCode.textContent = '// Error: No se pudo cargar el código del script\n// Verifica la consola para más detalles';
+              console.error('[CERT SCRIPT] ❌ GOOGLE_APPS_SCRIPT_CODE no está disponible o está vacío');
             }
           }
         }
       } catch (error) {
-        console.error('[CERT SCRIPT] Error cargando código:', error);
+        console.error('[CERT SCRIPT] ❌ Error cargando código:', error);
         if (certScriptCode) {
           const codeElement = certScriptCode.querySelector('code');
           if (codeElement) {
-            codeElement.textContent = '// Error: ' + error.message;
+            codeElement.textContent = '// Error: ' + error.message + '\n// Stack: ' + (error.stack || 'N/A');
           } else {
-            certScriptCode.textContent = '// Error: ' + error.message;
+            certScriptCode.textContent = '// Error: ' + error.message + '\n// Stack: ' + (error.stack || 'N/A');
           }
         }
       }
-    }, 50);
+    }, 100); // Aumentar el delay para dar más tiempo
     
     console.log('[CERT SCRIPT] Modal mostrado');
   });
