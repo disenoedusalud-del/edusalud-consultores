@@ -692,6 +692,298 @@ function removeToast(toast) {
   }, 300);
 }
 
+// ✅ Sistema de Notificaciones Persistente
+const NOTIFICATIONS_STORAGE_KEY = 'edusalud_notifications';
+const MAX_NOTIFICATIONS = 50;
+
+function saveNotification(type, title, message, action = null) {
+  try {
+    const notifications = getNotifications();
+    const notification = {
+      id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+      type,
+      title,
+      message,
+      action,
+      timestamp: Date.now(),
+      read: false
+    };
+    
+    notifications.unshift(notification);
+    const limited = notifications.slice(0, MAX_NOTIFICATIONS);
+    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(limited));
+    
+    // Actualizar badge
+    updateNotificationsBadge();
+    
+    return notification;
+  } catch (e) {
+    warn('[NOTIFICATIONS] Error guardando notificación:', e);
+    return null;
+  }
+}
+
+function getNotifications() {
+  try {
+    const raw = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    warn('[NOTIFICATIONS] Error obteniendo notificaciones:', e);
+    return [];
+  }
+}
+
+function markNotificationAsRead(id) {
+  try {
+    const notifications = getNotifications();
+    const index = notifications.findIndex(n => n.id === id);
+    if (index !== -1) {
+      notifications[index].read = true;
+      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(notifications));
+      updateNotificationsBadge();
+    }
+  } catch (e) {
+    warn('[NOTIFICATIONS] Error marcando notificación como leída:', e);
+  }
+}
+
+function updateNotificationsBadge() {
+  const badge = $('#notifications-badge');
+  if (badge) {
+    const notifications = getNotifications();
+    const unread = notifications.filter(n => !n.read).length;
+    if (unread > 0) {
+      badge.textContent = unread > 99 ? '99+' : unread;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+}
+
+// ✅ Mejorar showToast para guardar notificaciones importantes
+const originalShowToast = showToast;
+window.showToast = function(type, title, message, duration = 3000, saveToHistory = false) {
+  // Mostrar toast normal
+  originalShowToast(type, title, message, duration);
+  
+  // Guardar notificaciones importantes
+  if (saveToHistory || type === 'error' || type === 'warning') {
+    saveNotification(type, title, message);
+  }
+};
+
+// ✅ Configurar panel de notificaciones
+function setupNotificationsPanel() {
+  const btnNotifications = $('#btn-notifications');
+  const panel = $('#notificationsPanel');
+  const btnClose = $('#btn-close-notifications');
+  const tabNotifications = $('#tab-notifications');
+  const tabActivity = $('#tab-activity');
+  const notificationsContent = $('#notifications-content');
+  const activityContent = $('#activity-content');
+  
+  if (!btnNotifications || !panel) return;
+  
+  // Abrir/cerrar panel
+  btnNotifications.addEventListener('click', () => {
+    const isVisible = panel.style.display !== 'none';
+    panel.style.display = isVisible ? 'none' : 'flex';
+    btnNotifications.setAttribute('aria-expanded', isVisible ? 'false' : 'true');
+    
+    if (!isVisible) {
+      renderNotifications();
+      renderActivity();
+      updateNotificationsBadge();
+    }
+  });
+  
+  btnClose?.addEventListener('click', () => {
+    panel.style.display = 'none';
+    btnNotifications.setAttribute('aria-expanded', 'false');
+  });
+  
+  // Cerrar con Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && panel.style.display !== 'none') {
+      panel.style.display = 'none';
+      btnNotifications.setAttribute('aria-expanded', 'false');
+    }
+  });
+  
+  // Cambiar pestañas
+  tabNotifications?.addEventListener('click', () => {
+    tabNotifications.classList.add('active');
+    tabActivity.classList.remove('active');
+    notificationsContent.style.display = 'block';
+    activityContent.style.display = 'none';
+    tabNotifications.style.borderBottomColor = 'var(--accent)';
+    tabActivity.style.borderBottomColor = 'transparent';
+  });
+  
+  tabActivity?.addEventListener('click', () => {
+    tabActivity.classList.add('active');
+    tabNotifications.classList.remove('active');
+    notificationsContent.style.display = 'none';
+    activityContent.style.display = 'block';
+    tabActivity.style.borderBottomColor = 'var(--accent)';
+    tabNotifications.style.borderBottomColor = 'transparent';
+    renderActivity();
+  });
+  
+  // Filtrar actividad
+  const filterActivity = $('#filter-activity');
+  filterActivity?.addEventListener('change', () => {
+    renderActivity(filterActivity.value);
+  });
+  
+  // Inicializar badge
+  updateNotificationsBadge();
+}
+
+// ✅ Renderizar notificaciones
+function renderNotifications() {
+  const list = $('#notifications-list');
+  const empty = $('#notifications-empty');
+  if (!list || !empty) return;
+  
+  const notifications = getNotifications();
+  
+  if (notifications.length === 0) {
+    list.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  
+  list.style.display = 'flex';
+  empty.style.display = 'none';
+  list.innerHTML = '';
+  
+  notifications.forEach(notification => {
+    const item = document.createElement('div');
+    item.style.cssText = `
+      padding: 12px;
+      background: ${notification.read ? 'rgba(90,169,255,0.05)' : 'rgba(90,169,255,0.1)'};
+      border-left: 3px solid ${getToastColor(notification.type)};
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    `;
+    
+    if (!notification.read) {
+      item.style.fontWeight = '500';
+    }
+    
+    item.addEventListener('click', () => {
+      markNotificationAsRead(notification.id);
+      item.style.background = 'rgba(90,169,255,0.05)';
+      item.style.fontWeight = 'normal';
+      updateNotificationsBadge();
+    });
+    
+    const time = new Date(notification.timestamp);
+    const timeStr = time.toLocaleString('es-ES', { 
+      day: 'numeric', 
+      month: 'short', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+    
+    item.innerHTML = `
+      <div style="display: flex; align-items: start; gap: 12px;">
+        <div style="font-size: 20px; flex-shrink: 0;">${getToastIcon(notification.type)}</div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 600; font-size: 13px; color: var(--text); margin-bottom: 4px;">${escapeHTML(notification.title)}</div>
+          <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">${escapeHTML(notification.message)}</div>
+          <div style="font-size: 11px; color: var(--muted); opacity: 0.7;">${timeStr}</div>
+        </div>
+        ${!notification.read ? '<div style="width: 8px; height: 8px; background: var(--accent); border-radius: 50%; flex-shrink: 0; margin-top: 4px;"></div>' : ''}
+      </div>
+    `;
+    
+    list.appendChild(item);
+  });
+}
+
+// ✅ Renderizar actividad
+function renderActivity(filter = 'all') {
+  const list = $('#activity-list');
+  const empty = $('#activity-empty');
+  if (!list || !empty) return;
+  
+  const logs = getAuditLogs();
+  let filteredLogs = logs;
+  
+  if (filter !== 'all') {
+    filteredLogs = logs.filter(log => log.action === filter);
+  }
+  
+  // Ordenar por fecha (más recientes primero) y limitar a 50
+  filteredLogs = filteredLogs
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 50);
+  
+  if (filteredLogs.length === 0) {
+    list.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  
+  list.style.display = 'flex';
+  empty.style.display = 'none';
+  list.innerHTML = '';
+  
+  const actionLabels = {
+    'course_created': { icon: '✅', label: 'Curso creado', color: '#4ade80' },
+    'course_edited': { icon: '✏️', label: 'Curso editado', color: '#5aa9ff' },
+    'course_deleted': { icon: '🗑️', label: 'Curso eliminado', color: '#ff5555' },
+    'email_added': { icon: '📧', label: 'Email agregado', color: '#fbbf24' },
+    'email_removed': { icon: '📧', label: 'Email eliminado', color: '#ff5555' },
+    'admin_added': { icon: '👤', label: 'Admin agregado', color: '#a855f7' },
+    'admin_removed': { icon: '👤', label: 'Admin eliminado', color: '#ff5555' },
+    'backup_exported': { icon: '💾', label: 'Backup exportado', color: '#4ade80' },
+    'backup_imported': { icon: '📥', label: 'Backup importado', color: '#5aa9ff' }
+  };
+  
+  filteredLogs.forEach(log => {
+    const action = actionLabels[log.action] || { icon: 'ℹ️', label: log.action, color: '#5aa9ff' };
+    const time = new Date(log.timestamp);
+    const timeStr = time.toLocaleString('es-ES', { 
+      day: 'numeric', 
+      month: 'short', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+    
+    const item = document.createElement('div');
+    item.style.cssText = `
+      padding: 12px;
+      background: rgba(90,169,255,0.05);
+      border-left: 3px solid ${action.color};
+      border-radius: 4px;
+    `;
+    
+    item.innerHTML = `
+      <div style="display: flex; align-items: start; gap: 12px;">
+        <div style="font-size: 20px; flex-shrink: 0;">${action.icon}</div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 500; font-size: 13px; color: var(--text); margin-bottom: 4px;">${action.label}</div>
+          ${log.details && Object.keys(log.details).length > 0 ? `
+            <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">
+              ${Object.entries(log.details).slice(0, 3).map(([key, value]) => 
+                `<span>${escapeHTML(String(value))}</span>`
+              ).join(' • ')}
+            </div>
+          ` : ''}
+          <div style="font-size: 11px; color: var(--muted); opacity: 0.7;">${timeStr}</div>
+        </div>
+      </div>
+    `;
+    
+    list.appendChild(item);
+  });
+}
+
 // Exponer globalmente
 window.showToast = showToast;
 
@@ -7496,9 +7788,10 @@ async function tryLoginByCode(code) {
       setupMasterSearch();
       $('#year_master').textContent = new Date().getFullYear();
       showMaster();
-      // ✅ Llamar setupAdvancedFilters DESPUÉS de showMaster para asegurar que los elementos estén visibles
+      // ✅ Llamar setupAdvancedFilters y setupNotificationsPanel DESPUÉS de showMaster para asegurar que los elementos estén visibles
       setTimeout(() => {
         setupAdvancedFilters();
+        setupNotificationsPanel();
       }, 50);
       
       // ✅ Google Analytics: Tracking login exitoso Master
@@ -10124,8 +10417,11 @@ if (btnBackToMaster) {
     setQueryParam('code', null);
     // Regresar a vista maestra
     buildMasterGrid();
-    setupMasterSearch();
-    showMaster();
+      setupMasterSearch();
+      showMaster();
+      setTimeout(() => {
+        setupNotificationsPanel();
+      }, 50);
   });
 }
 
