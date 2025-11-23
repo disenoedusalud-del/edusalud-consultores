@@ -447,34 +447,6 @@
         </div>
       </div>
 
-      <!-- Filtros y Ordenamiento -->
-      <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
-        <!-- Filtro por clasificación -->
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <label for="filterByType" style="font-size: 13px; color: var(--muted);">Filtrar:</label>
-          <select id="filterByType" class="input" style="min-width: 150px; font-size: 13px;" title="Filtrar cursos por tipo">
-            <option value="all">Todos</option>
-            <option value="curso"><i class="ph ph-book-open"></i> Cursos</option>
-            <option value="diplomado"><i class="ph ph-graduation-cap"></i> Diplomados</option>
-            <option value="webinar"><i class="ph ph-monitor"></i> Webinars</option>
-            <option value="seminario"><i class="ph ph-note"></i> Seminarios</option>
-            <option value="taller"><i class="ph ph-wrench"></i> Talleres</option>
-          </select>
-        </div>
-        
-        <!-- Ordenamiento -->
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <label for="sortBy" style="font-size: 13px; color: var(--muted);">Ordenar:</label>
-          <select id="sortBy" class="input" style="min-width: 150px; font-size: 13px;" title="Ordenar cursos" aria-label="Ordenar cursos">
-            <option value="title-asc">Nombre (A-Z)</option>
-            <option value="title-desc">Nombre (Z-A)</option>
-            <option value="type-asc">Tipo (A-Z)</option>
-            <option value="date-desc">Más recientes</option>
-            <option value="date-asc">Más antiguos</option>
-          </select>
-        </div>
-      </div>
-
       <!-- Buscador -->
       <div class="master-search">
         <input id="masterSearch" type="text" placeholder="Buscar por nombre, tag o clasificación (ej. GASH, MBF, diplomado)..." aria-label="Buscar cursos" title="Buscar cursos (Ctrl+F)" />
@@ -1172,7 +1144,7 @@
   <script src="assets/js/google-apps-script-code.js?v=1"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
-  <script src="assets/js/app.min.js?v=123" defer></script>
+  <script src="assets/js/app.min.js?v=124" defer></script>
   <script src="assets/js/certificates.js?v=21" defer></script>
   <script>
     // ✅ Forzar actualización del Service Worker si hay una nueva versión
