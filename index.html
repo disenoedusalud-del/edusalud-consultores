@@ -480,6 +480,67 @@
         <input id="masterSearch" type="text" placeholder="Buscar por nombre, tag o clasificación (ej. GASH, MBF, diplomado)..." aria-label="Buscar cursos" title="Buscar cursos (Ctrl+F)" />
         <button id="masterSearchClear" type="button" aria-label="Limpiar búsqueda" title="Limpiar búsqueda">Limpiar</button>
       </div>
+      
+      <!-- ✅ Filtros Avanzados -->
+      <div id="advancedFilters" style="margin-bottom: 16px; padding: 16px; background: rgba(90,169,255,0.05); border: 1px solid rgba(90,169,255,0.2); border-radius: 8px; display: none;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+          <h4 style="margin: 0; font-size: 16px; font-weight: 600;">Filtros Avanzados</h4>
+          <button id="btn-close-filters" class="btn secondary" type="button" aria-label="Cerrar filtros" style="padding: 4px 8px; min-width: auto;">
+            <i class="ph ph-x"></i>
+          </button>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          <!-- Filtro por Tipo -->
+          <div>
+            <label for="filterType" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Tipo de Curso</label>
+            <select id="filterType" class="input" style="width: 100%;" aria-label="Filtrar por tipo de curso">
+              <option value="">Todos los tipos</option>
+              <option value="curso">Curso</option>
+              <option value="diplomado">Diplomado</option>
+              <option value="webinar">Webinar</option>
+              <option value="seminario">Seminario</option>
+              <option value="taller">Taller</option>
+            </select>
+          </div>
+          
+          <!-- Ordenamiento -->
+          <div>
+            <label for="filterSort" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Ordenar por</label>
+            <select id="filterSort" class="input" style="width: 100%;" aria-label="Ordenar resultados">
+              <option value="title-asc">Título (A-Z)</option>
+              <option value="title-desc">Título (Z-A)</option>
+              <option value="date-desc">Más recientes</option>
+              <option value="date-asc">Más antiguos</option>
+              <option value="tag-asc">Tag (A-Z)</option>
+            </select>
+          </div>
+          
+          <!-- Filtro por Tag -->
+          <div>
+            <label for="filterTag" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Tag</label>
+            <input id="filterTag" type="text" class="input" placeholder="Ej. GASH, MBF..." style="width: 100%;" aria-label="Filtrar por tag" />
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end;">
+          <button id="btn-reset-filters" class="btn secondary" type="button" aria-label="Restablecer filtros">Restablecer</button>
+          <button id="btn-apply-filters" class="btn" type="button" aria-label="Aplicar filtros">Aplicar Filtros</button>
+        </div>
+      </div>
+      
+      <!-- Botón para mostrar filtros avanzados -->
+      <div style="margin-bottom: 16px; display: flex; gap: 8px; align-items: center; justify-content: space-between;">
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button id="btn-show-filters" class="btn secondary" type="button" aria-label="Mostrar filtros avanzados" aria-expanded="false" style="padding: 8px 16px;">
+            <i class="ph ph-funnel"></i> Filtros Avanzados
+          </button>
+          <span id="activeFiltersCount" style="font-size: 14px; color: var(--muted); display: none;">
+            <span id="filtersCount">0</span> filtro(s) activo(s)
+          </span>
+        </div>
+        <span id="filterResultsCount" style="font-size: 14px; color: var(--muted); display: none;"></span>
+      </div>
 
       <div class="master-grid" id="masterGrid" role="list" aria-label="Lista de cursos disponibles"></div>
       <p class="footer">© <span id="year_master"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
@@ -1111,7 +1172,7 @@
   <script src="assets/js/google-apps-script-code.js?v=1"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
-  <script src="assets/js/app.min.js?v=121" defer></script>
+  <script src="assets/js/app.min.js?v=122" defer></script>
   <script src="assets/js/certificates.js?v=21" defer></script>
   <script>
     // ✅ Forzar actualización del Service Worker si hay una nueva versión
