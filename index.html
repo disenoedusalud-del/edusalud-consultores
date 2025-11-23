@@ -1557,8 +1557,17 @@
   // ✅ Función que retorna el código del Google Apps Script (sin comentarios)
   // Esto evita problemas de parsing con template literals grandes
   (function() {
+    'use strict';
     try {
+      // ✅ Verificar si la función ya existe
+      if (typeof window.getGoogleAppsScriptCode === 'function') {
+        console.warn('[GOOGLE_SCRIPT] La función ya existe, no se redefinirá');
+        return;
+      }
+      
+      // ✅ Definir la función de forma segura
       window.getGoogleAppsScriptCode = function() {
+        // ✅ Retornar el código como string (no ejecutarlo)
         return `function doGet(e) {
   const action = e.parameter.action;
   let result;
@@ -2202,6 +2211,16 @@ function generarLinksDesdePDFProtegido(params) {
       });
       
       console.log('[GOOGLE_SCRIPT] ✅ Función getGoogleAppsScriptCode definida correctamente');
+      console.log('[GOOGLE_SCRIPT] Verificando función:', typeof window.getGoogleAppsScriptCode);
+      
+      // ✅ Probar la función inmediatamente para detectar errores
+      try {
+        const testCode = window.getGoogleAppsScriptCode();
+        console.log('[GOOGLE_SCRIPT] ✅ Función ejecutada correctamente, código obtenido, longitud:', testCode ? testCode.length : 0);
+      } catch (testError) {
+        console.error('[GOOGLE_SCRIPT] ❌ Error al ejecutar la función:', testError);
+        console.error('[GOOGLE_SCRIPT] Stack:', testError.stack);
+      }
     } catch (error) {
       console.error('[GOOGLE_SCRIPT] ❌ Error definiendo función:', error);
       // Fallback: función que retorna mensaje de error
@@ -2264,15 +2283,33 @@ function generarLinksDesdePDFProtegido(params) {
                 try {
                   let scriptCode = '';
                   if (typeof window.getGoogleAppsScriptCode === 'function') {
-                    scriptCode = window.getGoogleAppsScriptCode();
+                    try {
+                      scriptCode = window.getGoogleAppsScriptCode();
+                      console.log('[CERT SCRIPT] Código obtenido de getGoogleAppsScriptCode(), longitud:', scriptCode ? scriptCode.length : 0);
+                    } catch (funcError) {
+                      console.error('[CERT SCRIPT] Error ejecutando getGoogleAppsScriptCode():', funcError);
+                      scriptCode = '';
+                    }
                   } else if (window.GOOGLE_APPS_SCRIPT_CODE) {
-                    scriptCode = window.GOOGLE_APPS_SCRIPT_CODE;
+                    try {
+                      scriptCode = window.GOOGLE_APPS_SCRIPT_CODE;
+                      console.log('[CERT SCRIPT] Código obtenido de GOOGLE_APPS_SCRIPT_CODE, longitud:', scriptCode ? scriptCode.length : 0);
+                    } catch (propError) {
+                      console.error('[CERT SCRIPT] Error accediendo a GOOGLE_APPS_SCRIPT_CODE:', propError);
+                      scriptCode = '';
+                    }
                   }
-                  codeElement.textContent = scriptCode;
-                  console.log('[CERT SCRIPT] Código cargado en code element, longitud:', scriptCode.length);
+                  
+                  if (scriptCode && scriptCode.length > 0) {
+                    codeElement.textContent = scriptCode;
+                    console.log('[CERT SCRIPT] ✅ Código cargado en code element, longitud:', scriptCode.length);
+                  } else {
+                    codeElement.textContent = '// Error: No se pudo cargar el código del script\n// Verifica la consola para más detalles';
+                    console.error('[CERT SCRIPT] ❌ GOOGLE_APPS_SCRIPT_CODE no está disponible o está vacío');
+                  }
                 } catch (error) {
                   console.error('[CERT SCRIPT] Error:', error);
-                  codeElement.textContent = '// Error: ' + error.message;
+                  codeElement.textContent = '// Error: ' + error.message + '\n// Stack: ' + (error.stack || 'N/A');
                 }
               });
             } else {
@@ -2281,15 +2318,33 @@ function generarLinksDesdePDFProtegido(params) {
                 try {
                   let scriptCode = '';
                   if (typeof window.getGoogleAppsScriptCode === 'function') {
-                    scriptCode = window.getGoogleAppsScriptCode();
+                    try {
+                      scriptCode = window.getGoogleAppsScriptCode();
+                      console.log('[CERT SCRIPT] Código obtenido de getGoogleAppsScriptCode(), longitud:', scriptCode ? scriptCode.length : 0);
+                    } catch (funcError) {
+                      console.error('[CERT SCRIPT] Error ejecutando getGoogleAppsScriptCode():', funcError);
+                      scriptCode = '';
+                    }
                   } else if (window.GOOGLE_APPS_SCRIPT_CODE) {
-                    scriptCode = window.GOOGLE_APPS_SCRIPT_CODE;
+                    try {
+                      scriptCode = window.GOOGLE_APPS_SCRIPT_CODE;
+                      console.log('[CERT SCRIPT] Código obtenido de GOOGLE_APPS_SCRIPT_CODE, longitud:', scriptCode ? scriptCode.length : 0);
+                    } catch (propError) {
+                      console.error('[CERT SCRIPT] Error accediendo a GOOGLE_APPS_SCRIPT_CODE:', propError);
+                      scriptCode = '';
+                    }
                   }
-                  certScriptCode.textContent = scriptCode;
-                  console.log('[CERT SCRIPT] Código cargado directamente en pre, longitud:', scriptCode.length);
+                  
+                  if (scriptCode && scriptCode.length > 0) {
+                    certScriptCode.textContent = scriptCode;
+                    console.log('[CERT SCRIPT] ✅ Código cargado directamente en pre, longitud:', scriptCode.length);
+                  } else {
+                    certScriptCode.textContent = '// Error: No se pudo cargar el código del script\n// Verifica la consola para más detalles';
+                    console.error('[CERT SCRIPT] ❌ GOOGLE_APPS_SCRIPT_CODE no está disponible o está vacío');
+                  }
                 } catch (error) {
                   console.error('[CERT SCRIPT] Error:', error);
-                  certScriptCode.textContent = '// Error: ' + error.message;
+                  certScriptCode.textContent = '// Error: ' + error.message + '\n// Stack: ' + (error.stack || 'N/A');
                 }
               });
             }
