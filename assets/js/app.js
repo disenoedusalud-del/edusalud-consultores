@@ -467,7 +467,7 @@ function getFilteredAuditLogs(filters = {}) {
     if (filters.userId && log.userId !== filters.userId) return false;
     if (filters.startDate && log.timestamp < filters.startDate) return false;
     if (filters.endDate && log.timestamp > filters.endDate) return false;
-    return true;
+  return true;
   }).sort((a, b) => b.timestamp - a.timestamp); // Más recientes primero
 }
 
@@ -1280,17 +1280,24 @@ function setupNotificationsPanel() {
     return;
   }
   
-  // ✅ PREVENIR MÚLTIPLES CONFIGURACIONES
+  // ✅ PREVENIR MÚLTIPLES CONFIGURACIONES - PERO PERMITIR RE-CONFIGURAR SI ES NECESARIO
   if (btnNotifications.dataset.configured === 'true') {
-    return;
+    // ✅ Verificar si el listener existe, si no, reconfigurar
+    if (!btnNotifications._notificationClickHandler) {
+      warn('[NOTIFICATIONS] Botón marcado como configurado pero sin listener, reconfigurando...');
+      btnNotifications.dataset.configured = 'false';
+    } else {
+      log('[NOTIFICATIONS] Panel ya configurado correctamente');
+      return;
+    }
   }
   btnNotifications.dataset.configured = 'true';
   
   // ✅ Función para manejar Escape (definida una sola vez)
   let escapeHandler = null;
   
-  // Abrir/cerrar panel
-  btnNotifications.addEventListener('click', (e) => {
+  // ✅ Función del click handler (guardada para poder verificar si existe)
+  const clickHandler = (e) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -1369,7 +1376,22 @@ function setupNotificationsPanel() {
       panel.style.display = 'none';
       btnNotifications.setAttribute('aria-expanded', 'false');
     }
-  });
+  };
+  
+  // ✅ Guardar referencia al handler para poder verificar si existe
+  btnNotifications._notificationClickHandler = clickHandler;
+  
+  // ✅ Remover listener anterior si existe (por si acaso)
+  if (btnNotifications._oldClickHandler) {
+    btnNotifications.removeEventListener('click', btnNotifications._oldClickHandler);
+  }
+  btnNotifications._oldClickHandler = clickHandler;
+  
+  // Abrir/cerrar panel
+  btnNotifications.addEventListener('click', clickHandler);
+  
+  // ✅ Log para debug
+  log('[NOTIFICATIONS] ✅ Panel configurado correctamente, listener agregado');
   
   btnClose?.addEventListener('click', () => {
     panel.style.display = 'none';
@@ -1416,6 +1438,18 @@ function setupNotificationsPanel() {
   
   // Inicializar badge
   updateNotificationsBadge();
+  
+  // ✅ Exponer función global para debug/reconfiguración manual
+  window.reconfigureNotificationsPanel = () => {
+    const btn = $('#btn-notifications');
+    if (btn) {
+      btn.dataset.configured = 'false';
+      btn._notificationClickHandler = null;
+      btn._oldClickHandler = null;
+      setupNotificationsPanel();
+      log('[NOTIFICATIONS] 🔄 Panel reconfigurado manualmente');
+    }
+  };
 }
 
 // ✅ Renderizar notificaciones (con límite y protección)
@@ -3030,9 +3064,9 @@ window.agregarLinkFirebase = async function(courseHex, label, url) {
     const newLinkRef = linksRef.push();
     await firebaseOperationWithRetry(
       () => newLinkRef.set({
-        label: label.trim(),
-        url: url.trim(),
-        createdAt: firebase.database.ServerValue.TIMESTAMP
+      label: label.trim(),
+      url: url.trim(),
+      createdAt: firebase.database.ServerValue.TIMESTAMP
       })
     );
     
@@ -4049,10 +4083,10 @@ async function performImport(data) {
       if (currentChecksum !== data.checksum) {
         const proceed = confirm('⚠️ El checksum no coincide. El archivo podría estar corrupto.\n\n¿Desea continuar de todas formas?');
         if (!proceed) {
-          if (typeof window.showToast === 'function') {
+      if (typeof window.showToast === 'function') {
             window.showToast('warning', 'Importación cancelada', 'El checksum no coincide.');
-          }
-          return;
+      } 
+      return;
         }
       }
     }
@@ -4069,8 +4103,8 @@ async function performImport(data) {
       Object.entries(data.courses).forEach(([hex, courseData]) => {
         try {
           if (courseData && typeof courseData === 'object' && hex && hex.length === 64) {
-            custom[hex] = courseData;
-            coursesCount++;
+          custom[hex] = courseData;
+          coursesCount++;
           }
         } catch (e) {
           errors.push(`Error importando curso ${hex?.substring(0, 8) || 'desconocido'}: ${e.message}`);
@@ -4085,8 +4119,8 @@ async function performImport(data) {
       Object.entries(data.overrides).forEach(([hex, arr]) => {
         try {
           if (Array.isArray(arr) && hex && hex.length === 64) {
-            saveFilesOverride(hex, arr);
-            overridesCount++;
+          saveFilesOverride(hex, arr); 
+          overridesCount++; 
           }
         } catch (e) {
           errors.push(`Error importando overrides ${hex?.substring(0, 8) || 'desconocido'}: ${e.message}`);
@@ -6316,7 +6350,7 @@ function buildMasterGrid() {
   if (advancedFiltersState && advancedFiltersState.active) {
     // Filtro por tipo
     if (advancedFiltersState.type) {
-      coursesArray = coursesArray.filter(([hex, data]) => {
+    coursesArray = coursesArray.filter(([hex, data]) => {
         const courseType = (data?.type || 'curso').toLowerCase();
         return courseType === advancedFiltersState.type.toLowerCase();
       });
@@ -6333,26 +6367,26 @@ function buildMasterGrid() {
     
     // Aplicar ordenamiento
     const sortBy = advancedFiltersState.sort || 'title-asc';
-    coursesArray.sort(([hexA, dataA], [hexB, dataB]) => {
-      if (sortBy === 'title-asc') {
-        return (dataA.title || '').localeCompare(dataB.title || '');
-      } else if (sortBy === 'title-desc') {
-        return (dataB.title || '').localeCompare(dataA.title || '');
+  coursesArray.sort(([hexA, dataA], [hexB, dataB]) => {
+    if (sortBy === 'title-asc') {
+      return (dataA.title || '').localeCompare(dataB.title || '');
+    } else if (sortBy === 'title-desc') {
+      return (dataB.title || '').localeCompare(dataA.title || '');
       } else if (sortBy === 'tag-asc') {
         const tagA = (dataA.card?.tag || '').toLowerCase();
         const tagB = (dataB.card?.tag || '').toLowerCase();
         return tagA.localeCompare(tagB);
-      } else if (sortBy === 'date-desc') {
-        const dateA = dataA.createdAt || dataA.updatedAt || 0;
-        const dateB = dataB.createdAt || dataB.updatedAt || 0;
-        return dateB - dateA; // Más recientes primero
-      } else if (sortBy === 'date-asc') {
-        const dateA = dataA.createdAt || dataA.updatedAt || 0;
-        const dateB = dataB.createdAt || dataB.updatedAt || 0;
-        return dateA - dateB; // Más antiguos primero
-      }
-      return 0;
-    });
+    } else if (sortBy === 'date-desc') {
+      const dateA = dataA.createdAt || dataA.updatedAt || 0;
+      const dateB = dataB.createdAt || dataB.updatedAt || 0;
+      return dateB - dateA; // Más recientes primero
+    } else if (sortBy === 'date-asc') {
+      const dateA = dataA.createdAt || dataA.updatedAt || 0;
+      const dateB = dataB.createdAt || dataB.updatedAt || 0;
+      return dateA - dateB; // Más antiguos primero
+    }
+    return 0;
+  });
   } else {
     // ✅ Si no hay filtros avanzados activos, ordenar por defecto (título A-Z)
     coursesArray.sort(([hexA, dataA], [hexB, dataB]) => {
@@ -6762,7 +6796,7 @@ function buildMasterGrid() {
     if (filesCountEl) {
       filesCountEl.textContent = (files || []).length;
     }
-    
+
     // lista de archivos (editable con DnD)
     const list = document.createElement('div');
     list.className = 'filelist';
@@ -8133,9 +8167,9 @@ function setupMasterSearch(){
       // Filtro por búsqueda de texto
       if (q) {
         filteredCards = filteredCards.filter(c => {
-          const t = (c.dataset.title || '').toLowerCase();
-          const tg = (c.dataset.tag || '').toLowerCase();
-          const type = (c.dataset.type || '').toLowerCase();
+      const t = (c.dataset.title || '').toLowerCase();
+      const tg = (c.dataset.tag || '').toLowerCase();
+      const type = (c.dataset.type || '').toLowerCase();
           return t.includes(q) || tg.includes(q) || type.includes(q);
         });
       }
@@ -8305,7 +8339,7 @@ function setupMasterSearch(){
   clear?.addEventListener('click', () => {
     input.value = '';
     autocompleteContainer.style.display = 'none';
-    applyFilter();
+          applyFilter();
     input.focus();
   });
 }
@@ -8637,7 +8671,7 @@ function setupKeyboardShortcuts() {
         if (closeBtn) {
           closeBtn.click();
         } else {
-          openModal.classList.remove('show');
+        openModal.classList.remove('show');
         }
         // Enfocar el elemento que abrió el modal si es posible
         const lastFocused = document.querySelector('[data-last-focused]');
@@ -11641,7 +11675,7 @@ if (inputAdminEmail) {
       const emailValue = inputAdminEmail.value.trim();
       const emailValidation = validateEmail(emailValue);
       if (emailValidation.valid) {
-        addAdminUI();
+      addAdminUI();
       } else {
         if (typeof window.showToast === 'function') {
           window.showToast('error', 'Correo inválido', emailValidation.error);
@@ -11720,7 +11754,7 @@ if (inputCourseEmail) {
       const emailValue = inputCourseEmail.value.trim();
       const emailValidation = validateEmail(emailValue);
       if (emailValidation.valid) {
-        addCourseEmailUI();
+      addCourseEmailUI();
       } else {
         if (typeof window.showToast === 'function') {
           window.showToast('error', 'Correo inválido', emailValidation.error);
@@ -11766,8 +11800,8 @@ if (btnBackToMaster) {
     setQueryParam('code', null);
     // Regresar a vista maestra
     buildMasterGrid();
-      setupMasterSearch();
-      showMaster();
+    setupMasterSearch();
+    showMaster();
       setTimeout(() => {
         setupNotificationsPanel();
       }, 50);
