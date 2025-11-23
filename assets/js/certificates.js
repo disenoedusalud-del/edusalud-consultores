@@ -1057,6 +1057,66 @@ function setupCertificatesListeners() {
   // Botón de prueba de conexión
   $('#btn-test-connection')?.addEventListener('click', testScriptConnection);
   
+  // ✅ Botón para mostrar código del script
+  $('#btn-show-cert-script')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('[CERT SCRIPT] Click en botón mostrar código');
+    
+    // Buscar el modal y elementos necesarios
+    const modalCertScript = document.getElementById('modal-cert-script-code');
+    const certScriptCode = document.getElementById('cert-script-code');
+    
+    if (!modalCertScript) {
+      console.error('[CERT SCRIPT] Modal no encontrado');
+      showToast('error', 'Error', 'No se encontró el modal del código del script');
+      return;
+    }
+    
+    // Mostrar el modal
+    modalCertScript.style.display = 'flex';
+    modalCertScript.classList.add('show');
+    
+    // Mostrar indicador de carga
+    if (certScriptCode) {
+      const codeElement = certScriptCode.querySelector('code');
+      if (codeElement) {
+        codeElement.innerHTML = '<i class="ph ph-hourglass"></i> Cargando código...';
+      }
+    }
+    
+    // Cargar el código de forma asíncrona
+    setTimeout(function() {
+      if (certScriptCode) {
+        const codeElement = certScriptCode.querySelector('code');
+        if (codeElement) {
+          // Obtener el código del script desde el HTML (variable global)
+          const scriptCode = window.GOOGLE_APPS_SCRIPT_CODE || '';
+          if (scriptCode) {
+            codeElement.textContent = scriptCode;
+            console.log('[CERT SCRIPT] Código cargado en code element, longitud:', scriptCode.length);
+          } else {
+            codeElement.textContent = '// Error: No se pudo cargar el código del script';
+            console.error('[CERT SCRIPT] GOOGLE_APPS_SCRIPT_CODE no está disponible');
+          }
+        } else {
+          // Si no hay elemento code, poner el código directamente en el pre
+          const scriptCode = window.GOOGLE_APPS_SCRIPT_CODE || '';
+          if (scriptCode) {
+            certScriptCode.textContent = scriptCode;
+            console.log('[CERT SCRIPT] Código cargado directamente en pre, longitud:', scriptCode.length);
+          } else {
+            certScriptCode.textContent = '// Error: No se pudo cargar el código del script';
+            console.error('[CERT SCRIPT] GOOGLE_APPS_SCRIPT_CODE no está disponible');
+          }
+        }
+      }
+    }, 50);
+    
+    console.log('[CERT SCRIPT] Modal mostrado');
+  });
+  
   // Botones de listar recursos
   $('#btn-refresh-templates')?.addEventListener('click', loadTemplates);
   $('#btn-refresh-sheets')?.addEventListener('click', loadSheets);
