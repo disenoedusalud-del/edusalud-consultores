@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Content Security Policy: Permite JSONP y scripts necesarios -->
   <!-- Nota: Si GitHub Pages aplica su propia CSP, esta meta tag podría no tener efecto completo -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://www.gstatic.com https://*.firebaseio.com https://cdn.jsdelivr.net; connect-src 'self' https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://www.google-analytics.com https://*.firebaseio.com https://www.gstatic.com https://firestore.googleapis.com https://*.run.app https://api.emailjs.com https://script.google.com https://*.script.google.com wss://*.firebaseio.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; frame-src 'self' https://*.google.com https://*.googleusercontent.com https://*.firebaseio.com https://*.firebaseapp.com;" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://www.gstatic.com https://*.firebaseio.com https://cdn.jsdelivr.net; connect-src 'self' https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://www.google-analytics.com https://*.firebaseio.com https://www.gstatic.com https://firestore.googleapis.com https://*.run.app https://api.emailjs.com https://script.google.com https://*.script.google.com wss://*.firebaseio.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https: blob:; font-src 'self' data: https://cdn.jsdelivr.net; frame-src 'self' https://*.google.com https://*.googleusercontent.com https://*.firebaseio.com https://*.firebaseapp.com;" />
   <title>Portal de Recursos para Consultores – EduSalud</title>
   <meta name="description" content="Descarga de toolkits (PPT, logos, manuales de marca, social kit, formatos). Acceso mediante código otorgado por coordinación." />
   <link rel="icon" type="image/png" href="assets/logo-edusalud.png" />
@@ -48,8 +48,11 @@
     })();
   </script>
   
+  <!-- Phosphor Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+  
   <!-- Estilos principales -->
-  <link rel="stylesheet" href="assets/css/style.css?v=5" />
+  <link rel="stylesheet" href="assets/css/style.css?v=6" />
 </head>
 <body>
   <div class="wrap">
@@ -71,7 +74,7 @@
       <!-- ✅ Toggle de tema en header (disponible en todas las vistas) -->
       <div style="position: absolute; top: 16px; right: 16px; z-index: 1000;">
         <button id="btn-theme-toggle-header" class="btn secondary" type="button" aria-label="Cambiar tema" title="Alternar entre modo claro y oscuro" style="padding: 8px 12px; min-width: auto; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-          <span id="theme-toggle-icon-header" style="font-size: 18px;">☀️</span>
+          <i id="theme-toggle-icon-header" class="ph ph-sun" style="font-size: 18px;"></i>
         </button>
       </div>
     </header>
@@ -82,8 +85,8 @@
       
       <!-- Pestañas de método de acceso -->
       <div class="auth-tabs" style="display:flex; gap:12px; margin-bottom:24px; border-bottom:1px solid rgba(255,255,255,.08);">
-        <button id="tab-code" class="auth-tab active" type="button" data-tab="code">🔑 Código</button>
-        <button id="tab-account" class="auth-tab" type="button" data-tab="account">👤 Cuenta</button>
+        <button id="tab-code" class="auth-tab active" type="button" data-tab="code"><i class="ph ph-key"></i> Código</button>
+        <button id="tab-account" class="auth-tab" type="button" data-tab="account"><i class="ph ph-user"></i> Cuenta</button>
       </div>
 
       <div class="grid cols-2" style="align-items:center;">
@@ -254,7 +257,7 @@
       <!-- Información del usuario -->
       <div id="userInfo" style="margin-bottom: 16px; padding: 16px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 14px;">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-weight: 600; color: var(--accent);">👤</span>
+          <i class="ph ph-user" style="font-weight: 600; color: var(--accent); font-size: 18px;"></i>
           <span id="userEmailDisplay">Cargando...</span>
         </div>
       </div>
@@ -287,26 +290,26 @@
               
               <!-- ✅ Botón Volver a Master (solo visible cuando viene de vista maestra) -->
               <button id="btn-back-to-master" class="btn secondary hidden" type="button" aria-label="Volver a vista maestra" title="Volver a vista maestra">
-                ← Volver
+                <i class="ph ph-arrow-left"></i> Volver
               </button>
               
               <!-- ✅ Botón de Ajustes para consultores -->
               <div style="position: relative;">
                 <button id="btn-settings-content" class="btn secondary" type="button" aria-label="Abrir menú de ajustes" aria-expanded="false" aria-haspopup="true" title="Ajustes">
-                  ⚙️ Ajustes
+                  <i class="ph ph-gear"></i> Ajustes
                 </button>
                 
                 <!-- Menú desplegable de ajustes para consultores -->
                 <div id="settingsDropdownContent" class="settings-dropdown" style="display: none;" role="menu" aria-label="Menú de ajustes">
                   <!-- Categoría: Apariencia -->
                   <div class="settings-category" data-category="appearance" role="menuitem" tabindex="0" aria-expanded="false">
-                    <span class="settings-category-icon">🎨</span>
+                    <span class="settings-category-icon"><i class="ph ph-palette"></i></span>
                     <span class="settings-category-label">Apariencia</span>
-                    <span class="settings-category-arrow">▶</span>
+                    <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
                   </div>
                   <div class="settings-submenu" data-submenu="appearance" style="display: none;">
                     <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0" title="Alternar entre modo claro y oscuro">
-                      <span id="theme-toggle-icon-content">☀️</span> <span id="theme-toggle-text-content">Cambiar a Modo Claro</span>
+                      <i id="theme-toggle-icon-content" class="ph ph-sun"></i> <span id="theme-toggle-text-content">Cambiar a Modo Claro</span>
                     </div>
                   </div>
                 </div>
@@ -353,72 +356,72 @@
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
         <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
         <div class="row">
-          <button id="btn-add-course" class="btn" type="button" aria-label="Agregar nuevo curso" title="Agregar nuevo curso (Ctrl+N)">➕ Agregar curso</button>
+          <button id="btn-add-course" class="btn" type="button" aria-label="Agregar nuevo curso" title="Agregar nuevo curso (Ctrl+N)"><i class="ph ph-plus"></i> Agregar curso</button>
           
           <!-- ✅ Botón de Ajustes con menú desplegable -->
           <div style="position: relative;">
             <button id="btn-settings" class="btn secondary" type="button" aria-label="Abrir menú de ajustes y herramientas" aria-expanded="false" aria-haspopup="true" title="Ajustes y herramientas">
-              ⚙️ Ajustes
+              <i class="ph ph-gear"></i> Ajustes
             </button>
             
             <!-- Menú desplegable de ajustes -->
             <div id="settingsDropdown" class="settings-dropdown" style="display: none;" role="menu" aria-label="Menú de ajustes">
               <!-- Categoría: Backups -->
               <div class="settings-category" data-category="backups" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de backup">
-                <span class="settings-category-icon">📦</span>
+                <span class="settings-category-icon"><i class="ph ph-package"></i></span>
                 <span class="settings-category-label">Backups</span>
-                <span class="settings-category-arrow">▶</span>
+                <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
               </div>
               <div class="settings-submenu" data-submenu="backups" style="display: none;">
                   <div class="settings-menu-item" data-action="export-all" role="menuitem" tabindex="0" title="Exportar todos los cursos y enlaces como archivo JSON">
-                💾 Exportar Backup Completo
+                <i class="ph ph-floppy-disk"></i> Exportar Backup Completo
               </div>
               <div class="settings-menu-item" data-action="export-filtered" role="menuitem" tabindex="0" title="Exportar solo cursos de un tipo específico (Cursos, Diplomados, Webinars)">
-                📤 Exportar por Tipo...
+                <i class="ph ph-upload"></i> Exportar por Tipo...
               </div>
               <div class="settings-divider" role="separator"></div>
               <div class="settings-menu-item" data-action="import" role="menuitem" tabindex="0" title="Importar un backup anterior desde un archivo JSON">
-                📥 Importar Backup...
+                <i class="ph ph-download"></i> Importar Backup...
               </div>
               <div class="settings-divider" role="separator"></div>
               <div class="settings-menu-item" data-action="backup-history" role="menuitem" tabindex="0" title="Ver historial de backups guardados anteriormente">
-                📋 Historial de Backups
+                <i class="ph ph-clipboard"></i> Historial de Backups
               </div>
               </div>
               
               <!-- Categoría: Gestión de Correos -->
               <div class="settings-category" data-category="emails" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de gestión de correos">
-                <span class="settings-category-icon">📧</span>
+                <span class="settings-category-icon"><i class="ph ph-envelope"></i></span>
                 <span class="settings-category-label">Gestión de Correos</span>
-                <span class="settings-category-arrow">▶</span>
+                <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
               </div>
               <div class="settings-submenu" data-submenu="emails" style="display: none;">
                   <div class="settings-menu-item" data-action="manage-emails" role="menuitem" tabindex="0" title="Gestionar correos permitidos para todos los cursos">
-                📋 Gestión General de Correos
+                <i class="ph ph-clipboard"></i> Gestión General de Correos
               </div>
               </div>
               
               <!-- Categoría: Administradores -->
               <div class="settings-category" data-category="admins" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de administradores">
-                <span class="settings-category-icon">👑</span>
+                <span class="settings-category-icon"><i class="ph ph-crown"></i></span>
                 <span class="settings-category-label">Administradores</span>
-                <span class="settings-category-arrow">▶</span>
+                <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
               </div>
               <div class="settings-submenu" data-submenu="admins" style="display: none;">
                   <div class="settings-menu-item" data-action="manage-admins" role="menuitem" tabindex="0" title="Gestionar administradores con acceso master">
-                👑 Gestión de Administradores
+                <i class="ph ph-crown"></i> Gestión de Administradores
               </div>
               </div>
               
               <!-- Categoría: Apariencia -->
               <div class="settings-category" data-category="appearance" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de apariencia">
-                <span class="settings-category-icon">🎨</span>
+                <span class="settings-category-icon"><i class="ph ph-palette"></i></span>
                 <span class="settings-category-label">Apariencia</span>
-                <span class="settings-category-arrow">▶</span>
+                <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
               </div>
               <div class="settings-submenu" data-submenu="appearance" style="display: none;">
                     <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0" title="Alternar entre modo claro y oscuro">
-                      <span id="theme-toggle-icon">☀️</span> <span id="theme-toggle-text">Cambiar a Modo Claro</span>
+                      <i id="theme-toggle-icon" class="ph ph-sun"></i> <span id="theme-toggle-text">Cambiar a Modo Claro</span>
                     </div>
               </div>
               
@@ -432,15 +435,15 @@
       <!-- Estadísticas -->
       <div id="masterStats" style="margin-bottom: 16px; padding: 16px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 14px;">
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-          <span style="font-weight: 600; color: var(--accent);">📚</span>
+          <i class="ph ph-books" style="font-weight: 600; color: var(--accent); font-size: 18px;"></i>
           <span>Total: <strong id="statsCoursesCount">0</strong></span>
         </div>
         <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px;">
-          <span>📖 Cursos: <strong id="statsTypeCurso">0</strong></span>
-          <span>🎓 Diplomados: <strong id="statsTypeDiplomado">0</strong></span>
-          <span>💻 Webinars: <strong id="statsTypeWebinar">0</strong></span>
-          <span>📝 Seminarios: <strong id="statsTypeSeminario">0</strong></span>
-          <span>🔧 Talleres: <strong id="statsTypeTaller">0</strong></span>
+          <span><i class="ph ph-book-open"></i> Cursos: <strong id="statsTypeCurso">0</strong></span>
+          <span><i class="ph ph-graduation-cap"></i> Diplomados: <strong id="statsTypeDiplomado">0</strong></span>
+          <span><i class="ph ph-monitor"></i> Webinars: <strong id="statsTypeWebinar">0</strong></span>
+          <span><i class="ph ph-note"></i> Seminarios: <strong id="statsTypeSeminario">0</strong></span>
+          <span><i class="ph ph-wrench"></i> Talleres: <strong id="statsTypeTaller">0</strong></span>
         </div>
       </div>
 
@@ -451,11 +454,11 @@
           <label for="filterByType" style="font-size: 13px; color: var(--muted);">Filtrar:</label>
           <select id="filterByType" class="input" style="min-width: 150px; font-size: 13px;" title="Filtrar cursos por tipo">
             <option value="all">Todos</option>
-            <option value="curso">📖 Cursos</option>
-            <option value="diplomado">🎓 Diplomados</option>
-            <option value="webinar">💻 Webinars</option>
-            <option value="seminario">📝 Seminarios</option>
-            <option value="taller">🔧 Talleres</option>
+            <option value="curso"><i class="ph ph-book-open"></i> Cursos</option>
+            <option value="diplomado"><i class="ph ph-graduation-cap"></i> Diplomados</option>
+            <option value="webinar"><i class="ph ph-monitor"></i> Webinars</option>
+            <option value="seminario"><i class="ph ph-note"></i> Seminarios</option>
+            <option value="taller"><i class="ph ph-wrench"></i> Talleres</option>
           </select>
         </div>
         
@@ -504,10 +507,10 @@
           </div>
 
           <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
-            <button id="btn-save-cert-config" class="btn secondary" type="button">💾 Guardar Configuración</button>
-            <button id="btn-load-cert-config" class="btn secondary" type="button">📥 Cargar Configuración</button>
+            <button id="btn-save-cert-config" class="btn secondary" type="button"><i class="ph ph-floppy-disk"></i> Guardar Configuración</button>
+            <button id="btn-load-cert-config" class="btn secondary" type="button"><i class="ph ph-download"></i> Cargar Configuración</button>
             <button id="btn-test-connection" class="btn secondary" type="button">🧪 Probar Conexión</button>
-            <button id="btn-show-cert-script" class="btn secondary" type="button" style="background: rgba(90,169,255,0.15); border-color: var(--accent);">📋 Ver Código del Script</button>
+            <button id="btn-show-cert-script" class="btn secondary" type="button" style="background: rgba(90,169,255,0.15); border-color: var(--accent);"><i class="ph ph-clipboard"></i> Ver Código del Script</button>
           </div>
           <div id="test-connection-status" style="margin-top:12px; font-size:13px; color:var(--muted); min-height:20px;"></div>
         </div>
@@ -515,7 +518,7 @@
         <!-- Selector de Modo -->
         <div class="card" style="margin-bottom:20px; border:2px solid rgba(90,169,255,0.3);">
           <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
-            🎯 Modo de Generación
+            <i class="ph ph-target"></i> Modo de Generación
           </h4>
           
           <div class="form-group">
@@ -524,8 +527,8 @@
               <span class="help-icon" data-help="cert-mode" title="Haz clic para ver ayuda">?</span>
             </label>
             <select id="select-cert-mode" class="input">
-              <option value="webinar">🎓 Modo Webinar (solo {{NOMBRE}})</option>
-              <option value="with-code">🔐 Modo con Código de Validación ({{NOMBRE}} + {{CODIGO_VALIDACION}})</option>
+              <option value="webinar"><i class="ph ph-graduation-cap"></i> Modo Webinar (solo {{NOMBRE}})</option>
+              <option value="with-code"><i class="ph ph-key"></i> Modo con Código de Validación ({{NOMBRE}} + {{CODIGO_VALIDACION}})</option>
             </select>
             <div style="font-size:12px; color:var(--muted); margin-top:8px; padding:12px; background:rgba(90,169,255,0.1); border-radius:8px;">
               <strong>ℹ️ Información:</strong> El modo seleccionado determinará qué variables se usarán en la plantilla y la estructura de la hoja de cálculo.
@@ -536,7 +539,7 @@
         <!-- Paso 1: Configurar Plantilla -->
         <div class="card" style="margin-bottom:20px;">
           <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
-            📄 Paso 1: Plantilla de Certificado
+            <i class="ph ph-file-text"></i> Paso 1: Plantilla de Certificado
           </h4>
           
           <div class="form-group">
@@ -548,7 +551,7 @@
               <select id="select-slide-template" class="input" style="flex:1;">
                 <option value="">-- Seleccionar plantilla --</option>
               </select>
-              <button id="btn-refresh-templates" class="btn secondary" type="button">🔄 Actualizar lista</button>
+              <button id="btn-refresh-templates" class="btn secondary" type="button"><i class="ph ph-arrow-clockwise"></i> Actualizar lista</button>
             </div>
           </div>
         </div>
@@ -568,7 +571,7 @@
               <select id="select-google-sheet" class="input" style="flex:1;">
                 <option value="">-- Seleccionar hoja --</option>
               </select>
-              <button id="btn-refresh-sheets" class="btn secondary" type="button">🔄 Actualizar lista</button>
+              <button id="btn-refresh-sheets" class="btn secondary" type="button"><i class="ph ph-arrow-clockwise"></i> Actualizar lista</button>
             </div>
           </div>
           
@@ -576,7 +579,7 @@
             <label for="input-new-sheet-name">O crear nueva hoja</label>
             <div style="display:flex; gap:8px;">
               <input id="input-new-sheet-name" class="input" type="text" placeholder="Nombre de la hoja" style="flex:1;" />
-              <button id="btn-create-sheet" class="btn secondary" type="button">➕ Crear nueva hoja</button>
+              <button id="btn-create-sheet" class="btn secondary" type="button"><i class="ph ph-plus"></i> Crear nueva hoja</button>
             </div>
           </div>
         </div>
@@ -596,14 +599,14 @@
               <select id="select-folder-originales" class="input" style="flex:1;">
                 <option value="">-- Seleccionar carpeta --</option>
               </select>
-              <button id="btn-refresh-folders" class="btn secondary" type="button">🔄 Actualizar lista</button>
+              <button id="btn-refresh-folders" class="btn secondary" type="button"><i class="ph ph-arrow-clockwise"></i> Actualizar lista</button>
             </div>
           </div>
           
           <div class="form-group" style="margin-top:16px;">
             <div style="display:flex; gap:8px;">
               <input id="input-new-folder-originales" class="input" type="text" placeholder="Nombre de la carpeta" style="flex:1;" />
-              <button id="btn-create-folder-originales" class="btn secondary" type="button">➕ Crear nueva carpeta</button>
+              <button id="btn-create-folder-originales" class="btn secondary" type="button"><i class="ph ph-plus"></i> Crear nueva carpeta</button>
             </div>
           </div>
         </div>
@@ -624,7 +627,7 @@
           </div>
           
           <button id="btn-generate-pdfs" class="btn" type="button" style="width:100%;">
-            📄 Generar PDFs desde Plantilla
+            <i class="ph ph-file-text"></i> Generar PDFs desde Plantilla
           </button>
           
           <!-- Progreso de generación de PDFs -->
@@ -643,7 +646,7 @@
         <!-- ===== SECCIÓN B: GENERAR ENLACES ===== -->
         <div class="card" style="margin-bottom:20px; border:2px solid rgba(90,169,255,0.3);">
           <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
-            🔗 Generar Enlaces de Entrega
+            <i class="ph ph-link"></i> Generar Enlaces de Entrega
           </h4>
           
           <p style="color:var(--muted); font-size:14px; margin-bottom:16px;">
@@ -660,14 +663,14 @@
               <select id="select-folder-protegidos" class="input" style="flex:1;">
                 <option value="">-- Seleccionar carpeta --</option>
               </select>
-              <button id="btn-refresh-folders-prot" class="btn secondary" type="button">🔄 Actualizar</button>
+              <button id="btn-refresh-folders-prot" class="btn secondary" type="button"><i class="ph ph-arrow-clockwise"></i> Actualizar</button>
             </div>
           </div>
           
           <div class="form-group" style="margin-bottom:16px;">
             <div style="display:flex; gap:8px;">
               <input id="input-new-folder-protegidos" class="input" type="text" placeholder="Nombre de la carpeta" style="flex:1;" />
-              <button id="btn-create-folder-protegidos" class="btn secondary" type="button">➕ Crear nueva carpeta</button>
+              <button id="btn-create-folder-protegidos" class="btn secondary" type="button"><i class="ph ph-plus"></i> Crear nueva carpeta</button>
             </div>
           </div>
 
@@ -710,7 +713,7 @@
           </div>
           
           <button id="btn-generate-links" class="btn" type="button" style="width:100%;">
-            🔗 Generar Enlaces
+            <i class="ph ph-link"></i> Generar Enlaces
           </button>
           
           <!-- Progreso de generación de enlaces -->
@@ -754,7 +757,7 @@
   <div id="modalAddCourse" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>➕ Agregar Nuevo Curso</h2>
+        <h2><i class="ph ph-plus"></i> Agregar Nuevo Curso</h2>
         <button class="modal-close" id="modalAddCourseClose" aria-label="Cerrar formulario de nuevo curso" title="Cerrar (Escape)">&times;</button>
       </div>
       <form id="formAddCourse">
@@ -996,7 +999,7 @@
             aria-label="Correo electrónico a autorizar para este curso"
           />
           <button id="btn-add-course-email" class="btn" type="button">
-            ➕ Agregar
+            <i class="ph ph-plus"></i> Agregar
           </button>
         </div>
         
@@ -1096,7 +1099,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
-  <script src="assets/js/app.min.js?v=111" defer></script>
+  <script src="assets/js/app.min.js?v=112" defer></script>
   <script src="assets/js/certificates.js?v=16" defer></script>
   <script>
     // ✅ Forzar actualización del Service Worker si hay una nueva versión
