@@ -1326,7 +1326,7 @@
         onConfirmCallback = null;
       };
       
-      const handleConfirm = () => {
+      let handleConfirm = () => {
         const code = input.value.trim();
         if (!code) {
           if (typeof window.showSuccessModal === 'function') {
