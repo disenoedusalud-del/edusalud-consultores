@@ -299,6 +299,208 @@ function checkRateLimitSimple(action, customLimitMs = null) {
 // ✅ Mantener función antigua para compatibilidad
 const checkRateLimitLegacy = checkRateLimitSimple;
 
+/* ===================== SISTEMA DE LOGS DE AUDITORÍA ===================== */
+
+/**
+ * ✅ Sistema de logs de auditoría para rastrear acciones importantes
+ */
+
+const AUDIT_LOG_KEY = 'edusalud_audit_log';
+const AUDIT_LOG_MAX_SIZE = 500; // Máximo de logs a mantener
+const AUDIT_LOG_FIREBASE_PATH = 'auditLogs'; // Ruta en Firebase (opcional)
+
+// Tipos de acciones auditables
+const AUDIT_ACTION_TYPES = {
+  // Cursos
+  COURSE_CREATED: 'course_created',
+  COURSE_EDITED: 'course_edited',
+  COURSE_DELETED: 'course_deleted',
+  
+  // Emails
+  EMAIL_ADDED: 'email_added',
+  EMAIL_REMOVED: 'email_removed',
+  
+  // Administradores
+  ADMIN_ADDED: 'admin_added',
+  ADMIN_REMOVED: 'admin_removed',
+  
+  // Autenticación
+  LOGIN_SUCCESS: 'login_success',
+  LOGIN_FAILED: 'login_failed',
+  REGISTER_SUCCESS: 'register_success',
+  PASSWORD_RESET: 'password_reset',
+  
+  // Acciones generales
+  EXPORT_DATA: 'export_data',
+  IMPORT_DATA: 'import_data',
+  CONFIG_CHANGED: 'config_changed'
+};
+
+/**
+ * ✅ Obtener logs de auditoría almacenados
+ * @returns {Array} Array de logs
+ */
+function getAuditLogs() {
+  try {
+    if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
+      return [];
+    }
+    const raw = localStorage.getItem(AUDIT_LOG_KEY);
+    const logs = raw ? JSON.parse(raw) : [];
+    return Array.isArray(logs) ? logs : [];
+  } catch (e) {
+    warn('[AUDIT] Error obteniendo logs:', e);
+    return [];
+  }
+}
+
+/**
+ * ✅ Guardar logs de auditoría
+ * @param {Array} logs - Array de logs a guardar
+ */
+function saveAuditLogs(logs) {
+  try {
+    if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
+      warn('[AUDIT] localStorage no disponible');
+      return;
+    }
+    
+    // Limitar tamaño del log
+    const limitedLogs = logs.slice(-AUDIT_LOG_MAX_SIZE);
+    localStorage.setItem(AUDIT_LOG_KEY, JSON.stringify(limitedLogs));
+  } catch (e) {
+    warn('[AUDIT] Error guardando logs:', e);
+  }
+}
+
+/**
+ * ✅ Registrar acción en log de auditoría
+ * @param {string} action - Tipo de acción (AUDIT_ACTION_TYPES)
+ * @param {Object} details - Detalles de la acción
+ * @param {string} userId - ID del usuario que realizó la acción (opcional)
+ * @param {boolean} sendToFirebase - Si enviar a Firebase (opcional, default: false)
+ */
+async function auditLog(action, details = {}, userId = null, sendToFirebase = false) {
+  try {
+    const timestamp = Date.now();
+    const userEmail = userId || window.currentUserEmail || 'anonymous';
+    const userAgent = navigator.userAgent || 'unknown';
+    const url = window.location.href || 'unknown';
+    
+    const logEntry = {
+      id: `${timestamp}_${Math.random().toString(36).substr(2, 9)}`,
+      action,
+      details: {
+        ...details,
+        // Sanitizar detalles para evitar XSS
+        ...Object.keys(details).reduce((acc, key) => {
+          if (typeof details[key] === 'string') {
+            acc[key] = sanitizeHTML(details[key]);
+          } else {
+            acc[key] = details[key];
+          }
+          return acc;
+        }, {})
+      },
+      userId: sanitizeHTML(userEmail),
+      timestamp,
+      userAgent: sanitizeHTML(userAgent.substring(0, 200)), // Limitar tamaño
+      url: sanitizeHTML(url.substring(0, 200)),
+      view: getCurrentView()
+    };
+    
+    // Agregar a logs locales
+    const logs = getAuditLogs();
+    logs.push(logEntry);
+    saveAuditLogs(logs);
+    
+    // Log en consola (solo en desarrollo)
+    if (!IS_PRODUCTION) {
+      log('[AUDIT]', logEntry);
+    }
+    
+    // Enviar a Firebase si está disponible y se solicita
+    if (sendToFirebase && hasRemote() && db) {
+      try {
+        await db.ref(`${AUDIT_LOG_FIREBASE_PATH}/${logEntry.id}`).set({
+          ...logEntry,
+          syncedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+        log('[AUDIT] ✅ Log enviado a Firebase');
+      } catch (firebaseError) {
+        warn('[AUDIT] ⚠️ Error enviando log a Firebase:', firebaseError);
+      }
+    }
+    
+    // Enviar a Google Analytics (eventos importantes)
+    if (typeof gtag !== 'undefined' && IS_PRODUCTION) {
+      try {
+        gtag('event', 'audit_action', {
+          event_category: 'audit',
+          event_label: action,
+          value: 1,
+          user_id: userEmail.substring(0, 100) // Limitar tamaño
+        });
+      } catch (analyticsError) {
+        warn('[AUDIT] Error enviando a Analytics:', analyticsError);
+      }
+    }
+    
+  } catch (error) {
+    // No fallar si el logging falla
+    warn('[AUDIT] Error crítico en auditLog:', error);
+  }
+}
+
+/**
+ * ✅ Obtener logs de auditoría filtrados
+ * @param {Object} filters - Filtros opcionales { action, userId, startDate, endDate }
+ * @returns {Array} Array de logs filtrados
+ */
+function getFilteredAuditLogs(filters = {}) {
+  const logs = getAuditLogs();
+  
+  return logs.filter(log => {
+    if (filters.action && log.action !== filters.action) return false;
+    if (filters.userId && log.userId !== filters.userId) return false;
+    if (filters.startDate && log.timestamp < filters.startDate) return false;
+    if (filters.endDate && log.timestamp > filters.endDate) return false;
+    return true;
+  }).sort((a, b) => b.timestamp - a.timestamp); // Más recientes primero
+}
+
+/**
+ * ✅ Limpiar logs de auditoría antiguos
+ * @param {number} daysToKeep - Días de logs a mantener (default: 30)
+ */
+function cleanOldAuditLogs(daysToKeep = 30) {
+  try {
+    const logs = getAuditLogs();
+    const cutoffDate = Date.now() - (daysToKeep * 24 * 60 * 60 * 1000);
+    const filteredLogs = logs.filter(log => log.timestamp >= cutoffDate);
+    
+    if (filteredLogs.length < logs.length) {
+      saveAuditLogs(filteredLogs);
+      log(`[AUDIT] 🧹 Limpiados ${logs.length - filteredLogs.length} logs antiguos`);
+    }
+  } catch (e) {
+    warn('[AUDIT] Error limpiando logs:', e);
+  }
+}
+
+// ✅ Exponer funciones globalmente para debugging
+window.auditLog = auditLog;
+window.getAuditLogs = getAuditLogs;
+window.getFilteredAuditLogs = getFilteredAuditLogs;
+window.cleanOldAuditLogs = cleanOldAuditLogs;
+
+// ✅ Limpiar logs antiguos al iniciar (mantener últimos 30 días)
+if (typeof window !== 'undefined') {
+  setTimeout(() => cleanOldAuditLogs(30), 5000); // Ejecutar después de 5 segundos
+}
+
+log('[AUDIT] ✅ Sistema de logs de auditoría inicializado');
+
 /* ===================== OPTIMIZACIÓN: DEBOUNCE ===================== */
 
 /**
@@ -1179,6 +1381,15 @@ async function addCustomCourse(hex, courseData){
     title: normalizedCourse.title,
     code: normalizedCourse.code
   });
+  
+  // ✅ Log de auditoría
+  await auditLog(AUDIT_ACTION_TYPES.COURSE_CREATED, {
+    courseHex: hex.substring(0, 8),
+    courseTitle: normalizedCourse.title,
+    courseTag: normalizedCourse.card?.tag || '',
+    courseType: normalizedCourse.type || 'curso',
+    courseCode: normalizedCourse.code ? '***' : '' // No exponer código completo
+  }, null, true); // Enviar a Firebase
 }
 
 // ✅ Hacer exportOverrides() global para acceso desde el menú
@@ -1250,12 +1461,30 @@ async function updateCustomCourse(hex, courseData){
     title: normalizedCourse.title,
     changes: Object.keys(courseData)
   });
+  
+  // ✅ Log de auditoría
+  await auditLog(AUDIT_ACTION_TYPES.COURSE_EDITED, {
+    courseHex: hex.substring(0, 8),
+    courseTitle: normalizedCourse.title,
+    courseTag: normalizedCourse.card?.tag || '',
+    courseType: normalizedCourse.type || 'curso',
+    changes: Object.keys(courseData).join(', ')
+  }, null, true); // Enviar a Firebase
 }
 
 async function removeCustomCourse(hex){
   const custom = loadCustomCourses();
   // ✅ Guardar información del curso antes de eliminarlo (para historial)
   const deletedCourse = custom[hex] || {};
+  
+  // ✅ Log de auditoría ANTES de eliminar
+  await auditLog(AUDIT_ACTION_TYPES.COURSE_DELETED, {
+    courseHex: hex.substring(0, 8),
+    courseTitle: deletedCourse.title || '',
+    courseTag: deletedCourse.card?.tag || '',
+    courseType: deletedCourse.type || 'curso'
+  }, null, true); // Enviar a Firebase
+  
   delete custom[hex];
   saveCustomCourses(custom);
 
@@ -6495,11 +6724,25 @@ async function tryLoginByEmail() {
     // ✅ USAR LA FUNCIÓN EXISTENTE (LÓGICA INTACTA)
     await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
     showAuthMessage('msg-auth', `¡Bienvenido! Tienes acceso a ${allowedCourses.length} curso(s).`, false);
+    
+    // ✅ Log de auditoría
+    await auditLog(AUDIT_ACTION_TYPES.LOGIN_SUCCESS, {
+      email: userEmail,
+      coursesCount: allowedCourses.length
+    }, userEmail, false); // No enviar a Firebase para evitar spam
+    
     return true;
     
   } catch (error) {
     console.error('[AUTH] ❌ Error en login:', error);
     let errorMessage = 'Error al iniciar sesión.';
+    
+    // ✅ Log de auditoría para login fallido
+    const email = getSafeInputValue('#input-email', 'email');
+    await auditLog(AUDIT_ACTION_TYPES.LOGIN_FAILED, {
+      email: email || 'unknown',
+      errorCode: error.code || 'unknown'
+    }, email, false); // No enviar a Firebase para evitar spam
     
     // ✅ Manejar el código nuevo de Firebase que combina user-not-found y wrong-password
     if (error.code === 'auth/invalid-login-credentials' || 
@@ -6709,6 +6952,12 @@ async function tryRegister() {
     const allowedCourses = window.verifiedCoursesForRegistration || [];
     window.currentUserEmail = email;
     await handleSuccessfulAuthWithEmail(email, allowedCourses);
+    
+    // ✅ Log de auditoría
+    await auditLog(AUDIT_ACTION_TYPES.REGISTER_SUCCESS, {
+      email: email,
+      coursesCount: allowedCourses.length
+    }, email, true); // Enviar a Firebase
     
     // Limpiar variables temporales
     window.verifiedEmailForRegistration = null;
@@ -7140,6 +7389,13 @@ async function addEmailToCourse(email, courseHex) {
     
     log('[AUTH] ✅ Correo agregado exitosamente al curso:', email, courseHex.substring(0, 8));
     
+    // ✅ Log de auditoría
+    await auditLog(AUDIT_ACTION_TYPES.EMAIL_ADDED, {
+      email: email.toLowerCase(),
+      courseHex: courseHex.substring(0, 8),
+      addedBy: addedBy
+    }, null, true);
+    
     // ✅ Verificar que se guardó correctamente
     const verifySnapshot = await ref.once('value');
     if (verifySnapshot.exists()) {
@@ -7176,6 +7432,12 @@ async function removeEmailFromCourse(email, courseHex) {
     const emailKey = normalizeEmailKey(email);
     await db.ref(`${COURSE_EMAILS_PATH}/${courseHex}/${emailKey}`).remove();
     log('[AUTH] ✅ Correo eliminado del curso:', email, courseHex.substring(0, 8));
+    
+    // ✅ Log de auditoría
+    await auditLog(AUDIT_ACTION_TYPES.EMAIL_REMOVED, {
+      email: email.toLowerCase(),
+      courseHex: courseHex.substring(0, 8)
+    }, null, true);
     
     return true;
   } catch (error) {
@@ -7341,6 +7603,13 @@ async function addAdmin(email) {
     await ref.set(adminData);
     
     log('[ADMIN] ✅ Administrador agregado:', email);
+    
+    // ✅ Log de auditoría
+    await auditLog(AUDIT_ACTION_TYPES.ADMIN_ADDED, {
+      email: email.toLowerCase(),
+      addedBy: addedBy
+    }, null, true);
+    
     return true;
   } catch (error) {
     console.error('[ADMIN] ❌ Error agregando administrador:', error);
@@ -7360,6 +7629,12 @@ async function removeAdmin(email) {
     await db.ref(`${ADMINS_PATH}/${emailKey}`).remove();
     
     log('[ADMIN] ✅ Administrador eliminado:', email);
+    
+    // ✅ Log de auditoría
+    await auditLog(AUDIT_ACTION_TYPES.ADMIN_REMOVED, {
+      email: email.toLowerCase()
+    }, null, true);
+    
     return true;
   } catch (error) {
     console.error('[ADMIN] ❌ Error eliminando administrador:', error);
