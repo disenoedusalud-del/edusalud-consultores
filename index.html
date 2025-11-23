@@ -52,7 +52,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
   
   <!-- Estilos principales -->
-  <link rel="stylesheet" href="assets/css/style.css?v=10" />
+  <link rel="stylesheet" href="assets/css/style.css?v=11" />
 </head>
 <body>
   <div class="wrap">
@@ -1109,7 +1109,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
-  <script src="assets/js/app.min.js?v=119" defer></script>
+  <script src="assets/js/app.min.js?v=120" defer></script>
   <script src="assets/js/certificates.js?v=17" defer></script>
   <script>
     // ✅ Forzar actualización del Service Worker si hay una nueva versión
@@ -1557,7 +1557,8 @@
   // Esperar a que el DOM esté listo
   document.addEventListener('DOMContentLoaded', function() {
     // Código completo del Google Apps Script
-    const GOOGLE_APPS_SCRIPT_CODE = `function doGet(e) {
+    // ✅ Hacer disponible globalmente para certificates.js
+    window.GOOGLE_APPS_SCRIPT_CODE = `function doGet(e) {
   const action = e.parameter.action;
   let result;
   
@@ -2229,14 +2230,14 @@ function generarLinksDesdePDFProtegido(params) {
             if (codeElement) {
               // Usar requestAnimationFrame para mejor rendimiento
               requestAnimationFrame(function() {
-                codeElement.textContent = GOOGLE_APPS_SCRIPT_CODE;
-                console.log('[CERT SCRIPT] Código cargado en code element, longitud:', GOOGLE_APPS_SCRIPT_CODE.length);
+                codeElement.textContent = window.GOOGLE_APPS_SCRIPT_CODE || GOOGLE_APPS_SCRIPT_CODE || '';
+                console.log('[CERT SCRIPT] Código cargado en code element, longitud:', (window.GOOGLE_APPS_SCRIPT_CODE || GOOGLE_APPS_SCRIPT_CODE || '').length);
               });
             } else {
               // Si no hay elemento code, poner el código directamente en el pre
               requestAnimationFrame(function() {
-                certScriptCode.textContent = GOOGLE_APPS_SCRIPT_CODE;
-                console.log('[CERT SCRIPT] Código cargado directamente en pre, longitud:', GOOGLE_APPS_SCRIPT_CODE.length);
+                certScriptCode.textContent = window.GOOGLE_APPS_SCRIPT_CODE || GOOGLE_APPS_SCRIPT_CODE || '';
+                console.log('[CERT SCRIPT] Código cargado directamente en pre, longitud:', (window.GOOGLE_APPS_SCRIPT_CODE || GOOGLE_APPS_SCRIPT_CODE || '').length);
               });
             }
           }
@@ -2256,7 +2257,8 @@ function generarLinksDesdePDFProtegido(params) {
       btnCopyCertScript.addEventListener('click', async function() {
         console.log('[CERT SCRIPT] Intentando copiar código');
         try {
-          await navigator.clipboard.writeText(GOOGLE_APPS_SCRIPT_CODE);
+          const scriptCode = window.GOOGLE_APPS_SCRIPT_CODE || GOOGLE_APPS_SCRIPT_CODE || '';
+          await navigator.clipboard.writeText(scriptCode);
           const originalText = btnCopyCertScript.textContent;
           btnCopyCertScript.innerHTML = '<i class="ph ph-check-circle"></i> Código Copiado!';
           btnCopyCertScript.style.background = '#4ade80';
@@ -2270,7 +2272,7 @@ function generarLinksDesdePDFProtegido(params) {
           console.error('[CERT SCRIPT] Error copiando código:', err);
           // Fallback: seleccionar el texto
           const textarea = document.createElement('textarea');
-          textarea.value = GOOGLE_APPS_SCRIPT_CODE;
+          textarea.value = window.GOOGLE_APPS_SCRIPT_CODE || GOOGLE_APPS_SCRIPT_CODE || '';
           textarea.style.position = 'fixed';
           textarea.style.opacity = '0';
           document.body.appendChild(textarea);
