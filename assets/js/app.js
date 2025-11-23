@@ -4289,7 +4289,7 @@ function buildMasterGrid() {
       const btnEmails = document.createElement('button');
       btnEmails.className = 'btn secondary';
       btnEmails.type = 'button';
-      btnEmails.textContent = '📧 Correos';
+      btnEmails.innerHTML = '<i class="ph ph-envelope"></i> Correos';
       btnEmails.setAttribute('aria-label', `Gestionar correos permitidos para: ${data.title || 'Curso'}`);
       btnEmails.setAttribute('title', `Gestionar qué correos pueden acceder a "${data.title || 'Curso'}"`);
       btnEmails.addEventListener('click', () => {
@@ -6897,7 +6897,7 @@ async function showCourseEmailsModal(courseHex, courseTitle) {
   const msgEl = $('#msg-course-emails');
   
   if (title) {
-    title.textContent = `📧 Correos Permitidos: ${courseTitle}`;
+    title.innerHTML = `<i class="ph ph-envelope"></i> Correos Permitidos: ${courseTitle}`;
   }
   
   if (input) {
