@@ -9,6 +9,7 @@
   <title>Portal de Recursos para Consultores – EduSalud</title>
   <meta name="description" content="Descarga de toolkits (PPT, logos, manuales de marca, social kit, formatos). Acceso mediante código otorgado por coordinación." />
   <link rel="icon" type="image/png" href="assets/logo-edusalud.png" />
+  <link rel="manifest" href="manifest.json" />
   
   <!-- Google Analytics 4 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-TCR727DDDL"></script>
@@ -28,6 +29,24 @@
     })();
   </script>
   <!-- /EmailJS -->
+  
+  <!-- ✅ Aplicar tema antes del render para evitar flash -->
+  <script>
+    (function() {
+      try {
+        const savedTheme = localStorage.getItem('edusalud-theme');
+        const theme = savedTheme === 'light' ? 'light' : 'dark';
+        if (theme === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+        }
+      } catch (e) {
+        // Si hay error, usar tema oscuro por defecto
+        document.documentElement.removeAttribute('data-theme');
+      }
+    })();
+  </script>
   
   <!-- Estilos principales -->
   <link rel="stylesheet" href="assets/css/style.css?v=4" />
@@ -1070,7 +1089,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
-  <script src="assets/js/app.js?v=109" defer></script>
+  <script src="assets/js/app.min.js?v=110" defer></script>
   <script src="assets/js/certificates.js?v=16" defer></script>
   <script>
     // ✅ Forzar actualización del Service Worker si hay una nueva versión
