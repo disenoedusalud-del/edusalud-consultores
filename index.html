@@ -324,6 +324,17 @@
           <div class="course-row" style="margin-top:12px;">
             <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() coloca la tarjeta aquí --></div>
             <div class="card-right">
+              <!-- ✅ Búsqueda de archivos -->
+              <div style="margin-bottom: 16px; display: flex; gap: 8px; align-items: center;">
+                <div style="position: relative; flex: 1;">
+                  <input id="search-files" type="text" class="input" placeholder="Buscar archivos..." aria-label="Buscar archivos en el curso" style="width: 100%; padding-left: 36px;" />
+                  <i class="ph ph-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none;"></i>
+                </div>
+                <div id="files-stats" style="font-size: 13px; color: var(--muted); white-space: nowrap;">
+                  <span id="files-count">0</span> archivo(s)
+                </div>
+              </div>
+              
               <div class="filelist" id="filelist" aria-live="polite" role="list" aria-label="Lista de archivos del curso"></div>
             </div>
           </div>
@@ -1268,7 +1279,7 @@
   <script src="assets/js/google-apps-script-code.js?v=1"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
-  <script src="assets/js/app.min.js?v=126" defer></script>
+  <script src="assets/js/app.min.js?v=128" defer></script>
   <script src="assets/js/certificates.js?v=21" defer></script>
   <script>
     // ✅ Forzar actualización del Service Worker si hay una nueva versión
