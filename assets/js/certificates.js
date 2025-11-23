@@ -149,7 +149,7 @@ async function testScriptConnection() {
   
   if (btn) {
     btn.disabled = true;
-    btn.textContent = '⏳ Probando...';
+    btn.innerHTML = '<i class="ph ph-hourglass"></i> Probando...';
   }
   
   if (statusEl) {
@@ -179,7 +179,7 @@ async function testScriptConnection() {
       console.log('[CERT] ✅ Conexión exitosa:', data);
       
       if (statusEl) {
-        statusEl.textContent = '✅ Conexión exitosa';
+        statusEl.innerHTML = '<i class="ph ph-check-circle"></i> Conexión exitosa';
         statusEl.style.color = '#4ade80';
       }
       
@@ -192,7 +192,7 @@ async function testScriptConnection() {
     console.error('[CERT] ❌ Error en prueba de conexión:', error);
     
     if (statusEl) {
-      statusEl.textContent = `❌ Error: ${error.message}`;
+      statusEl.innerHTML = `<i class="ph ph-x-circle"></i> Error: ${error.message}`;
       statusEl.style.color = '#ff7a7a';
     }
     
@@ -206,7 +206,7 @@ async function testScriptConnection() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = '🧪 Probar Conexión';
+      btn.innerHTML = '<i class="ph ph-flask"></i> Probar Conexión';
     }
   }
 }
@@ -266,7 +266,7 @@ async function loadTemplates() {
   const btn = $('#btn-refresh-templates');
   if (btn) {
     btn.disabled = true;
-    btn.textContent = '🔄 Cargando...';
+    btn.innerHTML = '<i class="ph ph-arrow-clockwise"></i> Cargando...';
   }
   
   const templates = await listGoogleResources('Slides');
@@ -291,7 +291,7 @@ async function loadTemplates() {
   
   if (btn) {
     btn.disabled = false;
-    btn.textContent = '🔄 Actualizar lista';
+    btn.innerHTML = '<i class="ph ph-arrow-clockwise"></i> Actualizar lista';
   }
   
   if (templates.length > 0) {
@@ -303,7 +303,7 @@ async function loadSheets() {
   const btn = $('#btn-refresh-sheets');
   if (btn) {
     btn.disabled = true;
-    btn.textContent = '🔄 Cargando...';
+    btn.innerHTML = '<i class="ph ph-arrow-clockwise"></i> Cargando...';
   }
   
   const sheets = await listGoogleResources('Sheets');
@@ -328,7 +328,7 @@ async function loadSheets() {
   
   if (btn) {
     btn.disabled = false;
-    btn.textContent = '🔄 Actualizar lista';
+    btn.innerHTML = '<i class="ph ph-arrow-clockwise"></i> Actualizar lista';
   }
   
   if (sheets.length > 0) {
@@ -340,7 +340,7 @@ async function loadFolders() {
   const btn = $('#btn-refresh-folders');
   if (btn) {
     btn.disabled = true;
-    btn.textContent = '🔄 Cargando...';
+    btn.innerHTML = '<i class="ph ph-arrow-clockwise"></i> Cargando...';
   }
   
   const folders = await listGoogleResources('Folders');
@@ -368,7 +368,7 @@ async function loadFolders() {
   
   if (btn) {
     btn.disabled = false;
-    btn.textContent = '🔄 Actualizar lista';
+    btn.innerHTML = '<i class="ph ph-arrow-clockwise"></i> Actualizar lista';
   }
   
   if (folders.length > 0) {
@@ -392,7 +392,7 @@ async function createNewSheet() {
   const btn = $('#btn-create-sheet');
   if (btn) {
     btn.disabled = true;
-    btn.textContent = '⏳ Creando...';
+    btn.innerHTML = '<i class="ph ph-hourglass"></i> Creando...';
   }
   
   try {
@@ -442,7 +442,7 @@ async function createNewSheet() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = '➕ Crear nueva hoja';
+      btn.innerHTML = '<i class="ph ph-plus"></i> Crear nueva hoja';
     }
   }
 }
@@ -461,7 +461,7 @@ async function createNewFolder(folderType) {
   const btn = $(`#btn-create-folder-${folderType}`);
   if (btn) {
     btn.disabled = true;
-    btn.textContent = '⏳ Creando...';
+    btn.innerHTML = '<i class="ph ph-hourglass"></i> Creando...';
   }
   
   try {
@@ -508,7 +508,7 @@ async function createNewFolder(folderType) {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = '➕ Crear nueva carpeta';
+      btn.innerHTML = '<i class="ph ph-plus"></i> Crear nueva carpeta';
     }
   }
 }
@@ -661,7 +661,7 @@ async function generatePDFs() {
   
   if (btn) {
     btn.disabled = true;
-    btn.textContent = '⏳ Generando...';
+    btn.innerHTML = '<i class="ph ph-hourglass"></i> Generando...';
   }
   
   progressEl.style.display = 'block';
@@ -775,13 +775,13 @@ async function generatePDFs() {
         let detailsHTML = `
           <div style="color:#fbbf24; margin-top:8px;">
             ⏰ El script alcanzó el límite de tiempo (6 minutos).<br>
-            ✅ Procesados: ${data.generated || 0}<br>
-            ⏳ Pendientes: ${data.pending || 0}<br>
-            ${data.errors > 0 ? `<span style="color:#ff7a7a;">❌ Errores: ${data.errors}</span><br>` : ''}
+            <i class="ph ph-check-circle"></i> Procesados: ${data.generated || 0}<br>
+            <i class="ph ph-hourglass"></i> Pendientes: ${data.pending || 0}<br>
+            ${data.errors > 0 ? `<span style="color:#ff7a7a;"><i class="ph ph-x-circle"></i> Errores: ${data.errors}</span><br>` : ''}
           </div>
           <div style="margin-top:12px; padding:12px; background:var(--bg-secondary); border-radius:8px; font-size:13px;">
-            <strong>📋 Próximos pasos:</strong><br>
-            1. Verifica que los certificados procesados tengan ✅ en la columna H<br>
+            <strong><i class="ph ph-clipboard"></i> Próximos pasos:</strong><br>
+            1. Verifica que los certificados procesados tengan <i class="ph ph-check-circle"></i> en la columna H<br>
             2. Haz clic en "Generar PDFs" nuevamente<br>
             3. El script omitirá los que ya tienen ✅ y procesará los pendientes<br>
             4. Repite hasta completar todos los certificados
@@ -796,16 +796,16 @@ async function generatePDFs() {
         showToast('warning', 'Proceso parcialmente completado', `Procesados ${data.generated || 0} certificados. Ejecuta nuevamente para continuar.`);
       } else {
         progressBar.style.background = '#4ade80';
-        statusEl.textContent = '✅ Certificados generados exitosamente';
+        statusEl.innerHTML = '<i class="ph ph-check-circle"></i> Certificados generados exitosamente';
         
         let detailsHTML = `
           <div style="color:#4ade80; margin-top:8px;">
-            ✅ Total procesados: ${data.total || 0}<br>
-            ✅ Generados: ${data.generated || 0}<br>
+            <i class="ph ph-check-circle"></i> Total procesados: ${data.total || 0}<br>
+            <i class="ph ph-check-circle"></i> Generados: ${data.generated || 0}<br>
         `;
         
         if (data.errors > 0) {
-          detailsHTML += `<span style="color:#ff7a7a;">❌ Errores: ${data.errors}</span><br>`;
+          detailsHTML += `<span style="color:#ff7a7a;"><i class="ph ph-x-circle"></i> Errores: ${data.errors}</span><br>`;
           
           if (data.errorMessages && data.errorMessages.length > 0) {
             detailsHTML += '<div style="margin-top:8px; font-size:12px; color:var(--muted);">';
@@ -849,7 +849,7 @@ async function generatePDFs() {
     console.error('[CERT] Error completo (objeto):', error);
     console.error('[CERT] Error completo (stringify):', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     
-    statusEl.textContent = '❌ Error al generar certificados';
+    statusEl.innerHTML = '<i class="ph ph-x-circle"></i> Error al generar certificados';
     progressBar.style.width = '100%';
     progressBar.style.background = '#ff7a7a';
     
@@ -894,7 +894,7 @@ Esto generalmente ocurre cuando:
     // ✅ Asegurar que el botón vuelva a su estado normal
     if (btn) {
       btn.disabled = false;
-      btn.textContent = '📄 Generar PDFs desde Plantilla';
+      btn.innerHTML = '<i class="ph ph-file-text"></i> Generar PDFs desde Plantilla';
     }
     // ✅ Asegurar que no quede ningún indicador de carga activo
     // (el intervalo ya se detuvo arriba, pero por si acaso)
@@ -925,7 +925,7 @@ async function generateLinks() {
   
   if (btn) {
     btn.disabled = true;
-    btn.textContent = '⏳ Generando...';
+    btn.innerHTML = '<i class="ph ph-hourglass"></i> Generando...';
   }
   
   progressEl.style.display = 'block';
@@ -997,14 +997,14 @@ async function generateLinks() {
         spinnerEl.style.display = 'none';
       }
       
-      statusEl.textContent = '✅ Enlaces generados exitosamente';
+      statusEl.innerHTML = '<i class="ph ph-check-circle"></i> Enlaces generados exitosamente';
       progressBar.style.width = '100%';
       progressBar.style.background = '#4ade80';
       detailsEl.innerHTML = `
         <div style="color:#4ade80; margin-top:8px;">
-          ✅ Total procesados: ${data.total || 0}<br>
-          ✅ Enlaces creados: ${data.created || 0}<br>
-          ${data.notFound > 0 ? `<span style="color:#fbbf24;">⚠️ No encontrados: ${data.notFound}</span>` : ''}
+          <i class="ph ph-check-circle"></i> Total procesados: ${data.total || 0}<br>
+          <i class="ph ph-check-circle"></i> Enlaces creados: ${data.created || 0}<br>
+          ${data.notFound > 0 ? `<span style="color:#fbbf24;"><i class="ph ph-warning"></i> No encontrados: ${data.notFound}</span>` : ''}
         </div>
       `;
       showToast('success', 'Enlaces generados', 'Los enlaces se han generado correctamente');
@@ -1018,7 +1018,7 @@ async function generateLinks() {
     }
     
     console.error('[CERT] ❌ Error generando enlaces:', error);
-    statusEl.textContent = '❌ Error al generar enlaces';
+    statusEl.innerHTML = '<i class="ph ph-x-circle"></i> Error al generar enlaces';
     progressBar.style.width = '100%';
     progressBar.style.background = '#ff7a7a';
     detailsEl.textContent = error.message;
@@ -1026,7 +1026,7 @@ async function generateLinks() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = '🔗 Generar Enlaces';
+      btn.innerHTML = '<i class="ph ph-link"></i> Generar Enlaces';
     }
     // ✅ Habilitar campos de configuración al finalizar
     enableCertConfig();
