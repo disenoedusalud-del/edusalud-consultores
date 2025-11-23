@@ -1110,7 +1110,7 @@
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
   <script src="assets/js/app.min.js?v=120" defer></script>
-  <script src="assets/js/certificates.js?v=19" defer></script>
+  <script src="assets/js/certificates.js?v=20" defer></script>
   <script>
     // ✅ Forzar actualización del Service Worker si hay una nueva versión
     if ('serviceWorker' in navigator) {
@@ -1556,8 +1556,10 @@
   
   // ✅ Función que retorna el código del Google Apps Script (sin comentarios)
   // Esto evita problemas de parsing con template literals grandes
-  window.getGoogleAppsScriptCode = function() {
-    return `function doGet(e) {
+  (function() {
+    try {
+      window.getGoogleAppsScriptCode = function() {
+        return `function doGet(e) {
   const action = e.parameter.action;
   let result;
   
@@ -2186,15 +2188,34 @@ function generarLinksDesdePDFProtegido(params) {
     throw new Error('Error generando enlaces: ' + error.message);
   }
 }`;
-  };
-  
-  // ✅ Hacer disponible también como variable directa para compatibilidad
-  Object.defineProperty(window, 'GOOGLE_APPS_SCRIPT_CODE', {
-    get: function() {
-      return window.getGoogleAppsScriptCode();
-    },
-    configurable: true
-  });
+      };
+      
+      // ✅ Hacer disponible también como variable directa para compatibilidad
+      Object.defineProperty(window, 'GOOGLE_APPS_SCRIPT_CODE', {
+        get: function() {
+          if (typeof window.getGoogleAppsScriptCode === 'function') {
+            return window.getGoogleAppsScriptCode();
+          }
+          return '';
+        },
+        configurable: true
+      });
+      
+      console.log('[GOOGLE_SCRIPT] ✅ Función getGoogleAppsScriptCode definida correctamente');
+    } catch (error) {
+      console.error('[GOOGLE_SCRIPT] ❌ Error definiendo función:', error);
+      // Fallback: función que retorna mensaje de error
+      window.getGoogleAppsScriptCode = function() {
+        return '// Error: No se pudo cargar el código del script. ' + error.message;
+      };
+      Object.defineProperty(window, 'GOOGLE_APPS_SCRIPT_CODE', {
+        get: function() {
+          return window.getGoogleAppsScriptCode();
+        },
+        configurable: true
+      });
+    }
+  })();
 
   // Esperar a que el DOM esté listo para configurar event listeners
   document.addEventListener('DOMContentLoaded', function() {
