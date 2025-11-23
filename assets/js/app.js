@@ -1274,58 +1274,100 @@ function setupNotificationsPanel() {
   const notificationsContent = $('#notifications-content');
   const activityContent = $('#activity-content');
   
-  if (!btnNotifications || !panel) return;
+  if (!btnNotifications || !panel) {
+    warn('[NOTIFICATIONS] Elementos del panel no encontrados, reintentando en 100ms...');
+    setTimeout(() => setupNotificationsPanel(), 100);
+    return;
+  }
+  
+  // ✅ PREVENIR MÚLTIPLES CONFIGURACIONES
+  if (btnNotifications.dataset.configured === 'true') {
+    return;
+  }
+  btnNotifications.dataset.configured = 'true';
+  
+  // ✅ Función para manejar Escape (definida una sola vez)
+  let escapeHandler = null;
   
   // Abrir/cerrar panel
   btnNotifications.addEventListener('click', () => {
-    const isVisible = panel.style.display !== 'none';
+    const isVisible = panel.style.display !== 'none' && panel.style.display !== '';
     panel.style.display = isVisible ? 'none' : 'flex';
     btnNotifications.setAttribute('aria-expanded', isVisible ? 'false' : 'true');
     
     if (!isVisible) {
-      renderNotifications();
-      renderActivity();
-      updateNotificationsBadge();
+      // ✅ Renderizar de forma segura con try-catch
+      try {
+        renderNotifications();
+        renderActivity();
+        updateNotificationsBadge();
+      } catch (error) {
+        console.error('[NOTIFICATIONS] Error renderizando panel:', error);
+        if (typeof window.showToast === 'function') {
+          window.showToast('error', 'Error', 'Error al cargar notificaciones');
+        }
+      }
+      
+      // ✅ Agregar listener de Escape solo cuando se abre
+      if (!escapeHandler) {
+        escapeHandler = (e) => {
+          if (e.key === 'Escape' && panel.style.display !== 'none' && panel.style.display !== '') {
+            panel.style.display = 'none';
+            btnNotifications.setAttribute('aria-expanded', 'false');
+          }
+        };
+        document.addEventListener('keydown', escapeHandler);
+      }
+    } else {
+      // ✅ Remover listener cuando se cierra
+      if (escapeHandler) {
+        document.removeEventListener('keydown', escapeHandler);
+        escapeHandler = null;
+      }
     }
   });
   
   btnClose?.addEventListener('click', () => {
     panel.style.display = 'none';
     btnNotifications.setAttribute('aria-expanded', 'false');
-  });
-  
-  // Cerrar con Escape
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && panel.style.display !== 'none') {
-      panel.style.display = 'none';
-      btnNotifications.setAttribute('aria-expanded', 'false');
+    if (escapeHandler) {
+      document.removeEventListener('keydown', escapeHandler);
+      escapeHandler = null;
     }
   });
   
   // Cambiar pestañas
   tabNotifications?.addEventListener('click', () => {
     tabNotifications.classList.add('active');
-    tabActivity.classList.remove('active');
-    notificationsContent.style.display = 'block';
-    activityContent.style.display = 'none';
-    tabNotifications.style.borderBottomColor = 'var(--accent)';
-    tabActivity.style.borderBottomColor = 'transparent';
+    tabActivity?.classList.remove('active');
+    if (notificationsContent) notificationsContent.style.display = 'block';
+    if (activityContent) activityContent.style.display = 'none';
+    if (tabNotifications) tabNotifications.style.borderBottomColor = 'var(--accent)';
+    if (tabActivity) tabActivity.style.borderBottomColor = 'transparent';
   });
   
   tabActivity?.addEventListener('click', () => {
     tabActivity.classList.add('active');
-    tabNotifications.classList.remove('active');
-    notificationsContent.style.display = 'none';
-    activityContent.style.display = 'block';
-    tabActivity.style.borderBottomColor = 'var(--accent)';
-    tabNotifications.style.borderBottomColor = 'transparent';
-    renderActivity();
+    tabNotifications?.classList.remove('active');
+    if (notificationsContent) notificationsContent.style.display = 'none';
+    if (activityContent) activityContent.style.display = 'block';
+    if (tabActivity) tabActivity.style.borderBottomColor = 'var(--accent)';
+    if (tabNotifications) tabNotifications.style.borderBottomColor = 'transparent';
+    try {
+      renderActivity();
+    } catch (error) {
+      console.error('[NOTIFICATIONS] Error renderizando actividad:', error);
+    }
   });
   
   // Filtrar actividad
   const filterActivity = $('#filter-activity');
   filterActivity?.addEventListener('change', () => {
-    renderActivity(filterActivity.value);
+    try {
+      renderActivity(filterActivity.value);
+    } catch (error) {
+      console.error('[NOTIFICATIONS] Error filtrando actividad:', error);
+    }
   });
   
   // Inicializar badge
@@ -1396,83 +1438,105 @@ function renderNotifications() {
   });
 }
 
-// ✅ Renderizar actividad
+// ✅ Renderizar actividad (con protección contra errores)
 function renderActivity(filter = 'all') {
-  const list = $('#activity-list');
-  const empty = $('#activity-empty');
-  if (!list || !empty) return;
-  
-  const logs = getAuditLogs();
-  let filteredLogs = logs;
-  
-  if (filter !== 'all') {
-    filteredLogs = logs.filter(log => log.action === filter);
-  }
-  
-  // Ordenar por fecha (más recientes primero) y limitar a 50
-  filteredLogs = filteredLogs
-    .sort((a, b) => b.timestamp - a.timestamp)
-    .slice(0, 50);
-  
-  if (filteredLogs.length === 0) {
-    list.style.display = 'none';
-    empty.style.display = 'block';
-    return;
-  }
-  
-  list.style.display = 'flex';
-  empty.style.display = 'none';
-  list.innerHTML = '';
-  
-  const actionLabels = {
-    'course_created': { icon: '✅', label: 'Curso creado', color: '#4ade80' },
-    'course_edited': { icon: '✏️', label: 'Curso editado', color: '#5aa9ff' },
-    'course_deleted': { icon: '🗑️', label: 'Curso eliminado', color: '#ff5555' },
-    'email_added': { icon: '📧', label: 'Email agregado', color: '#fbbf24' },
-    'email_removed': { icon: '📧', label: 'Email eliminado', color: '#ff5555' },
-    'admin_added': { icon: '👤', label: 'Admin agregado', color: '#a855f7' },
-    'admin_removed': { icon: '👤', label: 'Admin eliminado', color: '#ff5555' },
-    'backup_exported': { icon: '💾', label: 'Backup exportado', color: '#4ade80' },
-    'backup_imported': { icon: '📥', label: 'Backup importado', color: '#5aa9ff' }
-  };
-  
-  filteredLogs.forEach(log => {
-    const action = actionLabels[log.action] || { icon: 'ℹ️', label: log.action, color: '#5aa9ff' };
-    const time = new Date(log.timestamp);
-    const timeStr = time.toLocaleString('es-ES', { 
-      day: 'numeric', 
-      month: 'short', 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
+  try {
+    const list = $('#activity-list');
+    const empty = $('#activity-empty');
+    if (!list || !empty) return;
     
-    const item = document.createElement('div');
-    item.style.cssText = `
-      padding: 12px;
-      background: rgba(90,169,255,0.05);
-      border-left: 3px solid ${action.color};
-      border-radius: 4px;
-    `;
+    const logs = getAuditLogs();
+    if (!Array.isArray(logs)) {
+      warn('[ACTIVITY] Logs no es un array válido');
+      list.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
     
-    item.innerHTML = `
-      <div style="display: flex; align-items: start; gap: 12px;">
-        <div style="font-size: 20px; flex-shrink: 0;">${action.icon}</div>
-        <div style="flex: 1; min-width: 0;">
-          <div style="font-weight: 500; font-size: 13px; color: var(--text); margin-bottom: 4px;">${action.label}</div>
-          ${log.details && Object.keys(log.details).length > 0 ? `
-            <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">
+    let filteredLogs = logs;
+    
+    if (filter !== 'all') {
+      filteredLogs = logs.filter(log => log && log.action === filter);
+    }
+    
+    // Ordenar por fecha (más recientes primero) y limitar a 50
+    filteredLogs = filteredLogs
+      .filter(log => log && log.timestamp) // ✅ Filtrar logs inválidos
+      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+      .slice(0, 50);
+    
+    if (filteredLogs.length === 0) {
+      list.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+    
+    list.style.display = 'flex';
+    empty.style.display = 'none';
+    list.innerHTML = '';
+    
+    const actionLabels = {
+      'course_created': { icon: '✅', label: 'Curso creado', color: '#4ade80' },
+      'course_edited': { icon: '✏️', label: 'Curso editado', color: '#5aa9ff' },
+      'course_deleted': { icon: '🗑️', label: 'Curso eliminado', color: '#ff5555' },
+      'email_added': { icon: '📧', label: 'Email agregado', color: '#fbbf24' },
+      'email_removed': { icon: '📧', label: 'Email eliminado', color: '#ff5555' },
+      'admin_added': { icon: '👤', label: 'Admin agregado', color: '#a855f7' },
+      'admin_removed': { icon: '👤', label: 'Admin eliminado', color: '#ff5555' },
+      'backup_exported': { icon: '💾', label: 'Backup exportado', color: '#4ade80' },
+      'backup_imported': { icon: '📥', label: 'Backup importado', color: '#5aa9ff' }
+    };
+    
+    filteredLogs.forEach(log => {
+      try {
+        const action = actionLabels[log.action] || { icon: 'ℹ️', label: log.action || 'Acción desconocida', color: '#5aa9ff' };
+        const time = new Date(log.timestamp || Date.now());
+        const timeStr = time.toLocaleString('es-ES', { 
+          day: 'numeric', 
+          month: 'short', 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+        
+        const item = document.createElement('div');
+        item.style.cssText = `
+          padding: 12px;
+          background: rgba(90,169,255,0.05);
+          border-left: 3px solid ${action.color};
+          border-radius: 4px;
+        `;
+        
+        const detailsHtml = log.details && typeof log.details === 'object' && Object.keys(log.details).length > 0
+          ? `<div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">
               ${Object.entries(log.details).slice(0, 3).map(([key, value]) => 
-                `<span>${escapeHTML(String(value))}</span>`
+                `<span>${escapeHTML(String(value || ''))}</span>`
               ).join(' • ')}
+            </div>`
+          : '';
+        
+        item.innerHTML = `
+          <div style="display: flex; align-items: start; gap: 12px;">
+            <div style="font-size: 20px; flex-shrink: 0;">${action.icon}</div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 500; font-size: 13px; color: var(--text); margin-bottom: 4px;">${escapeHTML(action.label)}</div>
+              ${detailsHtml}
+              <div style="font-size: 11px; color: var(--muted); opacity: 0.7;">${timeStr}</div>
             </div>
-          ` : ''}
-          <div style="font-size: 11px; color: var(--muted); opacity: 0.7;">${timeStr}</div>
-        </div>
-      </div>
-    `;
-    
-    list.appendChild(item);
-  });
+          </div>
+        `;
+        
+        list.appendChild(item);
+      } catch (error) {
+        console.error('[ACTIVITY] Error renderizando log individual:', error, log);
+      }
+    });
+  } catch (error) {
+    console.error('[ACTIVITY] Error crítico en renderActivity:', error);
+    const list = $('#activity-list');
+    const empty = $('#activity-empty');
+    if (list) list.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+  }
 }
 
 // ✅ Configurar búsqueda de archivos
