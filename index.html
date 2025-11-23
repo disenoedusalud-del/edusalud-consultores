@@ -343,10 +343,10 @@
         </div>
         <div class="master-nav-tabs">
           <button id="nav-tab-courses" class="master-nav-tab active" type="button" data-view="courses">
-            📚 Cursos
+            <i class="ph ph-books"></i> Cursos
           </button>
           <button id="nav-tab-certificates" class="master-nav-tab" type="button" data-view="certificates">
-            🎓 Generador de Certificados
+            <i class="ph ph-graduation-cap"></i> Generador de Certificados
           </button>
         </div>
       </div>
@@ -488,14 +488,14 @@
       <!-- Vista de Generador de Certificados -->
       <div id="master-certificates-view" class="hidden">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px;">
-          <h3 style="margin:0">🎓 Generador de Certificados</h3>
+          <h3 style="margin:0"><i class="ph ph-graduation-cap"></i> Generador de Certificados</h3>
           <button id="btn-master-exit-cert" class="btn secondary" type="button" aria-label="Salir de la vista maestra" title="Volver a la pantalla de acceso">Salir</button>
         </div>
 
         <!-- Configuración del Script -->
         <div class="card" style="margin-bottom:20px;">
           <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
-            ⚙️ Configuración del Google Apps Script
+            <i class="ph ph-gear"></i> Configuración del Google Apps Script
           </h4>
           
           <div class="form-group">
@@ -531,7 +531,7 @@
               <option value="with-code"><i class="ph ph-key"></i> Modo con Código de Validación ({{NOMBRE}} + {{CODIGO_VALIDACION}})</option>
             </select>
             <div style="font-size:12px; color:var(--muted); margin-top:8px; padding:12px; background:rgba(90,169,255,0.1); border-radius:8px;">
-              <strong>ℹ️ Información:</strong> El modo seleccionado determinará qué variables se usarán en la plantilla y la estructura de la hoja de cálculo.
+              <strong><i class="ph ph-info"></i> Información:</strong> El modo seleccionado determinará qué variables se usarán en la plantilla y la estructura de la hoja de cálculo.
             </div>
           </div>
         </div>
@@ -559,7 +559,7 @@
         <!-- Paso 2: Configurar Google Sheet -->
         <div class="card" style="margin-bottom:20px;">
           <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
-            📊 Paso 2: Hoja de Cálculo
+            <i class="ph ph-table"></i> Paso 2: Hoja de Cálculo
           </h4>
           
           <div class="form-group">
@@ -587,7 +587,7 @@
         <!-- Paso 3: Configurar Carpeta de Originales -->
         <div class="card" style="margin-bottom:20px;">
           <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
-            📁 Paso 3: Carpeta para PDFs Originales
+            <i class="ph ph-folder"></i> Paso 3: Carpeta para PDFs Originales
           </h4>
           
           <div class="form-group">
@@ -622,7 +622,7 @@
           </p>
           
           <div id="pdf-validation-status" style="padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; margin-bottom:16px; font-size:13px; display:none;">
-            <div style="font-weight:600; margin-bottom:8px;">⚠️ Faltan los siguientes campos:</div>
+            <div style="font-weight:600; margin-bottom:8px;"><i class="ph ph-warning"></i> Faltan los siguientes campos:</div>
             <ul id="pdf-missing-fields" style="margin:0; padding-left:20px; color:var(--muted);"></ul>
           </div>
           
@@ -708,7 +708,7 @@
           </div>
           
           <div id="links-validation-status" style="padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; margin-bottom:16px; font-size:13px; display:none;">
-            <div style="font-weight:600; margin-bottom:8px;">⚠️ Faltan los siguientes campos:</div>
+            <div style="font-weight:600; margin-bottom:8px;"><i class="ph ph-warning"></i> Faltan los siguientes campos:</div>
             <ul id="links-missing-fields" style="margin:0; padding-left:20px; color:var(--muted);"></ul>
           </div>
           
@@ -773,7 +773,7 @@
           <label for="inputCourseImage" title="URL de la imagen que aparecerá en la tarjeta del curso. Debe ser una URL pública (Google Drive, etc.)">URL de la Imagen *</label>
           <input id="inputCourseImage" class="input" type="url" placeholder="https://..." required title="URL pública de la imagen" tabindex="3" aria-required="true" />
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
-            📁 Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
+            <i class="ph ph-folder"></i> Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
           </div>
         </div>
         <div class="form-group">
@@ -821,7 +821,7 @@
   <div id="modalEditCourse" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>✏️ Editar Curso</h2>
+        <h2><i class="ph ph-pencil"></i> Editar Curso</h2>
         <button class="modal-close" id="modalEditCourseClose" aria-label="Cerrar formulario de edición" title="Cerrar (Escape)">&times;</button>
       </div>
       <form id="formEditCourse">
@@ -837,7 +837,7 @@
           <label for="inputEditCourseImage" title="URL de la imagen que aparecerá en la tarjeta del curso. Debe ser una URL pública (Google Drive, etc.)">URL de la Imagen *</label>
           <input id="inputEditCourseImage" class="input" type="url" placeholder="https://..." required title="URL pública de la imagen" tabindex="3" aria-required="true" />
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
-            📁 Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
+            <i class="ph ph-folder"></i> Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
           </div>
         </div>
         <div class="form-group">
@@ -873,7 +873,7 @@
           <label for="inputEditCourseCode">Código Secreto (no se puede cambiar)</label>
           <input id="inputEditCourseCode" class="input" type="text" readonly style="background: rgba(255,255,255,0.05); cursor: not-allowed;" />
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
-            ⚠️ El código no se puede cambiar una vez creado el curso
+            <i class="ph ph-warning"></i> El código no se puede cambiar una vez creado el curso
           </div>
         </div>
         <input type="hidden" id="inputEditCourseHex" />
@@ -890,7 +890,7 @@
     <div class="modal-overlay"></div>
     <div class="modal-content" style="max-width: 500px;">
       <div class="modal-header">
-        <h2>📋 Duplicar Curso</h2>
+        <h2><i class="ph ph-copy"></i> Duplicar Curso</h2>
         <button class="modal-close" id="modalDuplicateCodeClose" aria-label="Cerrar formulario de duplicar curso" title="Cerrar (Escape)">&times;</button>
       </div>
       
@@ -903,7 +903,7 @@
           <label for="inputDuplicateCode">Código Secreto *</label>
           <input id="inputDuplicateCode" class="input" type="text" placeholder="Ej: CURSO_NUEVO_123" required autofocus />
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
-            ⚠️ Este código debe ser único y no puede estar en uso
+            <i class="ph ph-warning"></i> Este código debe ser único y no puede estar en uso
           </div>
         </div>
       </div>
@@ -984,7 +984,7 @@
   <div id="modalCourseEmails" class="modal">
     <div class="modal-content" style="max-width: 600px;">
       <div class="modal-header">
-        <h2 id="modalCourseEmailsTitle">📧 Correos Permitidos</h2>
+        <h2 id="modalCourseEmailsTitle"><i class="ph ph-envelope"></i> Correos Permitidos</h2>
         <button class="modal-close" id="modalCourseEmailsClose" aria-label="Cerrar modal de correos" title="Cerrar (Escape)">&times;</button>
       </div>
       <div style="padding: 20px;">
@@ -1017,7 +1017,7 @@
   <div id="modalGeneralEmails" class="modal">
     <div class="modal-content" style="max-width: 900px; max-height: 90vh;">
       <div class="modal-header">
-        <h2>📧 Gestión General de Correos</h2>
+        <h2><i class="ph ph-envelope"></i> Gestión General de Correos</h2>
         <button class="modal-close" id="modalGeneralEmailsClose" aria-label="Cerrar modal de gestión de correos" title="Cerrar (Escape)">&times;</button>
       </div>
       <div style="padding: 20px; overflow-y: auto; max-height: calc(90vh - 100px);">
@@ -1034,11 +1034,11 @@
             />
             <select id="filter-course-type-emails" class="input" style="min-width: 150px;">
               <option value="all">Todos los tipos</option>
-              <option value="curso">📖 Cursos</option>
-              <option value="diplomado">🎓 Diplomados</option>
-              <option value="webinar">💻 Webinars</option>
-              <option value="seminario">📝 Seminarios</option>
-              <option value="taller">🔧 Talleres</option>
+              <option value="curso"><i class="ph ph-book-open"></i> Cursos</option>
+              <option value="diplomado"><i class="ph ph-graduation-cap"></i> Diplomados</option>
+              <option value="webinar"><i class="ph ph-monitor"></i> Webinars</option>
+              <option value="seminario"><i class="ph ph-note"></i> Seminarios</option>
+              <option value="taller"><i class="ph ph-wrench"></i> Talleres</option>
             </select>
           </div>
         </div>
@@ -1057,7 +1057,7 @@
   <div id="modalAdmins" class="modal">
     <div class="modal-content" style="max-width: 700px; max-height: 90vh;">
       <div class="modal-header">
-        <h2>👑 Gestión de Administradores</h2>
+        <h2><i class="ph ph-crown"></i> Gestión de Administradores</h2>
         <button class="modal-close" id="modalAdminsClose" aria-label="Cerrar modal de administradores" title="Cerrar (Escape)">&times;</button>
       </div>
       <div style="padding: 20px; overflow-y: auto; max-height: calc(90vh - 100px);">
@@ -1099,8 +1099,8 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
-  <script src="assets/js/app.min.js?v=112" defer></script>
-  <script src="assets/js/certificates.js?v=16" defer></script>
+  <script src="assets/js/app.min.js?v=113" defer></script>
+  <script src="assets/js/certificates.js?v=17" defer></script>
   <script>
     // ✅ Forzar actualización del Service Worker si hay una nueva versión
     if ('serviceWorker' in navigator) {
@@ -1412,10 +1412,10 @@
       toast.className = `toast ${type}`;
       
       const icons = {
-        success: '✅',
-        error: '❌',
-        warning: '⚠️',
-        info: 'ℹ️'
+        success: '<i class="ph ph-check-circle"></i>',
+        error: '<i class="ph ph-x-circle"></i>',
+        warning: '<i class="ph ph-warning"></i>',
+        info: '<i class="ph ph-info"></i>'
       };
       
       toast.innerHTML = `
@@ -2159,7 +2159,7 @@ function generarLinksDesdePDFProtegido(params) {
         if (certScriptCode) {
           const codeElement = certScriptCode.querySelector('code');
           if (codeElement) {
-            codeElement.textContent = '⏳ Cargando código...';
+            codeElement.innerHTML = '<i class="ph ph-hourglass"></i> Cargando código...';
           }
         }
         
@@ -2199,7 +2199,7 @@ function generarLinksDesdePDFProtegido(params) {
         try {
           await navigator.clipboard.writeText(GOOGLE_APPS_SCRIPT_CODE);
           const originalText = btnCopyCertScript.textContent;
-          btnCopyCertScript.textContent = '✅ Código Copiado!';
+          btnCopyCertScript.innerHTML = '<i class="ph ph-check-circle"></i> Código Copiado!';
           btnCopyCertScript.style.background = '#4ade80';
           
           setTimeout(function() {
@@ -2218,9 +2218,9 @@ function generarLinksDesdePDFProtegido(params) {
           textarea.select();
           try {
             document.execCommand('copy');
-            btnCopyCertScript.textContent = '✅ Código Copiado!';
+            btnCopyCertScript.innerHTML = '<i class="ph ph-check-circle"></i> Código Copiado!';
             setTimeout(function() {
-              btnCopyCertScript.textContent = '📋 Copiar Código Completo';
+              btnCopyCertScript.innerHTML = '<i class="ph ph-clipboard"></i> Copiar Código Completo';
             }, 2000);
             console.log('[CERT SCRIPT] Código copiado con fallback');
           } catch (fallbackErr) {
@@ -2266,12 +2266,12 @@ function generarLinksDesdePDFProtegido(params) {
   <div id="modalCertScript" class="modal" style="display: none; z-index: 10000;">
     <div class="modal-content" style="max-width: 95%; max-height: 95vh; overflow: hidden; display: flex; flex-direction: column;">
       <div class="modal-header" style="flex-shrink: 0;">
-        <h2 style="margin: 0;">📝 Código del Google Apps Script</h2>
+        <h2 style="margin: 0;"><i class="ph ph-note"></i> Código del Google Apps Script</h2>
         <button class="modal-close" id="modalCertScriptClose" aria-label="Cerrar" title="Cerrar (Escape)" style="background: transparent; border: none; font-size: 28px; cursor: pointer; color: var(--text); padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">&times;</button>
       </div>
       <div style="padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; min-height: 0;">
         <div style="margin-bottom: 16px; padding: 12px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 14px; flex-shrink: 0;">
-          <strong>📋 Instrucciones:</strong>
+          <strong><i class="ph ph-clipboard"></i> Instrucciones:</strong>
           <ol style="margin: 8px 0 0 20px; padding: 0;">
             <li>Copia el código completo de abajo</li>
             <li>Ve a <a href="https://script.google.com" target="_blank" style="color: var(--accent);">script.google.com</a></li>
@@ -2282,7 +2282,7 @@ function generarLinksDesdePDFProtegido(params) {
         </div>
         <div style="margin-bottom: 12px; flex-shrink: 0;">
           <button id="btn-copy-cert-script" class="btn" type="button" style="width: 100%; padding: 12px; font-size: 16px; font-weight: 600;">
-            📋 Copiar Código Completo
+            <i class="ph ph-clipboard"></i> Copiar Código Completo
           </button>
         </div>
         <pre id="cert-script-code" style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; overflow-x: auto; overflow-y: auto; flex: 1; min-height: 300px; font-size: 12px; line-height: 1.6; white-space: pre; word-wrap: normal; font-family: 'Courier New', 'Monaco', monospace; color: var(--text); margin: 0; border: 1px solid rgba(255,255,255,0.1);"><code style="display: block; color: inherit; font-family: inherit;">// El código se cargará aquí cuando hagas clic en "Ver Código del Script"</code></pre>
@@ -2310,43 +2310,43 @@ function generarLinksDesdePDFProtegido(params) {
     const helpContent = {
       'script-url': {
         title: 'URL del Google Apps Script Web App',
-        body: '<p><strong>🔗 URL del script desplegado como Web App</strong></p><p>Debe tener acceso: <strong>"Cualquiera, incluso anónimos"</strong></p><p><strong>⚠️ Importante:</strong> Usa la URL de producción que termina en <code>/exec</code>, no la de desarrollo (<code>/dev</code>)</p><p><strong>📖 Pasos:</strong></p><ol><li>Copia el código del script (botón "📋 Ver Código del Script")</li><li>Ve a <a href="https://script.google.com" target="_blank" style="color: var(--accent);">script.google.com</a></li><li>Crea un nuevo proyecto y pega el código</li><li>Despliega como Web App</li><li>Configura: Ejecutar como "Yo", Acceso: "Cualquiera, incluso anónimos"</li><li>Copia la URL que termina en <code>/exec</code></li></ol>'
+        body: '<p><strong><i class="ph ph-link"></i> URL del script desplegado como Web App</strong></p><p>Debe tener acceso: <strong>"Cualquiera, incluso anónimos"</strong></p><p><strong><i class="ph ph-warning"></i> Importante:</strong> Usa la URL de producción que termina en <code>/exec</code>, no la de desarrollo (<code>/dev</code>)</p><p><strong><i class="ph ph-book-open"></i> Pasos:</strong></p><ol><li>Copia el código del script (botón "<i class="ph ph-clipboard"></i> Ver Código del Script")</li><li>Ve a <a href="https://script.google.com" target="_blank" style="color: var(--accent);">script.google.com</a></li><li>Crea un nuevo proyecto y pega el código</li><li>Despliega como Web App</li><li>Configura: Ejecutar como "Yo", Acceso: "Cualquiera, incluso anónimos"</li><li>Copia la URL que termina en <code>/exec</code></li></ol>'
       },
       'slide-template': {
         title: 'Plantilla de Google Slides',
-        body: '<p><strong>📊 Selecciona una plantilla de Google Slides</strong></p><p>La plantilla debe contener <code>{{NOMBRE}}</code> como placeholder en el lugar donde quieres que aparezca el nombre de la persona.</p><p><strong>Ejemplo:</strong> Si tu plantilla tiene el texto "Certificado para {{NOMBRE}}", el sistema reemplazará <code>{{NOMBRE}}</code> con el nombre de cada persona de la lista.</p><p><strong>💡 Tip:</strong> Puedes usar "Actualizar lista" para ver todas tus plantillas de Google Slides.</p>'
+        body: '<p><strong><i class="ph ph-presentation-chart"></i> Selecciona una plantilla de Google Slides</strong></p><p>La plantilla debe contener <code>{{NOMBRE}}</code> como placeholder en el lugar donde quieres que aparezca el nombre de la persona.</p><p><strong>Ejemplo:</strong> Si tu plantilla tiene el texto "Certificado para {{NOMBRE}}", el sistema reemplazará <code>{{NOMBRE}}</code> con el nombre de cada persona de la lista.</p><p><strong><i class="ph ph-lightbulb"></i> Tip:</strong> Puedes usar "Actualizar lista" para ver todas tus plantillas de Google Slides.</p>'
       },
       'google-sheet': {
         title: 'Google Sheet (Hoja de Cálculo)',
-        body: '<p><strong>📋 La estructura de la hoja depende del modo seleccionado:</strong></p><p><strong>🎓 Modo Webinar (8 columnas):</strong></p><ol><li><strong>Nombre</strong> - Nombre completo de la persona</li><li><strong>Correo</strong> - Correo electrónico</li><li><strong>Teléfono</strong> - Número de teléfono (solo números)</li><li><strong>Correo link</strong> - Se genera automáticamente</li><li><strong>WhatsApp link</strong> - Se genera automáticamente</li><li><strong>Link PDF</strong> - Se genera automáticamente</li><li><strong>Estado</strong> - Estado del proceso (✅ Encontrado, ❌ No encontrado)</li><li><strong>Certificado generado</strong> - ✅ cuando está generado</li></ol><p><strong>🔐 Modo con Código (9 columnas):</strong></p><ol><li><strong>Nombre</strong> - Nombre completo de la persona</li><li><strong>Código Validación</strong> - Código único de validación (obligatorio)</li><li><strong>Correo</strong> - Correo electrónico</li><li><strong>Teléfono</strong> - Número de teléfono (solo números)</li><li><strong>Correo link</strong> - Se genera automáticamente</li><li><strong>WhatsApp link</strong> - Se genera automáticamente</li><li><strong>Link PDF</strong> - Se genera automáticamente</li><li><strong>Estado</strong> - Estado del proceso (✅ Encontrado, ❌ No encontrado)</li><li><strong>Certificado generado</strong> - ✅ cuando está generado</li></ol><p><strong>💡 Tip:</strong> Puedes crear una nueva hoja desde aquí si no tienes una lista preparada. La estructura se creará automáticamente según el modo seleccionado.</p>'
+        body: '<p><strong><i class="ph ph-clipboard"></i> La estructura de la hoja depende del modo seleccionado:</strong></p><p><strong><i class="ph ph-graduation-cap"></i> Modo Webinar (8 columnas):</strong></p><ol><li><strong>Nombre</strong> - Nombre completo de la persona</li><li><strong>Correo</strong> - Correo electrónico</li><li><strong>Teléfono</strong> - Número de teléfono (solo números)</li><li><strong>Correo link</strong> - Se genera automáticamente</li><li><strong>WhatsApp link</strong> - Se genera automáticamente</li><li><strong>Link PDF</strong> - Se genera automáticamente</li><li><strong>Estado</strong> - Estado del proceso (<i class="ph ph-check-circle"></i> Encontrado, <i class="ph ph-x-circle"></i> No encontrado)</li><li><strong>Certificado generado</strong> - <i class="ph ph-check-circle"></i> cuando está generado</li></ol><p><strong><i class="ph ph-key"></i> Modo con Código (9 columnas):</strong></p><ol><li><strong>Nombre</strong> - Nombre completo de la persona</li><li><strong>Código Validación</strong> - Código único de validación (obligatorio)</li><li><strong>Correo</strong> - Correo electrónico</li><li><strong>Teléfono</strong> - Número de teléfono (solo números)</li><li><strong>Correo link</strong> - Se genera automáticamente</li><li><strong>WhatsApp link</strong> - Se genera automáticamente</li><li><strong>Link PDF</strong> - Se genera automáticamente</li><li><strong>Estado</strong> - Estado del proceso (<i class="ph ph-check-circle"></i> Encontrado, <i class="ph ph-x-circle"></i> No encontrado)</li><li><strong>Certificado generado</strong> - <i class="ph ph-check-circle"></i> cuando está generado</li></ol><p><strong><i class="ph ph-lightbulb"></i> Tip:</strong> Puedes crear una nueva hoja desde aquí si no tienes una lista preparada. La estructura se creará automáticamente según el modo seleccionado.</p>'
       },
       'folder-originales': {
         title: 'Carpeta para PDFs Originales',
-        body: '<p><strong>📁 Carpeta donde se guardarán los PDFs sin proteger</strong></p><p>Aquí se guardarán los certificados PDF generados directamente desde la plantilla.</p><p><strong>⚠️ Importante:</strong> Después de generar los PDFs, deberás protegerlos manualmente (usando PDF24 u otra herramienta) antes de generar los enlaces.</p><p><strong>💡 Tip:</strong> Puedes crear una nueva carpeta desde aquí si no tienes una preparada.</p>'
+        body: '<p><strong><i class="ph ph-folder"></i> Carpeta donde se guardarán los PDFs sin proteger</strong></p><p>Aquí se guardarán los certificados PDF generados directamente desde la plantilla.</p><p><strong><i class="ph ph-warning"></i> Importante:</strong> Después de generar los PDFs, deberás protegerlos manualmente (usando PDF24 u otra herramienta) antes de generar los enlaces.</p><p><strong><i class="ph ph-lightbulb"></i> Tip:</strong> Puedes crear una nueva carpeta desde aquí si no tienes una preparada.</p>'
       },
       'folder-protegidos': {
         title: 'Carpeta para PDFs Protegidos',
-        body: '<p><strong>🔒 Carpeta donde subiste los PDFs ya protegidos</strong></p><p>Esta carpeta debe contener los PDFs que ya protegiste manualmente después de generarlos.</p><p><strong>⚠️ Importante:</strong> Los archivos deben llamarse exactamente: <code>Certificado - [NOMBRE].pdf</code> (donde [NOMBRE] es el nombre completo de la persona).</p><p><strong>📝 Pasos:</strong></p><ol><li>Genera los certificados PDF primero (botón "Generar PDFs")</li><li>Protege los PDFs manualmente usando PDF24 u otra herramienta</li><li>Sube los PDFs protegidos a esta carpeta</li><li>Luego usa "Generar Enlaces" para crear los enlaces de entrega</li></ol>'
+        body: '<p><strong><i class="ph ph-lock"></i> Carpeta donde subiste los PDFs ya protegidos</strong></p><p>Esta carpeta debe contener los PDFs que ya protegiste manualmente después de generarlos.</p><p><strong><i class="ph ph-warning"></i> Importante:</strong> Los archivos deben llamarse exactamente: <code>Certificado - [NOMBRE].pdf</code> (donde [NOMBRE] es el nombre completo de la persona).</p><p><strong><i class="ph ph-note"></i> Pasos:</strong></p><ol><li>Genera los certificados PDF primero (botón "Generar PDFs")</li><li>Protege los PDFs manualmente usando PDF24 u otra herramienta</li><li>Sube los PDFs protegidos a esta carpeta</li><li>Luego usa "Generar Enlaces" para crear los enlaces de entrega</li></ol>'
       },
       'webinar-title': {
         title: 'Título del Webinar/Evento',
-        body: '<p><strong>📝 Título que aparecerá en los mensajes</strong></p><p>Este título se usará en los mensajes de correo y WhatsApp.</p><p><strong>Ejemplo:</strong> "Webinar: Salud Mental en Pandemia"</p>'
+        body: '<p><strong><i class="ph ph-note"></i> Título que aparecerá en los mensajes</strong></p><p>Este título se usará en los mensajes de correo y WhatsApp.</p><p><strong>Ejemplo:</strong> "Webinar: Salud Mental en Pandemia"</p>'
       },
       'webinar-date': {
         title: 'Fecha del Evento',
-        body: '<p><strong>📅 Fecha que aparecerá en los mensajes</strong></p><p>Esta fecha se usará en los mensajes de correo y WhatsApp.</p><p><strong>Ejemplo:</strong> "15 de noviembre de 2024" o "20/11/2024"</p>'
+        body: '<p><strong><i class="ph ph-calendar"></i> Fecha que aparecerá en los mensajes</strong></p><p>Esta fecha se usará en los mensajes de correo y WhatsApp.</p><p><strong>Ejemplo:</strong> "15 de noviembre de 2024" o "20/11/2024"</p>'
       },
       'email-message': {
         title: 'Mensaje de Correo Electrónico',
-        body: '<p><strong>✉️ Mensaje personalizado para el correo (Opcional)</strong></p><p>Si dejas este campo vacío, se usará un mensaje por defecto.</p><p><strong>Variables disponibles:</strong></p><ul><li><code>{{NOMBRE}}</code> - Se reemplaza con el nombre de la persona</li><li><code>{{TITULO}}</code> - Se reemplaza con el título del webinar</li><li><code>{{FECHA}}</code> - Se reemplaza con la fecha del evento</li><li><code>{{ENLACE_PDF}}</code> - Se reemplaza con el enlace al PDF</li></ul><p><strong>Ejemplo:</strong></p><pre style="background: rgba(90,169,255,0.1); padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto;">Estimada/o {{NOMBRE}},\n\nGracias por participar en "{{TITULO}}" realizado el {{FECHA}}.\n\nTu certificado: {{ENLACE_PDF}}</pre>'
+        body: '<p><strong><i class="ph ph-envelope-simple"></i> Mensaje personalizado para el correo (Opcional)</strong></p><p>Si dejas este campo vacío, se usará un mensaje por defecto.</p><p><strong>Variables disponibles:</strong></p><ul><li><code>{{NOMBRE}}</code> - Se reemplaza con el nombre de la persona</li><li><code>{{TITULO}}</code> - Se reemplaza con el título del webinar</li><li><code>{{FECHA}}</code> - Se reemplaza con la fecha del evento</li><li><code>{{ENLACE_PDF}}</code> - Se reemplaza con el enlace al PDF</li></ul><p><strong>Ejemplo:</strong></p><pre style="background: rgba(90,169,255,0.1); padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto;">Estimada/o {{NOMBRE}},\n\nGracias por participar en "{{TITULO}}" realizado el {{FECHA}}.\n\nTu certificado: {{ENLACE_PDF}}</pre>'
       },
       'whatsapp-message': {
         title: 'Mensaje de WhatsApp',
-        body: '<p><strong>📱 Mensaje personalizado para WhatsApp (Opcional)</strong></p><p>Si dejas este campo vacío, se usará un mensaje por defecto.</p><p><strong>Variables disponibles:</strong></p><ul><li><code>{{NOMBRE}}</code> - Se reemplaza con el nombre de la persona</li><li><code>{{TITULO}}</code> - Se reemplaza con el título del webinar</li><li><code>{{FECHA}}</code> - Se reemplaza con la fecha del evento</li><li><code>{{ENLACE_PDF}}</code> - Se reemplaza con el enlace al PDF</li></ul><p><strong>Ejemplo:</strong></p><pre style="background: rgba(90,169,255,0.1); padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto;">Hola {{NOMBRE}}! \n\nGracias por participar en "{{TITULO}}" el {{FECHA}}.\n\nDescarga tu certificado: {{ENLACE_PDF}}</pre>'
+        body: '<p><strong><i class="ph ph-chat-circle"></i> Mensaje personalizado para WhatsApp (Opcional)</strong></p><p>Si dejas este campo vacío, se usará un mensaje por defecto.</p><p><strong>Variables disponibles:</strong></p><ul><li><code>{{NOMBRE}}</code> - Se reemplaza con el nombre de la persona</li><li><code>{{TITULO}}</code> - Se reemplaza con el título del webinar</li><li><code>{{FECHA}}</code> - Se reemplaza con la fecha del evento</li><li><code>{{ENLACE_PDF}}</code> - Se reemplaza con el enlace al PDF</li></ul><p><strong>Ejemplo:</strong></p><pre style="background: rgba(90,169,255,0.1); padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto;">Hola {{NOMBRE}}! \n\nGracias por participar en "{{TITULO}}" el {{FECHA}}.\n\nDescarga tu certificado: {{ENLACE_PDF}}</pre>'
       },
       'cert-mode': {
         title: 'Modo de Generación de Certificados',
-        body: '<p><strong>🎯 Selecciona el modo de generación de certificados</strong></p><p><strong>🎓 Modo Webinar:</strong></p><ul><li>Usa solo la variable <code>{{NOMBRE}}</code> en la plantilla</li><li>La hoja de cálculo tendrá 8 columnas: Nombre, Correo, Teléfono, Correo link, WhatsApp link, Link PDF, Estado, Certificado generado</li><li>Ideal para webinars y eventos simples</li></ul><p><strong>🔐 Modo con Código de Validación:</strong></p><ul><li>Usa las variables <code>{{NOMBRE}}</code> y <code>{{CODIGO_VALIDACION}}</code> en la plantilla</li><li>La hoja de cálculo tendrá 9 columnas: Nombre, Código Validación, Correo, Teléfono, Correo link, WhatsApp link, Link PDF, Estado, Certificado generado</li><li>Ideal para certificados que requieren validación mediante código único</li><li><strong>⚠️ Importante:</strong> Cada fila debe tener un código de validación único en la columna "Código Validación"</li></ul><p><strong>💡 Tip:</strong> El modo seleccionado afecta la estructura de la hoja de cálculo. Si cambias el modo después de crear una hoja, necesitarás ajustar las columnas manualmente o crear una nueva hoja.</p>'
+        body: '<p><strong><i class="ph ph-target"></i> Selecciona el modo de generación de certificados</strong></p><p><strong><i class="ph ph-graduation-cap"></i> Modo Webinar:</strong></p><ul><li>Usa solo la variable <code>{{NOMBRE}}</code> en la plantilla</li><li>La hoja de cálculo tendrá 8 columnas: Nombre, Correo, Teléfono, Correo link, WhatsApp link, Link PDF, Estado, Certificado generado</li><li>Ideal para webinars y eventos simples</li></ul><p><strong><i class="ph ph-key"></i> Modo con Código de Validación:</strong></p><ul><li>Usa las variables <code>{{NOMBRE}}</code> y <code>{{CODIGO_VALIDACION}}</code> en la plantilla</li><li>La hoja de cálculo tendrá 9 columnas: Nombre, Código Validación, Correo, Teléfono, Correo link, WhatsApp link, Link PDF, Estado, Certificado generado</li><li>Ideal para certificados que requieren validación mediante código único</li><li><strong><i class="ph ph-warning"></i> Importante:</strong> Cada fila debe tener un código de validación único en la columna "Código Validación"</li></ul><p><strong><i class="ph ph-lightbulb"></i> Tip:</strong> El modo seleccionado afecta la estructura de la hoja de cálculo. Si cambias el modo después de crear una hoja, necesitarás ajustar las columnas manualmente o crear una nueva hoja.</p>'
       }
     };
 
