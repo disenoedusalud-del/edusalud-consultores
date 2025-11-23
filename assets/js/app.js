@@ -109,6 +109,73 @@ function sanitizeRichText(str) {
   return sanitizeHTML(str);
 }
 
+/* ===================== HELPER DE SANITIZACIÓN ===================== */
+
+/**
+ * ✅ Función helper para sanitizar inputs según su tipo
+ * @param {string} value - Valor a sanitizar
+ * @param {string} type - Tipo de input: 'text', 'url', 'email', 'code', 'tag', 'color'
+ * @returns {string|object} Valor sanitizado o objeto con validación
+ */
+function safeInput(value, type = 'text') {
+  if (value == null) value = '';
+  if (typeof value !== 'string') value = String(value);
+  
+  const trimmed = value.trim();
+  
+  switch (type) {
+    case 'text':
+    case 'title':
+    case 'meta':
+      return sanitizeHTML(trimmed);
+    
+    case 'url':
+      const urlValidation = validateURL(trimmed);
+      if (urlValidation.valid) {
+        return sanitizeHTML(urlValidation.url);
+      }
+      return sanitizeHTML(trimmed); // Sanitizar aunque sea inválido
+    
+    case 'email':
+      const emailValidation = validateEmail(trimmed);
+      if (emailValidation.valid) {
+        return trimmed.toLowerCase(); // Emails se normalizan a lowercase
+      }
+      return sanitizeHTML(trimmed);
+    
+    case 'code':
+    case 'tag':
+      // Solo letras, números, guiones y guiones bajos
+      return sanitizeHTML(trimmed.replace(/[^a-zA-Z0-9_-]/g, ''));
+    
+    case 'color':
+      // Validar formato hexadecimal
+      if (/^#[0-9A-Fa-f]{6}$/.test(trimmed)) {
+        return trimmed.toUpperCase();
+      }
+      return '#5aa9ff'; // Color por defecto si es inválido
+    
+    case 'password':
+      // Las contraseñas NO se sanitizan (se mantienen como están)
+      return value; // No trim ni sanitize para passwords
+    
+    default:
+      return sanitizeHTML(trimmed);
+  }
+}
+
+/**
+ * ✅ Obtener y sanitizar valor de un input de forma segura
+ * @param {string|HTMLElement} selector - Selector CSS o elemento DOM
+ * @param {string} type - Tipo de input (ver safeInput)
+ * @returns {string} Valor sanitizado
+ */
+function getSafeInputValue(selector, type = 'text') {
+  const element = typeof selector === 'string' ? $(selector) : selector;
+  if (!element) return '';
+  return safeInput(element.value, type);
+}
+
 /* ===================== RATE LIMITING ===================== */
 
 /**
@@ -2695,12 +2762,16 @@ function setButtonLoading(button, loadingText = 'Procesando...', successText = n
     button.disabled = originalDisabled;
     
     if (success && successText) {
-      button.innerHTML = `✅ ${customText || successText}`;
+      // ✅ Sanitizar texto dinámico
+      const safeText = sanitizeHTML(customText || successText);
+      button.innerHTML = `✅ ${safeText}`;
       setTimeout(() => {
         button.innerHTML = originalHTML;
       }, 2000);
     } else if (!success) {
-      button.innerHTML = `❌ ${customText || errorText}`;
+      // ✅ Sanitizar texto dinámico
+      const safeText = sanitizeHTML(customText || errorText);
+      button.innerHTML = `❌ ${safeText}`;
       setTimeout(() => {
         button.innerHTML = originalHTML;
       }, 3000);
@@ -3377,10 +3448,10 @@ async function showImportPreview(file) {
           <div style="background: rgba(90,169,255,0.1); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
             <h3 style="margin: 0 0 12px 0; font-size: 16px;">📋 Contenido del Backup</h3>
             <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
-              <div>📚 Cursos: <strong>${coursesCount}</strong></div>
-              <div>🔗 Sets de links: <strong>${overridesCount}</strong></div>
-              <div>📅 Fecha de exportación: <strong>${exportDate}</strong></div>
-              <div>🏷️ Filtro aplicado: <strong>${filterType === 'all' ? 'Todos' : filterType}</strong></div>
+              <div>📚 Cursos: <strong>${sanitizeHTML(String(coursesCount))}</strong></div>
+              <div>🔗 Sets de links: <strong>${sanitizeHTML(String(overridesCount))}</strong></div>
+              <div>📅 Fecha de exportación: <strong>${sanitizeHTML(exportDate)}</strong></div>
+              <div>🏷️ Filtro aplicado: <strong>${sanitizeHTML(filterType === 'all' ? 'Todos' : filterType)}</strong></div>
             </div>
           </div>
           <p style="color: var(--muted); margin-bottom: 16px; font-size: 13px;">
@@ -4528,7 +4599,9 @@ function buildMasterGrid() {
         const codeDiv = document.createElement('div');
         codeDiv.style.cssText = 'font-size: 11px; color: var(--accent); margin-top: 4px; font-family: monospace; background: rgba(90,169,255,0.1); padding: 4px 8px; border-radius: 4px; display: inline-block; cursor: pointer; transition: all 0.2s;';
         codeDiv.title = 'Click para copiar código';
-        codeDiv.innerHTML = `<i class="ph ph-key"></i> Código: ${codeToShow} <i class="ph ph-clipboard"></i>`;
+        // ✅ Sanitizar código antes de usar en innerHTML
+        const safeCode = sanitizeHTML(codeToShow);
+        codeDiv.innerHTML = `<i class="ph ph-key"></i> Código: ${safeCode} <i class="ph ph-clipboard"></i>`;
         codeDiv.addEventListener('click', async () => {
           try {
             await navigator.clipboard.writeText(codeToShow);
@@ -4918,8 +4991,9 @@ function buildMasterGrid() {
         btnSave.className = 'btn';
         btnSave.textContent = 'Guardar';
         btnSave.addEventListener('click', async () => {
-          const newLabel = editLabel.value.trim();
-          const newUrl = editUrl.value.trim();
+          // ✅ Sanitizar inputs
+          const newLabel = safeInput(editLabel.value, 'text');
+          const newUrl = safeInput(editUrl.value, 'url');
           if (!newLabel || !newUrl) {
             alert('Complete etiqueta y URL');
             return;
@@ -5172,8 +5246,9 @@ function buildMasterGrid() {
     btnAdd.type = 'button';
     btnAdd.textContent = 'Agregar link';
     btnAdd.addEventListener('click', async () => {
-      const labelVal = (inputLabel.value || '').trim();
-      const urlVal = (inputUrl.value || '').trim();
+      // ✅ Sanitizar inputs
+      const labelVal = safeInput(inputLabel.value, 'text');
+      const urlVal = safeInput(inputUrl.value, 'url');
       
       if (!labelVal || !urlVal) {
         if (typeof window.showSuccessModal === 'function') {
@@ -5976,14 +6051,17 @@ async function tryLoginByCode(code) {
   msg.textContent = 'Verificando…';
   msg.classList.remove('error');
 
-  if (!code || String(code).trim().length === 0) {
+  // ✅ Sanitizar código
+  const sanitizedCode = safeInput(code, 'code');
+  
+  if (!sanitizedCode || sanitizedCode.length === 0) {
     msg.textContent = 'Ingrese un código válido.';
     msg.classList.add('error');
     return false;
   }
 
   try {
-    const hex = await sha256Hex(code);
+    const hex = await sha256Hex(sanitizedCode);
 
     // ✅ Google Analytics: Tracking de intento de login
     if (typeof gtag !== 'undefined') {
@@ -6229,8 +6307,9 @@ function showAuthMessage(elementId, message, isError = false) {
 
 // ✅ Función para login con email/password
 async function tryLoginByEmail() {
-  const email = $('#input-email').value.trim();
-  const password = $('#input-password').value;
+  // ✅ Sanitizar inputs
+  const email = getSafeInputValue('#input-email', 'email');
+  const password = getSafeInputValue('#input-password', 'password'); // Password no se sanitiza
   
   if (!email || !password) {
     showAuthMessage('msg-auth', 'Por favor, completa todos los campos.', true);
@@ -6252,7 +6331,7 @@ async function tryLoginByEmail() {
       return false;
     }
     
-    const userCredential = await window.firebaseAuth.signInWithEmailAndPassword(email.toLowerCase().trim(), password);
+    const userCredential = await window.firebaseAuth.signInWithEmailAndPassword(email, password);
     const user = userCredential.user;
     const userEmail = user.email.toLowerCase().trim();
     
@@ -6350,7 +6429,8 @@ async function tryLoginByEmail() {
 // ✅ Función para verificar correo antes de registrar
 async function verifyEmailForRegistration() {
   console.log('[VERIFICATION] 🚀 Iniciando verificación de email...');
-  const email = $('#input-register-email').value.trim();
+  // ✅ Sanitizar email
+  const email = getSafeInputValue('#input-register-email', 'email');
   console.log('[VERIFICATION] 📧 Email ingresado:', email);
   
   if (!email) {
@@ -6365,7 +6445,7 @@ async function verifyEmailForRegistration() {
   }
   
   clearFieldErrors();
-  const normalizedEmail = email.toLowerCase().trim();
+  const normalizedEmail = email; // Ya está en lowercase por safeInput
   console.log('[VERIFICATION] 📧 Email normalizado:', normalizedEmail);
   
   showAuthMessage('msg-register', 'Verificando autorización del correo…', false);
@@ -6470,10 +6550,11 @@ async function verifyEmailForRegistration() {
 
 // ✅ Función para registro con email/password (correo ya verificado)
 async function tryRegister() {
-  // ✅ Usar el correo ya verificado
+  // ✅ Usar el correo ya verificado (ya sanitizado)
   const email = window.verifiedEmailForRegistration;
-  const password = $('#input-register-password').value;
-  const passwordConfirm = $('#input-register-password-confirm').value;
+  // ✅ Passwords no se sanitizan, se mantienen como están
+  const password = $('#input-register-password')?.value || '';
+  const passwordConfirm = $('#input-register-password-confirm')?.value || '';
   
   if (!email) {
     showAuthMessage('msg-register-step3', 'Error: El correo no fue verificado. Por favor, vuelve al paso anterior.', true);
@@ -6553,8 +6634,9 @@ async function tryRegister() {
 
 // ✅ Función para verificar código de verificación
 async function verifyCodeForRegistration() {
-  const email = window.verifiedEmailForRegistration;
-  const code = $('#input-verification-code').value.trim();
+  const email = window.verifiedEmailForRegistration; // Ya sanitizado
+  // ✅ Sanitizar código
+  const code = getSafeInputValue('#input-verification-code', 'code');
   
   if (!email) {
     showAuthMessage('msg-register-step2', 'Error: El correo no fue verificado. Por favor, vuelve al paso anterior.', true);
@@ -6632,7 +6714,8 @@ async function resendVerificationCode() {
 
 // ✅ Función para reset de contraseña
 async function tryPasswordReset() {
-  const email = $('#input-reset-email').value.trim();
+  // ✅ Sanitizar email
+  const email = getSafeInputValue('#input-reset-email', 'email');
   
   if (!email || !email.includes('@')) {
     showAuthMessage('msg-reset', 'Por favor, ingresa un correo válido.', true);
@@ -7213,7 +7296,9 @@ async function showCourseEmailsModal(courseHex, courseTitle) {
   const msgEl = $('#msg-course-emails');
   
   if (title) {
-    title.innerHTML = `<i class="ph ph-envelope"></i> Correos Permitidos: ${courseTitle}`;
+    // ✅ Sanitizar título del curso
+    const safeTitle = sanitizeHTML(courseTitle);
+    title.innerHTML = `<i class="ph ph-envelope"></i> Correos Permitidos: ${safeTitle}`;
   }
   
   if (input) {
@@ -7324,10 +7409,11 @@ async function addCourseEmailUI() {
     return;
   }
   
-  const email = input.value.trim();
+  // ✅ Sanitizar email
+  const email = getSafeInputValue('#input-course-email', 'email');
   
   // Validar formato básico de email
-  if (!email.includes('@') || !email.includes('.')) {
+  if (!email || !email.includes('@') || !email.includes('.')) {
     if (msgEl) {
       msgEl.textContent = 'Por favor, ingrese un correo electrónico válido.';
       msgEl.classList.add('error');
@@ -7358,11 +7444,15 @@ async function addCourseEmailUI() {
     
     input.value = '';
     if (msgEl) {
-      msgEl.innerHTML = `<i class="ph ph-check-circle"></i> Correo "${email}" agregado exitosamente.`;
+      // ✅ Sanitizar email antes de usar en innerHTML
+      const safeEmail = sanitizeHTML(email);
+      msgEl.innerHTML = `<i class="ph ph-check-circle"></i> Correo "${safeEmail}" agregado exitosamente.`;
       msgEl.classList.remove('error');
     }
     if (typeof window.showToast === 'function') {
-      window.showToast('Correo agregado', `"${email}" ahora tiene acceso a este curso`, 'success');
+      // ✅ Sanitizar email para toast
+      const safeEmail = sanitizeHTML(email);
+      window.showToast('Correo agregado', `"${safeEmail}" ahora tiene acceso a este curso`, 'success');
     }
     
     // ✅ Refrescar la lista
@@ -7598,7 +7688,9 @@ window.addEmailToGeneral = async function(courseHex) {
     
     input.value = '';
     if (msgEl) {
-      msgEl.innerHTML = `<i class="ph ph-check-circle"></i> Correo "${email}" agregado exitosamente.`;
+      // ✅ Sanitizar email antes de usar en innerHTML
+      const safeEmail = sanitizeHTML(email);
+      msgEl.innerHTML = `<i class="ph ph-check-circle"></i> Correo "${safeEmail}" agregado exitosamente.`;
       msgEl.classList.remove('error');
     }
     if (typeof window.showToast === 'function') {
@@ -7616,7 +7708,9 @@ window.addEmailToGeneral = async function(courseHex) {
     const errorMessage = error.message || 'No se pudo agregar el correo.';
     
     if (msgEl) {
-      msgEl.innerHTML = `<i class="ph ph-x-circle"></i> Error: ${errorMessage}`;
+      // ✅ Sanitizar mensaje de error
+      const safeError = sanitizeHTML(errorMessage);
+      msgEl.innerHTML = `<i class="ph ph-x-circle"></i> Error: ${safeError}`;
       msgEl.classList.add('error');
     }
     if (typeof window.showToast === 'function') {
@@ -7753,7 +7847,8 @@ async function addAdminUI() {
   
   if (!input) return;
   
-  const email = input.value.trim();
+  // ✅ Sanitizar email
+  const email = getSafeInputValue('#input-admin-email', 'email');
   
   if (!email || !email.includes('@')) {
     if (msgEl) {
@@ -7787,7 +7882,9 @@ async function addAdminUI() {
     const errorMessage = error.message || 'No se pudo agregar el administrador.';
     
     if (msgEl) {
-      msgEl.innerHTML = `<i class="ph ph-x-circle"></i> Error: ${errorMessage}`;
+      // ✅ Sanitizar mensaje de error
+      const safeError = sanitizeHTML(errorMessage);
+      msgEl.innerHTML = `<i class="ph ph-x-circle"></i> Error: ${safeError}`;
       msgEl.classList.add('error');
     }
     if (typeof window.showToast === 'function') {
@@ -9072,12 +9169,12 @@ function setupAddCourseModal() {
     }
     
     // ✅ Sanitizar y validar inputs
-    const titleRaw = $('#inputCourseTitle').value.trim();
-    const metaRaw = $('#inputCourseMeta').value.trim();
-    const imageUrlRaw = $('#inputCourseImage').value.trim();
-    const tagRaw = $('#inputCourseTag').value.trim();
-    const codeRaw = $('#inputCourseCode').value.trim();
-    const type = $('#selectCourseType').value || 'curso'; // ✅ Clasificación del curso
+    const titleRaw = getSafeInputValue('#inputCourseTitle', 'title');
+    const metaRaw = getSafeInputValue('#inputCourseMeta', 'meta');
+    const imageUrlRaw = getSafeInputValue('#inputCourseImage', 'url');
+    const tagRaw = getSafeInputValue('#inputCourseTag', 'tag');
+    const codeRaw = getSafeInputValue('#inputCourseCode', 'code');
+    const type = ($('#selectCourseType')?.value || 'curso').trim(); // ✅ Clasificación del curso
     
     // Validaciones básicas de longitud (redundantes pero por seguridad)
     if (!titleRaw || titleRaw.length < 5 || titleRaw.length > 100) {
@@ -9109,12 +9206,13 @@ function setupAddCourseModal() {
       restoreButton = setButtonLoading(submitBtn, 'Creando curso...', 'Curso creado');
     }
     
-    // ✅ Sanitizar inputs (escapar HTML)
-    const title = sanitizeHTML(titleRaw);
-    const meta = sanitizeHTML(metaRaw);
-    const imageUrl = imageUrlRaw.trim(); // URL no se sanitiza, se valida
-    const tag = tagRaw.toUpperCase().replace(/[^A-Z0-9]/g, ''); // Solo letras y números
-    const code = codeRaw.trim();
+    // ✅ Los valores ya están sanitizados por getSafeInputValue
+    // Solo normalizamos formatos específicos
+    const title = titleRaw; // Ya sanitizado
+    const meta = metaRaw; // Ya sanitizado
+    const imageUrl = imageUrlRaw; // Ya sanitizado y validado
+    const tag = tagRaw.toUpperCase().replace(/[^A-Z0-9]/g, ''); // Normalizar tag
+    const code = codeRaw; // Ya sanitizado
     
     // ✅ Leer valores de estilo visual y color accent con validación
     const selectVariant = $('#selectCourseVariant');
@@ -9132,8 +9230,8 @@ function setupAddCourseModal() {
       return;
     }
     
-    const variant = selectVariant.value || 'dramatic'; // Valor por defecto
-    const accent = inputAccent.value || '#5aa9ff'; // Valor por defecto
+    const variant = (selectVariant.value || 'dramatic').trim(); // Valor por defecto
+    const accent = getSafeInputValue('#inputCourseAccentHex', 'color') || '#5aa9ff'; // Sanitizado y validado
     // code ya está definido arriba (línea 4720)
     
     // ✅ Debug: mostrar valores capturados
@@ -9425,20 +9523,20 @@ function setupEditCourseModal() {
       return;
     }
     
-    const hex = $('#inputEditCourseHex').value.trim();
+    const hex = getSafeInputValue('#inputEditCourseHex', 'code');
     if (!hex) {
       alert('Error: No se encontró el identificador del curso');
       return;
     }
     
     // ✅ Sanitizar y validar inputs
-    const titleRaw = $('#inputEditCourseTitle').value.trim();
-    const metaRaw = $('#inputEditCourseMeta').value.trim();
-    const imageUrlRaw = $('#inputEditCourseImage').value.trim();
-    const tagRaw = $('#inputEditCourseTag').value.trim();
-    const type = $('#selectEditCourseType').value || 'curso'; // ✅ Clasificación del curso
-    const variant = $('#selectEditCourseVariant').value;
-    const accent = $('#inputEditCourseAccent').value;
+    const titleRaw = getSafeInputValue('#inputEditCourseTitle', 'title');
+    const metaRaw = getSafeInputValue('#inputEditCourseMeta', 'meta');
+    const imageUrlRaw = getSafeInputValue('#inputEditCourseImage', 'url');
+    const tagRaw = getSafeInputValue('#inputEditCourseTag', 'tag');
+    const type = ($('#selectEditCourseType')?.value || 'curso').trim(); // ✅ Clasificación del curso
+    const variant = ($('#selectEditCourseVariant')?.value || 'dramatic').trim();
+    const accent = getSafeInputValue('#inputEditCourseAccentHex', 'color') || '#5aa9ff';
     
     // Validaciones básicas de longitud
     if (!titleRaw || titleRaw.length < 5 || titleRaw.length > 100) {
@@ -9464,11 +9562,11 @@ function setupEditCourseModal() {
       restoreButton = setButtonLoading(submitBtn, 'Guardando cambios...', 'Cambios guardados');
     }
     
-    // ✅ Sanitizar inputs (escapar HTML)
-    const title = sanitizeHTML(titleRaw);
-    const meta = sanitizeHTML(metaRaw);
-    const imageUrl = imageUrlRaw.trim(); // URL no se sanitiza, se valida
-    const tag = tagRaw.toUpperCase().replace(/[^A-Z0-9]/g, ''); // Solo letras y números
+    // ✅ Los valores ya están sanitizados por getSafeInputValue
+    const title = titleRaw; // Ya sanitizado
+    const meta = metaRaw; // Ya sanitizado
+    const imageUrl = imageUrlRaw; // Ya sanitizado y validado
+    const tag = tagRaw.toUpperCase().replace(/[^A-Z0-9]/g, ''); // Normalizar tag
     
     // ✅ Validación adicional: verificar que tag tenga al menos 2 caracteres después de sanitizar
     if (tag.length < 2) {
