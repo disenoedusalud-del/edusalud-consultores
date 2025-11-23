@@ -1296,18 +1296,6 @@ function setupNotificationsPanel() {
     btnNotifications.setAttribute('aria-expanded', isVisible ? 'false' : 'true');
     
     if (!isVisible) {
-      // ✅ Renderizar de forma segura con try-catch
-      try {
-        renderNotifications();
-        renderActivity();
-        updateNotificationsBadge();
-      } catch (error) {
-        console.error('[NOTIFICATIONS] Error renderizando panel:', error);
-        if (typeof window.showToast === 'function') {
-          window.showToast('error', 'Error', 'Error al cargar notificaciones');
-        }
-      }
-      
       // ✅ Agregar listener de Escape solo cuando se abre
       if (!escapeHandler) {
         escapeHandler = (e) => {
@@ -1318,6 +1306,31 @@ function setupNotificationsPanel() {
         };
         document.addEventListener('keydown', escapeHandler);
       }
+      
+      // ✅ Renderizar de forma ASÍNCRONA para no bloquear la UI
+      setTimeout(() => {
+        try {
+          renderNotifications();
+        } catch (error) {
+          console.error('[NOTIFICATIONS] Error renderizando notificaciones:', error);
+        }
+      }, 0);
+      
+      setTimeout(() => {
+        try {
+          renderActivity();
+        } catch (error) {
+          console.error('[NOTIFICATIONS] Error renderizando actividad:', error);
+        }
+      }, 10);
+      
+      setTimeout(() => {
+        try {
+          updateNotificationsBadge();
+        } catch (error) {
+          console.error('[NOTIFICATIONS] Error actualizando badge:', error);
+        }
+      }, 20);
     } else {
       // ✅ Remover listener cuando se cierra
       if (escapeHandler) {
@@ -1374,68 +1387,100 @@ function setupNotificationsPanel() {
   updateNotificationsBadge();
 }
 
-// ✅ Renderizar notificaciones
+// ✅ Renderizar notificaciones (con límite y protección)
 function renderNotifications() {
-  const list = $('#notifications-list');
-  const empty = $('#notifications-empty');
-  if (!list || !empty) return;
-  
-  const notifications = getNotifications();
-  
-  if (notifications.length === 0) {
-    list.style.display = 'none';
-    empty.style.display = 'block';
-    return;
-  }
-  
-  list.style.display = 'flex';
-  empty.style.display = 'none';
-  list.innerHTML = '';
-  
-  notifications.forEach(notification => {
-    const item = document.createElement('div');
-    item.style.cssText = `
-      padding: 12px;
-      background: ${notification.read ? 'rgba(90,169,255,0.05)' : 'rgba(90,169,255,0.1)'};
-      border-left: 3px solid ${getToastColor(notification.type)};
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.2s;
-    `;
+  try {
+    const list = $('#notifications-list');
+    const empty = $('#notifications-empty');
+    if (!list || !empty) return;
     
-    if (!notification.read) {
-      item.style.fontWeight = '500';
+    const notifications = getNotifications();
+    if (!Array.isArray(notifications)) {
+      list.style.display = 'none';
+      empty.style.display = 'block';
+      return;
     }
     
-    item.addEventListener('click', () => {
-      markNotificationAsRead(notification.id);
-      item.style.background = 'rgba(90,169,255,0.05)';
-      item.style.fontWeight = 'normal';
-      updateNotificationsBadge();
+    // ✅ Limitar cantidad de notificaciones para evitar bloqueo
+    const limitedNotifications = notifications.slice(0, 50);
+    
+    if (limitedNotifications.length === 0) {
+      list.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+    
+    list.style.display = 'flex';
+    empty.style.display = 'none';
+    list.innerHTML = '';
+    
+    limitedNotifications.forEach((notification, index) => {
+      try {
+        // ✅ Validar datos de notificación
+        if (!notification || !notification.id) {
+          return;
+        }
+        
+        const item = document.createElement('div');
+        item.style.cssText = `
+          padding: 12px;
+          background: ${notification.read ? 'rgba(90,169,255,0.05)' : 'rgba(90,169,255,0.1)'};
+          border-left: 3px solid ${getToastColor(notification.type || 'info')};
+          border-radius: 4px;
+          cursor: pointer;
+          transition: background 0.2s;
+        `;
+        
+        if (!notification.read) {
+          item.style.fontWeight = '500';
+        }
+        
+        item.addEventListener('click', () => {
+          try {
+            markNotificationAsRead(notification.id);
+            item.style.background = 'rgba(90,169,255,0.05)';
+            item.style.fontWeight = 'normal';
+            updateNotificationsBadge();
+          } catch (e) {
+            console.error('[NOTIFICATIONS] Error marcando como leída:', e);
+          }
+        });
+        
+        const time = new Date(notification.timestamp || Date.now());
+        const timeStr = time.toLocaleString('es-ES', { 
+          day: 'numeric', 
+          month: 'short', 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+        
+        const title = escapeHTML(String(notification.title || 'Sin título'));
+        const message = escapeHTML(String(notification.message || ''));
+        
+        item.innerHTML = `
+          <div style="display: flex; align-items: start; gap: 12px;">
+            <div style="font-size: 20px; flex-shrink: 0;">${getToastIcon(notification.type || 'info')}</div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 600; font-size: 13px; color: var(--text); margin-bottom: 4px;">${title}</div>
+              <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">${message}</div>
+              <div style="font-size: 11px; color: var(--muted); opacity: 0.7;">${timeStr}</div>
+            </div>
+            ${!notification.read ? '<div style="width: 8px; height: 8px; background: var(--accent); border-radius: 50%; flex-shrink: 0; margin-top: 4px;"></div>' : ''}
+          </div>
+        `;
+        
+        list.appendChild(item);
+      } catch (error) {
+        console.error(`[NOTIFICATIONS] Error renderizando notificación ${index}:`, error);
+      }
     });
-    
-    const time = new Date(notification.timestamp);
-    const timeStr = time.toLocaleString('es-ES', { 
-      day: 'numeric', 
-      month: 'short', 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-    
-    item.innerHTML = `
-      <div style="display: flex; align-items: start; gap: 12px;">
-        <div style="font-size: 20px; flex-shrink: 0;">${getToastIcon(notification.type)}</div>
-        <div style="flex: 1; min-width: 0;">
-          <div style="font-weight: 600; font-size: 13px; color: var(--text); margin-bottom: 4px;">${escapeHTML(notification.title)}</div>
-          <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">${escapeHTML(notification.message)}</div>
-          <div style="font-size: 11px; color: var(--muted); opacity: 0.7;">${timeStr}</div>
-        </div>
-        ${!notification.read ? '<div style="width: 8px; height: 8px; background: var(--accent); border-radius: 50%; flex-shrink: 0; margin-top: 4px;"></div>' : ''}
-      </div>
-    `;
-    
-    list.appendChild(item);
-  });
+  } catch (error) {
+    console.error('[NOTIFICATIONS] Error crítico en renderNotifications:', error);
+    const list = $('#notifications-list');
+    const empty = $('#notifications-empty');
+    if (list) list.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+  }
 }
 
 // ✅ Renderizar actividad (con protección contra errores)
@@ -1487,49 +1532,69 @@ function renderActivity(filter = 'all') {
       'backup_imported': { icon: '📥', label: 'Backup importado', color: '#5aa9ff' }
     };
     
-    filteredLogs.forEach(log => {
-      try {
-        const action = actionLabels[log.action] || { icon: 'ℹ️', label: log.action || 'Acción desconocida', color: '#5aa9ff' };
-        const time = new Date(log.timestamp || Date.now());
-        const timeStr = time.toLocaleString('es-ES', { 
-          day: 'numeric', 
-          month: 'short', 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        });
-        
-        const item = document.createElement('div');
-        item.style.cssText = `
-          padding: 12px;
-          background: rgba(90,169,255,0.05);
-          border-left: 3px solid ${action.color};
-          border-radius: 4px;
-        `;
-        
-        const detailsHtml = log.details && typeof log.details === 'object' && Object.keys(log.details).length > 0
-          ? `<div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">
-              ${Object.entries(log.details).slice(0, 3).map(([key, value]) => 
-                `<span>${escapeHTML(String(value || ''))}</span>`
-              ).join(' • ')}
-            </div>`
-          : '';
-        
-        item.innerHTML = `
-          <div style="display: flex; align-items: start; gap: 12px;">
-            <div style="font-size: 20px; flex-shrink: 0;">${action.icon}</div>
-            <div style="flex: 1; min-width: 0;">
-              <div style="font-weight: 500; font-size: 13px; color: var(--text); margin-bottom: 4px;">${escapeHTML(action.label)}</div>
-              ${detailsHtml}
-              <div style="font-size: 11px; color: var(--muted); opacity: 0.7;">${timeStr}</div>
+    // ✅ Renderizar en lotes para no bloquear la UI
+    let rendered = 0;
+    const batchSize = 10;
+    
+    const renderBatch = () => {
+      const batch = filteredLogs.slice(rendered, rendered + batchSize);
+      
+      batch.forEach(log => {
+        try {
+          if (!log || !log.action) return;
+          
+          const action = actionLabels[log.action] || { icon: 'ℹ️', label: log.action || 'Acción desconocida', color: '#5aa9ff' };
+          const time = new Date(log.timestamp || Date.now());
+          const timeStr = time.toLocaleString('es-ES', { 
+            day: 'numeric', 
+            month: 'short', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          });
+          
+          const item = document.createElement('div');
+          item.style.cssText = `
+            padding: 12px;
+            background: rgba(90,169,255,0.05);
+            border-left: 3px solid ${action.color};
+            border-radius: 4px;
+          `;
+          
+          const detailsHtml = log.details && typeof log.details === 'object' && Object.keys(log.details).length > 0
+            ? `<div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">
+                ${Object.entries(log.details).slice(0, 3).map(([key, value]) => 
+                  `<span>${escapeHTML(String(value || ''))}</span>`
+                ).join(' • ')}
+              </div>`
+            : '';
+          
+          item.innerHTML = `
+            <div style="display: flex; align-items: start; gap: 12px;">
+              <div style="font-size: 20px; flex-shrink: 0;">${action.icon}</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 500; font-size: 13px; color: var(--text); margin-bottom: 4px;">${escapeHTML(action.label)}</div>
+                ${detailsHtml}
+                <div style="font-size: 11px; color: var(--muted); opacity: 0.7;">${timeStr}</div>
+              </div>
             </div>
-          </div>
-        `;
-        
-        list.appendChild(item);
-      } catch (error) {
-        console.error('[ACTIVITY] Error renderizando log individual:', error, log);
+          `;
+          
+          list.appendChild(item);
+        } catch (error) {
+          console.error('[ACTIVITY] Error renderizando log individual:', error, log);
+        }
+      });
+      
+      rendered += batch.length;
+      
+      // ✅ Continuar con el siguiente lote si hay más
+      if (rendered < filteredLogs.length) {
+        setTimeout(renderBatch, 0);
       }
-    });
+    };
+    
+    // ✅ Iniciar renderizado por lotes
+    renderBatch();
   } catch (error) {
     console.error('[ACTIVITY] Error crítico en renderActivity:', error);
     const list = $('#activity-list');
