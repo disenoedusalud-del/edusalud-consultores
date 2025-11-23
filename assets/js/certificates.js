@@ -1064,8 +1064,8 @@ function setupCertificatesListeners() {
     
     console.log('[CERT SCRIPT] Click en botón mostrar código');
     
-    // Buscar el modal y elementos necesarios
-    const modalCertScript = document.getElementById('modal-cert-script-code');
+    // Buscar el modal y elementos necesarios (ID correcto: modalCertScript)
+    const modalCertScript = document.getElementById('modalCertScript');
     const certScriptCode = document.getElementById('cert-script-code');
     
     if (!modalCertScript) {
