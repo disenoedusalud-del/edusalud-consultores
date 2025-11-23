@@ -49,6 +49,122 @@
   border:1px solid rgba(0,0,0,.12);
 }
 
+/* ===================== VALIDACIÓN EN TIEMPO REAL ===================== */
+
+/* Indicador visual de validación */
+.validation-indicator {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  opacity: 0;
+}
+
+.validation-indicator-valid {
+  opacity: 1;
+}
+
+.validation-indicator-valid::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4ade80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.validation-indicator-valid::before {
+  content: '✓';
+  position: absolute;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.validation-indicator-invalid {
+  opacity: 1;
+}
+
+.validation-indicator-invalid::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.validation-indicator-invalid::before {
+  content: '✗';
+  position: absolute;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+/* Estados de input */
+.input-valid {
+  border-color: #4ade80 !important;
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.1) !important;
+}
+
+.input-invalid {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px rgba(255, 122, 122, 0.1) !important;
+}
+
+/* Mensaje de error */
+.validation-error {
+  display: none;
+  font-size: 12px;
+  color: var(--danger);
+  margin-top: 4px;
+  padding: 4px 8px;
+  background: rgba(255, 122, 122, 0.1);
+  border-radius: 4px;
+  border-left: 3px solid var(--danger);
+}
+
+.form-group {
+  position: relative;
+}
+
+/* Ajustar padding del input cuando hay indicador */
+.form-group:has(.validation-indicator) .input {
+  padding-right: 40px;
+}
+
+/* Tema claro */
+:root[data-theme="light"] .validation-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+:root[data-theme="light"] .input-valid {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1) !important;
+}
+
+:root[data-theme="light"] .input-invalid {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1) !important;
+}
+
 :root[data-theme="light"] .file{
   background:#ffffff;
   border:1px solid rgba(0,0,0,.08);
