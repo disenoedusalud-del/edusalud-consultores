@@ -333,6 +333,8 @@ const AUDIT_ACTION_TYPES = {
   // Acciones generales
   EXPORT_DATA: 'export_data',
   IMPORT_DATA: 'import_data',
+  BACKUP_EXPORTED: 'backup_exported',
+  BACKUP_IMPORTED: 'backup_imported',
   CONFIG_CHANGED: 'config_changed'
 };
 
@@ -2684,7 +2686,110 @@ async function refreshCustomCourses(){
 
 // ===== Exportar / Importar overrides (todas los cursos) =====
 // ✅ Exportar backup completo (cursos + overrides)
-function exportOverrides(){
+// ✅ Función auxiliar para calcular checksum simple
+function calculateChecksum(data) {
+  const str = JSON.stringify(data);
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convertir a 32bit integer
+  }
+  return Math.abs(hash).toString(16);
+}
+
+// ✅ Validar estructura de datos de backup
+function validateBackupStructure(data) {
+  const errors = [];
+  
+  if (!data || typeof data !== 'object') {
+    errors.push('El archivo no contiene un objeto JSON válido');
+    return { valid: false, errors };
+  }
+  
+  // Validar versión
+  if (data.version && typeof data.version !== 'number') {
+    errors.push('La versión debe ser un número');
+  }
+  
+  // Validar cursos
+  if (data.courses) {
+    if (typeof data.courses !== 'object' || Array.isArray(data.courses)) {
+      errors.push('El campo "courses" debe ser un objeto');
+    } else {
+      Object.entries(data.courses).forEach(([hex, courseData]) => {
+        if (!hex || typeof hex !== 'string' || hex.length !== 64) {
+          errors.push(`Hex inválido en curso: ${hex?.substring(0, 8) || 'desconocido'}`);
+        }
+        if (!courseData || typeof courseData !== 'object') {
+          errors.push(`Datos de curso inválidos para hex: ${hex?.substring(0, 8) || 'desconocido'}`);
+        } else {
+          // Validar campos requeridos del curso
+          if (!courseData.title || typeof courseData.title !== 'string') {
+            errors.push(`Título faltante o inválido en curso: ${hex.substring(0, 8)}`);
+          }
+        }
+      });
+    }
+  }
+  
+  // Validar overrides
+  if (data.overrides) {
+    if (typeof data.overrides !== 'object' || Array.isArray(data.overrides)) {
+      errors.push('El campo "overrides" debe ser un objeto');
+    } else {
+      Object.entries(data.overrides).forEach(([hex, arr]) => {
+        if (!Array.isArray(arr)) {
+          errors.push(`Override inválido para hex: ${hex?.substring(0, 8) || 'desconocido'} (debe ser un array)`);
+        }
+      });
+    }
+  }
+  
+  // Validar emails (si existen)
+  if (data.emails) {
+    if (typeof data.emails !== 'object' || Array.isArray(data.emails)) {
+      errors.push('El campo "emails" debe ser un objeto');
+    }
+  }
+  
+  // Validar admins (si existen)
+  if (data.admins) {
+    if (!Array.isArray(data.admins)) {
+      errors.push('El campo "admins" debe ser un array');
+    } else {
+      data.admins.forEach((admin, index) => {
+        if (!admin || typeof admin !== 'object') {
+          errors.push(`Admin inválido en índice ${index}`);
+        } else if (!admin.email || typeof admin.email !== 'string' || !admin.email.includes('@')) {
+          errors.push(`Email inválido en admin índice ${index}`);
+        }
+      });
+    }
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+// ✅ Generar preview de datos a importar
+function generateImportPreview(data) {
+  const preview = {
+    version: data.version || 'No especificada',
+    exportedAt: data.exportedAt || 'No especificada',
+    courses: data.courses ? Object.keys(data.courses).length : 0,
+    overrides: data.overrides ? Object.keys(data.overrides).length : 0,
+    emails: data.emails ? Object.keys(data.emails).length : 0,
+    admins: data.admins ? data.admins.length : 0,
+    checksum: data.checksum || 'No disponible'
+  };
+  
+  return preview;
+}
+
+async function exportOverrides(){
   // ✅ PREVENIR MÚLTIPLES EJECUCIONES: Verificar si ya se está exportando
   if (window._isExporting) {
     warn('[EXPORT] Ya hay una exportación en curso, ignorando...');
@@ -2699,10 +2804,12 @@ function exportOverrides(){
   
   try {
     const payload = { 
-      version: 2, 
+      version: 3, // ✅ Versión 3: Incluye emails y admins
       exportedAt: new Date().toISOString(), 
       overrides: {},
-      courses: {} // ✅ NUEVO: Incluir cursos completos
+      courses: {},
+      emails: {},
+      admins: []
     };
     
     // Exportar overrides (links personalizados)
@@ -2717,6 +2824,53 @@ function exportOverrides(){
       payload.courses[hex] = customCourses[hex];
     });
     
+    // ✅ Exportar emails de cursos desde Firebase
+    try {
+      const db = getFirebaseDB();
+      if (db) {
+        const courseEmailsRef = db.ref(COURSE_EMAILS_PATH);
+        const snapshot = await courseEmailsRef.once('value');
+        if (snapshot.exists()) {
+          snapshot.forEach((courseSnapshot) => {
+            const courseHex = courseSnapshot.key;
+            const emails = {};
+            courseSnapshot.forEach((emailSnapshot) => {
+              const emailData = emailSnapshot.val();
+              if (emailData && emailData.active !== false) {
+                emails[emailSnapshot.key] = emailData;
+              }
+            });
+            if (Object.keys(emails).length > 0) {
+              payload.emails[courseHex] = emails;
+            }
+          });
+        }
+        log('[EXPORT] ✅ Emails exportados desde Firebase');
+      }
+    } catch (e) {
+      warn('[EXPORT] ⚠️ No se pudieron exportar emails:', e.message);
+    }
+    
+    // ✅ Exportar administradores desde Firebase
+    try {
+      const admins = await getAdmins();
+      if (admins && admins.length > 0) {
+        payload.admins = admins.map(admin => ({
+          email: admin.email,
+          role: admin.role,
+          addedBy: admin.addedBy,
+          addedAt: admin.addedAt
+        }));
+        log('[EXPORT] ✅ Administradores exportados desde Firebase');
+      }
+    } catch (e) {
+      warn('[EXPORT] ⚠️ No se pudieron exportar administradores:', e.message);
+    }
+    
+    // ✅ Calcular checksum para validación de integridad
+    const checksum = calculateChecksum(payload);
+    payload.checksum = checksum;
+    
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -2730,10 +2884,26 @@ function exportOverrides(){
     // ✅ Registrar en historial
     logBackupHistory('export', 'all', Object.keys(payload.courses).length);
     
+    // ✅ Log de auditoría
+    await auditLog(AUDIT_ACTION_TYPES.BACKUP_EXPORTED, {
+      courses: Object.keys(payload.courses).length,
+      overrides: Object.keys(payload.overrides).length,
+      emails: Object.keys(payload.emails).length,
+      admins: payload.admins.length,
+      checksum: checksum.substring(0, 16)
+    }, null, true);
+    
+    const summary = [
+      `${Object.keys(payload.courses).length} cursos`,
+      `${Object.keys(payload.overrides).length} sets de links`,
+      `${Object.keys(payload.emails).length} cursos con emails`,
+      `${payload.admins.length} administradores`
+    ].filter(s => !s.startsWith('0')).join(', ');
+    
     if (typeof window.showSuccessModal === 'function') {
       window.showSuccessModal(
         'Backup Exportado',
-        `Se exportaron ${Object.keys(payload.courses).length} cursos y ${Object.keys(payload.overrides).length} sets de links.`
+        `Se exportaron:\n${summary}\n\nChecksum: ${checksum.substring(0, 8)}...`
       );
     } else if (typeof window.showToast === 'function') {
       window.showToast('success', 'Backup Exportado', 
@@ -2746,70 +2916,304 @@ function exportOverrides(){
     }, 1000);
   }
 }
-// ✅ Importar backup completo (cursos + overrides)
-async function importOverridesFromFile(file){
+// ✅ Mostrar modal de preview antes de importar
+function showImportPreviewModal(data, file) {
+  const preview = generateImportPreview(data);
+  const validation = validateBackupStructure(data);
+  
+  // Crear contenido del modal
+  const modalContent = `
+    <div style="max-width: 600px; padding: 24px;">
+      <h2 style="margin-bottom: 16px;">Vista Previa de Importación</h2>
+      
+      ${!validation.valid ? `
+        <div style="background: rgba(220, 38, 38, 0.1); border: 1px solid rgba(220, 38, 38, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+          <h3 style="color: #dc2626; margin-bottom: 8px;">⚠️ Errores de Validación</h3>
+          <ul style="margin: 0; padding-left: 20px; color: #dc2626;">
+            ${validation.errors.map(err => `<li>${err}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+      
+      <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+        <h3 style="margin-bottom: 12px;">📊 Resumen del Backup</h3>
+        <div style="display: grid; gap: 8px;">
+          <div><strong>Versión:</strong> ${preview.version}</div>
+          <div><strong>Fecha de exportación:</strong> ${preview.exportedAt ? new Date(preview.exportedAt).toLocaleString('es-ES') : 'No disponible'}</div>
+          <div><strong>Cursos:</strong> ${preview.courses}</div>
+          <div><strong>Sets de links:</strong> ${preview.overrides}</div>
+          ${preview.emails > 0 ? `<div><strong>Emails de cursos:</strong> ${preview.emails}</div>` : ''}
+          ${preview.admins > 0 ? `<div><strong>Administradores:</strong> ${preview.admins}</div>` : ''}
+          ${preview.checksum !== 'No disponible' ? `<div><strong>Checksum:</strong> <code style="font-size: 12px;">${preview.checksum.substring(0, 16)}...</code></div>` : ''}
+        </div>
+      </div>
+      
+      ${validation.valid ? `
+        <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+          <p style="margin: 0; color: #22c55e;">✅ El archivo es válido y está listo para importar.</p>
+        </div>
+      ` : `
+        <div style="background: rgba(220, 38, 38, 0.1); border: 1px solid rgba(220, 38, 38, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+          <p style="margin: 0; color: #dc2626;">❌ El archivo contiene errores. Se recomienda no importar.</p>
+        </div>
+      `}
+      
+      <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+        <button id="btn-preview-cancel" class="btn secondary" type="button">Cancelar</button>
+        <button id="btn-preview-import" class="btn" type="button" ${!validation.valid ? 'disabled' : ''}>
+          ${validation.valid ? '✅ Importar' : '❌ No se puede importar'}
+        </button>
+      </div>
+    </div>
+  `;
+  
+  // Crear modal
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.id = 'modal-import-preview';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 700px;">
+      ${modalContent}
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Event listeners
+  $('#btn-preview-cancel')?.addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+  
+  $('#btn-preview-import')?.addEventListener('click', async () => {
+    if (!validation.valid) return;
+    document.body.removeChild(modal);
+    await performImport(data);
+  });
+  
+  // Cerrar con Escape
+  const handleEscape = (e) => {
+    if (e.key === 'Escape' && modal.parentNode) {
+      document.body.removeChild(modal);
+      document.removeEventListener('keydown', handleEscape);
+    }
+  };
+  document.addEventListener('keydown', handleEscape);
+}
+
+// ✅ Realizar la importación después del preview
+async function performImport(data) {
   try {
-    const text = await file.text();
-    const data = JSON.parse(text);
-    
-    if (!data || typeof data !== 'object') {
-      if (typeof window.showToast === 'function') {
-        window.showToast('error', 'Archivo inválido', 'El archivo seleccionado no es válido.');
-      } else {
-        alert('Archivo inválido');
-      } 
-      return;
+    // ✅ Validar checksum si está disponible
+    if (data.checksum) {
+      const currentChecksum = calculateChecksum({ ...data, checksum: null });
+      if (currentChecksum !== data.checksum) {
+        const proceed = confirm('⚠️ El checksum no coincide. El archivo podría estar corrupto.\n\n¿Desea continuar de todas formas?');
+        if (!proceed) {
+          if (typeof window.showToast === 'function') {
+            window.showToast('warning', 'Importación cancelada', 'El checksum no coincide.');
+          }
+          return;
+        }
+      }
     }
     
     let coursesCount = 0;
     let overridesCount = 0;
+    let emailsCount = 0;
+    let adminsCount = 0;
+    const errors = [];
     
-    // ✅ Importar cursos personalizados (versión 2)
+    // ✅ Importar cursos personalizados
     if (data.courses && typeof data.courses === 'object') {
       const custom = loadCustomCourses();
       Object.entries(data.courses).forEach(([hex, courseData]) => {
-        if (courseData && typeof courseData === 'object') {
-          custom[hex] = courseData;
-          coursesCount++;
+        try {
+          if (courseData && typeof courseData === 'object' && hex && hex.length === 64) {
+            custom[hex] = courseData;
+            coursesCount++;
+          }
+        } catch (e) {
+          errors.push(`Error importando curso ${hex?.substring(0, 8) || 'desconocido'}: ${e.message}`);
         }
       });
       saveCustomCourses(custom);
       log('[IMPORT] ✅ Cursos importados:', coursesCount);
     }
     
-    // Importar overrides (links personalizados) - Compatible con versión 1
+    // ✅ Importar overrides (links personalizados)
     if (data.overrides && typeof data.overrides === 'object') {
       Object.entries(data.overrides).forEach(([hex, arr]) => {
-        if (Array.isArray(arr)) { 
-          saveFilesOverride(hex, arr); 
-          overridesCount++; 
+        try {
+          if (Array.isArray(arr) && hex && hex.length === 64) {
+            saveFilesOverride(hex, arr);
+            overridesCount++;
+          }
+        } catch (e) {
+          errors.push(`Error importando overrides ${hex?.substring(0, 8) || 'desconocido'}: ${e.message}`);
         }
       });
       log('[IMPORT] ✅ Overrides importados:', overridesCount);
+    }
+    
+    // ✅ Importar emails de cursos a Firebase
+    if (data.emails && typeof data.emails === 'object') {
+      try {
+        const db = getFirebaseDB();
+        if (db) {
+          for (const [courseHex, emails] of Object.entries(data.emails)) {
+            if (courseHex && courseHex.length === 64 && emails && typeof emails === 'object') {
+              for (const [emailKey, emailData] of Object.entries(emails)) {
+                try {
+                  if (emailData && emailData.email && emailData.email.includes('@')) {
+                    await addEmailToCourse(emailData.email, courseHex);
+                    emailsCount++;
+                  }
+                } catch (e) {
+                  errors.push(`Error importando email ${emailData.email} al curso ${courseHex.substring(0, 8)}: ${e.message}`);
+                }
+              }
+            }
+          }
+          log('[IMPORT] ✅ Emails importados:', emailsCount);
+        } else {
+          warn('[IMPORT] ⚠️ Firebase no disponible, emails no se importaron');
+        }
+      } catch (e) {
+        errors.push(`Error importando emails: ${e.message}`);
+      }
+    }
+    
+    // ✅ Importar administradores a Firebase
+    if (data.admins && Array.isArray(data.admins)) {
+      try {
+        const db = getFirebaseDB();
+        if (db) {
+          for (const admin of data.admins) {
+            try {
+              if (admin && admin.email && admin.email.includes('@')) {
+                // Verificar si ya existe
+                const isAdmin = await checkIsAdmin(admin.email);
+                if (!isAdmin) {
+                  await addAdmin(admin.email);
+                  adminsCount++;
+                }
+              }
+            } catch (e) {
+              errors.push(`Error importando admin ${admin.email}: ${e.message}`);
+            }
+          }
+          log('[IMPORT] ✅ Administradores importados:', adminsCount);
+        } else {
+          warn('[IMPORT] ⚠️ Firebase no disponible, administradores no se importaron');
+        }
+      } catch (e) {
+        errors.push(`Error importando administradores: ${e.message}`);
+      }
     }
     
     // Reconstruir grid
     buildMasterGrid();
     
     // Mostrar resultado
-    const message = `Importado correctamente:\n- ${coursesCount} cursos\n- ${overridesCount} sets de links`;
+    const summary = [
+      `${coursesCount} cursos`,
+      `${overridesCount} sets de links`,
+      emailsCount > 0 ? `${emailsCount} emails` : '',
+      adminsCount > 0 ? `${adminsCount} administradores` : ''
+    ].filter(s => s).join(', ');
+    
+    const message = errors.length > 0 
+      ? `Importado con advertencias:\n${summary}\n\nErrores: ${errors.length}`
+      : `Importado correctamente:\n${summary}`;
+    
     if (typeof window.showSuccessModal === 'function') {
       window.showSuccessModal('Backup Importado', message);
     } else {
       alert(message);
     }
     
+    if (errors.length > 0) {
+      console.warn('[IMPORT] Errores durante la importación:', errors);
+    }
+    
     // Sincronizar con Firebase si está disponible
     if (getFirestoreDB()) {
       log('[IMPORT] 🔄 Sincronizando cursos importados con Firebase...');
-      // Los cursos se sincronizarán automáticamente con Firebase
     }
+    
+    // ✅ Log de auditoría
+    await auditLog(AUDIT_ACTION_TYPES.BACKUP_IMPORTED, {
+      courses: coursesCount,
+      overrides: overridesCount,
+      emails: emailsCount,
+      admins: adminsCount,
+      errors: errors.length
+    }, null, true);
+    
+  } catch (e) {
+    trackError(e, {
+      operation: 'performImport',
+      fileType: 'json'
+    });
+    const errorMsg = 'No se pudo importar el archivo: ' + (e.message || 'Error desconocido');
+    if (typeof window.showToast === 'function') {
+      window.showToast('error', 'Error de Importación', errorMsg);
+    } else {
+      alert(errorMsg);
+    }
+  }
+}
+
+// ✅ Importar backup completo (cursos + overrides) con preview
+async function importOverridesFromFile(file){
+  try {
+    // Validar tipo de archivo
+    if (!file || !file.name.endsWith('.json')) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('error', 'Archivo inválido', 'Por favor seleccione un archivo JSON.');
+      } else {
+        alert('Por favor seleccione un archivo JSON.');
+      }
+      return;
+    }
+    
+    const text = await file.text();
+    let data;
+    
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('error', 'JSON inválido', 'El archivo no contiene JSON válido.');
+      } else {
+        alert('El archivo no contiene JSON válido: ' + parseError.message);
+      }
+      return;
+    }
+    
+    if (!data || typeof data !== 'object') {
+      if (typeof window.showToast === 'function') {
+        window.showToast('error', 'Archivo inválido', 'El archivo seleccionado no es válido.');
+      } else {
+        alert('Archivo inválido');
+      }
+      return;
+    }
+    
+    // ✅ Mostrar preview antes de importar
+    showImportPreviewModal(data, file);
+    
   } catch (e) {
     trackError(e, {
       operation: 'importOverridesFromFile',
       fileType: file?.type || 'unknown'
     });
-    alert('No se pudo importar el archivo: ' + (e.message || 'Error desconocido'));
+    const errorMsg = 'No se pudo leer el archivo: ' + (e.message || 'Error desconocido');
+    if (typeof window.showToast === 'function') {
+      window.showToast('error', 'Error', errorMsg);
+    } else {
+      alert(errorMsg);
+    }
   }
 }
 function ensureMasterTools(){
