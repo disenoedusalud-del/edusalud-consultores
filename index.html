@@ -52,7 +52,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
   
   <!-- Estilos principales -->
-  <link rel="stylesheet" href="assets/css/style.css?v=7" />
+  <link rel="stylesheet" href="assets/css/style.css?v=8" />
 </head>
 <body>
   <div class="wrap">
@@ -85,8 +85,8 @@
       
       <!-- Pestañas de método de acceso -->
       <div class="auth-tabs" style="display:flex; gap:12px; margin-bottom:24px; border-bottom:1px solid rgba(255,255,255,.08);">
-        <button id="tab-code" class="auth-tab active" type="button" data-tab="code"><i class="ph ph-key"></i> Código</button>
-        <button id="tab-account" class="auth-tab" type="button" data-tab="account"><i class="ph ph-user"></i> Cuenta</button>
+        <button id="tab-code" class="auth-tab active" type="button" data-tab="code" aria-label="Acceder con código" aria-selected="true" role="tab"><i class="ph ph-key"></i> Código</button>
+        <button id="tab-account" class="auth-tab" type="button" data-tab="account" aria-label="Acceder con cuenta" aria-selected="false" role="tab"><i class="ph ph-user"></i> Cuenta</button>
       </div>
 
       <div class="grid cols-2" style="align-items:center;">
@@ -112,16 +112,16 @@
               
               <div style="margin-bottom:16px;">
                 <label for="input-email" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Correo electrónico</label>
-                <input id="input-email" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" style="width:100%;" />
+                <input id="input-email" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" aria-label="Correo electrónico para iniciar sesión" aria-describedby="msg-auth" aria-required="true" style="width:100%;" />
               </div>
               
               <div style="margin-bottom:16px;">
                 <label for="input-password" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Contraseña</label>
-                <input id="input-password" class="input" type="password" placeholder="••••••••" autocomplete="current-password" style="width:100%;" />
+                <input id="input-password" class="input" type="password" placeholder="••••••••" autocomplete="current-password" aria-label="Contraseña para iniciar sesión" aria-describedby="msg-auth" aria-required="true" style="width:100%;" />
               </div>
               
               <div style="margin-bottom:16px;">
-                <button id="btn-login" class="btn" type="button" style="width:100%;">Iniciar sesión</button>
+                <button id="btn-login" class="btn" type="button" aria-label="Iniciar sesión con correo y contraseña" style="width:100%;">Iniciar sesión</button>
               </div>
               
               <div style="text-align:center; margin-top:16px;">
@@ -144,11 +144,11 @@
               <div id="register-step-1">
                 <div style="margin-bottom:16px;">
                   <label for="input-register-email" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Correo electrónico</label>
-                  <input id="input-register-email" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" style="width:100%;" />
+                  <input id="input-register-email" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" aria-label="Correo electrónico para registro" aria-describedby="msg-register" aria-required="true" style="width:100%;" />
                 </div>
                 
                 <div style="margin-bottom:16px;">
-                  <button id="btn-verify-email" class="btn" type="button" style="width:100%;">Verificar correo</button>
+                  <button id="btn-verify-email" class="btn" type="button" aria-label="Verificar correo electrónico y enviar código de verificación" style="width:100%;">Verificar correo</button>
                 </div>
                 
                 <div style="text-align:center; margin-top:16px;">
@@ -167,16 +167,16 @@
                 
                 <div style="margin-bottom:16px;">
                   <label for="input-verification-code" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Código de verificación</label>
-                  <input id="input-verification-code" class="input" type="text" placeholder="000000" autocomplete="one-time-code" style="width:100%; text-align:center; font-size:24px; letter-spacing:8px; font-weight:bold; font-family:monospace;" maxlength="6" pattern="[0-9]{6}" />
-                  <p style="margin-top:8px; font-size:12px; color:var(--muted); text-align:center;">Revisa tu correo electrónico. El código expira en 10 minutos.</p>
+                  <input id="input-verification-code" class="input" type="text" placeholder="000000" autocomplete="one-time-code" aria-label="Código de verificación de 6 dígitos" aria-describedby="verification-code-help msg-register-step2" aria-required="true" style="width:100%; text-align:center; font-size:24px; letter-spacing:8px; font-weight:bold; font-family:monospace;" maxlength="6" pattern="[0-9]{6}" />
+                  <p id="verification-code-help" style="margin-top:8px; font-size:12px; color:var(--muted); text-align:center;">Revisa tu correo electrónico. El código expira en 10 minutos.</p>
                 </div>
                 
                 <div style="margin-bottom:16px;">
-                  <button id="btn-verify-code" class="btn" type="button" style="width:100%;">Verificar código</button>
+                  <button id="btn-verify-code" class="btn" type="button" aria-label="Verificar código de 6 dígitos" style="width:100%;">Verificar código</button>
                 </div>
                 
                 <div style="margin-bottom:16px;">
-                  <button id="btn-resend-code" class="btn secondary" type="button" style="width:100%;">Reenviar código</button>
+                  <button id="btn-resend-code" class="btn secondary" type="button" aria-label="Reenviar código de verificación al correo electrónico" style="width:100%;">Reenviar código</button>
                 </div>
                 
                 <div style="text-align:center; margin-top:16px;">
@@ -194,16 +194,16 @@
                 
                 <div style="margin-bottom:16px;">
                   <label for="input-register-password" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Contraseña</label>
-                  <input id="input-register-password" class="input" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" style="width:100%;" />
+                  <input id="input-register-password" class="input" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" aria-label="Nueva contraseña, mínimo 6 caracteres" aria-describedby="msg-register-step3" aria-required="true" style="width:100%;" />
                 </div>
 
                 <div style="margin-bottom:16px;">
                   <label for="input-register-password-confirm" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Confirmar contraseña</label>
-                  <input id="input-register-password-confirm" class="input" type="password" placeholder="Repite la contraseña" autocomplete="new-password" style="width:100%;" />
+                  <input id="input-register-password-confirm" class="input" type="password" placeholder="Repite la contraseña" autocomplete="new-password" aria-label="Confirmar nueva contraseña" aria-describedby="msg-register-step3" aria-required="true" style="width:100%;" />
                 </div>
 
                 <div style="margin-bottom:16px;">
-                  <button id="btn-register" class="btn" type="button" style="width:100%;">Crear cuenta</button>
+                  <button id="btn-register" class="btn" type="button" aria-label="Crear cuenta con los datos ingresados" style="width:100%;">Crear cuenta</button>
                 </div>
 
                 <div style="text-align:center; margin-top:16px;">
@@ -223,11 +223,11 @@
               
               <div style="margin-bottom:16px;">
                 <label for="input-reset-email" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Correo electrónico</label>
-                <input id="input-reset-email" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" style="width:100%;" />
+                <input id="input-reset-email" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" aria-label="Correo electrónico para restablecer contraseña" aria-describedby="msg-reset" aria-required="true" style="width:100%;" />
               </div>
               
               <div style="margin-bottom:16px;">
-                <button id="btn-reset" class="btn" type="button" style="width:100%;">Enviar enlace de restablecimiento</button>
+                <button id="btn-reset" class="btn" type="button" aria-label="Enviar enlace de restablecimiento de contraseña al correo" style="width:100%;">Enviar enlace de restablecimiento</button>
               </div>
               
               <div style="text-align:center; margin-top:16px;">
@@ -465,7 +465,7 @@
         <!-- Ordenamiento -->
         <div style="display: flex; align-items: center; gap: 8px;">
           <label for="sortBy" style="font-size: 13px; color: var(--muted);">Ordenar:</label>
-          <select id="sortBy" class="input" style="min-width: 150px; font-size: 13px;" title="Ordenar cursos">
+          <select id="sortBy" class="input" style="min-width: 150px; font-size: 13px;" title="Ordenar cursos" aria-label="Ordenar cursos">
             <option value="title-asc">Nombre (A-Z)</option>
             <option value="title-desc">Nombre (Z-A)</option>
             <option value="type-asc">Tipo (A-Z)</option>
@@ -503,14 +503,15 @@
               URL del Google Apps Script Web App *
               <span class="help-icon" data-help="script-url" title="Haz clic para ver ayuda">?</span>
             </label>
-            <input id="input-script-web-app-url" class="input" type="url" placeholder="https://script.google.com/macros/s/APP_ID/exec" />
+            <input id="input-script-web-app-url" class="input" type="url" placeholder="https://script.google.com/macros/s/APP_ID/exec" aria-label="URL del Google Apps Script Web App" aria-describedby="script-url-help" aria-required="true" />
+            <span id="script-url-help" class="sr-only">URL completa del Google Apps Script desplegado como Web App</span>
           </div>
 
           <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
-            <button id="btn-save-cert-config" class="btn secondary" type="button"><i class="ph ph-floppy-disk"></i> Guardar Configuración</button>
-            <button id="btn-load-cert-config" class="btn secondary" type="button"><i class="ph ph-download"></i> Cargar Configuración</button>
-            <button id="btn-test-connection" class="btn secondary" type="button"><i class="ph ph-flask"></i> Probar Conexión</button>
-            <button id="btn-show-cert-script" class="btn secondary" type="button" style="background: rgba(90,169,255,0.15); border-color: var(--accent);"><i class="ph ph-clipboard"></i> Ver Código del Script</button>
+            <button id="btn-save-cert-config" class="btn secondary" type="button" aria-label="Guardar configuración de certificados"><i class="ph ph-floppy-disk"></i> Guardar Configuración</button>
+            <button id="btn-load-cert-config" class="btn secondary" type="button" aria-label="Cargar configuración de certificados guardada"><i class="ph ph-download"></i> Cargar Configuración</button>
+            <button id="btn-test-connection" class="btn secondary" type="button" aria-label="Probar conexión con Google Apps Script"><i class="ph ph-flask"></i> Probar Conexión</button>
+            <button id="btn-show-cert-script" class="btn secondary" type="button" style="background: rgba(90,169,255,0.15); border-color: var(--accent);" aria-label="Ver código del script de Google Apps"><i class="ph ph-clipboard"></i> Ver Código del Script</button>
           </div>
           <div id="test-connection-status" style="margin-top:12px; font-size:13px; color:var(--muted); min-height:20px;"></div>
         </div>
@@ -526,7 +527,7 @@
               Seleccionar modo de certificado *
               <span class="help-icon" data-help="cert-mode" title="Haz clic para ver ayuda">?</span>
             </label>
-            <select id="select-cert-mode" class="input">
+            <select id="select-cert-mode" class="input" aria-label="Modo de generación de certificados" aria-required="true">
               <option value="webinar"><i class="ph ph-graduation-cap"></i> Modo Webinar (solo {{NOMBRE}})</option>
               <option value="with-code"><i class="ph ph-key"></i> Modo con Código de Validación ({{NOMBRE}} + {{CODIGO_VALIDACION}})</option>
             </select>
@@ -548,10 +549,10 @@
               <span class="help-icon" data-help="slide-template" title="Haz clic para ver ayuda">?</span>
             </label>
             <div style="display:flex; gap:8px;">
-              <select id="select-slide-template" class="input" style="flex:1;">
+              <select id="select-slide-template" class="input" style="flex:1;" aria-label="Seleccionar plantilla de certificado" aria-required="true">
                 <option value="">-- Seleccionar plantilla --</option>
               </select>
-              <button id="btn-refresh-templates" class="btn secondary" type="button"><i class="ph ph-arrow-clockwise"></i> Actualizar lista</button>
+              <button id="btn-refresh-templates" class="btn secondary" type="button" aria-label="Actualizar lista de plantillas disponibles"><i class="ph ph-arrow-clockwise"></i> Actualizar lista</button>
             </div>
           </div>
         </div>
@@ -568,18 +569,18 @@
               <span class="help-icon" data-help="google-sheet" title="Haz clic para ver ayuda">?</span>
             </label>
             <div style="display:flex; gap:8px;">
-              <select id="select-google-sheet" class="input" style="flex:1;">
+              <select id="select-google-sheet" class="input" style="flex:1;" aria-label="Seleccionar hoja de cálculo de Google Sheets" aria-required="true">
                 <option value="">-- Seleccionar hoja --</option>
               </select>
-              <button id="btn-refresh-sheets" class="btn secondary" type="button"><i class="ph ph-arrow-clockwise"></i> Actualizar lista</button>
+              <button id="btn-refresh-sheets" class="btn secondary" type="button" aria-label="Actualizar lista de hojas de cálculo disponibles"><i class="ph ph-arrow-clockwise"></i> Actualizar lista</button>
             </div>
           </div>
           
           <div class="form-group" style="margin-top:16px;">
             <label for="input-new-sheet-name">O crear nueva hoja</label>
             <div style="display:flex; gap:8px;">
-              <input id="input-new-sheet-name" class="input" type="text" placeholder="Nombre de la hoja" style="flex:1;" />
-              <button id="btn-create-sheet" class="btn secondary" type="button"><i class="ph ph-plus"></i> Crear nueva hoja</button>
+              <input id="input-new-sheet-name" class="input" type="text" placeholder="Nombre de la hoja" style="flex:1;" aria-label="Nombre para nueva hoja de cálculo" />
+              <button id="btn-create-sheet" class="btn secondary" type="button" aria-label="Crear nueva hoja de cálculo"><i class="ph ph-plus"></i> Crear nueva hoja</button>
             </div>
           </div>
         </div>
@@ -596,17 +597,17 @@
               <span class="help-icon" data-help="folder-originales" title="Haz clic para ver ayuda">?</span>
             </label>
             <div style="display:flex; gap:8px;">
-              <select id="select-folder-originales" class="input" style="flex:1;">
+              <select id="select-folder-originales" class="input" style="flex:1;" aria-label="Carpeta para PDFs originales" aria-required="true">
                 <option value="">-- Seleccionar carpeta --</option>
               </select>
-              <button id="btn-refresh-folders" class="btn secondary" type="button"><i class="ph ph-arrow-clockwise"></i> Actualizar lista</button>
+              <button id="btn-refresh-folders" class="btn secondary" type="button" aria-label="Actualizar lista de carpetas"><i class="ph ph-arrow-clockwise"></i> Actualizar lista</button>
             </div>
           </div>
           
           <div class="form-group" style="margin-top:16px;">
             <div style="display:flex; gap:8px;">
-              <input id="input-new-folder-originales" class="input" type="text" placeholder="Nombre de la carpeta" style="flex:1;" />
-              <button id="btn-create-folder-originales" class="btn secondary" type="button"><i class="ph ph-plus"></i> Crear nueva carpeta</button>
+              <input id="input-new-folder-originales" class="input" type="text" placeholder="Nombre de la carpeta" style="flex:1;" aria-label="Nombre para nueva carpeta de PDFs originales" />
+              <button id="btn-create-folder-originales" class="btn secondary" type="button" aria-label="Crear nueva carpeta para PDFs originales"><i class="ph ph-plus"></i> Crear nueva carpeta</button>
             </div>
           </div>
         </div>
@@ -626,7 +627,7 @@
             <ul id="pdf-missing-fields" style="margin:0; padding-left:20px; color:var(--muted);"></ul>
           </div>
           
-          <button id="btn-generate-pdfs" class="btn" type="button" style="width:100%;">
+          <button id="btn-generate-pdfs" class="btn" type="button" aria-label="Generar certificados PDF desde la plantilla configurada" style="width:100%;">
             <i class="ph ph-file-text"></i> Generar PDFs desde Plantilla
           </button>
           
@@ -660,17 +661,17 @@
               <span class="help-icon" data-help="folder-protegidos" title="Haz clic para ver ayuda">?</span>
             </label>
             <div style="display:flex; gap:8px;">
-              <select id="select-folder-protegidos" class="input" style="flex:1;">
+              <select id="select-folder-protegidos" class="input" style="flex:1;" aria-label="Carpeta para PDFs protegidos" aria-required="true">
                 <option value="">-- Seleccionar carpeta --</option>
               </select>
-              <button id="btn-refresh-folders-prot" class="btn secondary" type="button"><i class="ph ph-arrow-clockwise"></i> Actualizar</button>
+              <button id="btn-refresh-folders-prot" class="btn secondary" type="button" aria-label="Actualizar lista de carpetas protegidas"><i class="ph ph-arrow-clockwise"></i> Actualizar</button>
             </div>
           </div>
           
           <div class="form-group" style="margin-bottom:16px;">
             <div style="display:flex; gap:8px;">
-              <input id="input-new-folder-protegidos" class="input" type="text" placeholder="Nombre de la carpeta" style="flex:1;" />
-              <button id="btn-create-folder-protegidos" class="btn secondary" type="button"><i class="ph ph-plus"></i> Crear nueva carpeta</button>
+              <input id="input-new-folder-protegidos" class="input" type="text" placeholder="Nombre de la carpeta" style="flex:1;" aria-label="Nombre para nueva carpeta de PDFs protegidos" />
+              <button id="btn-create-folder-protegidos" class="btn secondary" type="button" aria-label="Crear nueva carpeta para PDFs protegidos"><i class="ph ph-plus"></i> Crear nueva carpeta</button>
             </div>
           </div>
 
@@ -680,7 +681,7 @@
               Título del Webinar/Evento *
               <span class="help-icon" data-help="webinar-title" title="Haz clic para ver ayuda">?</span>
             </label>
-            <input id="input-webinar-title" class="input" type="text" placeholder="Webinar: Título del Evento" />
+            <input id="input-webinar-title" class="input" type="text" placeholder="Webinar: Título del Evento" aria-label="Título del webinar o evento" aria-required="true" />
           </div>
           
           <div class="form-group" style="margin-bottom:16px;">
@@ -688,7 +689,7 @@
               Fecha del Evento *
               <span class="help-icon" data-help="webinar-date" title="Haz clic para ver ayuda">?</span>
             </label>
-            <input id="input-webinar-date" class="input" type="text" placeholder="15 de noviembre de 2024" />
+            <input id="input-webinar-date" class="input" type="text" placeholder="15 de noviembre de 2024" aria-label="Fecha del evento" aria-required="true" />
           </div>
           
           <div class="form-group" style="margin-bottom:16px;">
@@ -696,7 +697,7 @@
               Mensaje de Correo Electrónico (Opcional)
               <span class="help-icon" data-help="email-message" title="Haz clic para ver ayuda">?</span>
             </label>
-            <textarea id="textarea-email-message" class="input" rows="6" placeholder="Mensaje por defecto se usará si está vacío. Variables disponibles: {{NOMBRE}}, {{TITULO}}, {{FECHA}}, {{ENLACE_PDF}}"></textarea>
+            <textarea id="textarea-email-message" class="input" rows="6" placeholder="Mensaje por defecto se usará si está vacío. Variables disponibles: {{NOMBRE}}, {{TITULO}}, {{FECHA}}, {{ENLACE_PDF}}" aria-label="Mensaje personalizado de correo electrónico (opcional)"></textarea>
           </div>
           
           <div class="form-group" style="margin-bottom:16px;">
@@ -704,7 +705,7 @@
               Mensaje de WhatsApp (Opcional)
               <span class="help-icon" data-help="whatsapp-message" title="Haz clic para ver ayuda">?</span>
             </label>
-            <textarea id="textarea-whatsapp-message" class="input" rows="6" placeholder="Mensaje por defecto se usará si está vacío. Variables disponibles: {{NOMBRE}}, {{TITULO}}, {{FECHA}}, {{ENLACE_PDF}}"></textarea>
+            <textarea id="textarea-whatsapp-message" class="input" rows="6" placeholder="Mensaje por defecto se usará si está vacío. Variables disponibles: {{NOMBRE}}, {{TITULO}}, {{FECHA}}, {{ENLACE_PDF}}" aria-label="Mensaje personalizado de WhatsApp (opcional)"></textarea>
           </div>
           
           <div id="links-validation-status" style="padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; margin-bottom:16px; font-size:13px; display:none;">
@@ -712,7 +713,7 @@
             <ul id="links-missing-fields" style="margin:0; padding-left:20px; color:var(--muted);"></ul>
           </div>
           
-          <button id="btn-generate-links" class="btn" type="button" style="width:100%;">
+          <button id="btn-generate-links" class="btn" type="button" aria-label="Generar enlaces de entrega para correo, WhatsApp y Drive" style="width:100%;">
             <i class="ph ph-link"></i> Generar Enlaces
           </button>
           
@@ -763,26 +764,30 @@
       <form id="formAddCourse">
         <div class="form-group">
           <label for="inputCourseTitle" title="Nombre completo del curso que aparecerá en la plataforma">Título del Curso * (5-100 caracteres)</label>
-          <input id="inputCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso (mínimo 5, máximo 100 caracteres)" maxlength="100" tabindex="1" aria-required="true" />
+          <input id="inputCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso (mínimo 5, máximo 100 caracteres)" maxlength="100" tabindex="1" aria-required="true" aria-label="Título del curso" aria-describedby="inputCourseTitle-help" />
+          <span id="inputCourseTitle-help" class="sr-only">El título debe tener entre 5 y 100 caracteres</span>
         </div>
         <div class="form-group">
           <label for="inputCourseMeta" title="Descripción breve del curso que aparecerá debajo del título">Descripción / Meta * (10-200 caracteres)</label>
-          <input id="inputCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso (mínimo 10, máximo 200 caracteres)" maxlength="200" tabindex="2" aria-required="true" />
+          <input id="inputCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso (mínimo 10, máximo 200 caracteres)" maxlength="200" tabindex="2" aria-required="true" aria-label="Descripción del curso" aria-describedby="inputCourseMeta-help" />
+          <span id="inputCourseMeta-help" class="sr-only">La descripción debe tener entre 10 y 200 caracteres</span>
         </div>
         <div class="form-group">
           <label for="inputCourseImage" title="URL de la imagen que aparecerá en la tarjeta del curso. Debe ser una URL pública (Google Drive, etc.)">URL de la Imagen *</label>
-          <input id="inputCourseImage" class="input" type="url" placeholder="https://..." required title="URL pública de la imagen" tabindex="3" aria-required="true" />
+          <input id="inputCourseImage" class="input" type="url" placeholder="https://..." required title="URL pública de la imagen" tabindex="3" aria-required="true" aria-label="URL de la imagen del curso" aria-describedby="inputCourseImage-help" />
+          <span id="inputCourseImage-help" class="sr-only">URL pública de la imagen. Sube a Google Drive y usa el formato proporcionado</span>
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
             <i class="ph ph-folder"></i> Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
           </div>
         </div>
         <div class="form-group">
           <label for="inputCourseTag" title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag del Curso * (2-10 caracteres)</label>
-          <input id="inputCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (mínimo 2, máximo 10 caracteres)" tabindex="4" aria-required="true" />
+          <input id="inputCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (mínimo 2, máximo 10 caracteres)" tabindex="4" aria-required="true" aria-label="Tag del curso" aria-describedby="inputCourseTag-help" />
+          <span id="inputCourseTag-help" class="sr-only">Etiqueta única de 2 a 10 caracteres que identificará el curso</span>
         </div>
         <div class="form-group">
           <label for="selectCourseType" title="Tipo de contenido educativo">Clasificación *</label>
-          <select id="selectCourseType" class="input" required title="Tipo de contenido educativo" tabindex="5" aria-required="true">
+          <select id="selectCourseType" class="input" required title="Tipo de contenido educativo" tabindex="5" aria-required="true" aria-label="Clasificación del curso">
             <option value="curso">Curso</option>
             <option value="diplomado">Diplomado</option>
             <option value="webinar">Webinar</option>
@@ -792,7 +797,7 @@
         </div>
         <div class="form-group">
           <label for="selectCourseVariant" title="Estilo visual de la tarjeta del curso">Estilo Visual *</label>
-          <select id="selectCourseVariant" class="input" required title="Estilo visual de la tarjeta" tabindex="6" aria-required="true">
+          <select id="selectCourseVariant" class="input" required title="Estilo visual de la tarjeta" tabindex="6" aria-required="true" aria-label="Estilo visual de la tarjeta del curso">
             <option value="dramatic">Dramatic (Azul)</option>
             <option value="neon">Neon (Cian)</option>
             <option value="simple">Simple (Sin efectos)</option>
@@ -807,7 +812,8 @@
         </div>
         <div class="form-group">
           <label for="inputCourseCode" title="Código secreto único que los usuarios usarán para acceder al curso. Debe ser único y no puede cambiarse después">Código Secreto (se auto-generará) * (5-50 caracteres)</label>
-          <input id="inputCourseCode" class="input" type="text" placeholder="Ingresa un código único, ej: CURSO123456" required title="Código secreto único para acceder al curso (mínimo 5, máximo 50 caracteres)" maxlength="50" tabindex="9" aria-required="true" />
+          <input id="inputCourseCode" class="input" type="text" placeholder="Ingresa un código único, ej: CURSO123456" required title="Código secreto único para acceder al curso (mínimo 5, máximo 50 caracteres)" maxlength="50" tabindex="9" aria-required="true" aria-label="Código secreto del curso" aria-describedby="inputCourseCode-help" />
+          <span id="inputCourseCode-help" class="sr-only">Código único de 5 a 50 caracteres que los usuarios usarán para acceder al curso. No se puede cambiar después de crear el curso</span>
         </div>
         <div class="form-actions">
           <button type="button" class="btn secondary" id="btnCancelAddCourse" tabindex="10" aria-label="Cancelar creación de curso">Cancelar</button>
@@ -827,26 +833,30 @@
       <form id="formEditCourse">
         <div class="form-group">
           <label for="inputEditCourseTitle" title="Nombre completo del curso que aparecerá en la plataforma">Título del Curso * (5-100 caracteres)</label>
-          <input id="inputEditCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso (mínimo 5, máximo 100 caracteres)" maxlength="100" tabindex="1" aria-required="true" />
+          <input id="inputEditCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso (mínimo 5, máximo 100 caracteres)" maxlength="100" tabindex="1" aria-required="true" aria-label="Título del curso" aria-describedby="inputEditCourseTitle-help" />
+          <span id="inputEditCourseTitle-help" class="sr-only">El título debe tener entre 5 y 100 caracteres</span>
         </div>
         <div class="form-group">
           <label for="inputEditCourseMeta" title="Descripción breve del curso que aparecerá debajo del título">Descripción / Meta * (10-200 caracteres)</label>
-          <input id="inputEditCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso (mínimo 10, máximo 200 caracteres)" maxlength="200" tabindex="2" aria-required="true" />
+          <input id="inputEditCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso (mínimo 10, máximo 200 caracteres)" maxlength="200" tabindex="2" aria-required="true" aria-label="Descripción del curso" aria-describedby="inputEditCourseMeta-help" />
+          <span id="inputEditCourseMeta-help" class="sr-only">La descripción debe tener entre 10 y 200 caracteres</span>
         </div>
         <div class="form-group">
           <label for="inputEditCourseImage" title="URL de la imagen que aparecerá en la tarjeta del curso. Debe ser una URL pública (Google Drive, etc.)">URL de la Imagen *</label>
-          <input id="inputEditCourseImage" class="input" type="url" placeholder="https://..." required title="URL pública de la imagen" tabindex="3" aria-required="true" />
+          <input id="inputEditCourseImage" class="input" type="url" placeholder="https://..." required title="URL pública de la imagen" tabindex="3" aria-required="true" aria-label="URL de la imagen del curso" aria-describedby="inputEditCourseImage-help" />
+          <span id="inputEditCourseImage-help" class="sr-only">URL pública de la imagen. Sube a Google Drive y usa el formato proporcionado</span>
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
             <i class="ph ph-folder"></i> Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
           </div>
         </div>
         <div class="form-group">
           <label for="inputEditCourseTag" title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag del Curso * (2-10 caracteres)</label>
-          <input id="inputEditCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (mínimo 2, máximo 10 caracteres)" tabindex="4" aria-required="true" />
+          <input id="inputEditCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (mínimo 2, máximo 10 caracteres)" tabindex="4" aria-required="true" aria-label="Tag del curso" aria-describedby="inputEditCourseTag-help" />
+          <span id="inputEditCourseTag-help" class="sr-only">Etiqueta única de 2 a 10 caracteres que identificará el curso</span>
         </div>
         <div class="form-group">
           <label for="selectEditCourseType" title="Tipo de contenido educativo">Clasificación *</label>
-          <select id="selectEditCourseType" class="input" required title="Tipo de contenido educativo" tabindex="5" aria-required="true">
+          <select id="selectEditCourseType" class="input" required title="Tipo de contenido educativo" tabindex="5" aria-required="true" aria-label="Clasificación del curso">
             <option value="curso">Curso</option>
             <option value="diplomado">Diplomado</option>
             <option value="webinar">Webinar</option>
@@ -856,7 +866,7 @@
         </div>
         <div class="form-group">
           <label for="selectEditCourseVariant" title="Estilo visual de la tarjeta del curso">Estilo Visual *</label>
-          <select id="selectEditCourseVariant" class="input" required title="Estilo visual de la tarjeta" tabindex="6" aria-required="true">
+          <select id="selectEditCourseVariant" class="input" required title="Estilo visual de la tarjeta" tabindex="6" aria-required="true" aria-label="Estilo visual de la tarjeta del curso">
             <option value="dramatic">Dramatic (Azul)</option>
             <option value="neon">Neon (Cian)</option>
             <option value="simple">Simple (Sin efectos)</option>
@@ -901,8 +911,8 @@
         
         <div class="form-group">
           <label for="inputDuplicateCode">Código Secreto *</label>
-          <input id="inputDuplicateCode" class="input" type="text" placeholder="Ej: CURSO_NUEVO_123" required autofocus />
-          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
+          <input id="inputDuplicateCode" class="input" type="text" placeholder="Ej: CURSO_NUEVO_123" required autofocus aria-label="Código secreto para el curso duplicado" aria-describedby="inputDuplicateCode-help" aria-required="true" />
+          <div id="inputDuplicateCode-help" style="font-size: 12px; color: var(--muted); margin-top: 4px;">
             <i class="ph ph-warning"></i> Este código debe ser único y no puede estar en uso
           </div>
         </div>
