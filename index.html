@@ -1110,7 +1110,7 @@
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
   <script src="assets/js/app.min.js?v=120" defer></script>
-  <script src="assets/js/certificates.js?v=18" defer></script>
+  <script src="assets/js/certificates.js?v=19" defer></script>
   <script>
     // ✅ Forzar actualización del Service Worker si hay una nueva versión
     if ('serviceWorker' in navigator) {
@@ -1554,9 +1554,10 @@
   
   // ===== MODAL PARA MOSTRAR CÓDIGO DEL GOOGLE APPS SCRIPT =====
   
-  // ✅ Código completo del Google Apps Script (sin comentarios)
-  // Hacer disponible globalmente INMEDIATAMENTE (no esperar DOMContentLoaded)
-  window.GOOGLE_APPS_SCRIPT_CODE = `function doGet(e) {
+  // ✅ Función que retorna el código del Google Apps Script (sin comentarios)
+  // Esto evita problemas de parsing con template literals grandes
+  window.getGoogleAppsScriptCode = function() {
+    return `function doGet(e) {
   const action = e.parameter.action;
   let result;
   
@@ -2185,6 +2186,15 @@ function generarLinksDesdePDFProtegido(params) {
     throw new Error('Error generando enlaces: ' + error.message);
   }
 }`;
+  };
+  
+  // ✅ Hacer disponible también como variable directa para compatibilidad
+  Object.defineProperty(window, 'GOOGLE_APPS_SCRIPT_CODE', {
+    get: function() {
+      return window.getGoogleAppsScriptCode();
+    },
+    configurable: true
+  });
 
   // Esperar a que el DOM esté listo para configurar event listeners
   document.addEventListener('DOMContentLoaded', function() {
@@ -2230,14 +2240,36 @@ function generarLinksDesdePDFProtegido(params) {
             if (codeElement) {
               // Usar requestAnimationFrame para mejor rendimiento
               requestAnimationFrame(function() {
-                codeElement.textContent = window.GOOGLE_APPS_SCRIPT_CODE || GOOGLE_APPS_SCRIPT_CODE || '';
-                console.log('[CERT SCRIPT] Código cargado en code element, longitud:', (window.GOOGLE_APPS_SCRIPT_CODE || GOOGLE_APPS_SCRIPT_CODE || '').length);
+                try {
+                  let scriptCode = '';
+                  if (typeof window.getGoogleAppsScriptCode === 'function') {
+                    scriptCode = window.getGoogleAppsScriptCode();
+                  } else if (window.GOOGLE_APPS_SCRIPT_CODE) {
+                    scriptCode = window.GOOGLE_APPS_SCRIPT_CODE;
+                  }
+                  codeElement.textContent = scriptCode;
+                  console.log('[CERT SCRIPT] Código cargado en code element, longitud:', scriptCode.length);
+                } catch (error) {
+                  console.error('[CERT SCRIPT] Error:', error);
+                  codeElement.textContent = '// Error: ' + error.message;
+                }
               });
             } else {
               // Si no hay elemento code, poner el código directamente en el pre
               requestAnimationFrame(function() {
-                certScriptCode.textContent = window.GOOGLE_APPS_SCRIPT_CODE || GOOGLE_APPS_SCRIPT_CODE || '';
-                console.log('[CERT SCRIPT] Código cargado directamente en pre, longitud:', (window.GOOGLE_APPS_SCRIPT_CODE || GOOGLE_APPS_SCRIPT_CODE || '').length);
+                try {
+                  let scriptCode = '';
+                  if (typeof window.getGoogleAppsScriptCode === 'function') {
+                    scriptCode = window.getGoogleAppsScriptCode();
+                  } else if (window.GOOGLE_APPS_SCRIPT_CODE) {
+                    scriptCode = window.GOOGLE_APPS_SCRIPT_CODE;
+                  }
+                  certScriptCode.textContent = scriptCode;
+                  console.log('[CERT SCRIPT] Código cargado directamente en pre, longitud:', scriptCode.length);
+                } catch (error) {
+                  console.error('[CERT SCRIPT] Error:', error);
+                  certScriptCode.textContent = '// Error: ' + error.message;
+                }
               });
             }
           }
@@ -2257,7 +2289,12 @@ function generarLinksDesdePDFProtegido(params) {
       btnCopyCertScript.addEventListener('click', async function() {
         console.log('[CERT SCRIPT] Intentando copiar código');
         try {
-          const scriptCode = window.GOOGLE_APPS_SCRIPT_CODE || GOOGLE_APPS_SCRIPT_CODE || '';
+          let scriptCode = '';
+          if (typeof window.getGoogleAppsScriptCode === 'function') {
+            scriptCode = window.getGoogleAppsScriptCode();
+          } else if (window.GOOGLE_APPS_SCRIPT_CODE) {
+            scriptCode = window.GOOGLE_APPS_SCRIPT_CODE;
+          }
           await navigator.clipboard.writeText(scriptCode);
           const originalText = btnCopyCertScript.textContent;
           btnCopyCertScript.innerHTML = '<i class="ph ph-check-circle"></i> Código Copiado!';
@@ -2272,7 +2309,13 @@ function generarLinksDesdePDFProtegido(params) {
           console.error('[CERT SCRIPT] Error copiando código:', err);
           // Fallback: seleccionar el texto
           const textarea = document.createElement('textarea');
-          textarea.value = window.GOOGLE_APPS_SCRIPT_CODE || GOOGLE_APPS_SCRIPT_CODE || '';
+          let scriptCode = '';
+          if (typeof window.getGoogleAppsScriptCode === 'function') {
+            scriptCode = window.getGoogleAppsScriptCode();
+          } else if (window.GOOGLE_APPS_SCRIPT_CODE) {
+            scriptCode = window.GOOGLE_APPS_SCRIPT_CODE;
+          }
+          textarea.value = scriptCode;
           textarea.style.position = 'fixed';
           textarea.style.opacity = '0';
           document.body.appendChild(textarea);
