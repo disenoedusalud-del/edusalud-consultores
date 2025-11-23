@@ -6386,11 +6386,22 @@ async function refreshFromRemoteSilent(hex){
   }
 }
 
+// ✅ Estado global de filtros avanzados
+let advancedFiltersState = {
+  type: '',
+  sort: 'title-asc',
+  tag: '',
+  active: false
+};
+
 function setupMasterSearch(){
   const input = $('#masterSearch');
   const clear = $('#masterSearchClear');
   const grid  = $('#masterGrid');
   if (!input || !grid) return;
+  
+  // ✅ Configurar filtros avanzados (se llama después de definir applyFilter)
+  // setupAdvancedFilters se llama más tarde en el código
 
   // ✅ Contenedor para autocompletado
   const autocompleteContainer = document.createElement('div');
@@ -6584,30 +6595,50 @@ function setupMasterSearch(){
 
   function applyFilter(){
     const q = (input.value || '').trim().toLowerCase();
-    const cards = grid.querySelectorAll('.master-card');
+    const cards = Array.from(grid.querySelectorAll('.master-card'));
     
-    if (!q){
-      cards.forEach(c => c.style.display = '');
-      removeHighlights();
-      return;
+    // ✅ Aplicar filtros avanzados
+    let filteredCards = cards;
+    
+    // Filtro por búsqueda de texto
+    if (q) {
+      filteredCards = filteredCards.filter(c => {
+        const t = (c.dataset.title || '').toLowerCase();
+        const tg = (c.dataset.tag || '').toLowerCase();
+        const type = (c.dataset.type || '').toLowerCase();
+        return t.includes(q) || tg.includes(q) || type.includes(q);
+      });
     }
     
-    // ✅ Búsqueda mejorada: incluye título, tag, y clasificación
+    // Filtro por tipo
+    if (advancedFiltersState.type) {
+      filteredCards = filteredCards.filter(c => {
+        const type = (c.dataset.type || 'curso').toLowerCase();
+        return type === advancedFiltersState.type.toLowerCase();
+      });
+    }
+    
+    // Filtro por tag
+    if (advancedFiltersState.tag) {
+      const tagFilter = advancedFiltersState.tag.trim().toLowerCase();
+      filteredCards = filteredCards.filter(c => {
+        const tg = (c.dataset.tag || '').toLowerCase();
+        return tg.includes(tagFilter);
+      });
+    }
+    
+    // ✅ Aplicar ordenamiento
+    filteredCards = sortCards(filteredCards, advancedFiltersState.sort);
+    
+    // ✅ Mostrar/ocultar tarjetas
     cards.forEach(c => {
-      const t = (c.dataset.title || '').toLowerCase();
-      const tg = (c.dataset.tag || '').toLowerCase();
-      const type = (c.dataset.type || '').toLowerCase();
-      
-      // Buscar en título, tag, o tipo
-      const match = t.includes(q) || tg.includes(q) || type.includes(q);
-      c.style.display = match ? '' : 'none';
+      const isVisible = filteredCards.includes(c);
+      c.style.display = isVisible ? '' : 'none';
       
       // ✅ Resaltar texto coincidente en tarjetas visibles
-      if (match) {
-        // Buscar elementos de texto dentro de la tarjeta
+      if (isVisible && q) {
         const rightSection = c.querySelector('.right');
         if (rightSection) {
-          // Buscar en título (primer div con texto)
           const titleElements = rightSection.querySelectorAll('div > div:first-child');
           titleElements.forEach(el => {
             if (el.textContent && !el.querySelector('.search-highlight')) {
@@ -6615,7 +6646,6 @@ function setupMasterSearch(){
             }
           });
           
-          // Buscar en meta
           const metaElements = rightSection.querySelectorAll('.meta');
           metaElements.forEach(el => {
             if (el.textContent && !el.querySelector('.search-highlight')) {
@@ -6625,6 +6655,56 @@ function setupMasterSearch(){
         }
       }
     });
+    
+    // ✅ Actualizar contador de resultados
+    updateFilterResultsCount(filteredCards.length, cards.length);
+    
+    // Si no hay búsqueda ni filtros, remover highlights
+    if (!q && !advancedFiltersState.type && !advancedFiltersState.tag) {
+      removeHighlights();
+    }
+  }
+  
+  // ✅ Función para ordenar tarjetas
+  function sortCards(cards, sortType) {
+    const sorted = [...cards];
+    
+    sorted.sort((a, b) => {
+      switch(sortType) {
+        case 'title-asc':
+          return (a.dataset.title || '').localeCompare(b.dataset.title || '');
+        case 'title-desc':
+          return (b.dataset.title || '').localeCompare(a.dataset.title || '');
+        case 'tag-asc':
+          return (a.dataset.tag || '').localeCompare(b.dataset.tag || '');
+        case 'date-desc':
+          // Ordenar por fecha de creación (más recientes primero)
+          const dateA = parseInt(a.dataset.createdAt || '0');
+          const dateB = parseInt(b.dataset.createdAt || '0');
+          return dateB - dateA;
+        case 'date-asc':
+          const dateA2 = parseInt(a.dataset.createdAt || '0');
+          const dateB2 = parseInt(b.dataset.createdAt || '0');
+          return dateA2 - dateB2;
+        default:
+          return 0;
+      }
+    });
+    
+    return sorted;
+  }
+  
+  // ✅ Actualizar contador de resultados
+  function updateFilterResultsCount(filtered, total) {
+    const countEl = $('#filterResultsCount');
+    if (countEl) {
+      if (filtered < total) {
+        countEl.textContent = `Mostrando ${filtered} de ${total} cursos`;
+        countEl.style.display = 'block';
+      } else {
+        countEl.style.display = 'none';
+      }
+    }
   }
 
   // ✅ Event listeners
@@ -6717,6 +6797,242 @@ function setupMasterSearch(){
       }
     });
   }
+  
+  clear?.addEventListener('click', () => {
+    input.value = '';
+    autocompleteContainer.style.display = 'none';
+    applyFilter();
+    input.focus();
+  });
+}
+
+// ✅ Configurar filtros avanzados
+function setupAdvancedFilters() {
+  const filtersPanel = $('#advancedFilters');
+  const btnShowFilters = $('#btn-show-filters');
+  const btnCloseFilters = $('#btn-close-filters');
+  const btnApplyFilters = $('#btn-apply-filters');
+  const btnResetFilters = $('#btn-reset-filters');
+  const filterType = $('#filterType');
+  const filterSort = $('#filterSort');
+  const filterTag = $('#filterTag');
+  const activeFiltersCount = $('#activeFiltersCount');
+  const filtersCount = $('#filtersCount');
+  
+  if (!filtersPanel || !btnShowFilters) return;
+  
+  // ✅ Función para aplicar filtros (accesible desde setupMasterSearch)
+  window.applyAdvancedFilter = function() {
+    const input = $('#masterSearch');
+    const grid = $('#masterGrid');
+    if (!input || !grid) return;
+    
+    const q = (input.value || '').trim().toLowerCase();
+    const cards = Array.from(grid.querySelectorAll('.master-card'));
+    
+    // ✅ Aplicar filtros avanzados
+    let filteredCards = cards;
+    
+    // Filtro por búsqueda de texto
+    if (q) {
+      filteredCards = filteredCards.filter(c => {
+        const t = (c.dataset.title || '').toLowerCase();
+        const tg = (c.dataset.tag || '').toLowerCase();
+        const type = (c.dataset.type || '').toLowerCase();
+        return t.includes(q) || tg.includes(q) || type.includes(q);
+      });
+    }
+    
+    // Filtro por tipo
+    if (advancedFiltersState.type) {
+      filteredCards = filteredCards.filter(c => {
+        const type = (c.dataset.type || 'curso').toLowerCase();
+        return type === advancedFiltersState.type.toLowerCase();
+      });
+    }
+    
+    // Filtro por tag
+    if (advancedFiltersState.tag) {
+      const tagFilter = advancedFiltersState.tag.trim().toLowerCase();
+      filteredCards = filteredCards.filter(c => {
+        const tg = (c.dataset.tag || '').toLowerCase();
+        return tg.includes(tagFilter);
+      });
+    }
+    
+    // ✅ Aplicar ordenamiento
+    filteredCards = sortCards(filteredCards, advancedFiltersState.sort);
+    
+    // ✅ Mostrar/ocultar tarjetas
+    cards.forEach(c => {
+      const isVisible = filteredCards.includes(c);
+      c.style.display = isVisible ? '' : 'none';
+    });
+    
+    // ✅ Actualizar contador de resultados
+    updateFilterResultsCount(filteredCards.length, cards.length);
+  };
+  
+  // ✅ Función para ordenar tarjetas
+  function sortCards(cards, sortType) {
+    const sorted = [...cards];
+    
+    sorted.sort((a, b) => {
+      switch(sortType) {
+        case 'title-asc':
+          return (a.dataset.title || '').localeCompare(b.dataset.title || '');
+        case 'title-desc':
+          return (b.dataset.title || '').localeCompare(a.dataset.title || '');
+        case 'tag-asc':
+          return (a.dataset.tag || '').localeCompare(b.dataset.tag || '');
+        case 'date-desc':
+          const dateA = parseInt(a.dataset.createdAt || '0');
+          const dateB = parseInt(b.dataset.createdAt || '0');
+          return dateB - dateA;
+        case 'date-asc':
+          const dateA2 = parseInt(a.dataset.createdAt || '0');
+          const dateB2 = parseInt(b.dataset.createdAt || '0');
+          return dateA2 - dateB2;
+        default:
+          return 0;
+      }
+    });
+    
+    return sorted;
+  }
+  
+  // ✅ Actualizar contador de resultados
+  function updateFilterResultsCount(filtered, total) {
+    const countEl = $('#filterResultsCount');
+    if (countEl) {
+      if (filtered < total) {
+        countEl.textContent = `Mostrando ${filtered} de ${total} cursos`;
+        countEl.style.display = 'block';
+      } else {
+        countEl.style.display = 'none';
+      }
+    }
+  }
+  
+  // ✅ Mostrar/ocultar panel de filtros
+  btnShowFilters?.addEventListener('click', () => {
+    const isVisible = filtersPanel.style.display !== 'none';
+    filtersPanel.style.display = isVisible ? 'none' : 'block';
+    btnShowFilters.setAttribute('aria-expanded', isVisible ? 'false' : 'true');
+    btnShowFilters.innerHTML = isVisible 
+      ? '<i class="ph ph-funnel"></i> Filtros Avanzados'
+      : '<i class="ph ph-funnel-simple"></i> Ocultar Filtros';
+  });
+  
+  btnCloseFilters?.addEventListener('click', () => {
+    filtersPanel.style.display = 'none';
+    btnShowFilters.setAttribute('aria-expanded', 'false');
+    btnShowFilters.innerHTML = '<i class="ph ph-funnel"></i> Filtros Avanzados';
+  });
+  
+  // ✅ Aplicar filtros
+  btnApplyFilters?.addEventListener('click', () => {
+    advancedFiltersState.type = filterType?.value || '';
+    advancedFiltersState.sort = filterSort?.value || 'title-asc';
+    advancedFiltersState.tag = filterTag?.value || '';
+    advancedFiltersState.active = true;
+    
+    updateActiveFiltersCount();
+    if (window.applyAdvancedFilter) window.applyAdvancedFilter();
+    if (window.applyFilter) window.applyFilter();
+    
+    // Cerrar panel después de aplicar
+    filtersPanel.style.display = 'none';
+    btnShowFilters.setAttribute('aria-expanded', 'false');
+    btnShowFilters.innerHTML = '<i class="ph ph-funnel"></i> Filtros Avanzados';
+  });
+  
+  // ✅ Restablecer filtros
+  btnResetFilters?.addEventListener('click', () => {
+    filterType.value = '';
+    filterSort.value = 'title-asc';
+    filterTag.value = '';
+    
+    advancedFiltersState = {
+      type: '',
+      sort: 'title-asc',
+      tag: '',
+      active: false
+    };
+    
+    updateActiveFiltersCount();
+    if (window.applyAdvancedFilter) window.applyAdvancedFilter();
+    if (window.applyFilter) window.applyFilter();
+  });
+  
+  // ✅ Aplicar filtros automáticamente al cambiar valores (con debounce)
+  const debouncedApply = debounce(() => {
+    advancedFiltersState.type = filterType?.value || '';
+    advancedFiltersState.sort = filterSort?.value || 'title-asc';
+    advancedFiltersState.tag = filterTag?.value || '';
+    advancedFiltersState.active = true;
+    updateActiveFiltersCount();
+    if (window.applyAdvancedFilter) window.applyAdvancedFilter();
+    if (window.applyFilter) window.applyFilter();
+  }, 500);
+  
+  filterType?.addEventListener('change', debouncedApply);
+  filterSort?.addEventListener('change', debouncedApply);
+  filterTag?.addEventListener('input', debouncedApply);
+  
+  // ✅ Actualizar contador de filtros activos
+  function updateActiveFiltersCount() {
+    let count = 0;
+    if (advancedFiltersState.type) count++;
+    if (advancedFiltersState.tag) count++;
+    if (advancedFiltersState.sort !== 'title-asc') count++;
+    
+    if (count > 0) {
+      filtersCount.textContent = count;
+      activeFiltersCount.style.display = 'inline';
+    } else {
+      activeFiltersCount.style.display = 'none';
+      advancedFiltersState.active = false;
+    }
+  }
+  
+  // ✅ Cargar filtros guardados del localStorage
+  try {
+    const savedFilters = localStorage.getItem('edusalud_advanced_filters');
+    if (savedFilters) {
+      const parsed = JSON.parse(savedFilters);
+      if (parsed.type) filterType.value = parsed.type;
+      if (parsed.sort) filterSort.value = parsed.sort;
+      if (parsed.tag) filterTag.value = parsed.tag;
+      
+      advancedFiltersState = {
+        type: parsed.type || '',
+        sort: parsed.sort || 'title-asc',
+        tag: parsed.tag || '',
+        active: !!(parsed.type || parsed.tag || parsed.sort !== 'title-asc')
+      };
+      
+      updateActiveFiltersCount();
+    }
+  } catch (e) {
+    warn('[FILTERS] Error cargando filtros guardados:', e);
+  }
+  
+  // ✅ Guardar filtros en localStorage cuando cambien
+  const saveFilters = debounce(() => {
+    try {
+      localStorage.setItem('edusalud_advanced_filters', JSON.stringify({
+        type: advancedFiltersState.type,
+        sort: advancedFiltersState.sort,
+        tag: advancedFiltersState.tag
+      }));
+    } catch (e) {
+      warn('[FILTERS] Error guardando filtros:', e);
+    }
+  }, 1000);
+  
+  // Guardar cuando se aplican filtros
+  btnApplyFilters?.addEventListener('click', saveFilters);
 }
 
 /* ===================== ATAJOS DE TECLADO ===================== */
@@ -7020,6 +7336,7 @@ async function tryLoginByCode(code) {
       
       buildMasterGrid();
       setupMasterSearch();
+      setupAdvancedFilters();
       $('#year_master').textContent = new Date().getFullYear();
       showMaster();
       
