@@ -2483,11 +2483,11 @@ function updateThemeToggleUI(theme) {
     // ✅ El texto indica qué modo se activará al hacer clic (no el modo actual)
     if (theme === 'light') {
       // Si está en modo claro, el botón debe permitir cambiar a oscuro
-      icon.textContent = '🌙';
+      icon.className = 'ph ph-moon';
       text.textContent = 'Cambiar a Modo Oscuro';
     } else {
       // Si está en modo oscuro (default), el botón debe permitir cambiar a claro
-      icon.textContent = '☀️';
+      icon.className = 'ph ph-sun';
       text.textContent = 'Cambiar a Modo Claro';
     }
   }
@@ -2498,10 +2498,10 @@ function updateThemeToggleUI(theme) {
   
   if (iconContent && textContent) {
     if (theme === 'light') {
-      iconContent.textContent = '🌙';
+      iconContent.className = 'ph ph-moon';
       textContent.textContent = 'Cambiar a Modo Oscuro';
     } else {
-      iconContent.textContent = '☀️';
+      iconContent.className = 'ph ph-sun';
       textContent.textContent = 'Cambiar a Modo Claro';
     }
   }
@@ -2512,10 +2512,10 @@ function updateThemeToggleUI(theme) {
   
   if (iconHeader) {
     if (theme === 'light') {
-      iconHeader.textContent = '🌙';
+      iconHeader.className = 'ph ph-moon';
       if (btnHeader) btnHeader.title = 'Cambiar a Modo Oscuro';
     } else {
-      iconHeader.textContent = '☀️';
+      iconHeader.className = 'ph ph-sun';
       if (btnHeader) btnHeader.title = 'Cambiar a Modo Claro';
     }
   }
@@ -4212,7 +4212,7 @@ function buildMasterGrid() {
         const codeDiv = document.createElement('div');
         codeDiv.style.cssText = 'font-size: 11px; color: var(--accent); margin-top: 4px; font-family: monospace; background: rgba(90,169,255,0.1); padding: 4px 8px; border-radius: 4px; display: inline-block; cursor: pointer; transition: all 0.2s;';
         codeDiv.title = 'Click para copiar código';
-        codeDiv.textContent = `🔑 Código: ${codeToShow} 📋`;
+        codeDiv.innerHTML = `<i class="ph ph-key"></i> Código: ${codeToShow} <i class="ph ph-clipboard"></i>`;
         codeDiv.addEventListener('click', async () => {
           try {
             await navigator.clipboard.writeText(codeToShow);
@@ -4304,7 +4304,7 @@ function buildMasterGrid() {
       const btnEditCourse = document.createElement('button');
       btnEditCourse.className = 'btn secondary';
       btnEditCourse.type = 'button';
-      btnEditCourse.textContent = '✏️ Editar';
+      btnEditCourse.innerHTML = '<i class="ph ph-pencil"></i> Editar';
       btnEditCourse.setAttribute('aria-label', `Editar curso: ${data.title || 'Curso'}`);
       btnEditCourse.setAttribute('title', `Editar el curso "${data.title || 'Curso'}"`);
       btnEditCourse.addEventListener('click', () => {
@@ -4319,7 +4319,7 @@ function buildMasterGrid() {
       const btnDuplicate = document.createElement('button');
       btnDuplicate.className = 'btn secondary';
       btnDuplicate.type = 'button';
-      btnDuplicate.textContent = '📋 Duplicar';
+      btnDuplicate.innerHTML = '<i class="ph ph-copy"></i> Duplicar';
       btnDuplicate.setAttribute('aria-label', `Duplicar curso: ${data.title || 'Curso'}`);
       btnDuplicate.setAttribute('title', `Duplicar el curso "${data.title || 'Curso'}" con un nuevo código`);
       btnDuplicate.addEventListener('click', async () => {
@@ -4451,7 +4451,7 @@ function buildMasterGrid() {
       const btnDelete = document.createElement('button');
       btnDelete.className = 'btn';
       btnDelete.type = 'button';
-      btnDelete.textContent = '🗑️ Eliminar';
+      btnDelete.innerHTML = '<i class="ph ph-trash"></i> Eliminar';
       btnDelete.setAttribute('aria-label', `Eliminar curso: ${data.title || 'Curso'}`);
       btnDelete.setAttribute('title', `Eliminar el curso "${data.title || 'Curso'}" (acción irreversible)`);
       btnDelete.style.background = 'linear-gradient(135deg, #ff4444, #cc0000)';
@@ -7042,7 +7042,7 @@ async function addCourseEmailUI() {
     
     input.value = '';
     if (msgEl) {
-      msgEl.textContent = `✅ Correo "${email}" agregado exitosamente.`;
+      msgEl.innerHTML = `<i class="ph ph-check-circle"></i> Correo "${email}" agregado exitosamente.`;
       msgEl.classList.remove('error');
     }
     if (typeof window.showToast === 'function') {
@@ -7062,7 +7062,7 @@ async function addCourseEmailUI() {
     const errorMessage = error.message || 'No se pudo agregar el correo.';
     
     if (msgEl) {
-      msgEl.textContent = `❌ Error: ${errorMessage}`;
+      msgEl.innerHTML = `<i class="ph ph-x-circle"></i> Error: ${errorMessage}`;
       msgEl.classList.add('error');
     }
     if (typeof window.showToast === 'function') {
@@ -7282,7 +7282,7 @@ window.addEmailToGeneral = async function(courseHex) {
     
     input.value = '';
     if (msgEl) {
-      msgEl.textContent = `✅ Correo "${email}" agregado exitosamente.`;
+      msgEl.innerHTML = `<i class="ph ph-check-circle"></i> Correo "${email}" agregado exitosamente.`;
       msgEl.classList.remove('error');
     }
     if (typeof window.showToast === 'function') {
@@ -7300,7 +7300,7 @@ window.addEmailToGeneral = async function(courseHex) {
     const errorMessage = error.message || 'No se pudo agregar el correo.';
     
     if (msgEl) {
-      msgEl.textContent = `❌ Error: ${errorMessage}`;
+      msgEl.innerHTML = `<i class="ph ph-x-circle"></i> Error: ${errorMessage}`;
       msgEl.classList.add('error');
     }
     if (typeof window.showToast === 'function') {
@@ -7441,7 +7441,7 @@ async function addAdminUI() {
   
   if (!email || !email.includes('@')) {
     if (msgEl) {
-      msgEl.textContent = '❌ Ingresa un correo válido.';
+      msgEl.innerHTML = '<i class="ph ph-x-circle"></i> Ingresa un correo válido.';
       msgEl.classList.add('error');
     }
     return;
@@ -7471,7 +7471,7 @@ async function addAdminUI() {
     const errorMessage = error.message || 'No se pudo agregar el administrador.';
     
     if (msgEl) {
-      msgEl.textContent = `❌ Error: ${errorMessage}`;
+      msgEl.innerHTML = `<i class="ph ph-x-circle"></i> Error: ${errorMessage}`;
       msgEl.classList.add('error');
     }
     if (typeof window.showToast === 'function') {
