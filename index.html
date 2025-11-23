@@ -49,7 +49,7 @@
   </script>
   
   <!-- Estilos principales -->
-  <link rel="stylesheet" href="assets/css/style.css?v=4" />
+  <link rel="stylesheet" href="assets/css/style.css?v=5" />
 </head>
 <body>
   <div class="wrap">
@@ -66,6 +66,13 @@
 
       <div class="hero" aria-hidden="true">
         <img src="assets/static-assets-amico.png" alt="Ilustración consultores EduSalud" />
+      </div>
+      
+      <!-- ✅ Toggle de tema en header (disponible en todas las vistas) -->
+      <div style="position: absolute; top: 16px; right: 16px; z-index: 1000;">
+        <button id="btn-theme-toggle-header" class="btn secondary" type="button" aria-label="Cambiar tema" title="Alternar entre modo claro y oscuro" style="padding: 8px 12px; min-width: auto; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+          <span id="theme-toggle-icon-header" style="font-size: 18px;">☀️</span>
+        </button>
       </div>
     </header>
 
@@ -1089,7 +1096,7 @@
   <script src="src/firebase.js?v=3"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
-  <script src="assets/js/app.min.js?v=110" defer></script>
+  <script src="assets/js/app.min.js?v=111" defer></script>
   <script src="assets/js/certificates.js?v=16" defer></script>
   <script>
     // ✅ Forzar actualización del Service Worker si hay una nueva versión
