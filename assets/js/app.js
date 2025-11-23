@@ -2505,6 +2505,20 @@ function updateThemeToggleUI(theme) {
       textContent.textContent = 'Cambiar a Modo Claro';
     }
   }
+  
+  // ✅ Actualizar toggle del header (disponible en todas las vistas)
+  const iconHeader = document.getElementById('theme-toggle-icon-header');
+  const btnHeader = document.getElementById('btn-theme-toggle-header');
+  
+  if (iconHeader) {
+    if (theme === 'light') {
+      iconHeader.textContent = '🌙';
+      if (btnHeader) btnHeader.title = 'Cambiar a Modo Oscuro';
+    } else {
+      iconHeader.textContent = '☀️';
+      if (btnHeader) btnHeader.title = 'Cambiar a Modo Claro';
+    }
+  }
 }
 
 /**
@@ -2514,7 +2528,21 @@ function initTheme() {
   const theme = getTheme();
   applyTheme(theme);
   updateThemeToggleUI(theme);
+  setupHeaderThemeToggle();
   log('[THEME] ✅ Tema inicializado:', theme);
+}
+
+/**
+ * ✅ Configurar toggle de tema en header (disponible en todas las vistas)
+ */
+function setupHeaderThemeToggle() {
+  const btnThemeHeader = document.getElementById('btn-theme-toggle-header');
+  if (btnThemeHeader) {
+    btnThemeHeader.addEventListener('click', () => {
+      toggleTheme();
+    });
+    log('[THEME] ✅ Toggle del header configurado');
+  }
 }
 
 // ✅ Exponer funciones globalmente para debugging
