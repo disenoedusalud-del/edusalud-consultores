@@ -525,6 +525,132 @@ function debounce(func, wait, immediate = false) {
   };
 }
 
+/* ===================== SKELETON SCREENS Y LAZY LOADING ===================== */
+
+/**
+ * ✅ Crea un skeleton screen para una tarjeta de curso
+ */
+function createSkeletonCard() {
+  const card = document.createElement('div');
+  card.className = 'skeleton-master-card';
+  card.innerHTML = `
+    <div class="skeleton skeleton-image"></div>
+    <div class="skeleton skeleton-title"></div>
+    <div class="skeleton skeleton-text"></div>
+    <div class="skeleton skeleton-text-short"></div>
+  `;
+  return card;
+}
+
+/**
+ * ✅ Crea un skeleton screen para un archivo
+ */
+function createSkeletonFile() {
+  const file = document.createElement('div');
+  file.className = 'skeleton-file';
+  file.innerHTML = `
+    <div class="skeleton skeleton-file-icon"></div>
+    <div class="skeleton-file-content">
+      <div class="skeleton skeleton-file-title"></div>
+      <div class="skeleton skeleton-file-meta"></div>
+    </div>
+  `;
+  return file;
+}
+
+/**
+ * ✅ Muestra skeleton screens en el grid maestro
+ * @param {HTMLElement} grid - Contenedor del grid
+ * @param {number} count - Número de skeletons a mostrar
+ */
+function showMasterSkeletons(grid, count = 6) {
+  if (!grid) return;
+  grid.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    grid.appendChild(createSkeletonCard());
+  }
+}
+
+/**
+ * ✅ Muestra skeleton screens en la lista de archivos
+ * @param {HTMLElement} filelist - Contenedor de archivos
+ * @param {number} count - Número de skeletons a mostrar
+ */
+function showFilesSkeletons(filelist, count = 3) {
+  if (!filelist) return;
+  filelist.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    filelist.appendChild(createSkeletonFile());
+  }
+}
+
+/**
+ * ✅ Lazy loading para imágenes
+ * @param {HTMLImageElement} img - Elemento imagen
+ */
+function setupLazyImage(img) {
+  if (!img || !('loading' in HTMLImageElement.prototype)) {
+    return; // Navegador no soporta lazy loading nativo
+  }
+  
+  img.loading = 'lazy';
+  
+  // Agregar clase cuando la imagen carga
+  if (img.complete) {
+    img.classList.add('loaded');
+  } else {
+    img.addEventListener('load', () => {
+      img.classList.add('loaded');
+    });
+    img.addEventListener('error', () => {
+      img.classList.add('loaded'); // Mostrar aunque haya error
+    });
+  }
+}
+
+/**
+ * ✅ Aplicar lazy loading a todas las imágenes de un contenedor
+ * @param {HTMLElement} container - Contenedor con imágenes
+ */
+function setupLazyImages(container) {
+  if (!container) return;
+  const images = container.querySelectorAll('img:not([loading])');
+  images.forEach(img => setupLazyImage(img));
+}
+
+/**
+ * ✅ Mostrar overlay de carga
+ * @param {string} message - Mensaje a mostrar
+ */
+function showLoadingOverlay(message = 'Cargando...') {
+  // Remover overlay existente si hay
+  const existing = document.getElementById('loading-overlay');
+  if (existing) existing.remove();
+  
+  const overlay = document.createElement('div');
+  overlay.id = 'loading-overlay';
+  overlay.className = 'loading-overlay';
+  overlay.innerHTML = `
+    <div class="loading-overlay-content">
+      <div class="loading-spinner"></div>
+      <p>${escapeHTML(message)}</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+/**
+ * ✅ Ocultar overlay de carga
+ */
+function hideLoadingOverlay() {
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) {
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.3s ease';
+    setTimeout(() => overlay.remove(), 300);
+  }
+}
+
 /* ===================== NOTIFICACIONES TOAST ===================== */
 
 /**
@@ -5337,6 +5463,9 @@ function renderCourse(keyHex) {
     row.appendChild(btn);
     list.appendChild(row);
   });
+  
+  // ✅ Aplicar lazy loading a imágenes si las hay
+  setupLazyImages(list);
 
   // Tarjeta imagen - ✅ Con estilos variant y accent
   try {
@@ -5539,6 +5668,15 @@ function buildUserGrid() {
     cardEl.appendChild(buttonContainer);
     grid.appendChild(cardEl);
   });
+  
+  // ✅ Finalizar medición de renderizado
+  endPerformanceMeasure('Renderizado del grid', gridStart, {
+    cursos: coursesArray.length,
+    paginado: coursesArray.length > COURSES_PER_PAGE
+  });
+  
+  // ✅ Aplicar lazy loading a todas las imágenes del grid
+  setupLazyImages(grid);
 }
 
 /* ============ render master ============ */
