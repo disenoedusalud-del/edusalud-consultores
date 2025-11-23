@@ -428,7 +428,73 @@
             </div>
           </div>
           
+          <!-- ✅ Botón de Notificaciones y Actividad -->
+          <div style="position: relative;">
+            <button id="btn-notifications" class="btn secondary" type="button" aria-label="Ver notificaciones y actividad" aria-expanded="false" title="Notificaciones y actividad reciente" style="position: relative;">
+              <i class="ph ph-bell"></i>
+              <span id="notifications-badge" style="display: none; position: absolute; top: -4px; right: -4px; background: #ff5555; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: 600;">0</span>
+            </button>
+          </div>
+          
           <button id="btn-master-exit" class="btn secondary" type="button" aria-label="Salir de la vista maestra" title="Volver a la pantalla de acceso">Salir</button>
+        </div>
+      </div>
+      
+      <!-- ✅ Panel de Notificaciones y Actividad -->
+      <div id="notificationsPanel" class="modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000; background: rgba(0,0,0,0.5); align-items: flex-start; justify-content: flex-end; padding: 20px;">
+        <div class="modal-content" style="max-width: 450px; width: 100%; max-height: 90vh; overflow-y: auto; margin: 0;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+            <h3 style="margin: 0; font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+              <i class="ph ph-bell"></i> Notificaciones y Actividad
+            </h3>
+            <button id="btn-close-notifications" class="btn secondary" type="button" aria-label="Cerrar panel de notificaciones" style="padding: 4px 8px; min-width: auto;">
+              <i class="ph ph-x"></i>
+            </button>
+          </div>
+          
+          <!-- Pestañas -->
+          <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border);">
+            <button id="tab-notifications" class="btn secondary active" type="button" data-tab="notifications" style="border-radius: 0; border-bottom: 2px solid var(--accent); padding: 8px 16px;">
+              <i class="ph ph-bell"></i> Notificaciones
+            </button>
+            <button id="tab-activity" class="btn secondary" type="button" data-tab="activity" style="border-radius: 0; border-bottom: 2px solid transparent; padding: 8px 16px;">
+              <i class="ph ph-clock-clockwise"></i> Actividad
+            </button>
+          </div>
+          
+          <!-- Contenido de Notificaciones -->
+          <div id="notifications-content" style="display: block;">
+            <div id="notifications-list" style="display: flex; flex-direction: column; gap: 12px;">
+              <!-- Se llenará dinámicamente -->
+            </div>
+            <div id="notifications-empty" style="text-align: center; padding: 40px 20px; color: var(--muted); display: none;">
+              <i class="ph ph-bell-slash" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i>
+              <p style="margin: 0; font-size: 14px;">No hay notificaciones</p>
+            </div>
+          </div>
+          
+          <!-- Contenido de Actividad -->
+          <div id="activity-content" style="display: none;">
+            <div style="margin-bottom: 16px;">
+              <select id="filter-activity" class="input" style="width: 100%; font-size: 13px;">
+                <option value="all">Todas las actividades</option>
+                <option value="course_created">Cursos creados</option>
+                <option value="course_edited">Cursos editados</option>
+                <option value="course_deleted">Cursos eliminados</option>
+                <option value="email_added">Emails agregados</option>
+                <option value="admin_added">Administradores agregados</option>
+                <option value="backup_exported">Backups exportados</option>
+                <option value="backup_imported">Backups importados</option>
+              </select>
+            </div>
+            <div id="activity-list" style="display: flex; flex-direction: column; gap: 12px;">
+              <!-- Se llenará dinámicamente -->
+            </div>
+            <div id="activity-empty" style="text-align: center; padding: 40px 20px; color: var(--muted); display: none;">
+              <i class="ph ph-clock" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i>
+              <p style="margin: 0; font-size: 14px;">No hay actividad registrada</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1202,7 +1268,7 @@
   <script src="assets/js/google-apps-script-code.js?v=1"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
-  <script src="assets/js/app.min.js?v=125" defer></script>
+  <script src="assets/js/app.min.js?v=126" defer></script>
   <script src="assets/js/certificates.js?v=21" defer></script>
   <script>
     // ✅ Forzar actualización del Service Worker si hay una nueva versión
