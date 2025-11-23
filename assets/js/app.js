@@ -176,32 +176,128 @@ function getSafeInputValue(selector, type = 'text') {
   return safeInput(element.value, type);
 }
 
-/* ===================== RATE LIMITING ===================== */
+/* ===================== RATE LIMITING MEJORADO ===================== */
 
 /**
- * ✅ Rate limiting para prevenir acciones repetidas
+ * ✅ Sistema de rate limiting mejorado con ventanas de tiempo y límites específicos
  */
-const actionTimestamps = {};
-const RATE_LIMIT_MS = 2000; // 2 segundos entre acciones
 
-function checkRateLimit(action, customLimit = RATE_LIMIT_MS) {
+// Configuración de límites por tipo de acción
+const RATE_LIMIT_CONFIG = {
+  // Acciones críticas (autenticación)
+  'login': { windowMs: 60000, maxAttempts: 5 }, // 5 intentos por minuto
+  'register': { windowMs: 300000, maxAttempts: 3 }, // 3 intentos por 5 minutos
+  'password_reset': { windowMs: 300000, maxAttempts: 3 }, // 3 intentos por 5 minutos
+  'resend_code': { windowMs: 60000, maxAttempts: 3 }, // 3 intentos por minuto
+  'verify_code': { windowMs: 60000, maxAttempts: 10 }, // 10 intentos por minuto
+  
+  // Acciones de gestión de cursos
+  'crear curso': { windowMs: 10000, maxAttempts: 3 }, // 3 intentos por 10 segundos
+  'editar curso': { windowMs: 5000, maxAttempts: 5 }, // 5 intentos por 5 segundos
+  'eliminar curso': { windowMs: 10000, maxAttempts: 2 }, // 2 intentos por 10 segundos
+  
+  // Acciones de gestión de emails
+  'agregar email': { windowMs: 5000, maxAttempts: 5 }, // 5 intentos por 5 segundos
+  'agregar admin': { windowMs: 10000, maxAttempts: 3 }, // 3 intentos por 10 segundos
+  
+  // Acciones generales (fallback)
+  'default': { windowMs: 2000, maxAttempts: 1 } // 1 intento por 2 segundos
+};
+
+// Almacenamiento de intentos por acción (sliding window)
+const rateLimitStore = {};
+
+/**
+ * ✅ Limpiar intentos antiguos de una acción
+ * @param {string} action - Nombre de la acción
+ */
+function cleanOldAttempts(action) {
+  const config = RATE_LIMIT_CONFIG[action] || RATE_LIMIT_CONFIG.default;
+  const windowMs = config.windowMs;
   const now = Date.now();
-  const lastAction = actionTimestamps[action] || 0;
-  if (now - lastAction < customLimit) {
-    const remaining = Math.ceil((customLimit - (now - lastAction)) / 1000);
-    if (typeof window.showSuccessModal === 'function') {
-      window.showSuccessModal(
-        'Espera un momento',
-        `Por favor espera ${remaining} segundo(s) antes de ${action} nuevamente.`
-      );
-    } else {
-      alert(`Espera ${remaining} segundo(s) antes de ${action} nuevamente`);
-    }
-    return false;
+  
+  if (!rateLimitStore[action]) {
+    rateLimitStore[action] = [];
+    return;
   }
-  actionTimestamps[action] = now;
-  return true;
+  
+  // Eliminar intentos fuera de la ventana de tiempo
+  rateLimitStore[action] = rateLimitStore[action].filter(
+    timestamp => now - timestamp < windowMs
+  );
 }
+
+/**
+ * ✅ Verificar rate limit mejorado con ventana de tiempo
+ * @param {string} action - Nombre de la acción
+ * @param {Object} customConfig - Configuración personalizada opcional { windowMs, maxAttempts }
+ * @returns {Object} { allowed: boolean, remaining: number, resetAt: number }
+ */
+function checkRateLimit(action, customConfig = null) {
+  const config = customConfig || RATE_LIMIT_CONFIG[action] || RATE_LIMIT_CONFIG.default;
+  const { windowMs, maxAttempts } = config;
+  const now = Date.now();
+  
+  // Limpiar intentos antiguos
+  cleanOldAttempts(action);
+  
+  // Inicializar si no existe
+  if (!rateLimitStore[action]) {
+    rateLimitStore[action] = [];
+  }
+  
+  // Contar intentos en la ventana actual
+  const attemptsInWindow = rateLimitStore[action].length;
+  
+  if (attemptsInWindow >= maxAttempts) {
+    // Calcular tiempo hasta el siguiente intento permitido
+    const oldestAttempt = rateLimitStore[action][0];
+    const resetAt = oldestAttempt + windowMs;
+    const remaining = Math.ceil((resetAt - now) / 1000);
+    
+    // Mostrar mensaje de error
+    const actionName = action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    const message = attemptsInWindow >= maxAttempts * 2
+      ? `Demasiados intentos. Por favor espera ${remaining} segundo(s) antes de intentar ${actionName} nuevamente.`
+      : `Has alcanzado el límite de intentos (${maxAttempts}). Espera ${remaining} segundo(s) antes de intentar ${actionName} nuevamente.`;
+    
+    if (typeof window.showToast === 'function') {
+      window.showToast('warning', 'Límite de intentos alcanzado', message);
+    } else if (typeof window.showSuccessModal === 'function') {
+      window.showSuccessModal('Espera un momento', message);
+    } else {
+      alert(message);
+    }
+    
+    return { allowed: false, remaining, resetAt };
+  }
+  
+  // Registrar intento actual
+  rateLimitStore[action].push(now);
+  
+  return { allowed: true, remaining: 0, resetAt: now + windowMs };
+}
+
+/**
+ * ✅ Helper simplificado para compatibilidad con código existente
+ * @param {string} action - Nombre de la acción
+ * @param {number} customLimitMs - Límite personalizado en ms (deprecated, usar customConfig)
+ * @returns {boolean} true si está permitido, false si no
+ */
+function checkRateLimitSimple(action, customLimitMs = null) {
+  let customConfig = null;
+  
+  // Compatibilidad con código antiguo que usa customLimitMs
+  if (customLimitMs) {
+    customConfig = { windowMs: customLimitMs, maxAttempts: 1 };
+  }
+  
+  const result = checkRateLimit(action, customConfig);
+  return result.allowed;
+}
+
+// ✅ Mantener función antigua para compatibilidad
+const checkRateLimitLegacy = checkRateLimitSimple;
 
 /* ===================== OPTIMIZACIÓN: DEBOUNCE ===================== */
 
@@ -4848,7 +4944,7 @@ function buildMasterGrid() {
         // ✅ Mostrar modal de confirmación elegante
         window.showDeleteConfirmModal(data.title, async () => {
           // ✅ Rate limiting: prevenir eliminaciones repetidas
-          if (!checkRateLimit('eliminar curso')) {
+          if (!checkRateLimitSimple('eliminar curso')) {
             return;
           }
           
@@ -6307,6 +6403,11 @@ function showAuthMessage(elementId, message, isError = false) {
 
 // ✅ Función para login con email/password
 async function tryLoginByEmail() {
+  // ✅ Rate limiting: prevenir ataques de fuerza bruta
+  if (!checkRateLimitSimple('login')) {
+    return false;
+  }
+  
   // ✅ Sanitizar inputs
   const email = getSafeInputValue('#input-email', 'email');
   const password = getSafeInputValue('#input-password', 'password'); // Password no se sanitiza
@@ -6428,6 +6529,11 @@ async function tryLoginByEmail() {
 
 // ✅ Función para verificar correo antes de registrar
 async function verifyEmailForRegistration() {
+  // ✅ Rate limiting: prevenir spam de registros
+  if (!checkRateLimitSimple('register')) {
+    return false;
+  }
+  
   console.log('[VERIFICATION] 🚀 Iniciando verificación de email...');
   // ✅ Sanitizar email
   const email = getSafeInputValue('#input-register-email', 'email');
@@ -6550,6 +6656,11 @@ async function verifyEmailForRegistration() {
 
 // ✅ Función para registro con email/password (correo ya verificado)
 async function tryRegister() {
+  // ✅ Rate limiting: prevenir spam de registros
+  if (!checkRateLimitSimple('register')) {
+    return false;
+  }
+  
   // ✅ Usar el correo ya verificado (ya sanitizado)
   const email = window.verifiedEmailForRegistration;
   // ✅ Passwords no se sanitizan, se mantienen como están
@@ -6634,6 +6745,11 @@ async function tryRegister() {
 
 // ✅ Función para verificar código de verificación
 async function verifyCodeForRegistration() {
+  // ✅ Rate limiting: prevenir spam de códigos
+  if (!checkRateLimitSimple('verify_code')) {
+    return false;
+  }
+  
   const email = window.verifiedEmailForRegistration; // Ya sanitizado
   // ✅ Sanitizar código
   const code = getSafeInputValue('#input-verification-code', 'code');
@@ -6690,7 +6806,7 @@ async function resendVerificationCode() {
     return false;
   }
   
-  if (!checkRateLimit('resend_code', 60000)) { // 1 minuto entre reenvíos
+  if (!checkRateLimitSimple('resend_code')) { // Usa configuración mejorada
     return false;
   }
   
@@ -6714,6 +6830,11 @@ async function resendVerificationCode() {
 
 // ✅ Función para reset de contraseña
 async function tryPasswordReset() {
+  // ✅ Rate limiting: prevenir spam de resets
+  if (!checkRateLimitSimple('password_reset')) {
+    return false;
+  }
+  
   // ✅ Sanitizar email
   const email = getSafeInputValue('#input-reset-email', 'email');
   
@@ -7390,6 +7511,11 @@ async function renderCourseEmailsList(courseHex) {
 
 // ✅ Agregar correo a un curso desde UI
 async function addCourseEmailUI() {
+  // ✅ Rate limiting: prevenir spam de agregar emails
+  if (!checkRateLimitSimple('agregar email')) {
+    return;
+  }
+  
   if (!currentCourseEmailsHex) {
     console.error('[AUTH] No hay curso seleccionado');
     if (typeof window.showToast === 'function') {
@@ -7842,6 +7968,11 @@ async function renderAdminsList() {
 
 // ✅ Agregar administrador desde UI
 async function addAdminUI() {
+  // ✅ Rate limiting: prevenir spam de agregar administradores
+  if (!checkRateLimitSimple('agregar admin')) {
+    return;
+  }
+  
   const input = $('#input-admin-email');
   const msgEl = $('#msg-admins');
   
@@ -9164,7 +9295,7 @@ function setupAddCourseModal() {
     let restoreButton = null;
     
     // ✅ Rate limiting: prevenir acciones repetidas
-    if (!checkRateLimit('crear curso')) {
+    if (!checkRateLimitSimple('crear curso')) {
       return;
     }
     
@@ -9519,7 +9650,7 @@ function setupEditCourseModal() {
     let restoreButton = null;
     
     // ✅ Rate limiting: prevenir ediciones repetidas
-    if (!checkRateLimit('editar curso')) {
+    if (!checkRateLimitSimple('editar curso')) {
       return;
     }
     
