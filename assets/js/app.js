@@ -5293,6 +5293,15 @@ function renderCourse(keyHex) {
   list.innerHTML = '';
   const files = getFilesForHex(keyHex);
   
+  // ✅ Configurar búsqueda de archivos
+  setupFilesSearch(keyHex, list);
+  
+  // ✅ Actualizar contador de archivos
+  const filesCountEl = $('#files-count');
+  if (filesCountEl) {
+    filesCountEl.textContent = (files || []).length;
+  }
+  
   // ✅ PREVENIR DUPLICADOS al renderizar: usar Set para identificar únicos por firebaseId o URL+Label
   const seen = new Set();
   const uniqueFiles = (files || []).filter(item => {
@@ -5310,6 +5319,11 @@ function renderCourse(keyHex) {
     row.className = 'file';
     let host = '';
     try { host = new URL(item.url).hostname; } catch { host = ''; }
+    
+    // ✅ Agregar atributos para búsqueda
+    row.dataset.fileLabel = (item.label || '').toLowerCase();
+    row.dataset.fileHost = host.toLowerCase();
+    
     // ✅ Sanitizar para prevenir XSS
     const safeLabel = escapeHTML(item.label || '');
     const safeHost = escapeHTML(host);
