@@ -1290,53 +1290,84 @@ function setupNotificationsPanel() {
   let escapeHandler = null;
   
   // Abrir/cerrar panel
-  btnNotifications.addEventListener('click', () => {
-    const isVisible = panel.style.display !== 'none' && panel.style.display !== '';
-    panel.style.display = isVisible ? 'none' : 'flex';
-    btnNotifications.setAttribute('aria-expanded', isVisible ? 'false' : 'true');
+  btnNotifications.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     
-    if (!isVisible) {
-      // ✅ Agregar listener de Escape solo cuando se abre
-      if (!escapeHandler) {
-        escapeHandler = (e) => {
-          if (e.key === 'Escape' && panel.style.display !== 'none' && panel.style.display !== '') {
-            panel.style.display = 'none';
-            btnNotifications.setAttribute('aria-expanded', 'false');
-          }
-        };
-        document.addEventListener('keydown', escapeHandler);
+    try {
+      const isVisible = panel.style.display !== 'none' && panel.style.display !== '';
+      panel.style.display = isVisible ? 'none' : 'flex';
+      btnNotifications.setAttribute('aria-expanded', isVisible ? 'false' : 'true');
+      
+      if (!isVisible) {
+        // ✅ Agregar listener de Escape solo cuando se abre
+        if (!escapeHandler) {
+          escapeHandler = (e) => {
+            if (e.key === 'Escape' && panel.style.display !== 'none' && panel.style.display !== '') {
+              panel.style.display = 'none';
+              btnNotifications.setAttribute('aria-expanded', 'false');
+            }
+          };
+          document.addEventListener('keydown', escapeHandler);
+        }
+        
+        // ✅ Mostrar contenido vacío primero para que el panel se abra inmediatamente
+        const list = $('#notifications-list');
+        const empty = $('#notifications-empty');
+        if (list && empty) {
+          list.style.display = 'none';
+          empty.style.display = 'block';
+        }
+        
+        const activityList = $('#activity-list');
+        const activityEmpty = $('#activity-empty');
+        if (activityList && activityEmpty) {
+          activityList.style.display = 'none';
+          activityEmpty.style.display = 'block';
+        }
+        
+        // ✅ Renderizar de forma ASÍNCRONA con delay más largo para no bloquear
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            try {
+              renderNotifications();
+            } catch (error) {
+              console.error('[NOTIFICATIONS] Error renderizando notificaciones:', error);
+            }
+          }, 50);
+        });
+        
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            try {
+              renderActivity();
+            } catch (error) {
+              console.error('[NOTIFICATIONS] Error renderizando actividad:', error);
+            }
+          }, 100);
+        });
+        
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            try {
+              updateNotificationsBadge();
+            } catch (error) {
+              console.error('[NOTIFICATIONS] Error actualizando badge:', error);
+            }
+          }, 150);
+        });
+      } else {
+        // ✅ Remover listener cuando se cierra
+        if (escapeHandler) {
+          document.removeEventListener('keydown', escapeHandler);
+          escapeHandler = null;
+        }
       }
-      
-      // ✅ Renderizar de forma ASÍNCRONA para no bloquear la UI
-      setTimeout(() => {
-        try {
-          renderNotifications();
-        } catch (error) {
-          console.error('[NOTIFICATIONS] Error renderizando notificaciones:', error);
-        }
-      }, 0);
-      
-      setTimeout(() => {
-        try {
-          renderActivity();
-        } catch (error) {
-          console.error('[NOTIFICATIONS] Error renderizando actividad:', error);
-        }
-      }, 10);
-      
-      setTimeout(() => {
-        try {
-          updateNotificationsBadge();
-        } catch (error) {
-          console.error('[NOTIFICATIONS] Error actualizando badge:', error);
-        }
-      }, 20);
-    } else {
-      // ✅ Remover listener cuando se cierra
-      if (escapeHandler) {
-        document.removeEventListener('keydown', escapeHandler);
-        escapeHandler = null;
-      }
+    } catch (error) {
+      console.error('[NOTIFICATIONS] Error crítico en click handler:', error);
+      // Asegurar que el panel se cierre si hay error
+      panel.style.display = 'none';
+      btnNotifications.setAttribute('aria-expanded', 'false');
     }
   });
   
@@ -1483,19 +1514,38 @@ function renderNotifications() {
   }
 }
 
-// ✅ Renderizar actividad (con protección contra errores)
+// ✅ Renderizar actividad (con protección máxima contra errores)
 function renderActivity(filter = 'all') {
   try {
     const list = $('#activity-list');
     const empty = $('#activity-empty');
-    if (!list || !empty) return;
-    
-    const logs = getAuditLogs();
-    if (!Array.isArray(logs)) {
-      warn('[ACTIVITY] Logs no es un array válido');
-      list.style.display = 'none';
-      empty.style.display = 'block';
+    if (!list || !empty) {
+      console.warn('[ACTIVITY] Elementos no encontrados');
       return;
+    }
+    
+    // ✅ Limpiar primero
+    list.innerHTML = '';
+    list.style.display = 'none';
+    empty.style.display = 'block';
+    
+    // ✅ Obtener logs con timeout para evitar bloqueo
+    let logs = [];
+    try {
+      logs = getAuditLogs();
+    } catch (error) {
+      console.error('[ACTIVITY] Error obteniendo logs:', error);
+      return;
+    }
+    
+    if (!Array.isArray(logs)) {
+      console.warn('[ACTIVITY] Logs no es un array válido');
+      return;
+    }
+    
+    // ✅ Limitar cantidad máxima para evitar bloqueo
+    if (logs.length > 100) {
+      logs = logs.slice(-100); // Solo los últimos 100
     }
     
     let filteredLogs = logs;
@@ -1504,21 +1554,18 @@ function renderActivity(filter = 'all') {
       filteredLogs = logs.filter(log => log && log.action === filter);
     }
     
-    // Ordenar por fecha (más recientes primero) y limitar a 50
+    // Ordenar por fecha (más recientes primero) y limitar a 30 (reducido)
     filteredLogs = filteredLogs
-      .filter(log => log && log.timestamp) // ✅ Filtrar logs inválidos
+      .filter(log => log && log.timestamp && log.action) // ✅ Filtrar logs inválidos
       .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
-      .slice(0, 50);
+      .slice(0, 30); // ✅ Reducido a 30 para evitar bloqueo
     
     if (filteredLogs.length === 0) {
-      list.style.display = 'none';
-      empty.style.display = 'block';
       return;
     }
     
     list.style.display = 'flex';
     empty.style.display = 'none';
-    list.innerHTML = '';
     
     const actionLabels = {
       'course_created': { icon: '✅', label: 'Curso creado', color: '#4ade80' },
@@ -1532,74 +1579,87 @@ function renderActivity(filter = 'all') {
       'backup_imported': { icon: '📥', label: 'Backup importado', color: '#5aa9ff' }
     };
     
-    // ✅ Renderizar en lotes para no bloquear la UI
+    // ✅ Renderizar en lotes más pequeños con delay
     let rendered = 0;
-    const batchSize = 10;
+    const batchSize = 5; // ✅ Reducido a 5
     
     const renderBatch = () => {
-      const batch = filteredLogs.slice(rendered, rendered + batchSize);
-      
-      batch.forEach(log => {
-        try {
-          if (!log || !log.action) return;
-          
-          const action = actionLabels[log.action] || { icon: 'ℹ️', label: log.action || 'Acción desconocida', color: '#5aa9ff' };
-          const time = new Date(log.timestamp || Date.now());
-          const timeStr = time.toLocaleString('es-ES', { 
-            day: 'numeric', 
-            month: 'short', 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          });
-          
-          const item = document.createElement('div');
-          item.style.cssText = `
-            padding: 12px;
-            background: rgba(90,169,255,0.05);
-            border-left: 3px solid ${action.color};
-            border-radius: 4px;
-          `;
-          
-          const detailsHtml = log.details && typeof log.details === 'object' && Object.keys(log.details).length > 0
-            ? `<div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">
-                ${Object.entries(log.details).slice(0, 3).map(([key, value]) => 
-                  `<span>${escapeHTML(String(value || ''))}</span>`
-                ).join(' • ')}
-              </div>`
-            : '';
-          
-          item.innerHTML = `
-            <div style="display: flex; align-items: start; gap: 12px;">
-              <div style="font-size: 20px; flex-shrink: 0;">${action.icon}</div>
-              <div style="flex: 1; min-width: 0;">
-                <div style="font-weight: 500; font-size: 13px; color: var(--text); margin-bottom: 4px;">${escapeHTML(action.label)}</div>
-                ${detailsHtml}
-                <div style="font-size: 11px; color: var(--muted); opacity: 0.7;">${timeStr}</div>
+      try {
+        const batch = filteredLogs.slice(rendered, rendered + batchSize);
+        
+        batch.forEach(log => {
+          try {
+            if (!log || !log.action) return;
+            
+            const action = actionLabels[log.action] || { icon: 'ℹ️', label: log.action || 'Acción', color: '#5aa9ff' };
+            const time = new Date(log.timestamp || Date.now());
+            const timeStr = time.toLocaleString('es-ES', { 
+              day: 'numeric', 
+              month: 'short', 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            });
+            
+            const item = document.createElement('div');
+            item.style.cssText = `
+              padding: 12px;
+              background: rgba(90,169,255,0.05);
+              border-left: 3px solid ${action.color};
+              border-radius: 4px;
+            `;
+            
+            let detailsHtml = '';
+            try {
+              if (log.details && typeof log.details === 'object' && Object.keys(log.details).length > 0) {
+                const details = Object.entries(log.details).slice(0, 2).map(([key, value]) => 
+                  escapeHTML(String(value || ''))
+                ).join(' • ');
+                if (details) {
+                  detailsHtml = `<div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">${details}</div>`;
+                }
+              }
+            } catch (e) {
+              // Ignorar errores en details
+            }
+            
+            item.innerHTML = `
+              <div style="display: flex; align-items: start; gap: 12px;">
+                <div style="font-size: 20px; flex-shrink: 0;">${action.icon}</div>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="font-weight: 500; font-size: 13px; color: var(--text); margin-bottom: 4px;">${escapeHTML(action.label)}</div>
+                  ${detailsHtml}
+                  <div style="font-size: 11px; color: var(--muted); opacity: 0.7;">${timeStr}</div>
+                </div>
               </div>
-            </div>
-          `;
-          
-          list.appendChild(item);
-        } catch (error) {
-          console.error('[ACTIVITY] Error renderizando log individual:', error, log);
+            `;
+            
+            list.appendChild(item);
+          } catch (error) {
+            console.error('[ACTIVITY] Error renderizando log individual:', error);
+          }
+        });
+        
+        rendered += batch.length;
+        
+        // ✅ Continuar con el siguiente lote si hay más (con delay)
+        if (rendered < filteredLogs.length) {
+          setTimeout(renderBatch, 50); // ✅ Delay de 50ms entre lotes
         }
-      });
-      
-      rendered += batch.length;
-      
-      // ✅ Continuar con el siguiente lote si hay más
-      if (rendered < filteredLogs.length) {
-        setTimeout(renderBatch, 0);
+      } catch (error) {
+        console.error('[ACTIVITY] Error en renderBatch:', error);
       }
     };
     
-    // ✅ Iniciar renderizado por lotes
-    renderBatch();
+    // ✅ Iniciar renderizado por lotes con delay inicial
+    setTimeout(renderBatch, 0);
   } catch (error) {
     console.error('[ACTIVITY] Error crítico en renderActivity:', error);
     const list = $('#activity-list');
     const empty = $('#activity-empty');
-    if (list) list.style.display = 'none';
+    if (list) {
+      list.style.display = 'none';
+      list.innerHTML = '';
+    }
     if (empty) empty.style.display = 'block';
   }
 }
