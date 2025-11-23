@@ -1264,191 +1264,170 @@ window.showToast = function(type, title, message, duration = 3000, saveToHistory
   }
 };
 
-// ✅ Configurar panel de notificaciones
+// ✅ Configurar panel de notificaciones - VERSIÓN SIMPLIFICADA Y FUNCIONAL
 function setupNotificationsPanel() {
-  const btnNotifications = $('#btn-notifications');
-  const panel = $('#notificationsPanel');
-  const btnClose = $('#btn-close-notifications');
-  const tabNotifications = $('#tab-notifications');
-  const tabActivity = $('#tab-activity');
-  const notificationsContent = $('#notifications-content');
-  const activityContent = $('#activity-content');
+  const btnNotifications = document.getElementById('btn-notifications');
+  const panel = document.getElementById('notificationsPanel');
+  const btnClose = document.getElementById('btn-close-notifications');
+  const tabNotifications = document.getElementById('tab-notifications');
+  const tabActivity = document.getElementById('tab-activity');
+  const notificationsContent = document.getElementById('notifications-content');
+  const activityContent = document.getElementById('activity-content');
   
   if (!btnNotifications || !panel) {
-    warn('[NOTIFICATIONS] Elementos del panel no encontrados, reintentando en 100ms...');
-    setTimeout(() => setupNotificationsPanel(), 100);
+    console.warn('[NOTIFICATIONS] Elementos no encontrados, reintentando en 200ms...');
+    setTimeout(() => setupNotificationsPanel(), 200);
     return;
   }
   
-  // ✅ PREVENIR MÚLTIPLES CONFIGURACIONES - PERO PERMITIR RE-CONFIGURAR SI ES NECESARIO
-  if (btnNotifications.dataset.configured === 'true') {
-    // ✅ Verificar si el listener existe, si no, reconfigurar
-    if (!btnNotifications._notificationClickHandler) {
-      warn('[NOTIFICATIONS] Botón marcado como configurado pero sin listener, reconfigurando...');
-      btnNotifications.dataset.configured = 'false';
-    } else {
-      log('[NOTIFICATIONS] Panel ya configurado correctamente');
-      return;
-    }
-  }
-  btnNotifications.dataset.configured = 'true';
-  
-  // ✅ Función para manejar Escape (definida una sola vez)
+  // ✅ Variable para el escape handler (fuera del click handler)
   let escapeHandler = null;
   
-  // ✅ Función del click handler (guardada para poder verificar si existe)
-  const clickHandler = (e) => {
+  // ✅ Click handler SIMPLE y DIRECTO usando onclick
+  btnNotifications.onclick = function(e) {
     e.preventDefault();
     e.stopPropagation();
     
-    try {
-      const isVisible = panel.style.display !== 'none' && panel.style.display !== '';
-      panel.style.display = isVisible ? 'none' : 'flex';
-      btnNotifications.setAttribute('aria-expanded', isVisible ? 'false' : 'true');
-      
-      if (!isVisible) {
-        // ✅ Agregar listener de Escape solo cuando se abre
-        if (!escapeHandler) {
-          escapeHandler = (e) => {
-            if (e.key === 'Escape' && panel.style.display !== 'none' && panel.style.display !== '') {
-              panel.style.display = 'none';
-              btnNotifications.setAttribute('aria-expanded', 'false');
-            }
-          };
-          document.addEventListener('keydown', escapeHandler);
-        }
-        
-        // ✅ Mostrar contenido vacío primero para que el panel se abra inmediatamente
-        const list = $('#notifications-list');
-        const empty = $('#notifications-empty');
-        if (list && empty) {
-          list.style.display = 'none';
-          empty.style.display = 'block';
-        }
-        
-        const activityList = $('#activity-list');
-        const activityEmpty = $('#activity-empty');
-        if (activityList && activityEmpty) {
-          activityList.style.display = 'none';
-          activityEmpty.style.display = 'block';
-        }
-        
-        // ✅ Renderizar de forma ASÍNCRONA con delay más largo para no bloquear
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            try {
-              renderNotifications();
-            } catch (error) {
-              console.error('[NOTIFICATIONS] Error renderizando notificaciones:', error);
-            }
-          }, 50);
-        });
-        
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            try {
-              renderActivity();
-            } catch (error) {
-              console.error('[NOTIFICATIONS] Error renderizando actividad:', error);
-            }
-          }, 100);
-        });
-        
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            try {
-              updateNotificationsBadge();
-            } catch (error) {
-              console.error('[NOTIFICATIONS] Error actualizando badge:', error);
-            }
-          }, 150);
-        });
-      } else {
-        // ✅ Remover listener cuando se cierra
-        if (escapeHandler) {
-          document.removeEventListener('keydown', escapeHandler);
-          escapeHandler = null;
-        }
-      }
-    } catch (error) {
-      console.error('[NOTIFICATIONS] Error crítico en click handler:', error);
-      // Asegurar que el panel se cierre si hay error
+    console.log('[NOTIFICATIONS] ✅ Click detectado en botón');
+    
+    const isVisible = panel.style.display !== 'none' && panel.style.display !== '';
+    console.log('[NOTIFICATIONS] Panel visible?', isVisible);
+    
+    if (isVisible) {
+      // CERRAR
+      console.log('[NOTIFICATIONS] Cerrando panel...');
       panel.style.display = 'none';
       btnNotifications.setAttribute('aria-expanded', 'false');
+      if (escapeHandler) {
+        document.removeEventListener('keydown', escapeHandler);
+        escapeHandler = null;
+      }
+    } else {
+      // ABRIR
+      console.log('[NOTIFICATIONS] Abriendo panel...');
+      panel.style.display = 'flex';
+      btnNotifications.setAttribute('aria-expanded', 'true');
+      
+      // Mostrar contenido vacío primero
+      const list = document.getElementById('notifications-list');
+      const empty = document.getElementById('notifications-empty');
+      if (list && empty) {
+        list.style.display = 'none';
+        empty.style.display = 'block';
+      }
+      
+      const activityList = document.getElementById('activity-list');
+      const activityEmpty = document.getElementById('activity-empty');
+      if (activityList && activityEmpty) {
+        activityList.style.display = 'none';
+        activityEmpty.style.display = 'block';
+      }
+      
+      // Escape handler
+      if (!escapeHandler) {
+        escapeHandler = function(e) {
+          if (e.key === 'Escape' && panel.style.display !== 'none') {
+            panel.style.display = 'none';
+            btnNotifications.setAttribute('aria-expanded', 'false');
+            document.removeEventListener('keydown', escapeHandler);
+            escapeHandler = null;
+          }
+        };
+        document.addEventListener('keydown', escapeHandler);
+      }
+      
+      // Renderizar después (asíncrono)
+      setTimeout(() => {
+        try {
+          if (typeof renderNotifications === 'function') {
+            renderNotifications();
+          }
+        } catch (e) {
+          console.error('[NOTIFICATIONS] Error renderizando notificaciones:', e);
+        }
+      }, 100);
+      
+      setTimeout(() => {
+        try {
+          if (typeof renderActivity === 'function') {
+            renderActivity();
+          }
+        } catch (e) {
+          console.error('[ACTIVITY] Error renderizando actividad:', e);
+        }
+      }, 200);
     }
   };
   
-  // ✅ Guardar referencia al handler para poder verificar si existe
-  btnNotifications._notificationClickHandler = clickHandler;
-  
-  // ✅ Remover listener anterior si existe (por si acaso)
-  if (btnNotifications._oldClickHandler) {
-    btnNotifications.removeEventListener('click', btnNotifications._oldClickHandler);
+  // ✅ Botón cerrar
+  if (btnClose) {
+    btnClose.onclick = function() {
+      panel.style.display = 'none';
+      btnNotifications.setAttribute('aria-expanded', 'false');
+      if (escapeHandler) {
+        document.removeEventListener('keydown', escapeHandler);
+        escapeHandler = null;
+      }
+    };
   }
-  btnNotifications._oldClickHandler = clickHandler;
   
-  // Abrir/cerrar panel
-  btnNotifications.addEventListener('click', clickHandler);
+  // ✅ Pestañas
+  if (tabNotifications) {
+    tabNotifications.onclick = function() {
+      tabNotifications.classList.add('active');
+      if (tabActivity) tabActivity.classList.remove('active');
+      if (notificationsContent) notificationsContent.style.display = 'block';
+      if (activityContent) activityContent.style.display = 'none';
+      if (tabNotifications) tabNotifications.style.borderBottomColor = 'var(--accent)';
+      if (tabActivity) tabActivity.style.borderBottomColor = 'transparent';
+    };
+  }
   
-  // ✅ Log para debug
-  log('[NOTIFICATIONS] ✅ Panel configurado correctamente, listener agregado');
+  if (tabActivity) {
+    tabActivity.onclick = function() {
+      tabActivity.classList.add('active');
+      if (tabNotifications) tabNotifications.classList.remove('active');
+      if (notificationsContent) notificationsContent.style.display = 'none';
+      if (activityContent) activityContent.style.display = 'block';
+      if (tabActivity) tabActivity.style.borderBottomColor = 'var(--accent)';
+      if (tabNotifications) tabNotifications.style.borderBottomColor = 'transparent';
+      setTimeout(() => {
+        try {
+          if (typeof renderActivity === 'function') {
+            renderActivity();
+          }
+        } catch (e) {
+          console.error('[ACTIVITY] Error:', e);
+        }
+      }, 50);
+    };
+  }
   
-  btnClose?.addEventListener('click', () => {
-    panel.style.display = 'none';
-    btnNotifications.setAttribute('aria-expanded', 'false');
-    if (escapeHandler) {
-      document.removeEventListener('keydown', escapeHandler);
-      escapeHandler = null;
-    }
-  });
+  // ✅ Filtro
+  const filterActivity = document.getElementById('filter-activity');
+  if (filterActivity) {
+    filterActivity.onchange = function() {
+      try {
+        if (typeof renderActivity === 'function') {
+          renderActivity(this.value);
+        }
+      } catch (e) {
+        console.error('[ACTIVITY] Error:', e);
+      }
+    };
+  }
   
-  // Cambiar pestañas
-  tabNotifications?.addEventListener('click', () => {
-    tabNotifications.classList.add('active');
-    tabActivity?.classList.remove('active');
-    if (notificationsContent) notificationsContent.style.display = 'block';
-    if (activityContent) activityContent.style.display = 'none';
-    if (tabNotifications) tabNotifications.style.borderBottomColor = 'var(--accent)';
-    if (tabActivity) tabActivity.style.borderBottomColor = 'transparent';
-  });
+  // ✅ Inicializar badge
+  if (typeof updateNotificationsBadge === 'function') {
+    updateNotificationsBadge();
+  }
   
-  tabActivity?.addEventListener('click', () => {
-    tabActivity.classList.add('active');
-    tabNotifications?.classList.remove('active');
-    if (notificationsContent) notificationsContent.style.display = 'none';
-    if (activityContent) activityContent.style.display = 'block';
-    if (tabActivity) tabActivity.style.borderBottomColor = 'var(--accent)';
-    if (tabNotifications) tabNotifications.style.borderBottomColor = 'transparent';
-    try {
-      renderActivity();
-    } catch (error) {
-      console.error('[NOTIFICATIONS] Error renderizando actividad:', error);
-    }
-  });
-  
-  // Filtrar actividad
-  const filterActivity = $('#filter-activity');
-  filterActivity?.addEventListener('change', () => {
-    try {
-      renderActivity(filterActivity.value);
-    } catch (error) {
-      console.error('[NOTIFICATIONS] Error filtrando actividad:', error);
-    }
-  });
-  
-  // Inicializar badge
-  updateNotificationsBadge();
+  console.log('[NOTIFICATIONS] ✅ Panel configurado correctamente');
   
   // ✅ Exponer función global para debug/reconfiguración manual
   window.reconfigureNotificationsPanel = () => {
-    const btn = $('#btn-notifications');
-    if (btn) {
-      btn.dataset.configured = 'false';
-      btn._notificationClickHandler = null;
-      btn._oldClickHandler = null;
-      setupNotificationsPanel();
-      log('[NOTIFICATIONS] 🔄 Panel reconfigurado manualmente');
-    }
+    setupNotificationsPanel();
+    console.log('[NOTIFICATIONS] 🔄 Panel reconfigurado manualmente');
   };
 }
 
