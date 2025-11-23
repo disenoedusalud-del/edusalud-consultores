@@ -6322,9 +6322,17 @@ function setupMasterSearch(){
  */
 function setupKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
+    // ✅ Prevenir atajos si el usuario está escribiendo en un input/textarea
+    const activeElement = document.activeElement;
+    const isInputFocused = activeElement && (
+      activeElement.tagName === 'INPUT' || 
+      activeElement.tagName === 'TEXTAREA' ||
+      activeElement.isContentEditable
+    );
+    
     // Solo si estamos en Vista Master
     const masterView = $('#master');
-    if (masterView && !masterView.classList.contains('hidden')) {
+    if (masterView && !masterView.classList.contains('hidden') && !isInputFocused) {
       // Ctrl+N (Windows/Linux) o Cmd+N (Mac): Nuevo curso
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault();
@@ -6335,6 +6343,7 @@ function setupKeyboardShortcuts() {
             window.showToast('info', 'Atajo de teclado', 'Formulario de nuevo curso abierto');
           }
         }
+        return;
       }
 
       // Ctrl+F o Cmd+F: Buscar
@@ -6348,19 +6357,165 @@ function setupKeyboardShortcuts() {
             window.showToast('info', 'Atajo de teclado', 'Campo de búsqueda activado');
           }
         }
+        return;
+      }
+      
+      // Ctrl+S o Cmd+S: Guardar (si hay un formulario abierto)
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        const modalAddCourse = $('#modalAddCourse');
+        const modalEditCourse = $('#modalEditCourse');
+        if (modalAddCourse && modalAddCourse.classList.contains('show')) {
+          const form = $('#formAddCourse');
+          if (form) {
+            form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+          }
+          return;
+        }
+        if (modalEditCourse && modalEditCourse.classList.contains('show')) {
+          const form = $('#formEditCourse');
+          if (form) {
+            form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+          }
+          return;
+        }
       }
     }
 
-    // Escape: Cerrar modales (funciona en cualquier vista)
-    if (e.key === 'Escape') {
+    // Escape: Cerrar modales (funciona en cualquier vista, excepto si hay un input enfocado)
+    if (e.key === 'Escape' && !isInputFocused) {
       const openModal = document.querySelector('.modal.show');
       if (openModal) {
-        openModal.classList.remove('show');
+        const closeBtn = openModal.querySelector('.modal-close');
+        if (closeBtn) {
+          closeBtn.click();
+        } else {
+          openModal.classList.remove('show');
+        }
+        // Enfocar el elemento que abrió el modal si es posible
+        const lastFocused = document.querySelector('[data-last-focused]');
+        if (lastFocused) {
+          lastFocused.focus();
+          lastFocused.removeAttribute('data-last-focused');
+        }
+      }
+      return;
+    }
+    
+    // Enter: Enviar formularios (solo si no es textarea)
+    if (e.key === 'Enter' && !e.shiftKey && activeElement && activeElement.tagName === 'INPUT' && activeElement.type !== 'textarea') {
+      const form = activeElement.closest('form');
+      if (form && !form.querySelector('textarea:focus')) {
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn && !submitBtn.disabled) {
+          e.preventDefault();
+          submitBtn.click();
+        }
       }
     }
   });
 
   log('[SHORTCUTS] ✅ Atajos de teclado configurados');
+}
+
+/* ===================== NAVEGACIÓN POR TECLADO MEJORADA ===================== */
+
+/**
+ * ✅ Mejorar navegación con Tab: asegurar orden lógico y focus visible
+ */
+function setupKeyboardNavigation() {
+  // ✅ Guardar elemento enfocado antes de abrir modal
+  document.addEventListener('click', (e) => {
+    if (e.target.matches('.modal-close, [data-modal-trigger]')) {
+      const activeElement = document.activeElement;
+      if (activeElement && activeElement !== document.body) {
+        activeElement.setAttribute('data-last-focused', 'true');
+      }
+    }
+  });
+  
+  // ✅ Enfocar primer elemento interactivo al abrir modal
+  document.addEventListener('click', (e) => {
+    if (e.target.matches('#btn-add-course, [data-open-modal]')) {
+      setTimeout(() => {
+        const modal = document.querySelector('.modal.show');
+        if (modal) {
+          const firstInput = modal.querySelector('input:not([type="hidden"]), textarea, select, button:not(.modal-close)');
+          if (firstInput) {
+            firstInput.focus();
+          }
+        }
+      }, 100);
+    }
+  });
+  
+  // ✅ Atrapa Tab dentro de modales (trap focus)
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+    
+    const modal = document.querySelector('.modal.show');
+    if (!modal) return;
+    
+    const focusableElements = modal.querySelectorAll(
+      'input:not([disabled]):not([type="hidden"]), ' +
+      'textarea:not([disabled]), ' +
+      'select:not([disabled]), ' +
+      'button:not([disabled]), ' +
+      'a[href], ' +
+      '[tabindex]:not([tabindex="-1"])'
+    );
+    
+    if (focusableElements.length === 0) return;
+    
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    
+    // Si Tab desde el último elemento, ir al primero
+    if (e.shiftKey && document.activeElement === firstElement) {
+      e.preventDefault();
+      lastElement.focus();
+    }
+    // Si Tab desde el último elemento, ir al primero
+    else if (!e.shiftKey && document.activeElement === lastElement) {
+      e.preventDefault();
+      firstElement.focus();
+    }
+  });
+  
+  // ✅ Mejorar navegación en listas con teclado
+  document.addEventListener('keydown', (e) => {
+    const activeElement = document.activeElement;
+    
+    // Navegación con flechas en listas
+    if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
+      const list = activeElement.closest('[role="list"], [role="menu"], .filelist, .master-grid');
+      if (list && activeElement.matches('[role="listitem"], [role="menuitem"], .file, .master-card')) {
+        e.preventDefault();
+        
+        const items = Array.from(list.querySelectorAll('[role="listitem"], [role="menuitem"], .file, .master-card'));
+        const currentIndex = items.indexOf(activeElement);
+        
+        if (e.key === 'ArrowDown' && currentIndex < items.length - 1) {
+          items[currentIndex + 1].focus();
+        } else if (e.key === 'ArrowUp' && currentIndex > 0) {
+          items[currentIndex - 1].focus();
+        } else if (e.key === 'Home') {
+          items[0].focus();
+        } else if (e.key === 'End') {
+          items[items.length - 1].focus();
+        }
+      }
+    }
+  });
+  
+  log('[KEYBOARD NAV] ✅ Navegación por teclado mejorada');
+}
+
+// ✅ Inicializar navegación por teclado
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupKeyboardNavigation);
+} else {
+  setupKeyboardNavigation();
 }
 
 // Llamar después de que la página cargue
