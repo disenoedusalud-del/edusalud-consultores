@@ -1708,7 +1708,7 @@ function initFirebaseCustomCoursesRealtime() {
         log('[FIREBASE COURSES] ♻️ Re-renderizando grid Master (cursos eliminados se quitarán automáticamente)');
         buildMasterGrid();
         // ✅ Actualizar estadísticas después de re-renderizar (buildMasterGrid ya lo hace, pero por si acaso)
-        setTimeout(() => updateMasterStats(mergedCourses), 100);
+        setTimeout(() => updateMasterStats(mergedCourses).catch(e => warn('[STATS] Error actualizando estadísticas:', e)), 100);
       }
 
       if (isContentView && currentKeyHex && rawCourses[currentKeyHex]) {
@@ -5208,7 +5208,7 @@ function buildMasterGrid() {
   initFirebaseCustomCoursesRealtime();
   
   // ✅ Actualizar estadísticas (después de inicializar Firebase)
-  updateMasterStats(mergedMap);
+  updateMasterStats(mergedMap).catch(e => warn('[STATS] Error actualizando estadísticas:', e));
 
   // ✅ Paginación: solo si hay muchos cursos (más de 12)
   let coursesArray = Object.entries(mergedMap).filter(([hex]) => hex !== MASTER_HASH);
@@ -5633,7 +5633,7 @@ function buildMasterGrid() {
             userInteracting = false;
             buildMasterGrid();
             // ✅ Actualizar estadísticas después de eliminar
-            setTimeout(() => updateMasterStats(), 100);
+            setTimeout(() => updateMasterStats().catch(e => warn('[STATS] Error actualizando estadísticas:', e)), 100);
             log('[DELETE] ✅ Curso eliminado exitosamente');
             
             // Cerrar modal
@@ -6239,7 +6239,7 @@ function buildMasterGrid() {
 }
 
 // ✅ Función para actualizar estadísticas en la vista maestra
-function updateMasterStats(mergedMap) {
+async function updateMasterStats(mergedMap) {
   if (!mergedMap) {
     mergedMap = getMergedAccessHashMap();
   }
@@ -6255,23 +6255,85 @@ function updateMasterStats(mergedMap) {
     taller: 0
   };
   
+  // ✅ Contar archivos totales y preparar datos para cursos recientes
+  let totalFiles = 0;
+  const coursesWithData = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayTimestamp = today.getTime();
+  
   Object.keys(mergedMap).forEach(hex => {
     if (hex !== MASTER_HASH) {
       const course = mergedMap[hex];
-      const type = course?.type || 'curso'; // Por defecto 'curso' si no tiene tipo
+      const type = course?.type || 'curso';
       if (typeCounts.hasOwnProperty(type)) {
         typeCounts[type]++;
       } else {
-        // Si hay un tipo desconocido, contarlo como curso
         typeCounts.curso++;
       }
+      
+      // Contar archivos
+      const files = getFilesForHex(hex);
+      if (Array.isArray(files)) {
+        totalFiles += files.length;
+      }
+      
+      // Preparar datos para cursos recientes
+      coursesWithData.push({
+        hex,
+        title: course?.title || 'Sin título',
+        type: type,
+        createdAt: course?.createdAt || course?.updatedAt || 0,
+        filesCount: Array.isArray(files) ? files.length : 0
+      });
     }
   });
   
-  // ✅ Actualizar total
+  // ✅ Actualizar total de cursos
   const statsCourses = $('#statsCoursesCount');
   if (statsCourses) {
     statsCourses.textContent = coursesCount;
+  }
+  
+  // ✅ Actualizar total de archivos
+  const statsTotalFiles = $('#statsTotalFiles');
+  if (statsTotalFiles) {
+    statsTotalFiles.textContent = totalFiles;
+  }
+  
+  // ✅ Contar cursos con emails (desde Firebase)
+  let coursesWithEmailsCount = 0;
+  try {
+    const db = getFirebaseDB();
+    if (db) {
+      const courseEmailsRef = db.ref(COURSE_EMAILS_PATH);
+      const snapshot = await courseEmailsRef.once('value');
+      if (snapshot.exists()) {
+        snapshot.forEach(() => {
+          coursesWithEmailsCount++;
+        });
+      }
+    }
+  } catch (e) {
+    warn('[STATS] Error contando cursos con emails:', e);
+  }
+  
+  const statsCoursesWithEmails = $('#statsCoursesWithEmails');
+  if (statsCoursesWithEmails) {
+    statsCoursesWithEmails.textContent = coursesWithEmailsCount;
+  }
+  
+  // ✅ Contar acciones de hoy (desde logs de auditoría)
+  const auditLogs = getAuditLogs();
+  const todayActions = auditLogs.filter(log => {
+    const logDate = new Date(log.timestamp);
+    logDate.setHours(0, 0, 0, 0);
+    return logDate.getTime() === todayTimestamp;
+  }).length;
+  
+  const statsTodayActions = $('#statsTodayActions');
+  if (statsTodayActions) {
+    statsTodayActions.textContent = todayActions;
   }
   
   // ✅ Actualizar contadores por tipo
@@ -6287,7 +6349,96 @@ function updateMasterStats(mergedMap) {
   if (statsTypeSeminario) statsTypeSeminario.textContent = typeCounts.seminario;
   if (statsTypeTaller) statsTypeTaller.textContent = typeCounts.taller;
   
-  log('[STATS] 📊 Total:', coursesCount, '| Por tipo:', typeCounts);
+  // ✅ Mostrar últimos cursos creados (top 5 más recientes)
+  updateRecentCourses(coursesWithData);
+  
+  log('[STATS] 📊 Total:', coursesCount, '| Archivos:', totalFiles, '| Por tipo:', typeCounts);
+}
+
+// ✅ Actualizar lista de cursos recientes
+function updateRecentCourses(coursesWithData) {
+  const recentCoursesContainer = $('#statsRecentCourses');
+  const recentCoursesList = $('#recentCoursesList');
+  
+  if (!recentCoursesContainer || !recentCoursesList) return;
+  
+  // Ordenar por fecha de creación (más recientes primero)
+  const sortedCourses = coursesWithData
+    .filter(c => c.createdAt > 0)
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, 5);
+  
+  if (sortedCourses.length === 0) {
+    recentCoursesContainer.style.display = 'none';
+    return;
+  }
+  
+  recentCoursesContainer.style.display = 'block';
+  
+  // Crear lista de cursos recientes
+  recentCoursesList.innerHTML = '';
+  sortedCourses.forEach((course, index) => {
+    const item = document.createElement('div');
+    item.style.cssText = `
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      background: rgba(90,169,255,0.05);
+      border-left: 3px solid var(--accent);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    `;
+    
+    const left = document.createElement('div');
+    left.style.cssText = 'flex: 1; min-width: 0;';
+    
+    const title = document.createElement('div');
+    title.textContent = course.title;
+    title.style.cssText = 'font-weight: 500; font-size: 13px; color: var(--text); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+    
+    const meta = document.createElement('div');
+    meta.style.cssText = 'font-size: 11px; color: var(--muted); display: flex; gap: 8px; align-items: center;';
+    
+    const typeIcon = {
+      'curso': '📖',
+      'diplomado': '🎓',
+      'webinar': '💻',
+      'seminario': '📝',
+      'taller': '🔧'
+    }[course.type] || '📚';
+    
+    const date = new Date(course.createdAt);
+    const dateStr = date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    
+    meta.innerHTML = `
+      <span>${typeIcon} ${course.type}</span>
+      <span>•</span>
+      <span><i class="ph ph-file"></i> ${course.filesCount} archivos</span>
+      <span>•</span>
+      <span><i class="ph ph-calendar"></i> ${dateStr}</span>
+    `;
+    
+    left.appendChild(title);
+    left.appendChild(meta);
+    item.appendChild(left);
+    
+    recentCoursesList.appendChild(item);
+  });
+  
+  // ✅ Configurar toggle para mostrar/ocultar
+  const btnToggle = $('#btn-toggle-recent-courses');
+  if (btnToggle && !btnToggle.dataset.configured) {
+    btnToggle.dataset.configured = 'true';
+    btnToggle.addEventListener('click', () => {
+      const isVisible = recentCoursesList.style.display !== 'none';
+      recentCoursesList.style.display = isVisible ? 'none' : 'block';
+      btnToggle.innerHTML = isVisible 
+        ? '<i class="ph ph-caret-down"></i>'
+        : '<i class="ph ph-caret-up"></i>';
+    });
+  }
 }
 
 // ✅ Historial de cambios: registrar cambios importantes
