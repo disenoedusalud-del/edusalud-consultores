@@ -6346,25 +6346,184 @@ function buildMasterGrid() {
     });
     right.appendChild(list);
 
-    // drag & drop reorder
+    // ✅ Drag & Drop con feedback visual mejorado
+    let draggedElement = null;
+    let dragOverElement = null;
+    let dragOverPosition = null; // 'top' o 'bottom'
+    
     list.addEventListener('dragstart', (e) => {
       const el = e.target instanceof HTMLElement ? e.target.closest('.file') : null;
       if (!el) return;
+      
+      draggedElement = el;
       const idx = el.dataset.index;
-      if (idx != null) { e.dataTransfer?.setData('text/plain', idx); }
+      if (idx != null) { 
+        e.dataTransfer?.setData('text/plain', idx);
+        e.dataTransfer.effectAllowed = 'move';
+        
+        // ✅ Agregar clase de arrastre
+        el.classList.add('dragging');
+        list.classList.add('drag-active');
+        
+        // ✅ Feedback visual: opacidad reducida y cursor
+        el.style.cursor = 'grabbing';
+        
+        // ✅ Crear imagen de arrastre personalizada (opcional)
+        const dragImage = el.cloneNode(true);
+        dragImage.style.opacity = '0.8';
+        dragImage.style.transform = 'rotate(2deg)';
+        document.body.appendChild(dragImage);
+        dragImage.style.position = 'absolute';
+        dragImage.style.top = '-1000px';
+        e.dataTransfer.setDragImage(dragImage, e.offsetX, e.offsetY);
+        setTimeout(() => document.body.removeChild(dragImage), 0);
+      }
     });
-    list.addEventListener('dragover', (e) => { e.preventDefault(); });
+    
+    list.addEventListener('dragend', (e) => {
+      // ✅ Limpiar clases y estilos
+      if (draggedElement) {
+        draggedElement.classList.remove('dragging');
+        draggedElement.style.cursor = '';
+        draggedElement = null;
+      }
+      
+      // ✅ Limpiar indicadores de drop
+      list.querySelectorAll('.file').forEach(file => {
+        file.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+      });
+      
+      // ✅ Remover indicadores de posición
+      list.querySelectorAll('.file-drop-indicator').forEach(indicator => {
+        indicator.remove();
+      });
+      
+      list.classList.remove('drag-active');
+      dragOverElement = null;
+      dragOverPosition = null;
+    });
+    
+    list.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      
+      const targetFile = e.target instanceof HTMLElement ? e.target.closest('.file') : null;
+      
+      if (!targetFile || targetFile === draggedElement) {
+        // ✅ Limpiar indicadores si no hay target válido
+        if (dragOverElement) {
+          dragOverElement.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+          dragOverElement.querySelectorAll('.file-drop-indicator').forEach(ind => ind.remove());
+        }
+        dragOverElement = null;
+        dragOverPosition = null;
+        return;
+      }
+      
+      // ✅ Calcular posición (arriba o abajo del elemento)
+      const rect = targetFile.getBoundingClientRect();
+      const mouseY = e.clientY;
+      const middleY = rect.top + rect.height / 2;
+      const position = mouseY < middleY ? 'top' : 'bottom';
+      
+      // ✅ Actualizar indicadores visuales
+      if (dragOverElement !== targetFile || dragOverPosition !== position) {
+        // Limpiar indicadores anteriores
+        if (dragOverElement && dragOverElement !== targetFile) {
+          dragOverElement.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+          dragOverElement.querySelectorAll('.file-drop-indicator').forEach(ind => ind.remove());
+        }
+        
+        // Aplicar nuevos indicadores
+        targetFile.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+        targetFile.classList.add('drag-over', `drag-over-${position}`);
+        
+        // ✅ Agregar indicador de línea de drop
+        const existingIndicator = targetFile.querySelector('.file-drop-indicator');
+        if (existingIndicator) {
+          existingIndicator.remove();
+        }
+        
+        const indicator = document.createElement('div');
+        indicator.className = 'file-drop-indicator active';
+        if (position === 'top') {
+          targetFile.insertBefore(indicator, targetFile.firstChild);
+        } else {
+          targetFile.appendChild(indicator);
+        }
+        
+        dragOverElement = targetFile;
+        dragOverPosition = position;
+      }
+    });
+    
+    list.addEventListener('dragleave', (e) => {
+      // ✅ Solo limpiar si realmente salimos del área de drop
+      if (!list.contains(e.relatedTarget)) {
+        if (dragOverElement) {
+          dragOverElement.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+          dragOverElement.querySelectorAll('.file-drop-indicator').forEach(ind => ind.remove());
+        }
+        dragOverElement = null;
+        dragOverPosition = null;
+      }
+    });
+    
     list.addEventListener('drop', async (e) => {
       e.preventDefault();
+      e.stopPropagation();
+      
       const fromStr = e.dataTransfer?.getData('text/plain');
       const toEl = e.target instanceof HTMLElement ? e.target.closest('.file') : null;
-      if (!fromStr || !toEl) return;
+      
+      if (!fromStr || !toEl) {
+        // ✅ Limpiar indicadores si el drop no es válido
+        list.querySelectorAll('.file').forEach(file => {
+          file.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+        });
+        list.querySelectorAll('.file-drop-indicator').forEach(ind => ind.remove());
+        return;
+      }
+      
       const from = Number(fromStr);
-      const to = Number(toEl.dataset.index || 0);
-      if (Number.isNaN(from) || Number.isNaN(to) || from === to) return;
+      let to = Number(toEl.dataset.index || 0);
+      
+      // ✅ Ajustar posición según dragOverPosition
+      if (dragOverPosition === 'bottom' && from < to) {
+        to = to + 1;
+      } else if (dragOverPosition === 'top' && from > to) {
+        // Ya está en la posición correcta
+      }
+      
+      if (Number.isNaN(from) || Number.isNaN(to) || from === to) {
+        // ✅ Limpiar indicadores
+        list.querySelectorAll('.file').forEach(file => {
+          file.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+        });
+        list.querySelectorAll('.file-drop-indicator').forEach(ind => ind.remove());
+        return;
+      }
+      
+      // ✅ Animación de reordenamiento
       const next = files.slice();
       const [moved] = next.splice(from, 1);
       next.splice(to, 0, moved);
+      
+      // ✅ Feedback visual: mostrar animación de éxito
+      const movedElement = list.querySelector(`[data-index="${from}"]`);
+      if (movedElement) {
+        movedElement.style.transition = 'all 0.3s ease';
+        movedElement.style.transform = 'scale(1.02)';
+        movedElement.style.boxShadow = '0 4px 16px rgba(90, 169, 255, 0.4)';
+        
+        setTimeout(() => {
+          if (movedElement) {
+            movedElement.style.transform = '';
+            movedElement.style.boxShadow = '';
+          }
+        }, 300);
+      }
+      
       saveFilesOverride(hex, next);
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
@@ -6380,6 +6539,11 @@ function buildMasterGrid() {
           const updatedFiles = getFilesForHex(hex);
           filesCountEl.textContent = (updatedFiles || []).length;
         }
+      }
+      
+      // ✅ Mostrar toast de confirmación
+      if (typeof window.showToast === 'function') {
+        window.showToast('success', 'Archivo reordenado', 'El orden se ha actualizado correctamente', 2000);
       }
       
       // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
