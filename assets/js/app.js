@@ -1279,16 +1279,10 @@ function setupNotificationsPanel() {
   const btnNotifications = document.getElementById('btn-notifications');
   const panel = document.getElementById('notificationsPanel');
 
-  if (!btnNotifications) {
-    console.error('[NOTIFICATIONS] ❌ Botón no encontrado!');
-    setTimeout(() => setupNotificationsPanel(), 500);
-    return;
-  }
-
-  if (!panel) {
-    console.error('[NOTIFICATIONS] ❌ Panel no encontrado!');
-    setTimeout(() => setupNotificationsPanel(), 500);
-    return;
+  // ✅ Si el botón o panel no existen, simplemente retornar sin intentar de nuevo
+  if (!btnNotifications || !panel) {
+    console.log('[NOTIFICATIONS] ℹ️ Botón o panel no encontrado, omitiendo configuración');
+    return; // ✅ NO hacer setTimeout, simplemente retornar
   }
 
   console.log('[NOTIFICATIONS] ✅ Elementos encontrados');
