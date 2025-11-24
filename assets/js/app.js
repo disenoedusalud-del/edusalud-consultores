@@ -718,10 +718,13 @@ let lastRenderCourseHex = null;
 
 function shouldRenderCourse(hex, data) {
   const cacheKey = `course_${hex}`;
+  // ✅ CRÍTICO: Usar getFilesForHex() para obtener el conteo REAL de archivos
+  // No usar data?.files porque los archivos se guardan en localStorage
+  const realFiles = getFilesForHex(hex);
   const dataToCompare = {
     title: data?.title,
     meta: data?.meta,
-    filesCount: (data?.files || []).length,
+    filesCount: (realFiles || []).length, // ✅ Usar archivos reales de localStorage
     type: data?.type,
     card: data?.card
   };
@@ -7093,6 +7096,8 @@ function buildMasterGrid() {
               
               // ✅ CRÍTICO: Invalidar caché de memoización para forzar re-render
               lastMasterGridData = null;
+              lastRenderCourseHex = null; // ✅ Invalidar también el caché del curso
+              lastRenderCourseData = null;
               
               const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
               if (isMasterView) {
@@ -7139,6 +7144,8 @@ function buildMasterGrid() {
           
           // ✅ CRÍTICO: Invalidar caché de memoización para forzar re-render
           lastMasterGridData = null;
+          lastRenderCourseHex = null; // ✅ Invalidar también el caché del curso
+          lastRenderCourseData = null;
           
           const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
           if (isMasterView) {
@@ -7510,6 +7517,8 @@ function buildMasterGrid() {
           
           // ✅ CRÍTICO: Invalidar caché de memoización para forzar re-render
           lastMasterGridData = null;
+          lastRenderCourseHex = null; // ✅ Invalidar también el caché del curso
+          lastRenderCourseData = null;
           
           const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
           if (isMasterView) {
@@ -7577,6 +7586,8 @@ function buildMasterGrid() {
       
       // ✅ CRÍTICO: Invalidar caché de memoización para forzar re-render
       lastMasterGridData = null;
+      lastRenderCourseHex = null; // ✅ Invalidar también el caché del curso
+      lastRenderCourseData = null;
       
       const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
       
