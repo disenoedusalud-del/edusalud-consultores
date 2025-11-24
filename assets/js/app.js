@@ -6024,11 +6024,51 @@ function renderCourse(keyHex) {
   const shouldForceRender = lastRenderCourseHex === null;
   
   if (!shouldForceRender && !shouldRenderCourse(keyHex, data)) {
-    // Solo actualizar contador de archivos si es necesario
-    const files = getFilesForHex(keyHex);
-    const filesCountEl = $('#files-count');
-    if (filesCountEl) {
-      filesCountEl.textContent = (files || []).length;
+    // ✅ CRÍTICO: Aunque no se renderice todo, SIEMPRE actualizar la lista de archivos
+    // porque los archivos pueden haber cambiado en localStorage
+    const list = $('#filelist');
+    if (list) {
+      list.innerHTML = '';
+      const files = getFilesForHex(keyHex);
+      
+      // ✅ PREVENIR DUPLICADOS
+      const seen = new Set();
+      const uniqueFiles = (files || []).filter(item => {
+        const key = item.firebaseId || `${item.url}|||${item.label}`;
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+      
+      uniqueFiles.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'file';
+        let host = '';
+        try { host = new URL(item.url).hostname; } catch { host = ''; }
+        
+        row.dataset.fileLabel = (item.label || '').toLowerCase();
+        row.dataset.fileHost = host.toLowerCase();
+        
+        const safeLabel = escapeHTML(item.label || '');
+        const safeHost = escapeHTML(host);
+        row.innerHTML = `<div><strong>${safeLabel}</strong><div class="meta">${safeHost}</div></div>`;
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.type = 'button';
+        btn.textContent = 'Ver más';
+        btn.setAttribute('aria-label', `Ver o descargar archivo: ${item.label || 'Archivo'}`);
+        btn.addEventListener('click', () => downloadFile(item.url, item.label));
+        row.appendChild(btn);
+        list.appendChild(row);
+      });
+      
+      // ✅ Actualizar contador de archivos
+      const filesCountEl = $('#files-count');
+      if (filesCountEl) {
+        filesCountEl.textContent = (uniqueFiles || []).length;
+      }
     }
     return;
   }
