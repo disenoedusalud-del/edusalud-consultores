@@ -2828,7 +2828,8 @@ function initFirebaseCustomCoursesRealtime() {
         return;
       }
 
-      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+      const masterEl = document.getElementById('master');
+      const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
       const isContentView = document.getElementById('content') && !document.getElementById('content').classList.contains('hidden');
 
       if (isMasterView) {
@@ -3066,8 +3067,8 @@ function mergeFirestoreLinks(courseHex, firestoreLinks) {
   // ✅ RE-RENDERIZAR vista actual solo si es necesario
   const isContentView = document.getElementById('content') && 
                        !document.getElementById('content').classList.contains('hidden');
-  const isMasterView = document.getElementById('master') && 
-                      !document.getElementById('master').classList.contains('hidden');
+  const masterEl = document.getElementById('master');
+  const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
   
   if (isContentView && window.currentCourseHex === courseHex) {
     // ✅ Evitar re-renderizado si ya se está renderizando
@@ -3444,8 +3445,11 @@ async function refreshFromRemote(hex, context){
           renderCourse(hex);
         }
       } else {
-        // En master, reconstruir todo el grid
-        buildMasterGrid();
+        // En master, reconstruir todo el grid (solo si está autenticado)
+        const masterEl = document.getElementById('master');
+        if (masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated) {
+          buildMasterGrid();
+        }
       }
       return true;
     }
@@ -3796,7 +3800,8 @@ async function refreshCustomCourses(){
     }
     
     // Si estamos en vista master, reconstruir SOLO si hubo cambios
-    if (hadChanges && document.getElementById('master') && !document.getElementById('master').classList.contains('hidden')) {
+    const masterEl = document.getElementById('master');
+    if (hadChanges && masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated) {
       log('[REFRESH] ✅ Cambios detectados, reconstruyendo Vista Maestra...');
       buildMasterGrid();
     }
@@ -7039,7 +7044,8 @@ function buildMasterGrid() {
           
           // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
           log('[EDIT] ✏️ Actualizando vista inmediatamente');
-          const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+          const masterEl = document.getElementById('master');
+          const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
           if (isMasterView) {
             buildMasterGrid();
           } else {
