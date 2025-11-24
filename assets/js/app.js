@@ -9117,7 +9117,7 @@ function setupKeyboardShortcuts() {
     // ✅ Detectar si es Ctrl/Cmd
     const isCtrl = e.ctrlKey || e.metaKey;
     const isShift = e.shiftKey;
-    const key = e.key.toLowerCase();
+    const key = (e.key || '').toLowerCase();
 
     // ✅ Shortcuts globales (funcionan en cualquier vista)
 
