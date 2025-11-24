@@ -8436,6 +8436,16 @@ function setupMasterSearch() {
     const q = (input.value || '').trim().toLowerCase();
     const cards = Array.from(grid.querySelectorAll('.master-card'));
 
+    // ✅ Verificar que advancedFiltersState existe
+    if (!advancedFiltersState) {
+      advancedFiltersState = {
+        type: '',
+        sort: 'title-asc',
+        tag: '',
+        active: false
+      };
+    }
+
     // ✅ Generar clave de caché
     const cacheKey = getSearchCacheKey(q, advancedFiltersState);
 
@@ -8467,7 +8477,7 @@ function setupMasterSearch() {
 
       // Filtro por tag
       if (advancedFiltersState.tag) {
-        const tagFilter = String(advancedFiltersState.tag).trim().toLowerCase();
+        const tagFilter = String(advancedFiltersState.tag || '').trim().toLowerCase();
         filteredCards = filteredCards.filter(c => {
           const tg = (c.dataset.tag || '').toLowerCase();
           return tg.includes(tagFilter);
@@ -8513,7 +8523,7 @@ function setupMasterSearch() {
     updateFilterResultsCount(filteredCards.length, cards.length);
 
     // Si no hay búsqueda ni filtros, remover highlights
-    if (!q && !advancedFiltersState.type && !advancedFiltersState.tag) {
+    if (!q && !(advancedFiltersState && advancedFiltersState.type) && !(advancedFiltersState && advancedFiltersState.tag)) {
       removeHighlights();
     }
   }
