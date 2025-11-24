@@ -1264,51 +1264,50 @@ window.showToast = function(type, title, message, duration = 3000, saveToHistory
   }
 };
 
-// ✅ Configurar panel de notificaciones - VERSIÓN SIMPLIFICADA Y FUNCIONAL
+// ✅ Configurar panel de notificaciones - VERSIÓN ULTRA SIMPLIFICADA
 function setupNotificationsPanel() {
+  console.log('[NOTIFICATIONS] 🔄 Iniciando configuración...');
+  
   const btnNotifications = document.getElementById('btn-notifications');
   const panel = document.getElementById('notificationsPanel');
-  const btnClose = document.getElementById('btn-close-notifications');
-  const tabNotifications = document.getElementById('tab-notifications');
-  const tabActivity = document.getElementById('tab-activity');
-  const notificationsContent = document.getElementById('notifications-content');
-  const activityContent = document.getElementById('activity-content');
   
-  if (!btnNotifications || !panel) {
-    console.warn('[NOTIFICATIONS] Elementos no encontrados, reintentando en 200ms...');
-    setTimeout(() => setupNotificationsPanel(), 200);
+  if (!btnNotifications) {
+    console.error('[NOTIFICATIONS] ❌ Botón no encontrado!');
+    setTimeout(() => setupNotificationsPanel(), 500);
     return;
   }
   
-  // ✅ Variable para el escape handler (fuera del click handler)
+  if (!panel) {
+    console.error('[NOTIFICATIONS] ❌ Panel no encontrado!');
+    setTimeout(() => setupNotificationsPanel(), 500);
+    return;
+  }
+  
+  console.log('[NOTIFICATIONS] ✅ Elementos encontrados');
+  
+  // ✅ REMOVER TODOS LOS LISTENERS ANTERIORES - Clonar el botón
+  const newBtn = btnNotifications.cloneNode(true);
+  btnNotifications.parentNode.replaceChild(newBtn, btnNotifications);
+  const btn = document.getElementById('btn-notifications');
+  const panelEl = document.getElementById('notificationsPanel');
+  
+  let isOpen = false;
   let escapeHandler = null;
   
-  // ✅ Click handler SIMPLE y DIRECTO usando onclick
-  btnNotifications.onclick = function(e) {
+  // ✅ Click handler ULTRA SIMPLE
+  btn.onclick = function(e) {
+    console.log('[NOTIFICATIONS] 🖱️ CLICK DETECTADO!');
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('[NOTIFICATIONS] ✅ Click detectado en botón');
+    isOpen = !isOpen;
     
-    const isVisible = panel.style.display !== 'none' && panel.style.display !== '';
-    console.log('[NOTIFICATIONS] Panel visible?', isVisible);
-    
-    if (isVisible) {
-      // CERRAR
-      console.log('[NOTIFICATIONS] Cerrando panel...');
-      panel.style.display = 'none';
-      btnNotifications.setAttribute('aria-expanded', 'false');
-      if (escapeHandler) {
-        document.removeEventListener('keydown', escapeHandler);
-        escapeHandler = null;
-      }
-    } else {
-      // ABRIR
-      console.log('[NOTIFICATIONS] Abriendo panel...');
-      panel.style.display = 'flex';
-      btnNotifications.setAttribute('aria-expanded', 'true');
+    if (isOpen) {
+      console.log('[NOTIFICATIONS] ➕ Abriendo panel...');
+      panelEl.style.display = 'flex';
+      btn.setAttribute('aria-expanded', 'true');
       
-      // Mostrar contenido vacío primero
+      // Mostrar vacío primero
       const list = document.getElementById('notifications-list');
       const empty = document.getElementById('notifications-empty');
       if (list && empty) {
@@ -1323,12 +1322,23 @@ function setupNotificationsPanel() {
         activityEmpty.style.display = 'block';
       }
       
-      // Escape handler
+      // Renderizar después
+      setTimeout(() => {
+        try {
+          if (typeof renderNotifications === 'function') renderNotifications();
+          if (typeof renderActivity === 'function') renderActivity();
+        } catch(e) { 
+          console.error('[NOTIFICATIONS] Error renderizando:', e); 
+        }
+      }, 100);
+      
+      // Escape
       if (!escapeHandler) {
         escapeHandler = function(e) {
-          if (e.key === 'Escape' && panel.style.display !== 'none') {
-            panel.style.display = 'none';
-            btnNotifications.setAttribute('aria-expanded', 'false');
+          if (e.key === 'Escape' && isOpen) {
+            isOpen = false;
+            panelEl.style.display = 'none';
+            btn.setAttribute('aria-expanded', 'false');
             document.removeEventListener('keydown', escapeHandler);
             escapeHandler = null;
           }
@@ -1336,34 +1346,25 @@ function setupNotificationsPanel() {
         document.addEventListener('keydown', escapeHandler);
       }
       
-      // Renderizar después (asíncrono)
-      setTimeout(() => {
-        try {
-          if (typeof renderNotifications === 'function') {
-            renderNotifications();
-          }
-        } catch (e) {
-          console.error('[NOTIFICATIONS] Error renderizando notificaciones:', e);
-        }
-      }, 100);
-      
-      setTimeout(() => {
-        try {
-          if (typeof renderActivity === 'function') {
-            renderActivity();
-          }
-        } catch (e) {
-          console.error('[ACTIVITY] Error renderizando actividad:', e);
-        }
-      }, 200);
+    } else {
+      console.log('[NOTIFICATIONS] ➖ Cerrando panel...');
+      isOpen = false;
+      panelEl.style.display = 'none';
+      btn.setAttribute('aria-expanded', 'false');
+      if (escapeHandler) {
+        document.removeEventListener('keydown', escapeHandler);
+        escapeHandler = null;
+      }
     }
   };
   
   // ✅ Botón cerrar
+  const btnClose = document.getElementById('btn-close-notifications');
   if (btnClose) {
     btnClose.onclick = function() {
-      panel.style.display = 'none';
-      btnNotifications.setAttribute('aria-expanded', 'false');
+      isOpen = false;
+      panelEl.style.display = 'none';
+      btn.setAttribute('aria-expanded', 'false');
       if (escapeHandler) {
         document.removeEventListener('keydown', escapeHandler);
         escapeHandler = null;
@@ -1372,48 +1373,45 @@ function setupNotificationsPanel() {
   }
   
   // ✅ Pestañas
-  if (tabNotifications) {
-    tabNotifications.onclick = function() {
-      tabNotifications.classList.add('active');
-      if (tabActivity) tabActivity.classList.remove('active');
-      if (notificationsContent) notificationsContent.style.display = 'block';
-      if (activityContent) activityContent.style.display = 'none';
-      if (tabNotifications) tabNotifications.style.borderBottomColor = 'var(--accent)';
-      if (tabActivity) tabActivity.style.borderBottomColor = 'transparent';
+  const tabNotif = document.getElementById('tab-notifications');
+  const tabAct = document.getElementById('tab-activity');
+  const contentNotif = document.getElementById('notifications-content');
+  const contentAct = document.getElementById('activity-content');
+  
+  if (tabNotif) {
+    tabNotif.onclick = function() {
+      if (tabNotif) tabNotif.classList.add('active');
+      if (tabAct) tabAct.classList.remove('active');
+      if (contentNotif) contentNotif.style.display = 'block';
+      if (contentAct) contentAct.style.display = 'none';
+      if (tabNotif) tabNotif.style.borderBottomColor = 'var(--accent)';
+      if (tabAct) tabAct.style.borderBottomColor = 'transparent';
     };
   }
   
-  if (tabActivity) {
-    tabActivity.onclick = function() {
-      tabActivity.classList.add('active');
-      if (tabNotifications) tabNotifications.classList.remove('active');
-      if (notificationsContent) notificationsContent.style.display = 'none';
-      if (activityContent) activityContent.style.display = 'block';
-      if (tabActivity) tabActivity.style.borderBottomColor = 'var(--accent)';
-      if (tabNotifications) tabNotifications.style.borderBottomColor = 'transparent';
+  if (tabAct) {
+    tabAct.onclick = function() {
+      if (tabAct) tabAct.classList.add('active');
+      if (tabNotif) tabNotif.classList.remove('active');
+      if (contentNotif) contentNotif.style.display = 'none';
+      if (contentAct) contentAct.style.display = 'block';
+      if (tabAct) tabAct.style.borderBottomColor = 'var(--accent)';
+      if (tabNotif) tabNotif.style.borderBottomColor = 'transparent';
       setTimeout(() => {
         try {
-          if (typeof renderActivity === 'function') {
-            renderActivity();
-          }
-        } catch (e) {
-          console.error('[ACTIVITY] Error:', e);
-        }
+          if (typeof renderActivity === 'function') renderActivity();
+        } catch(e) { console.error(e); }
       }, 50);
     };
   }
   
   // ✅ Filtro
-  const filterActivity = document.getElementById('filter-activity');
-  if (filterActivity) {
-    filterActivity.onchange = function() {
+  const filter = document.getElementById('filter-activity');
+  if (filter) {
+    filter.onchange = function() {
       try {
-        if (typeof renderActivity === 'function') {
-          renderActivity(this.value);
-        }
-      } catch (e) {
-        console.error('[ACTIVITY] Error:', e);
-      }
+        if (typeof renderActivity === 'function') renderActivity(this.value);
+      } catch(e) { console.error(e); }
     };
   }
   
@@ -1422,9 +1420,18 @@ function setupNotificationsPanel() {
     updateNotificationsBadge();
   }
   
-  console.log('[NOTIFICATIONS] ✅ Panel configurado correctamente');
+  console.log('[NOTIFICATIONS] ✅✅✅ CONFIGURACIÓN COMPLETA - BOTÓN LISTO');
   
-  // ✅ Exponer función global para debug/reconfiguración manual
+  // ✅ Forzar prueba inmediata
+  setTimeout(() => {
+    if (btn.onclick) {
+      console.log('[NOTIFICATIONS] ✅ Handler existe y está configurado');
+    } else {
+      console.error('[NOTIFICATIONS] ❌ Handler NO existe!');
+    }
+  }, 100);
+  
+  // ✅ Exponer función global para debug
   window.reconfigureNotificationsPanel = () => {
     setupNotificationsPanel();
     console.log('[NOTIFICATIONS] 🔄 Panel reconfigurado manualmente');
