@@ -7102,7 +7102,9 @@ function buildMasterGrid() {
               lastRenderCourseHex = null; // ✅ Invalidar también el caché del curso
               lastRenderCourseData = null;
               
-              const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+              // ✅ Verificar si estamos en vista master Y autenticados
+              const masterEl = document.getElementById('master');
+              const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
               if (isMasterView) {
                 log('[REMOVE] ♻️ Re-renderizando Master');
                 buildMasterGrid();
@@ -7153,10 +7155,15 @@ function buildMasterGrid() {
           lastRenderCourseHex = null; // ✅ Invalidar también el caché del curso
           lastRenderCourseData = null;
           
-          const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+          // ✅ Verificar si estamos en vista master Y autenticados
+          const masterEl = document.getElementById('master');
+          const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
           if (isMasterView) {
             buildMasterGrid();
           } else {
+            // ✅ FORZAR renderizado completo ignorando memoización
+            lastRenderCourseHex = null;
+            lastRenderCourseData = null;
             renderCourse(hex);
             // ✅ Actualizar contador de archivos
             const filesCountEl = $('#files-count');
@@ -7387,10 +7394,15 @@ function buildMasterGrid() {
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
       log('[REORDER] 🔄 Reordenando inmediatamente en la vista');
-      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+      // ✅ Verificar si estamos en vista master Y autenticados
+      const masterEl = document.getElementById('master');
+      const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
       if (isMasterView) {
         buildMasterGrid();
       } else {
+        // ✅ FORZAR renderizado completo ignorando memoización
+        lastRenderCourseHex = null;
+        lastRenderCourseData = null;
         renderCourse(hex);
         // ✅ Actualizar contador de archivos
         const filesCountEl = $('#files-count');
@@ -7526,7 +7538,9 @@ function buildMasterGrid() {
           lastRenderCourseHex = null; // ✅ Invalidar también el caché del curso
           lastRenderCourseData = null;
           
-          const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+          // ✅ Verificar si estamos en vista master Y autenticados
+          const masterEl = document.getElementById('master');
+          const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
           if (isMasterView) {
             log('[ADD] ♻️ Re-renderizando Master');
             buildMasterGrid();
@@ -7598,7 +7612,9 @@ function buildMasterGrid() {
       lastRenderCourseHex = null; // ✅ Invalidar también el caché del curso
       lastRenderCourseData = null;
       
-      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+      // ✅ Verificar si estamos en vista master Y autenticados
+      const masterEl = document.getElementById('master');
+      const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
       
       if (isMasterView) {
         buildMasterGrid();
@@ -7655,10 +7671,15 @@ function buildMasterGrid() {
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
       log('[RESTORE] ♻️ Restaurando vista inmediatamente');
-      const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+      // ✅ Verificar si estamos en vista master Y autenticados
+      const masterEl = document.getElementById('master');
+      const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
       if (isMasterView) {
         buildMasterGrid();
       } else {
+        // ✅ FORZAR renderizado completo ignorando memoización
+        lastRenderCourseHex = null;
+        lastRenderCourseData = null;
         renderCourse(hex);
       }
       
