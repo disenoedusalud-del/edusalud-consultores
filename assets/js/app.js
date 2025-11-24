@@ -1304,6 +1304,7 @@ function setupNotificationsPanel() {
     
     if (isOpen) {
       console.log('[NOTIFICATIONS] ➕ Abriendo panel...');
+      panelEl.classList.add('show'); // ✅ Agregar clase .show para activar animación CSS
       panelEl.style.display = 'flex';
       panelEl.style.visibility = 'visible';
       panelEl.style.opacity = '1';
@@ -1376,6 +1377,7 @@ function setupNotificationsPanel() {
         escapeHandler = function(e) {
           if (e.key === 'Escape' && isOpen) {
             isOpen = false;
+            panelEl.classList.remove('show'); // ✅ Remover clase .show
             panelEl.style.display = 'none';
             btn.setAttribute('aria-expanded', 'false');
             document.removeEventListener('keydown', escapeHandler);
@@ -1388,6 +1390,7 @@ function setupNotificationsPanel() {
     } else {
       console.log('[NOTIFICATIONS] ➖ Cerrando panel...');
       isOpen = false;
+      panelEl.classList.remove('show'); // ✅ Remover clase .show
       panelEl.style.display = 'none';
       btn.setAttribute('aria-expanded', 'false');
       if (escapeHandler) {
@@ -1402,6 +1405,7 @@ function setupNotificationsPanel() {
   if (btnClose) {
     btnClose.onclick = function() {
       isOpen = false;
+      panelEl.classList.remove('show'); // ✅ Remover clase .show
       panelEl.style.display = 'none';
       btn.setAttribute('aria-expanded', 'false');
       if (escapeHandler) {
