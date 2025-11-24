@@ -1875,3 +1875,16 @@ img[loading="lazy"].loaded {
   margin: 0;
 }
 
+/* ✅ Panel de Notificaciones - Fondo más visible */
+#notificationsPanel .modal-content {
+  background: #1a1f35 !important;
+  border: 1px solid rgba(90,169,255,0.3) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
+}
+
+:root[data-theme="light"] #notificationsPanel .modal-content {
+  background: #ffffff !important;
+  border: 1px solid rgba(90,169,255,0.2) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15) !important;
+}
+
