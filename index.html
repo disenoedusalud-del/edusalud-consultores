@@ -1,38 +1,41 @@
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Content Security Policy: Permite JSONP y scripts necesarios -->
   <!-- Nota: Si GitHub Pages aplica su propia CSP, esta meta tag podría no tener efecto completo -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://www.gstatic.com https://*.firebaseio.com https://cdn.jsdelivr.net; connect-src 'self' https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://www.google-analytics.com https://*.firebaseio.com https://www.gstatic.com https://firestore.googleapis.com https://*.run.app https://api.emailjs.com https://script.google.com https://*.script.google.com wss://*.firebaseio.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https: blob:; font-src 'self' data: https://cdn.jsdelivr.net; frame-src 'self' https://*.google.com https://*.googleusercontent.com https://*.firebaseio.com https://*.firebaseapp.com;" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://www.gstatic.com https://*.firebaseio.com https://cdn.jsdelivr.net; connect-src 'self' https://*.google.com https://*.googleusercontent.com https://*.googleapis.com https://www.google-analytics.com https://*.firebaseio.com https://www.gstatic.com https://firestore.googleapis.com https://*.run.app https://api.emailjs.com https://script.google.com https://*.script.google.com wss://*.firebaseio.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https: blob:; font-src 'self' data: https://cdn.jsdelivr.net; frame-src 'self' https://*.google.com https://*.googleusercontent.com https://*.firebaseio.com https://*.firebaseapp.com;" />
   <title>Portal de Recursos para Consultores – EduSalud</title>
-  <meta name="description" content="Descarga de toolkits (PPT, logos, manuales de marca, social kit, formatos). Acceso mediante código otorgado por coordinación." />
+  <meta name="description"
+    content="Descarga de toolkits (PPT, logos, manuales de marca, social kit, formatos). Acceso mediante código otorgado por coordinación." />
   <link rel="icon" type="image/png" href="assets/logo-edusalud.png" />
   <link rel="manifest" href="manifest.json" />
-  
+
   <!-- Google Analytics 4 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-TCR727DDDL"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
+    function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
     gtag('config', 'G-TCR727DDDL');
   </script>
   <!-- /Google Analytics 4 -->
-  
+
   <!-- EmailJS -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script>
-    (function(){
+    (function () {
       emailjs.init("ZWBMGv7t-uBiUF2KB");
     })();
   </script>
   <!-- /EmailJS -->
-  
+
   <!-- ✅ Aplicar tema antes del render para evitar flash -->
   <script>
-    (function() {
+    (function () {
       try {
         const savedTheme = localStorage.getItem('edusalud-theme');
         const theme = savedTheme === 'light' ? 'light' : 'dark';
@@ -47,13 +50,14 @@
       }
     })();
   </script>
-  
+
   <!-- Phosphor Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
-  
+
   <!-- Estilos principales -->
   <link rel="stylesheet" href="assets/css/style.css?v=11" />
 </head>
+
 <body>
   <div class="wrap">
     <header>
@@ -63,17 +67,20 @@
         </div>
         <div>
           <h1>Portal de Recursos para Consultores · EduSalud</h1>
-          <p class="lead">Descargue materiales oficiales (PPT, logos, manual de marca, social kit, formatos). Acceso mediante código otorgado por el departamento de comunicaciones.</p>
+          <p class="lead">Descargue materiales oficiales (PPT, logos, manual de marca, social kit, formatos). Acceso
+            mediante código otorgado por el departamento de comunicaciones.</p>
         </div>
       </div>
 
       <div class="hero" aria-hidden="true">
         <img src="assets/static-assets-amico.png" alt="Ilustración consultores EduSalud" />
       </div>
-      
+
       <!-- ✅ Toggle de tema en header (disponible en todas las vistas) -->
       <div style="position: absolute; top: 16px; right: 16px; z-index: 1000;">
-        <button id="btn-theme-toggle-header" class="btn secondary" type="button" aria-label="Cambiar tema" title="Alternar entre modo claro y oscuro" style="padding: 8px 12px; min-width: auto; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+        <button id="btn-theme-toggle-header" class="btn secondary" type="button" aria-label="Cambiar tema"
+          title="Alternar entre modo claro y oscuro"
+          style="padding: 8px 12px; min-width: auto; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
           <i id="theme-toggle-icon-header" class="ph ph-sun" style="font-size: 18px;"></i>
         </button>
       </div>
@@ -82,11 +89,14 @@
     <!-- ACCESO -->
     <section id="access" class="card" aria-labelledby="access-title">
       <h2 id="access-title" class="sr-only">Acceso restringido</h2>
-      
+
       <!-- Pestañas de método de acceso -->
-      <div class="auth-tabs" style="display:flex; gap:12px; margin-bottom:24px; border-bottom:1px solid rgba(255,255,255,.08);">
-        <button id="tab-code" class="auth-tab active" type="button" data-tab="code" aria-label="Acceder con código" aria-selected="true" role="tab"><i class="ph ph-key"></i> Código</button>
-        <button id="tab-account" class="auth-tab" type="button" data-tab="account" aria-label="Acceder con cuenta" aria-selected="false" role="tab"><i class="ph ph-user"></i> Cuenta</button>
+      <div class="auth-tabs"
+        style="display:flex; gap:12px; margin-bottom:24px; border-bottom:1px solid rgba(255,255,255,.08);">
+        <button id="tab-code" class="auth-tab active" type="button" data-tab="code" aria-label="Acceder con código"
+          aria-selected="true" role="tab"><i class="ph ph-key"></i> Código</button>
+        <button id="tab-account" class="auth-tab" type="button" data-tab="account" aria-label="Acceder con cuenta"
+          aria-selected="false" role="tab"><i class="ph ph-user"></i> Cuenta</button>
       </div>
 
       <div class="grid cols-2" style="align-items:center;">
@@ -95,10 +105,13 @@
           <div id="form-code" class="auth-form">
             <label for="code">Ingrese su código de acceso</label>
             <div class="row">
-              <input id="code" class="input" type="text" placeholder="Ej. ABC0-0000" autocomplete="one-time-code" aria-label="Código de acceso" aria-describedby="msg" />
-              <button id="btn-enter" class="btn" type="button" aria-label="Entrar al curso con el código ingresado">Entrar</button>
+              <input id="code" class="input" type="text" placeholder="Ej. ABC0-0000" autocomplete="one-time-code"
+                aria-label="Código de acceso" aria-describedby="msg" />
+              <button id="btn-enter" class="btn" type="button"
+                aria-label="Entrar al curso con el código ingresado">Entrar</button>
             </div>
-            <div id="msg" class="msg" role="alert" aria-live="polite">Si no tiene código, solicítelo a comunicaciones.</div>
+            <div id="msg" class="msg" role="alert" aria-live="polite">Si no tiene código, solicítelo a comunicaciones.
+            </div>
           </div>
 
           <!-- Formulario de acceso por cuenta (Email/Password) -->
@@ -109,27 +122,38 @@
               <p style="color:var(--muted); font-size:14px; margin-bottom:24px;">
                 Accede con tu correo y contraseña
               </p>
-              
+
               <div style="margin-bottom:16px;">
-                <label for="input-email" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Correo electrónico</label>
-                <input id="input-email" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" aria-label="Correo electrónico para iniciar sesión" aria-describedby="msg-auth" aria-required="true" style="width:100%;" />
+                <label for="input-email"
+                  style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Correo electrónico</label>
+                <input id="input-email" class="input" type="email" placeholder="tu@correo.com" autocomplete="email"
+                  aria-label="Correo electrónico para iniciar sesión" aria-describedby="msg-auth" aria-required="true"
+                  style="width:100%;" />
               </div>
-              
+
               <div style="margin-bottom:16px;">
-                <label for="input-password" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Contraseña</label>
-                <input id="input-password" class="input" type="password" placeholder="••••••••" autocomplete="current-password" aria-label="Contraseña para iniciar sesión" aria-describedby="msg-auth" aria-required="true" style="width:100%;" />
+                <label for="input-password"
+                  style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Contraseña</label>
+                <input id="input-password" class="input" type="password" placeholder="••••••••"
+                  autocomplete="current-password" aria-label="Contraseña para iniciar sesión"
+                  aria-describedby="msg-auth" aria-required="true" style="width:100%;" />
               </div>
-              
+
               <div style="margin-bottom:16px;">
-                <button id="btn-login" class="btn" type="button" aria-label="Iniciar sesión con correo y contraseña" style="width:100%;">Iniciar sesión</button>
+                <button id="btn-login" class="btn" type="button" aria-label="Iniciar sesión con correo y contraseña"
+                  style="width:100%;">Iniciar sesión</button>
               </div>
-              
+
               <div style="text-align:center; margin-top:16px;">
-                <button id="btn-show-register" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">¿No tienes cuenta? Regístrate</button>
+                <button id="btn-show-register" class="btn-link" type="button"
+                  style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">¿No
+                  tienes cuenta? Regístrate</button>
                 <span style="color:var(--muted); margin:0 8px;">•</span>
-                <button id="btn-show-reset" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">¿Olvidaste tu contraseña?</button>
+                <button id="btn-show-reset" class="btn-link" type="button"
+                  style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">¿Olvidaste
+                  tu contraseña?</button>
               </div>
-              
+
               <div id="msg-auth" class="msg" role="alert" aria-live="polite"></div>
             </form>
 
@@ -139,75 +163,109 @@
               <p style="color:var(--muted); font-size:14px; margin-bottom:24px;">
                 Ingresa tu correo para verificar si estás autorizado
               </p>
-              
+
               <!-- Paso 1: Verificar correo -->
               <div id="register-step-1">
                 <div style="margin-bottom:16px;">
-                  <label for="input-register-email" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Correo electrónico</label>
-                  <input id="input-register-email" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" aria-label="Correo electrónico para registro" aria-describedby="msg-register" aria-required="true" style="width:100%;" />
+                  <label for="input-register-email"
+                    style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Correo
+                    electrónico</label>
+                  <input id="input-register-email" class="input" type="email" placeholder="tu@correo.com"
+                    autocomplete="email" aria-label="Correo electrónico para registro" aria-describedby="msg-register"
+                    aria-required="true" style="width:100%;" />
                 </div>
-                
+
                 <div style="margin-bottom:16px;">
-                  <button id="btn-verify-email" class="btn" type="button" aria-label="Verificar correo electrónico y enviar código de verificación" style="width:100%;">Verificar correo</button>
+                  <button id="btn-verify-email" class="btn" type="button"
+                    aria-label="Verificar correo electrónico y enviar código de verificación"
+                    style="width:100%;">Verificar correo</button>
                 </div>
-                
+
                 <div style="text-align:center; margin-top:16px;">
-                  <button id="btn-show-login" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">¿Ya tienes cuenta? Inicia sesión</button>
+                  <button id="btn-show-login" class="btn-link" type="button"
+                    style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">¿Ya
+                    tienes cuenta? Inicia sesión</button>
                 </div>
-                
+
                 <div id="msg-register" class="msg" role="alert" aria-live="polite"></div>
               </div>
-              
+
               <!-- Paso 2: Verificar código (oculto inicialmente) -->
               <div id="register-step-2" style="display:none;">
-                <div style="margin-bottom:12px; padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; font-size:14px;">
+                <div
+                  style="margin-bottom:12px; padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; font-size:14px;">
                   <span style="color:var(--accent); font-weight:600;">✓ Correo verificado:</span>
                   <span id="verified-email-display" style="margin-left:8px;"></span>
                 </div>
-                
+
                 <div style="margin-bottom:16px;">
-                  <label for="input-verification-code" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Código de verificación</label>
-                  <input id="input-verification-code" class="input" type="text" placeholder="000000" autocomplete="one-time-code" aria-label="Código de verificación de 6 dígitos" aria-describedby="verification-code-help msg-register-step2" aria-required="true" style="width:100%; text-align:center; font-size:24px; letter-spacing:8px; font-weight:bold; font-family:monospace;" maxlength="6" pattern="[0-9]{6}" />
-                  <p id="verification-code-help" style="margin-top:8px; font-size:12px; color:var(--muted); text-align:center;">Revisa tu correo electrónico. El código expira en 10 minutos.</p>
+                  <label for="input-verification-code"
+                    style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Código de
+                    verificación</label>
+                  <input id="input-verification-code" class="input" type="text" placeholder="000000"
+                    autocomplete="one-time-code" aria-label="Código de verificación de 6 dígitos"
+                    aria-describedby="verification-code-help msg-register-step2" aria-required="true"
+                    style="width:100%; text-align:center; font-size:24px; letter-spacing:8px; font-weight:bold; font-family:monospace;"
+                    maxlength="6" pattern="[0-9]{6}" />
+                  <p id="verification-code-help"
+                    style="margin-top:8px; font-size:12px; color:var(--muted); text-align:center;">Revisa tu correo
+                    electrónico. El código expira en 10 minutos.</p>
                 </div>
-                
+
                 <div style="margin-bottom:16px;">
-                  <button id="btn-verify-code" class="btn" type="button" aria-label="Verificar código de 6 dígitos" style="width:100%;">Verificar código</button>
+                  <button id="btn-verify-code" class="btn" type="button" aria-label="Verificar código de 6 dígitos"
+                    style="width:100%;">Verificar código</button>
                 </div>
-                
+
                 <div style="margin-bottom:16px;">
-                  <button id="btn-resend-code" class="btn secondary" type="button" aria-label="Reenviar código de verificación al correo electrónico" style="width:100%;">Reenviar código</button>
+                  <button id="btn-resend-code" class="btn secondary" type="button"
+                    aria-label="Reenviar código de verificación al correo electrónico" style="width:100%;">Reenviar
+                    código</button>
                 </div>
-                
+
                 <div style="text-align:center; margin-top:16px;">
-                  <button id="btn-back-to-email" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">← Volver a verificar correo</button>
+                  <button id="btn-back-to-email" class="btn-link" type="button"
+                    style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">←
+                    Volver a verificar correo</button>
                 </div>
-                
+
                 <div id="msg-register-step2" class="msg" role="alert" aria-live="polite"></div>
               </div>
-              
+
               <!-- Paso 3: Crear contraseña (oculto inicialmente) -->
               <div id="register-step-3" style="display:none;">
-                <div style="margin-bottom:12px; padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; font-size:14px;">
+                <div
+                  style="margin-bottom:12px; padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; font-size:14px;">
                   <span style="color:var(--accent); font-weight:600;">✓ Correo y código verificados</span>
                 </div>
-                
+
                 <div style="margin-bottom:16px;">
-                  <label for="input-register-password" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Contraseña</label>
-                  <input id="input-register-password" class="input" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" aria-label="Nueva contraseña, mínimo 6 caracteres" aria-describedby="msg-register-step3" aria-required="true" style="width:100%;" />
+                  <label for="input-register-password"
+                    style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Contraseña</label>
+                  <input id="input-register-password" class="input" type="password" placeholder="Mínimo 6 caracteres"
+                    autocomplete="new-password" aria-label="Nueva contraseña, mínimo 6 caracteres"
+                    aria-describedby="msg-register-step3" aria-required="true" style="width:100%;" />
                 </div>
 
                 <div style="margin-bottom:16px;">
-                  <label for="input-register-password-confirm" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Confirmar contraseña</label>
-                  <input id="input-register-password-confirm" class="input" type="password" placeholder="Repite la contraseña" autocomplete="new-password" aria-label="Confirmar nueva contraseña" aria-describedby="msg-register-step3" aria-required="true" style="width:100%;" />
+                  <label for="input-register-password-confirm"
+                    style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Confirmar
+                    contraseña</label>
+                  <input id="input-register-password-confirm" class="input" type="password"
+                    placeholder="Repite la contraseña" autocomplete="new-password"
+                    aria-label="Confirmar nueva contraseña" aria-describedby="msg-register-step3" aria-required="true"
+                    style="width:100%;" />
                 </div>
 
                 <div style="margin-bottom:16px;">
-                  <button id="btn-register" class="btn" type="button" aria-label="Crear cuenta con los datos ingresados" style="width:100%;">Crear cuenta</button>
+                  <button id="btn-register" class="btn" type="button" aria-label="Crear cuenta con los datos ingresados"
+                    style="width:100%;">Crear cuenta</button>
                 </div>
 
                 <div style="text-align:center; margin-top:16px;">
-                  <button id="btn-back-to-verify" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">← Volver a verificar código</button>
+                  <button id="btn-back-to-verify" class="btn-link" type="button"
+                    style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">←
+                    Volver a verificar código</button>
                 </div>
 
                 <div id="msg-register-step3" class="msg" role="alert" aria-live="polite"></div>
@@ -220,20 +278,27 @@
               <p style="color:var(--muted); font-size:14px; margin-bottom:24px;">
                 Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña
               </p>
-              
+
               <div style="margin-bottom:16px;">
-                <label for="input-reset-email" style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Correo electrónico</label>
-                <input id="input-reset-email" class="input" type="email" placeholder="tu@correo.com" autocomplete="email" aria-label="Correo electrónico para restablecer contraseña" aria-describedby="msg-reset" aria-required="true" style="width:100%;" />
+                <label for="input-reset-email"
+                  style="display:block; margin-bottom:8px; font-size:14px; font-weight:500;">Correo electrónico</label>
+                <input id="input-reset-email" class="input" type="email" placeholder="tu@correo.com"
+                  autocomplete="email" aria-label="Correo electrónico para restablecer contraseña"
+                  aria-describedby="msg-reset" aria-required="true" style="width:100%;" />
               </div>
-              
+
               <div style="margin-bottom:16px;">
-                <button id="btn-reset" class="btn" type="button" aria-label="Enviar enlace de restablecimiento de contraseña al correo" style="width:100%;">Enviar enlace de restablecimiento</button>
+                <button id="btn-reset" class="btn" type="button"
+                  aria-label="Enviar enlace de restablecimiento de contraseña al correo" style="width:100%;">Enviar
+                  enlace de restablecimiento</button>
               </div>
-              
+
               <div style="text-align:center; margin-top:16px;">
-                <button id="btn-back-to-login" class="btn-link" type="button" style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">Volver al inicio de sesión</button>
+                <button id="btn-back-to-login" class="btn-link" type="button"
+                  style="color:var(--accent); font-size:14px; background:none; border:none; cursor:pointer; padding:0;">Volver
+                  al inicio de sesión</button>
               </div>
-              
+
               <div id="msg-reset" class="msg" role="alert" aria-live="polite"></div>
             </div>
           </div>
@@ -250,12 +315,14 @@
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
         <h3 style="margin:0">Mis Cursos</h3>
         <div class="row">
-          <button id="btn-user-logout" class="btn secondary" type="button" aria-label="Cerrar sesión" title="Cerrar sesión">Cerrar sesión</button>
+          <button id="btn-user-logout" class="btn secondary" type="button" aria-label="Cerrar sesión"
+            title="Cerrar sesión">Cerrar sesión</button>
         </div>
       </div>
 
       <!-- Información del usuario -->
-      <div id="userInfo" style="margin-bottom: 16px; padding: 16px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 14px;">
+      <div id="userInfo"
+        style="margin-bottom: 16px; padding: 16px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 14px;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <i class="ph ph-user" style="font-weight: 600; color: var(--accent); font-size: 18px;"></i>
           <span id="userEmailDisplay">Cargando...</span>
@@ -263,7 +330,8 @@
       </div>
 
       <!-- Grid de cursos -->
-      <div id="userGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:20px; width:100%;">
+      <div id="userGrid"
+        style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:20px; width:100%;">
         <!-- Se llenará dinámicamente -->
       </div>
 
@@ -284,65 +352,78 @@
             </div>
             <div class="row">
               <!-- ✅ Botón Volver (solo visible cuando viene de vista de usuario) -->
-              <button id="btn-back-to-user" class="btn secondary hidden" type="button" aria-label="Volver a mis cursos" title="Volver a mis cursos">
+              <button id="btn-back-to-user" class="btn secondary hidden" type="button" aria-label="Volver a mis cursos"
+                title="Volver a mis cursos">
                 ← Volver
               </button>
-              
+
               <!-- ✅ Botón Volver a Master (solo visible cuando viene de vista maestra) -->
-              <button id="btn-back-to-master" class="btn secondary hidden" type="button" aria-label="Volver a vista maestra" title="Volver a vista maestra">
+              <button id="btn-back-to-master" class="btn secondary hidden" type="button"
+                aria-label="Volver a vista maestra" title="Volver a vista maestra">
                 <i class="ph ph-arrow-left"></i> Volver
               </button>
-              
+
               <!-- ✅ Botón de Ajustes para consultores -->
               <div style="position: relative;">
-                <button id="btn-settings-content" class="btn secondary" type="button" aria-label="Abrir menú de ajustes" aria-expanded="false" aria-haspopup="true" title="Ajustes">
+                <button id="btn-settings-content" class="btn secondary" type="button" aria-label="Abrir menú de ajustes"
+                  aria-expanded="false" aria-haspopup="true" title="Ajustes">
                   <i class="ph ph-gear"></i> Ajustes
                 </button>
-                
+
                 <!-- Menú desplegable de ajustes para consultores -->
-                <div id="settingsDropdownContent" class="settings-dropdown" style="display: none;" role="menu" aria-label="Menú de ajustes">
+                <div id="settingsDropdownContent" class="settings-dropdown" style="display: none;" role="menu"
+                  aria-label="Menú de ajustes">
                   <!-- Categoría: Apariencia -->
-                  <div class="settings-category" data-category="appearance" role="menuitem" tabindex="0" aria-expanded="false">
+                  <div class="settings-category" data-category="appearance" role="menuitem" tabindex="0"
+                    aria-expanded="false">
                     <span class="settings-category-icon"><i class="ph ph-palette"></i></span>
                     <span class="settings-category-label">Apariencia</span>
                     <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
                   </div>
                   <div class="settings-submenu" data-submenu="appearance" style="display: none;">
-                    <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0" title="Alternar entre modo claro y oscuro">
-                      <i id="theme-toggle-icon-content" class="ph ph-sun"></i> <span id="theme-toggle-text-content">Cambiar a Modo Claro</span>
+                    <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0"
+                      title="Alternar entre modo claro y oscuro">
+                      <i id="theme-toggle-icon-content" class="ph ph-sun"></i> <span
+                        id="theme-toggle-text-content">Cambiar a Modo Claro</span>
                     </div>
                   </div>
                 </div>
               </div>
-              
-              <button id="btn-logout" class="btn secondary" type="button" aria-label="Salir del curso y volver al inicio" title="Volver a la pantalla de acceso">Salir</button>
+
+              <button id="btn-logout" class="btn secondary" type="button"
+                aria-label="Salir del curso y volver al inicio" title="Volver a la pantalla de acceso">Salir</button>
             </div>
           </div>
 
           <hr style="border:0; border-top:1px solid rgba(255,255,255,.06);" />
 
           <div class="course-row" style="margin-top:12px;">
-            <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() coloca la tarjeta aquí --></div>
+            <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() coloca la tarjeta aquí -->
+            </div>
             <div class="card-right">
               <!-- ✅ Búsqueda de archivos -->
               <div style="margin-bottom: 16px; display: flex; gap: 8px; align-items: center;">
                 <div style="position: relative; flex: 1;">
-                  <input id="search-files" type="text" class="input" placeholder="Buscar archivos..." aria-label="Buscar archivos en el curso" style="width: 100%; padding-left: 36px;" />
-                  <i class="ph ph-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none;"></i>
+                  <input id="search-files" type="text" class="input" placeholder="Buscar archivos..."
+                    aria-label="Buscar archivos en el curso" style="width: 100%; padding-left: 36px;" />
+                  <i class="ph ph-magnifying-glass"
+                    style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none;"></i>
                 </div>
                 <div id="files-stats" style="font-size: 13px; color: var(--muted); white-space: nowrap;">
                   <span id="files-count">0</span> archivo(s)
                 </div>
               </div>
-              
-              <div class="filelist" id="filelist" aria-live="polite" role="list" aria-label="Lista de archivos del curso"></div>
+
+              <div class="filelist" id="filelist" aria-live="polite" role="list"
+                aria-label="Lista de archivos del curso"></div>
             </div>
           </div>
 
         </div>
       </div>
 
-      <p class="footer">© <span id="year"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
+      <p class="footer">© <span id="year"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala.
+        GraphicDesigner.</p>
     </section>
 
     <!-- VISTA MAESTRA -->
@@ -364,300 +445,346 @@
 
       <!-- Vista de Cursos (contenido actual) -->
       <div id="master-courses-view">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
-        <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
-        <div class="row">
-          <button id="btn-add-course" class="btn" type="button" aria-label="Agregar nuevo curso" title="Agregar nuevo curso (Ctrl+N)"><i class="ph ph-plus"></i> Agregar curso</button>
-          
-          <!-- ✅ Botón de Ajustes con menú desplegable -->
-          <div style="position: relative;">
-            <button id="btn-settings" class="btn secondary" type="button" aria-label="Abrir menú de ajustes y herramientas" aria-expanded="false" aria-haspopup="true" title="Ajustes y herramientas">
-              <i class="ph ph-gear"></i> Ajustes
-            </button>
-            
-            <!-- Menú desplegable de ajustes -->
-            <div id="settingsDropdown" class="settings-dropdown" style="display: none;" role="menu" aria-label="Menú de ajustes">
-              <!-- Categoría: Backups -->
-              <div class="settings-category" data-category="backups" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de backup">
-                <span class="settings-category-icon"><i class="ph ph-package"></i></span>
-                <span class="settings-category-label">Backups</span>
-                <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+          <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
+          <div class="row">
+            <button id="btn-add-course" class="btn" type="button" aria-label="Agregar nuevo curso"
+              title="Agregar nuevo curso (Ctrl+N)"><i class="ph ph-plus"></i> Agregar curso</button>
+
+            <!-- ✅ Botón de Ajustes con menú desplegable -->
+            <div style="position: relative;">
+              <button id="btn-settings" class="btn secondary" type="button"
+                aria-label="Abrir menú de ajustes y herramientas" aria-expanded="false" aria-haspopup="true"
+                title="Ajustes y herramientas">
+                <i class="ph ph-gear"></i> Ajustes
+              </button>
+
+              <!-- Menú desplegable de ajustes -->
+              <div id="settingsDropdown" class="settings-dropdown" style="display: none;" role="menu"
+                aria-label="Menú de ajustes">
+                <!-- Categoría: Backups -->
+                <div class="settings-category" data-category="backups" role="menuitem" tabindex="0"
+                  aria-expanded="false" title="Click para expandir/colapsar opciones de backup">
+                  <span class="settings-category-icon"><i class="ph ph-package"></i></span>
+                  <span class="settings-category-label">Backups</span>
+                  <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
+                </div>
+                <div class="settings-submenu" data-submenu="backups" style="display: none;">
+                  <div class="settings-menu-item" data-action="export-all" role="menuitem" tabindex="0"
+                    title="Exportar todos los cursos y enlaces como archivo JSON">
+                    <i class="ph ph-floppy-disk"></i> Exportar Backup Completo
+                  </div>
+                  <div class="settings-menu-item" data-action="export-filtered" role="menuitem" tabindex="0"
+                    title="Exportar solo cursos de un tipo específico (Cursos, Diplomados, Webinars)">
+                    <i class="ph ph-upload"></i> Exportar por Tipo...
+                  </div>
+                  <div class="settings-divider" role="separator"></div>
+                  <div class="settings-menu-item" data-action="import" role="menuitem" tabindex="0"
+                    title="Importar un backup anterior desde un archivo JSON">
+                    <i class="ph ph-download"></i> Importar Backup...
+                  </div>
+                  <div class="settings-divider" role="separator"></div>
+                  <div class="settings-menu-item" data-action="backup-history" role="menuitem" tabindex="0"
+                    title="Ver historial de backups guardados anteriormente">
+                    <i class="ph ph-clipboard"></i> Historial de Backups
+                  </div>
+                </div>
+
+                <!-- Categoría: Gestión de Correos -->
+                <div class="settings-category" data-category="emails" role="menuitem" tabindex="0" aria-expanded="false"
+                  title="Click para expandir/colapsar opciones de gestión de correos">
+                  <span class="settings-category-icon"><i class="ph ph-envelope"></i></span>
+                  <span class="settings-category-label">Gestión de Correos</span>
+                  <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
+                </div>
+                <div class="settings-submenu" data-submenu="emails" style="display: none;">
+                  <div class="settings-menu-item" data-action="manage-emails" role="menuitem" tabindex="0"
+                    title="Gestionar correos permitidos para todos los cursos">
+                    <i class="ph ph-clipboard"></i> Gestión General de Correos
+                  </div>
+                </div>
+
+                <!-- Categoría: Administradores -->
+                <div class="settings-category" data-category="admins" role="menuitem" tabindex="0" aria-expanded="false"
+                  title="Click para expandir/colapsar opciones de administradores">
+                  <span class="settings-category-icon"><i class="ph ph-crown"></i></span>
+                  <span class="settings-category-label">Administradores</span>
+                  <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
+                </div>
+                <div class="settings-submenu" data-submenu="admins" style="display: none;">
+                  <div class="settings-menu-item" data-action="manage-admins" role="menuitem" tabindex="0"
+                    title="Gestionar administradores con acceso master">
+                    <i class="ph ph-crown"></i> Gestión de Administradores
+                  </div>
+                </div>
+
+                <!-- Categoría: Apariencia -->
+                <div class="settings-category" data-category="appearance" role="menuitem" tabindex="0"
+                  aria-expanded="false" title="Click para expandir/colapsar opciones de apariencia">
+                  <span class="settings-category-icon"><i class="ph ph-palette"></i></span>
+                  <span class="settings-category-label">Apariencia</span>
+                  <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
+                </div>
+                <div class="settings-submenu" data-submenu="appearance" style="display: none;">
+                  <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0"
+                    title="Alternar entre modo claro y oscuro">
+                    <i id="theme-toggle-icon" class="ph ph-sun"></i> <span id="theme-toggle-text">Cambiar a Modo
+                      Claro</span>
+                  </div>
+                </div>
+
               </div>
-              <div class="settings-submenu" data-submenu="backups" style="display: none;">
-                  <div class="settings-menu-item" data-action="export-all" role="menuitem" tabindex="0" title="Exportar todos los cursos y enlaces como archivo JSON">
-                <i class="ph ph-floppy-disk"></i> Exportar Backup Completo
+            </div>
+
+
+            <button id="btn-master-exit" class="btn secondary" type="button" aria-label="Salir de la vista maestra"
+              title="Volver a la pantalla de acceso">Salir</button>
+          </div>
+        </div>
+
+        <!-- ✅ Panel de Notificaciones y Actividad -->
+        <div id="notificationsPanel" class="modal"
+          style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000; background: rgba(0,0,0,0.5); align-items: flex-start; justify-content: flex-end; padding: 20px;">
+          <div class="modal-content"
+            style="max-width: 450px; width: 100%; max-height: 90vh; overflow-y: auto; margin: 0; background: #1a1f35 !important; border: 1px solid rgba(90,169,255,0.3) !important; box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;">
+            <div
+              style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+              <h3 style="margin: 0; font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                <i class="ph ph-bell"></i> Notificaciones y Actividad
+              </h3>
+              <button id="btn-close-notifications" class="btn secondary" type="button"
+                aria-label="Cerrar panel de notificaciones" style="padding: 4px 8px; min-width: auto;">
+                <i class="ph ph-x"></i>
+              </button>
+            </div>
+
+            <!-- Pestañas -->
+            <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border);">
+              <button id="tab-notifications" class="btn secondary active" type="button" data-tab="notifications"
+                style="border-radius: 0; border-bottom: 2px solid var(--accent); padding: 8px 16px;">
+                <i class="ph ph-bell"></i> Notificaciones
+              </button>
+              <button id="tab-activity" class="btn secondary" type="button" data-tab="activity"
+                style="border-radius: 0; border-bottom: 2px solid transparent; padding: 8px 16px;">
+                <i class="ph ph-clock-clockwise"></i> Actividad
+              </button>
+            </div>
+
+            <!-- Contenido de Notificaciones -->
+            <div id="notifications-content" style="display: block;">
+              <div id="notifications-list" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Se llenará dinámicamente -->
               </div>
-              <div class="settings-menu-item" data-action="export-filtered" role="menuitem" tabindex="0" title="Exportar solo cursos de un tipo específico (Cursos, Diplomados, Webinars)">
-                <i class="ph ph-upload"></i> Exportar por Tipo...
+              <div id="notifications-empty"
+                style="text-align: center; padding: 40px 20px; color: var(--muted); display: none;">
+                <i class="ph ph-bell-slash" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i>
+                <p style="margin: 0; font-size: 14px;">No hay notificaciones</p>
               </div>
-              <div class="settings-divider" role="separator"></div>
-              <div class="settings-menu-item" data-action="import" role="menuitem" tabindex="0" title="Importar un backup anterior desde un archivo JSON">
-                <i class="ph ph-download"></i> Importar Backup...
+            </div>
+
+            <!-- Contenido de Actividad -->
+            <div id="activity-content" style="display: none;">
+              <div style="margin-bottom: 16px;">
+                <select id="filter-activity" class="input" style="width: 100%; font-size: 13px;">
+                  <option value="all">Todas las actividades</option>
+                  <option value="course_created">Cursos creados</option>
+                  <option value="course_edited">Cursos editados</option>
+                  <option value="course_deleted">Cursos eliminados</option>
+                  <option value="email_added">Emails agregados</option>
+                  <option value="admin_added">Administradores agregados</option>
+                  <option value="backup_exported">Backups exportados</option>
+                  <option value="backup_imported">Backups importados</option>
+                </select>
               </div>
-              <div class="settings-divider" role="separator"></div>
-              <div class="settings-menu-item" data-action="backup-history" role="menuitem" tabindex="0" title="Ver historial de backups guardados anteriormente">
-                <i class="ph ph-clipboard"></i> Historial de Backups
+              <div id="activity-list" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Se llenará dinámicamente -->
               </div>
+              <div id="activity-empty"
+                style="text-align: center; padding: 40px 20px; color: var(--muted); display: none;">
+                <i class="ph ph-clock" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i>
+                <p style="margin: 0; font-size: 14px;">No hay actividad registrada</p>
               </div>
-              
-              <!-- Categoría: Gestión de Correos -->
-              <div class="settings-category" data-category="emails" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de gestión de correos">
-                <span class="settings-category-icon"><i class="ph ph-envelope"></i></span>
-                <span class="settings-category-label">Gestión de Correos</span>
-                <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
-              </div>
-              <div class="settings-submenu" data-submenu="emails" style="display: none;">
-                  <div class="settings-menu-item" data-action="manage-emails" role="menuitem" tabindex="0" title="Gestionar correos permitidos para todos los cursos">
-                <i class="ph ph-clipboard"></i> Gestión General de Correos
-              </div>
-              </div>
-              
-              <!-- Categoría: Administradores -->
-              <div class="settings-category" data-category="admins" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de administradores">
-                <span class="settings-category-icon"><i class="ph ph-crown"></i></span>
-                <span class="settings-category-label">Administradores</span>
-                <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
-              </div>
-              <div class="settings-submenu" data-submenu="admins" style="display: none;">
-                  <div class="settings-menu-item" data-action="manage-admins" role="menuitem" tabindex="0" title="Gestionar administradores con acceso master">
-                <i class="ph ph-crown"></i> Gestión de Administradores
-              </div>
-              </div>
-              
-              <!-- Categoría: Apariencia -->
-              <div class="settings-category" data-category="appearance" role="menuitem" tabindex="0" aria-expanded="false" title="Click para expandir/colapsar opciones de apariencia">
-                <span class="settings-category-icon"><i class="ph ph-palette"></i></span>
-                <span class="settings-category-label">Apariencia</span>
-                <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
-              </div>
-              <div class="settings-submenu" data-submenu="appearance" style="display: none;">
-                    <div class="settings-menu-item" data-action="toggle-theme" role="menuitem" tabindex="0" title="Alternar entre modo claro y oscuro">
-                      <i id="theme-toggle-icon" class="ph ph-sun"></i> <span id="theme-toggle-text">Cambiar a Modo Claro</span>
-                    </div>
-              </div>
-              
             </div>
           </div>
-          
-          <!-- ✅ Botón de Notificaciones y Actividad -->
-          <div style="position: relative;">
-            <button id="btn-notifications" class="btn secondary" type="button" aria-label="Ver notificaciones y actividad" aria-expanded="false" title="Notificaciones y actividad reciente" style="position: relative;">
-              <i class="ph ph-bell"></i>
-              <span id="notifications-badge" style="display: none; position: absolute; top: -4px; right: -4px; background: #ff5555; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: 600;">0</span>
-            </button>
-          </div>
-          
-          <button id="btn-master-exit" class="btn secondary" type="button" aria-label="Salir de la vista maestra" title="Volver a la pantalla de acceso">Salir</button>
         </div>
-      </div>
-      
-      <!-- ✅ Panel de Notificaciones y Actividad -->
-      <div id="notificationsPanel" class="modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000; background: rgba(0,0,0,0.5); align-items: flex-start; justify-content: flex-end; padding: 20px;">
-        <div class="modal-content" style="max-width: 450px; width: 100%; max-height: 90vh; overflow-y: auto; margin: 0; background: #1a1f35 !important; border: 1px solid rgba(90,169,255,0.3) !important; box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
-            <h3 style="margin: 0; font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-              <i class="ph ph-bell"></i> Notificaciones y Actividad
-            </h3>
-            <button id="btn-close-notifications" class="btn secondary" type="button" aria-label="Cerrar panel de notificaciones" style="padding: 4px 8px; min-width: auto;">
+
+        <!-- ✅ Estadísticas Avanzadas -->
+        <div id="masterStats" style="margin-bottom: 16px;">
+          <!-- Tarjetas de Métricas Principales -->
+          <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
+            <!-- Total de Cursos -->
+            <div
+              style="padding: 16px; background: rgba(90,169,255,0.1); border: 1px solid rgba(90,169,255,0.2); border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <i class="ph ph-books" style="font-size: 24px; color: var(--accent);"></i>
+                <span style="font-size: 13px; color: var(--muted);">Total de Cursos</span>
+              </div>
+              <div style="font-size: 28px; font-weight: 700; color: var(--text);" id="statsCoursesCount">0</div>
+            </div>
+
+            <!-- Total de Archivos -->
+            <div
+              style="padding: 16px; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <i class="ph ph-file" style="font-size: 24px; color: #22c55e;"></i>
+                <span style="font-size: 13px; color: var(--muted);">Total de Archivos</span>
+              </div>
+              <div style="font-size: 28px; font-weight: 700; color: var(--text);" id="statsTotalFiles">0</div>
+            </div>
+
+            <!-- Cursos con Emails -->
+            <div
+              style="padding: 16px; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.2); border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <i class="ph ph-envelope" style="font-size: 24px; color: #fbbf24;"></i>
+                <span style="font-size: 13px; color: var(--muted);">Cursos con Emails</span>
+              </div>
+              <div style="font-size: 28px; font-weight: 700; color: var(--text);" id="statsCoursesWithEmails">0</div>
+            </div>
+
+            <!-- Actividad Reciente -->
+            <div
+              style="padding: 16px; background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.2); border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <i class="ph ph-clock" style="font-size: 24px; color: #a855f7;"></i>
+                <span style="font-size: 13px; color: var(--muted);">Acciones Hoy</span>
+              </div>
+              <div style="font-size: 28px; font-weight: 700; color: var(--text);" id="statsTodayActions">0</div>
+            </div>
+          </div>
+
+          <!-- Estadísticas por Tipo -->
+          <div
+            style="padding: 16px; background: rgba(90,169,255,0.05); border: 1px solid rgba(90,169,255,0.2); border-radius: 8px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <i class="ph ph-chart-bar" style="font-weight: 600; color: var(--accent); font-size: 18px;"></i>
+              <span style="font-weight: 600; font-size: 14px;">Distribución por Tipo</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px;">
+              <span style="display: flex; align-items: center; gap: 6px;"><i class="ph ph-book-open"></i> Cursos:
+                <strong id="statsTypeCurso">0</strong></span>
+              <span style="display: flex; align-items: center; gap: 6px;"><i class="ph ph-graduation-cap"></i>
+                Diplomados: <strong id="statsTypeDiplomado">0</strong></span>
+              <span style="display: flex; align-items: center; gap: 6px;"><i class="ph ph-monitor"></i> Webinars:
+                <strong id="statsTypeWebinar">0</strong></span>
+              <span style="display: flex; align-items: center; gap: 6px;"><i class="ph ph-note"></i> Seminarios: <strong
+                  id="statsTypeSeminario">0</strong></span>
+              <span style="display: flex; align-items: center; gap: 6px;"><i class="ph ph-wrench"></i> Talleres: <strong
+                  id="statsTypeTaller">0</strong></span>
+            </div>
+          </div>
+
+          <!-- Últimos Cursos Creados -->
+          <div id="statsRecentCourses"
+            style="padding: 16px; background: rgba(90,169,255,0.05); border: 1px solid rgba(90,169,255,0.2); border-radius: 8px; display: none;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="ph ph-clock-clockwise" style="font-weight: 600; color: var(--accent); font-size: 18px;"></i>
+                <span style="font-weight: 600; font-size: 14px;">Últimos Cursos Creados</span>
+              </div>
+              <button id="btn-toggle-recent-courses" class="btn secondary" type="button"
+                style="padding: 4px 8px; min-width: auto; font-size: 12px;"
+                aria-label="Mostrar/ocultar cursos recientes">
+                <i class="ph ph-caret-down"></i>
+              </button>
+            </div>
+            <div id="recentCoursesList" style="display: none; font-size: 13px;">
+              <!-- Se llenará dinámicamente -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Buscador -->
+        <div class="master-search">
+          <input id="masterSearch" type="text"
+            placeholder="Buscar por nombre, tag o clasificación (ej. GASH, MBF, diplomado)..."
+            aria-label="Buscar cursos" title="Buscar cursos (Ctrl+F)" />
+          <button id="masterSearchClear" type="button" aria-label="Limpiar búsqueda"
+            title="Limpiar búsqueda">Limpiar</button>
+        </div>
+
+        <!-- ✅ Filtros Avanzados -->
+        <div id="advancedFilters"
+          style="margin-bottom: 16px; padding: 16px; background: rgba(90,169,255,0.05); border: 1px solid rgba(90,169,255,0.2); border-radius: 8px; display: none;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <h4 style="margin: 0; font-size: 16px; font-weight: 600;">Filtros Avanzados</h4>
+            <button id="btn-close-filters" class="btn secondary" type="button" aria-label="Cerrar filtros"
+              style="padding: 4px 8px; min-width: auto;">
               <i class="ph ph-x"></i>
             </button>
           </div>
-          
-          <!-- Pestañas -->
-          <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border);">
-            <button id="tab-notifications" class="btn secondary active" type="button" data-tab="notifications" style="border-radius: 0; border-bottom: 2px solid var(--accent); padding: 8px 16px;">
-              <i class="ph ph-bell"></i> Notificaciones
-            </button>
-            <button id="tab-activity" class="btn secondary" type="button" data-tab="activity" style="border-radius: 0; border-bottom: 2px solid transparent; padding: 8px 16px;">
-              <i class="ph ph-clock-clockwise"></i> Actividad
-            </button>
-          </div>
-          
-          <!-- Contenido de Notificaciones -->
-          <div id="notifications-content" style="display: block;">
-            <div id="notifications-list" style="display: flex; flex-direction: column; gap: 12px;">
-              <!-- Se llenará dinámicamente -->
-            </div>
-            <div id="notifications-empty" style="text-align: center; padding: 40px 20px; color: var(--muted); display: none;">
-              <i class="ph ph-bell-slash" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i>
-              <p style="margin: 0; font-size: 14px;">No hay notificaciones</p>
-            </div>
-          </div>
-          
-          <!-- Contenido de Actividad -->
-          <div id="activity-content" style="display: none;">
-            <div style="margin-bottom: 16px;">
-              <select id="filter-activity" class="input" style="width: 100%; font-size: 13px;">
-                <option value="all">Todas las actividades</option>
-                <option value="course_created">Cursos creados</option>
-                <option value="course_edited">Cursos editados</option>
-                <option value="course_deleted">Cursos eliminados</option>
-                <option value="email_added">Emails agregados</option>
-                <option value="admin_added">Administradores agregados</option>
-                <option value="backup_exported">Backups exportados</option>
-                <option value="backup_imported">Backups importados</option>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            <!-- Filtro por Tipo -->
+            <div>
+              <label for="filterType"
+                style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Tipo de Curso</label>
+              <select id="filterType" class="input" style="width: 100%;" aria-label="Filtrar por tipo de curso">
+                <option value="">Todos los tipos</option>
+                <option value="curso">Curso</option>
+                <option value="diplomado">Diplomado</option>
+                <option value="webinar">Webinar</option>
+                <option value="seminario">Seminario</option>
+                <option value="taller">Taller</option>
               </select>
             </div>
-            <div id="activity-list" style="display: flex; flex-direction: column; gap: 12px;">
-              <!-- Se llenará dinámicamente -->
-            </div>
-            <div id="activity-empty" style="text-align: center; padding: 40px 20px; color: var(--muted); display: none;">
-              <i class="ph ph-clock" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;"></i>
-              <p style="margin: 0; font-size: 14px;">No hay actividad registrada</p>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- ✅ Estadísticas Avanzadas -->
-      <div id="masterStats" style="margin-bottom: 16px;">
-        <!-- Tarjetas de Métricas Principales -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
-          <!-- Total de Cursos -->
-          <div style="padding: 16px; background: rgba(90,169,255,0.1); border: 1px solid rgba(90,169,255,0.2); border-radius: 8px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-              <i class="ph ph-books" style="font-size: 24px; color: var(--accent);"></i>
-              <span style="font-size: 13px; color: var(--muted);">Total de Cursos</span>
+            <!-- Ordenamiento -->
+            <div>
+              <label for="filterSort"
+                style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Ordenar por</label>
+              <select id="filterSort" class="input" style="width: 100%;" aria-label="Ordenar resultados">
+                <option value="title-asc">Título (A-Z)</option>
+                <option value="title-desc">Título (Z-A)</option>
+                <option value="date-desc">Más recientes</option>
+                <option value="date-asc">Más antiguos</option>
+                <option value="tag-asc">Tag (A-Z)</option>
+              </select>
             </div>
-            <div style="font-size: 28px; font-weight: 700; color: var(--text);" id="statsCoursesCount">0</div>
+
+            <!-- Filtro por Tag -->
+            <div>
+              <label for="filterTag"
+                style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Tag</label>
+              <input id="filterTag" type="text" class="input" placeholder="Ej. GASH, MBF..." style="width: 100%;"
+                aria-label="Filtrar por tag" />
+            </div>
           </div>
-          
-          <!-- Total de Archivos -->
-          <div style="padding: 16px; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); border-radius: 8px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-              <i class="ph ph-file" style="font-size: 24px; color: #22c55e;"></i>
-              <span style="font-size: 13px; color: var(--muted);">Total de Archivos</span>
-            </div>
-            <div style="font-size: 28px; font-weight: 700; color: var(--text);" id="statsTotalFiles">0</div>
-          </div>
-          
-          <!-- Cursos con Emails -->
-          <div style="padding: 16px; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.2); border-radius: 8px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-              <i class="ph ph-envelope" style="font-size: 24px; color: #fbbf24;"></i>
-              <span style="font-size: 13px; color: var(--muted);">Cursos con Emails</span>
-            </div>
-            <div style="font-size: 28px; font-weight: 700; color: var(--text);" id="statsCoursesWithEmails">0</div>
-          </div>
-          
-          <!-- Actividad Reciente -->
-          <div style="padding: 16px; background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.2); border-radius: 8px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-              <i class="ph ph-clock" style="font-size: 24px; color: #a855f7;"></i>
-              <span style="font-size: 13px; color: var(--muted);">Acciones Hoy</span>
-            </div>
-            <div style="font-size: 28px; font-weight: 700; color: var(--text);" id="statsTodayActions">0</div>
+
+          <div style="display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end;">
+            <button id="btn-reset-filters" class="btn secondary" type="button"
+              aria-label="Restablecer filtros">Restablecer</button>
+            <button id="btn-apply-filters" class="btn" type="button" aria-label="Aplicar filtros">Aplicar
+              Filtros</button>
           </div>
         </div>
-        
-        <!-- Estadísticas por Tipo -->
-        <div style="padding: 16px; background: rgba(90,169,255,0.05); border: 1px solid rgba(90,169,255,0.2); border-radius: 8px; margin-bottom: 16px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-            <i class="ph ph-chart-bar" style="font-weight: 600; color: var(--accent); font-size: 18px;"></i>
-            <span style="font-weight: 600; font-size: 14px;">Distribución por Tipo</span>
-          </div>
-          <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px;">
-            <span style="display: flex; align-items: center; gap: 6px;"><i class="ph ph-book-open"></i> Cursos: <strong id="statsTypeCurso">0</strong></span>
-            <span style="display: flex; align-items: center; gap: 6px;"><i class="ph ph-graduation-cap"></i> Diplomados: <strong id="statsTypeDiplomado">0</strong></span>
-            <span style="display: flex; align-items: center; gap: 6px;"><i class="ph ph-monitor"></i> Webinars: <strong id="statsTypeWebinar">0</strong></span>
-            <span style="display: flex; align-items: center; gap: 6px;"><i class="ph ph-note"></i> Seminarios: <strong id="statsTypeSeminario">0</strong></span>
-            <span style="display: flex; align-items: center; gap: 6px;"><i class="ph ph-wrench"></i> Talleres: <strong id="statsTypeTaller">0</strong></span>
-          </div>
-        </div>
-        
-        <!-- Últimos Cursos Creados -->
-        <div id="statsRecentCourses" style="padding: 16px; background: rgba(90,169,255,0.05); border: 1px solid rgba(90,169,255,0.2); border-radius: 8px; display: none;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <i class="ph ph-clock-clockwise" style="font-weight: 600; color: var(--accent); font-size: 18px;"></i>
-              <span style="font-weight: 600; font-size: 14px;">Últimos Cursos Creados</span>
-            </div>
-            <button id="btn-toggle-recent-courses" class="btn secondary" type="button" style="padding: 4px 8px; min-width: auto; font-size: 12px;" aria-label="Mostrar/ocultar cursos recientes">
-              <i class="ph ph-caret-down"></i>
+
+        <!-- Botón para mostrar filtros avanzados -->
+        <div style="margin-bottom: 16px; display: flex; gap: 8px; align-items: center; justify-content: space-between;">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button id="btn-show-filters" class="btn secondary" type="button" aria-label="Mostrar filtros avanzados"
+              aria-expanded="false" style="padding: 8px 16px;">
+              <i class="ph ph-funnel"></i> Filtros Avanzados
             </button>
+            <span id="activeFiltersCount" style="font-size: 14px; color: var(--muted); display: none;">
+              <span id="filtersCount">0</span> filtro(s) activo(s)
+            </span>
           </div>
-          <div id="recentCoursesList" style="display: none; font-size: 13px;">
-            <!-- Se llenará dinámicamente -->
-          </div>
+          <span id="filterResultsCount" style="font-size: 14px; color: var(--muted); display: none;"></span>
         </div>
-      </div>
 
-      <!-- Buscador -->
-      <div class="master-search">
-        <input id="masterSearch" type="text" placeholder="Buscar por nombre, tag o clasificación (ej. GASH, MBF, diplomado)..." aria-label="Buscar cursos" title="Buscar cursos (Ctrl+F)" />
-        <button id="masterSearchClear" type="button" aria-label="Limpiar búsqueda" title="Limpiar búsqueda">Limpiar</button>
-      </div>
-      
-      <!-- ✅ Filtros Avanzados -->
-      <div id="advancedFilters" style="margin-bottom: 16px; padding: 16px; background: rgba(90,169,255,0.05); border: 1px solid rgba(90,169,255,0.2); border-radius: 8px; display: none;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-          <h4 style="margin: 0; font-size: 16px; font-weight: 600;">Filtros Avanzados</h4>
-          <button id="btn-close-filters" class="btn secondary" type="button" aria-label="Cerrar filtros" style="padding: 4px 8px; min-width: auto;">
-            <i class="ph ph-x"></i>
-          </button>
-        </div>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-          <!-- Filtro por Tipo -->
-          <div>
-            <label for="filterType" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Tipo de Curso</label>
-            <select id="filterType" class="input" style="width: 100%;" aria-label="Filtrar por tipo de curso">
-              <option value="">Todos los tipos</option>
-              <option value="curso">Curso</option>
-              <option value="diplomado">Diplomado</option>
-              <option value="webinar">Webinar</option>
-              <option value="seminario">Seminario</option>
-              <option value="taller">Taller</option>
-            </select>
-          </div>
-          
-          <!-- Ordenamiento -->
-          <div>
-            <label for="filterSort" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Ordenar por</label>
-            <select id="filterSort" class="input" style="width: 100%;" aria-label="Ordenar resultados">
-              <option value="title-asc">Título (A-Z)</option>
-              <option value="title-desc">Título (Z-A)</option>
-              <option value="date-desc">Más recientes</option>
-              <option value="date-asc">Más antiguos</option>
-              <option value="tag-asc">Tag (A-Z)</option>
-            </select>
-          </div>
-          
-          <!-- Filtro por Tag -->
-          <div>
-            <label for="filterTag" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">Tag</label>
-            <input id="filterTag" type="text" class="input" placeholder="Ej. GASH, MBF..." style="width: 100%;" aria-label="Filtrar por tag" />
-          </div>
-        </div>
-        
-        <div style="display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end;">
-          <button id="btn-reset-filters" class="btn secondary" type="button" aria-label="Restablecer filtros">Restablecer</button>
-          <button id="btn-apply-filters" class="btn" type="button" aria-label="Aplicar filtros">Aplicar Filtros</button>
-        </div>
-      </div>
-      
-      <!-- Botón para mostrar filtros avanzados -->
-      <div style="margin-bottom: 16px; display: flex; gap: 8px; align-items: center; justify-content: space-between;">
-        <div style="display: flex; gap: 8px; align-items: center;">
-          <button id="btn-show-filters" class="btn secondary" type="button" aria-label="Mostrar filtros avanzados" aria-expanded="false" style="padding: 8px 16px;">
-            <i class="ph ph-funnel"></i> Filtros Avanzados
-          </button>
-          <span id="activeFiltersCount" style="font-size: 14px; color: var(--muted); display: none;">
-            <span id="filtersCount">0</span> filtro(s) activo(s)
-          </span>
-        </div>
-        <span id="filterResultsCount" style="font-size: 14px; color: var(--muted); display: none;"></span>
-      </div>
-
-      <div class="master-grid" id="masterGrid" role="list" aria-label="Lista de cursos disponibles"></div>
-      <p class="footer">© <span id="year_master"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala. GraphicDesigner.</p>
+        <div class="master-grid" id="masterGrid" role="list" aria-label="Lista de cursos disponibles"></div>
+        <p class="footer">© <span id="year_master"></span> EduSalud · Materiales oficiales para consultores. by
+          DanielZavala. GraphicDesigner.</p>
       </div>
 
       <!-- Vista de Generador de Certificados -->
       <div id="master-certificates-view" class="hidden">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px;">
           <h3 style="margin:0"><i class="ph ph-graduation-cap"></i> Generador de Certificados</h3>
-          <button id="btn-master-exit-cert" class="btn secondary" type="button" aria-label="Salir de la vista maestra" title="Volver a la pantalla de acceso">Salir</button>
+          <button id="btn-master-exit-cert" class="btn secondary" type="button" aria-label="Salir de la vista maestra"
+            title="Volver a la pantalla de acceso">Salir</button>
         </div>
 
         <!-- Configuración del Script -->
@@ -665,23 +792,35 @@
           <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
             <i class="ph ph-gear"></i> Configuración del Google Apps Script
           </h4>
-          
+
           <div class="form-group">
             <label for="input-script-web-app-url" class="label-with-help">
               URL del Google Apps Script Web App *
               <span class="help-icon" data-help="script-url" title="Haz clic para ver ayuda">?</span>
             </label>
-            <input id="input-script-web-app-url" class="input" type="url" placeholder="https://script.google.com/macros/s/APP_ID/exec" aria-label="URL del Google Apps Script Web App" aria-describedby="script-url-help" aria-required="true" />
-            <span id="script-url-help" class="sr-only">URL completa del Google Apps Script desplegado como Web App</span>
+            <input id="input-script-web-app-url" class="input" type="url"
+              placeholder="https://script.google.com/macros/s/APP_ID/exec"
+              aria-label="URL del Google Apps Script Web App" aria-describedby="script-url-help" aria-required="true" />
+            <span id="script-url-help" class="sr-only">URL completa del Google Apps Script desplegado como Web
+              App</span>
           </div>
 
           <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
-            <button id="btn-save-cert-config" class="btn secondary" type="button" aria-label="Guardar configuración de certificados"><i class="ph ph-floppy-disk"></i> Guardar Configuración</button>
-            <button id="btn-load-cert-config" class="btn secondary" type="button" aria-label="Cargar configuración de certificados guardada"><i class="ph ph-download"></i> Cargar Configuración</button>
-            <button id="btn-test-connection" class="btn secondary" type="button" aria-label="Probar conexión con Google Apps Script"><i class="ph ph-flask"></i> Probar Conexión</button>
-            <button id="btn-show-cert-script" class="btn secondary" type="button" style="background: rgba(90,169,255,0.15); border-color: var(--accent);" aria-label="Ver código del script de Google Apps"><i class="ph ph-clipboard"></i> Ver Código del Script</button>
+            <button id="btn-save-cert-config" class="btn secondary" type="button"
+              aria-label="Guardar configuración de certificados"><i class="ph ph-floppy-disk"></i> Guardar
+              Configuración</button>
+            <button id="btn-load-cert-config" class="btn secondary" type="button"
+              aria-label="Cargar configuración de certificados guardada"><i class="ph ph-download"></i> Cargar
+              Configuración</button>
+            <button id="btn-test-connection" class="btn secondary" type="button"
+              aria-label="Probar conexión con Google Apps Script"><i class="ph ph-flask"></i> Probar Conexión</button>
+            <button id="btn-show-cert-script" class="btn secondary" type="button"
+              style="background: rgba(90,169,255,0.15); border-color: var(--accent);"
+              aria-label="Ver código del script de Google Apps"><i class="ph ph-clipboard"></i> Ver Código del
+              Script</button>
           </div>
-          <div id="test-connection-status" style="margin-top:12px; font-size:13px; color:var(--muted); min-height:20px;"></div>
+          <div id="test-connection-status"
+            style="margin-top:12px; font-size:13px; color:var(--muted); min-height:20px;"></div>
         </div>
 
         <!-- Selector de Modo -->
@@ -689,18 +828,22 @@
           <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
             <i class="ph ph-target"></i> Modo de Generación
           </h4>
-          
+
           <div class="form-group">
             <label for="select-cert-mode" class="label-with-help">
               Seleccionar modo de certificado *
               <span class="help-icon" data-help="cert-mode" title="Haz clic para ver ayuda">?</span>
             </label>
-            <select id="select-cert-mode" class="input" aria-label="Modo de generación de certificados" aria-required="true">
+            <select id="select-cert-mode" class="input" aria-label="Modo de generación de certificados"
+              aria-required="true">
               <option value="webinar"><i class="ph ph-graduation-cap"></i> Modo Webinar (solo {{NOMBRE}})</option>
-              <option value="with-code"><i class="ph ph-key"></i> Modo con Código de Validación ({{NOMBRE}} + {{CODIGO_VALIDACION}})</option>
+              <option value="with-code"><i class="ph ph-key"></i> Modo con Código de Validación ({{NOMBRE}} +
+                {{CODIGO_VALIDACION}})</option>
             </select>
-            <div style="font-size:12px; color:var(--muted); margin-top:8px; padding:12px; background:rgba(90,169,255,0.1); border-radius:8px;">
-              <strong><i class="ph ph-info"></i> Información:</strong> El modo seleccionado determinará qué variables se usarán en la plantilla y la estructura de la hoja de cálculo.
+            <div
+              style="font-size:12px; color:var(--muted); margin-top:8px; padding:12px; background:rgba(90,169,255,0.1); border-radius:8px;">
+              <strong><i class="ph ph-info"></i> Información:</strong> El modo seleccionado determinará qué variables se
+              usarán en la plantilla y la estructura de la hoja de cálculo.
             </div>
           </div>
         </div>
@@ -710,17 +853,20 @@
           <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
             <i class="ph ph-file-text"></i> Paso 1: Plantilla de Certificado
           </h4>
-          
+
           <div class="form-group">
             <label for="select-slide-template" class="label-with-help">
               Seleccionar plantilla existente *
               <span class="help-icon" data-help="slide-template" title="Haz clic para ver ayuda">?</span>
             </label>
             <div style="display:flex; gap:8px;">
-              <select id="select-slide-template" class="input" style="flex:1;" aria-label="Seleccionar plantilla de certificado" aria-required="true">
+              <select id="select-slide-template" class="input" style="flex:1;"
+                aria-label="Seleccionar plantilla de certificado" aria-required="true">
                 <option value="">-- Seleccionar plantilla --</option>
               </select>
-              <button id="btn-refresh-templates" class="btn secondary" type="button" aria-label="Actualizar lista de plantillas disponibles"><i class="ph ph-arrow-clockwise"></i> Actualizar lista</button>
+              <button id="btn-refresh-templates" class="btn secondary" type="button"
+                aria-label="Actualizar lista de plantillas disponibles"><i class="ph ph-arrow-clockwise"></i> Actualizar
+                lista</button>
             </div>
           </div>
         </div>
@@ -730,25 +876,30 @@
           <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
             <i class="ph ph-table"></i> Paso 2: Hoja de Cálculo
           </h4>
-          
+
           <div class="form-group">
             <label for="select-google-sheet" class="label-with-help">
               Seleccionar Google Sheet *
               <span class="help-icon" data-help="google-sheet" title="Haz clic para ver ayuda">?</span>
             </label>
             <div style="display:flex; gap:8px;">
-              <select id="select-google-sheet" class="input" style="flex:1;" aria-label="Seleccionar hoja de cálculo de Google Sheets" aria-required="true">
+              <select id="select-google-sheet" class="input" style="flex:1;"
+                aria-label="Seleccionar hoja de cálculo de Google Sheets" aria-required="true">
                 <option value="">-- Seleccionar hoja --</option>
               </select>
-              <button id="btn-refresh-sheets" class="btn secondary" type="button" aria-label="Actualizar lista de hojas de cálculo disponibles"><i class="ph ph-arrow-clockwise"></i> Actualizar lista</button>
+              <button id="btn-refresh-sheets" class="btn secondary" type="button"
+                aria-label="Actualizar lista de hojas de cálculo disponibles"><i class="ph ph-arrow-clockwise"></i>
+                Actualizar lista</button>
             </div>
           </div>
-          
+
           <div class="form-group" style="margin-top:16px;">
             <label for="input-new-sheet-name">O crear nueva hoja</label>
             <div style="display:flex; gap:8px;">
-              <input id="input-new-sheet-name" class="input" type="text" placeholder="Nombre de la hoja" style="flex:1;" aria-label="Nombre para nueva hoja de cálculo" />
-              <button id="btn-create-sheet" class="btn secondary" type="button" aria-label="Crear nueva hoja de cálculo"><i class="ph ph-plus"></i> Crear nueva hoja</button>
+              <input id="input-new-sheet-name" class="input" type="text" placeholder="Nombre de la hoja" style="flex:1;"
+                aria-label="Nombre para nueva hoja de cálculo" />
+              <button id="btn-create-sheet" class="btn secondary" type="button"
+                aria-label="Crear nueva hoja de cálculo"><i class="ph ph-plus"></i> Crear nueva hoja</button>
             </div>
           </div>
         </div>
@@ -758,24 +909,30 @@
           <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
             <i class="ph ph-folder"></i> Paso 3: Carpeta para PDFs Originales
           </h4>
-          
+
           <div class="form-group">
             <label for="select-folder-originales" class="label-with-help">
               Carpeta para PDFs originales *
               <span class="help-icon" data-help="folder-originales" title="Haz clic para ver ayuda">?</span>
             </label>
             <div style="display:flex; gap:8px;">
-              <select id="select-folder-originales" class="input" style="flex:1;" aria-label="Carpeta para PDFs originales" aria-required="true">
+              <select id="select-folder-originales" class="input" style="flex:1;"
+                aria-label="Carpeta para PDFs originales" aria-required="true">
                 <option value="">-- Seleccionar carpeta --</option>
               </select>
-              <button id="btn-refresh-folders" class="btn secondary" type="button" aria-label="Actualizar lista de carpetas"><i class="ph ph-arrow-clockwise"></i> Actualizar lista</button>
+              <button id="btn-refresh-folders" class="btn secondary" type="button"
+                aria-label="Actualizar lista de carpetas"><i class="ph ph-arrow-clockwise"></i> Actualizar
+                lista</button>
             </div>
           </div>
-          
+
           <div class="form-group" style="margin-top:16px;">
             <div style="display:flex; gap:8px;">
-              <input id="input-new-folder-originales" class="input" type="text" placeholder="Nombre de la carpeta" style="flex:1;" aria-label="Nombre para nueva carpeta de PDFs originales" />
-              <button id="btn-create-folder-originales" class="btn secondary" type="button" aria-label="Crear nueva carpeta para PDFs originales"><i class="ph ph-plus"></i> Crear nueva carpeta</button>
+              <input id="input-new-folder-originales" class="input" type="text" placeholder="Nombre de la carpeta"
+                style="flex:1;" aria-label="Nombre para nueva carpeta de PDFs originales" />
+              <button id="btn-create-folder-originales" class="btn secondary" type="button"
+                aria-label="Crear nueva carpeta para PDFs originales"><i class="ph ph-plus"></i> Crear nueva
+                carpeta</button>
             </div>
           </div>
         </div>
@@ -785,28 +942,34 @@
           <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
             <i class="ph ph-file-pdf"></i> Generar Certificados PDF
           </h4>
-          
+
           <p style="color:var(--muted); font-size:14px; margin-bottom:16px;">
-            Genera los certificados PDF desde la plantilla. Necesitas completar: Script, Plantilla, Hoja y Carpeta de Originales.
+            Genera los certificados PDF desde la plantilla. Necesitas completar: Script, Plantilla, Hoja y Carpeta de
+            Originales.
           </p>
-          
-          <div id="pdf-validation-status" style="padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; margin-bottom:16px; font-size:13px; display:none;">
-            <div style="font-weight:600; margin-bottom:8px;"><i class="ph ph-warning"></i> Faltan los siguientes campos:</div>
+
+          <div id="pdf-validation-status"
+            style="padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; margin-bottom:16px; font-size:13px; display:none;">
+            <div style="font-weight:600; margin-bottom:8px;"><i class="ph ph-warning"></i> Faltan los siguientes campos:
+            </div>
             <ul id="pdf-missing-fields" style="margin:0; padding-left:20px; color:var(--muted);"></ul>
           </div>
-          
-          <button id="btn-generate-pdfs" class="btn" type="button" aria-label="Generar certificados PDF desde la plantilla configurada" style="width:100%;">
+
+          <button id="btn-generate-pdfs" class="btn" type="button"
+            aria-label="Generar certificados PDF desde la plantilla configurada" style="width:100%;">
             <i class="ph ph-file-text"></i> Generar PDFs desde Plantilla
           </button>
-          
+
           <!-- Progreso de generación de PDFs -->
-          <div id="cert-gen-progress" style="display:none; padding:16px; background:rgba(90,169,255,0.05); border-radius:8px; border:1px solid rgba(90,169,255,0.1); margin-top:16px;">
+          <div id="cert-gen-progress"
+            style="display:none; padding:16px; background:rgba(90,169,255,0.05); border-radius:8px; border:1px solid rgba(90,169,255,0.1); margin-top:16px;">
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
               <div class="loading-spinner" style="width:16px; height:16px; border-width:2px;"></div>
               <span id="cert-gen-status" style="font-weight:500;">Generando certificados...</span>
             </div>
             <div style="background:rgba(255,255,255,0.05); border-radius:8px; height:8px; overflow:hidden;">
-              <div id="cert-gen-progress-bar" style="background:var(--accent); height:100%; width:0%; transition:width 0.3s;"></div>
+              <div id="cert-gen-progress-bar"
+                style="background:var(--accent); height:100%; width:0%; transition:width 0.3s;"></div>
             </div>
             <div id="cert-gen-details" style="font-size:12px; color:var(--muted); margin-top:8px;"></div>
           </div>
@@ -817,11 +980,12 @@
           <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
             <i class="ph ph-link"></i> Generar Enlaces de Entrega
           </h4>
-          
+
           <p style="color:var(--muted); font-size:14px; margin-bottom:16px;">
-            Genera enlaces de correo, WhatsApp y Drive para los certificados protegidos. <strong>Usa esto después de haber generado y protegido los PDFs.</strong>
+            Genera enlaces de correo, WhatsApp y Drive para los certificados protegidos. <strong>Usa esto después de
+              haber generado y protegido los PDFs.</strong>
           </p>
-          
+
           <!-- Paso 4: Carpeta de Protegidos -->
           <div class="form-group" style="margin-bottom:16px;">
             <label for="select-folder-protegidos" class="label-with-help">
@@ -829,17 +993,23 @@
               <span class="help-icon" data-help="folder-protegidos" title="Haz clic para ver ayuda">?</span>
             </label>
             <div style="display:flex; gap:8px;">
-              <select id="select-folder-protegidos" class="input" style="flex:1;" aria-label="Carpeta para PDFs protegidos" aria-required="true">
+              <select id="select-folder-protegidos" class="input" style="flex:1;"
+                aria-label="Carpeta para PDFs protegidos" aria-required="true">
                 <option value="">-- Seleccionar carpeta --</option>
               </select>
-              <button id="btn-refresh-folders-prot" class="btn secondary" type="button" aria-label="Actualizar lista de carpetas protegidas"><i class="ph ph-arrow-clockwise"></i> Actualizar</button>
+              <button id="btn-refresh-folders-prot" class="btn secondary" type="button"
+                aria-label="Actualizar lista de carpetas protegidas"><i class="ph ph-arrow-clockwise"></i>
+                Actualizar</button>
             </div>
           </div>
-          
+
           <div class="form-group" style="margin-bottom:16px;">
             <div style="display:flex; gap:8px;">
-              <input id="input-new-folder-protegidos" class="input" type="text" placeholder="Nombre de la carpeta" style="flex:1;" aria-label="Nombre para nueva carpeta de PDFs protegidos" />
-              <button id="btn-create-folder-protegidos" class="btn secondary" type="button" aria-label="Crear nueva carpeta para PDFs protegidos"><i class="ph ph-plus"></i> Crear nueva carpeta</button>
+              <input id="input-new-folder-protegidos" class="input" type="text" placeholder="Nombre de la carpeta"
+                style="flex:1;" aria-label="Nombre para nueva carpeta de PDFs protegidos" />
+              <button id="btn-create-folder-protegidos" class="btn secondary" type="button"
+                aria-label="Crear nueva carpeta para PDFs protegidos"><i class="ph ph-plus"></i> Crear nueva
+                carpeta</button>
             </div>
           </div>
 
@@ -849,64 +1019,78 @@
               Título del Webinar/Evento *
               <span class="help-icon" data-help="webinar-title" title="Haz clic para ver ayuda">?</span>
             </label>
-            <input id="input-webinar-title" class="input" type="text" placeholder="Webinar: Título del Evento" aria-label="Título del webinar o evento" aria-required="true" />
+            <input id="input-webinar-title" class="input" type="text" placeholder="Webinar: Título del Evento"
+              aria-label="Título del webinar o evento" aria-required="true" />
           </div>
-          
+
           <div class="form-group" style="margin-bottom:16px;">
             <label for="input-webinar-date" class="label-with-help">
               Fecha del Evento *
               <span class="help-icon" data-help="webinar-date" title="Haz clic para ver ayuda">?</span>
             </label>
-            <input id="input-webinar-date" class="input" type="text" placeholder="15 de noviembre de 2024" aria-label="Fecha del evento" aria-required="true" />
+            <input id="input-webinar-date" class="input" type="text" placeholder="15 de noviembre de 2024"
+              aria-label="Fecha del evento" aria-required="true" />
           </div>
-          
+
           <div class="form-group" style="margin-bottom:16px;">
             <label for="textarea-email-message" class="label-with-help">
               Mensaje de Correo Electrónico (Opcional)
               <span class="help-icon" data-help="email-message" title="Haz clic para ver ayuda">?</span>
             </label>
-            <textarea id="textarea-email-message" class="input" rows="6" placeholder="Mensaje por defecto se usará si está vacío. Variables disponibles: {{NOMBRE}}, {{TITULO}}, {{FECHA}}, {{ENLACE_PDF}}" aria-label="Mensaje personalizado de correo electrónico (opcional)"></textarea>
+            <textarea id="textarea-email-message" class="input" rows="6"
+              placeholder="Mensaje por defecto se usará si está vacío. Variables disponibles: {{NOMBRE}}, {{TITULO}}, {{FECHA}}, {{ENLACE_PDF}}"
+              aria-label="Mensaje personalizado de correo electrónico (opcional)"></textarea>
           </div>
-          
+
           <div class="form-group" style="margin-bottom:16px;">
             <label for="textarea-whatsapp-message" class="label-with-help">
               Mensaje de WhatsApp (Opcional)
               <span class="help-icon" data-help="whatsapp-message" title="Haz clic para ver ayuda">?</span>
             </label>
-            <textarea id="textarea-whatsapp-message" class="input" rows="6" placeholder="Mensaje por defecto se usará si está vacío. Variables disponibles: {{NOMBRE}}, {{TITULO}}, {{FECHA}}, {{ENLACE_PDF}}" aria-label="Mensaje personalizado de WhatsApp (opcional)"></textarea>
+            <textarea id="textarea-whatsapp-message" class="input" rows="6"
+              placeholder="Mensaje por defecto se usará si está vacío. Variables disponibles: {{NOMBRE}}, {{TITULO}}, {{FECHA}}, {{ENLACE_PDF}}"
+              aria-label="Mensaje personalizado de WhatsApp (opcional)"></textarea>
           </div>
-          
-          <div id="links-validation-status" style="padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; margin-bottom:16px; font-size:13px; display:none;">
-            <div style="font-weight:600; margin-bottom:8px;"><i class="ph ph-warning"></i> Faltan los siguientes campos:</div>
+
+          <div id="links-validation-status"
+            style="padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; margin-bottom:16px; font-size:13px; display:none;">
+            <div style="font-weight:600; margin-bottom:8px;"><i class="ph ph-warning"></i> Faltan los siguientes campos:
+            </div>
             <ul id="links-missing-fields" style="margin:0; padding-left:20px; color:var(--muted);"></ul>
           </div>
-          
-          <button id="btn-generate-links" class="btn" type="button" aria-label="Generar enlaces de entrega para correo, WhatsApp y Drive" style="width:100%;">
+
+          <button id="btn-generate-links" class="btn" type="button"
+            aria-label="Generar enlaces de entrega para correo, WhatsApp y Drive" style="width:100%;">
             <i class="ph ph-link"></i> Generar Enlaces
           </button>
-          
+
           <!-- Progreso de generación de enlaces -->
-          <div id="cert-links-progress" style="display:none; padding:16px; background:rgba(90,169,255,0.05); border-radius:8px; border:1px solid rgba(90,169,255,0.1); margin-top:16px;">
+          <div id="cert-links-progress"
+            style="display:none; padding:16px; background:rgba(90,169,255,0.05); border-radius:8px; border:1px solid rgba(90,169,255,0.1); margin-top:16px;">
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
               <div class="loading-spinner" style="width:16px; height:16px; border-width:2px;"></div>
               <span id="cert-links-status" style="font-weight:500;">Generando enlaces...</span>
             </div>
             <div style="background:rgba(255,255,255,0.05); border-radius:8px; height:8px; overflow:hidden;">
-              <div id="cert-links-progress-bar" style="background:var(--accent); height:100%; width:0%; transition:width 0.3s;"></div>
+              <div id="cert-links-progress-bar"
+                style="background:var(--accent); height:100%; width:0%; transition:width 0.3s;"></div>
             </div>
             <div id="cert-links-details" style="font-size:12px; color:var(--muted); margin-top:8px;"></div>
           </div>
         </div>
-        </div>
       </div>
-    </section>
+  </div>
+  </section>
   </div>
 
   <!-- Botón flotante para sincronización manual -->
-  <button id="btn-speed-refresh" class="reload-fab" type="button" aria-label="Sincronizar recursos" title="Sincronizar recursos desde el servidor">
+  <button id="btn-speed-refresh" class="reload-fab" type="button" aria-label="Sincronizar recursos"
+    title="Sincronizar recursos desde el servidor">
     <span class="sr-only">Sincronizar recursos</span>
-    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+      stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
     </svg>
   </button>
 
@@ -927,35 +1111,54 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2><i class="ph ph-plus"></i> Agregar Nuevo Curso</h2>
-        <button class="modal-close" id="modalAddCourseClose" aria-label="Cerrar formulario de nuevo curso" title="Cerrar (Escape)">&times;</button>
+        <button class="modal-close" id="modalAddCourseClose" aria-label="Cerrar formulario de nuevo curso"
+          title="Cerrar (Escape)">&times;</button>
       </div>
       <form id="formAddCourse">
         <div class="form-group">
-          <label for="inputCourseTitle" title="Nombre completo del curso que aparecerá en la plataforma">Título del Curso * (5-100 caracteres)</label>
-          <input id="inputCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso (mínimo 5, máximo 100 caracteres)" maxlength="100" tabindex="1" aria-required="true" aria-label="Título del curso" aria-describedby="inputCourseTitle-help" />
+          <label for="inputCourseTitle" title="Nombre completo del curso que aparecerá en la plataforma">Título del
+            Curso * (5-100 caracteres)</label>
+          <input id="inputCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required
+            title="Nombre completo del curso (mínimo 5, máximo 100 caracteres)" maxlength="100" tabindex="1"
+            aria-required="true" aria-label="Título del curso" aria-describedby="inputCourseTitle-help" />
           <span id="inputCourseTitle-help" class="sr-only">El título debe tener entre 5 y 100 caracteres</span>
         </div>
         <div class="form-group">
-          <label for="inputCourseMeta" title="Descripción breve del curso que aparecerá debajo del título">Descripción / Meta * (10-200 caracteres)</label>
-          <input id="inputCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso (mínimo 10, máximo 200 caracteres)" maxlength="200" tabindex="2" aria-required="true" aria-label="Descripción del curso" aria-describedby="inputCourseMeta-help" />
+          <label for="inputCourseMeta" title="Descripción breve del curso que aparecerá debajo del título">Descripción /
+            Meta * (10-200 caracteres)</label>
+          <input id="inputCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores"
+            required title="Descripción breve del curso (mínimo 10, máximo 200 caracteres)" maxlength="200" tabindex="2"
+            aria-required="true" aria-label="Descripción del curso" aria-describedby="inputCourseMeta-help" />
           <span id="inputCourseMeta-help" class="sr-only">La descripción debe tener entre 10 y 200 caracteres</span>
         </div>
         <div class="form-group">
-          <label for="inputCourseImage" title="URL de la imagen que aparecerá en la tarjeta del curso. Debe ser una URL pública (Google Drive, etc.)">URL de la Imagen *</label>
-          <input id="inputCourseImage" class="input" type="url" placeholder="https://..." required title="URL pública de la imagen" tabindex="3" aria-required="true" aria-label="URL de la imagen del curso" aria-describedby="inputCourseImage-help" />
-          <span id="inputCourseImage-help" class="sr-only">URL pública de la imagen. Sube a Google Drive y usa el formato proporcionado</span>
+          <label for="inputCourseImage"
+            title="URL de la imagen que aparecerá en la tarjeta del curso. Debe ser una URL pública (Google Drive, etc.)">URL
+            de la Imagen *</label>
+          <input id="inputCourseImage" class="input" type="url" placeholder="https://..." required
+            title="URL pública de la imagen" tabindex="3" aria-required="true" aria-label="URL de la imagen del curso"
+            aria-describedby="inputCourseImage-help" />
+          <span id="inputCourseImage-help" class="sr-only">URL pública de la imagen. Sube a Google Drive y usa el
+            formato proporcionado</span>
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
-            <i class="ph ph-folder"></i> Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
+            <i class="ph ph-folder"></i> Sube a Google Drive y usa el formato:
+            https://drive.google.com/uc?export=view&id=TU_ID
           </div>
         </div>
         <div class="form-group">
-          <label for="inputCourseTag" title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag del Curso * (2-10 caracteres)</label>
-          <input id="inputCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (mínimo 2, máximo 10 caracteres)" tabindex="4" aria-required="true" aria-label="Tag del curso" aria-describedby="inputCourseTag-help" />
-          <span id="inputCourseTag-help" class="sr-only">Etiqueta única de 2 a 10 caracteres que identificará el curso</span>
+          <label for="inputCourseTag"
+            title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag
+            del Curso * (2-10 caracteres)</label>
+          <input id="inputCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10"
+            title="Etiqueta única del curso (mínimo 2, máximo 10 caracteres)" tabindex="4" aria-required="true"
+            aria-label="Tag del curso" aria-describedby="inputCourseTag-help" />
+          <span id="inputCourseTag-help" class="sr-only">Etiqueta única de 2 a 10 caracteres que identificará el
+            curso</span>
         </div>
         <div class="form-group">
           <label for="selectCourseType" title="Tipo de contenido educativo">Clasificación *</label>
-          <select id="selectCourseType" class="input" required title="Tipo de contenido educativo" tabindex="5" aria-required="true" aria-label="Clasificación del curso">
+          <select id="selectCourseType" class="input" required title="Tipo de contenido educativo" tabindex="5"
+            aria-required="true" aria-label="Clasificación del curso">
             <option value="curso">Curso</option>
             <option value="diplomado">Diplomado</option>
             <option value="webinar">Webinar</option>
@@ -965,26 +1168,38 @@
         </div>
         <div class="form-group">
           <label for="selectCourseVariant" title="Estilo visual de la tarjeta del curso">Estilo Visual *</label>
-          <select id="selectCourseVariant" class="input" required title="Estilo visual de la tarjeta" tabindex="6" aria-required="true" aria-label="Estilo visual de la tarjeta del curso">
+          <select id="selectCourseVariant" class="input" required title="Estilo visual de la tarjeta" tabindex="6"
+            aria-required="true" aria-label="Estilo visual de la tarjeta del curso">
             <option value="dramatic">Dramatic (Azul)</option>
             <option value="neon">Neon (Cian)</option>
             <option value="simple">Simple (Sin efectos)</option>
           </select>
         </div>
         <div class="form-group">
-          <label for="inputCourseAccent" title="Color de acento que se usará en la tarjeta del curso">Color Accent</label>
+          <label for="inputCourseAccent" title="Color de acento que se usará en la tarjeta del curso">Color
+            Accent</label>
           <div style="display:flex; gap:10px;">
-            <input id="inputCourseAccent" class="input" type="color" value="#5aa9ff" title="Selector de color" tabindex="7" aria-label="Color de acento" />
-            <input type="text" class="input" id="inputCourseAccentHex" value="#5aa9ff" maxlength="7" title="Código hexadecimal del color (ej: #5aa9ff)" tabindex="8" aria-label="Código hexadecimal del color" />
+            <input id="inputCourseAccent" class="input" type="color" value="#5aa9ff" title="Selector de color"
+              tabindex="7" aria-label="Color de acento" />
+            <input type="text" class="input" id="inputCourseAccentHex" value="#5aa9ff" maxlength="7"
+              title="Código hexadecimal del color (ej: #5aa9ff)" tabindex="8"
+              aria-label="Código hexadecimal del color" />
           </div>
         </div>
         <div class="form-group">
-          <label for="inputCourseCode" title="Código secreto único que los usuarios usarán para acceder al curso. Debe ser único y no puede cambiarse después">Código Secreto (se auto-generará) * (5-50 caracteres)</label>
-          <input id="inputCourseCode" class="input" type="text" placeholder="Ingresa un código único, ej: CURSO123456" required title="Código secreto único para acceder al curso (mínimo 5, máximo 50 caracteres)" maxlength="50" tabindex="9" aria-required="true" aria-label="Código secreto del curso" aria-describedby="inputCourseCode-help" />
-          <span id="inputCourseCode-help" class="sr-only">Código único de 5 a 50 caracteres que los usuarios usarán para acceder al curso. No se puede cambiar después de crear el curso</span>
+          <label for="inputCourseCode"
+            title="Código secreto único que los usuarios usarán para acceder al curso. Debe ser único y no puede cambiarse después">Código
+            Secreto (se auto-generará) * (5-50 caracteres)</label>
+          <input id="inputCourseCode" class="input" type="text" placeholder="Ingresa un código único, ej: CURSO123456"
+            required title="Código secreto único para acceder al curso (mínimo 5, máximo 50 caracteres)" maxlength="50"
+            tabindex="9" aria-required="true" aria-label="Código secreto del curso"
+            aria-describedby="inputCourseCode-help" />
+          <span id="inputCourseCode-help" class="sr-only">Código único de 5 a 50 caracteres que los usuarios usarán para
+            acceder al curso. No se puede cambiar después de crear el curso</span>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn secondary" id="btnCancelAddCourse" tabindex="10" aria-label="Cancelar creación de curso">Cancelar</button>
+          <button type="button" class="btn secondary" id="btnCancelAddCourse" tabindex="10"
+            aria-label="Cancelar creación de curso">Cancelar</button>
           <button type="submit" class="btn" tabindex="11" aria-label="Crear nuevo curso">Crear Curso</button>
         </div>
       </form>
@@ -996,35 +1211,56 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2><i class="ph ph-pencil"></i> Editar Curso</h2>
-        <button class="modal-close" id="modalEditCourseClose" aria-label="Cerrar formulario de edición" title="Cerrar (Escape)">&times;</button>
+        <button class="modal-close" id="modalEditCourseClose" aria-label="Cerrar formulario de edición"
+          title="Cerrar (Escape)">&times;</button>
       </div>
       <form id="formEditCourse">
         <div class="form-group">
-          <label for="inputEditCourseTitle" title="Nombre completo del curso que aparecerá en la plataforma">Título del Curso * (5-100 caracteres)</label>
-          <input id="inputEditCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required title="Nombre completo del curso (mínimo 5, máximo 100 caracteres)" maxlength="100" tabindex="1" aria-required="true" aria-label="Título del curso" aria-describedby="inputEditCourseTitle-help" />
+          <label for="inputEditCourseTitle" title="Nombre completo del curso que aparecerá en la plataforma">Título del
+            Curso * (5-100 caracteres)</label>
+          <input id="inputEditCourseTitle" class="input" type="text" placeholder="Ej: Curso de XXX - 2025" required
+            title="Nombre completo del curso (mínimo 5, máximo 100 caracteres)" maxlength="100" tabindex="1"
+            aria-required="true" aria-label="Título del curso" aria-describedby="inputEditCourseTitle-help" />
           <span id="inputEditCourseTitle-help" class="sr-only">El título debe tener entre 5 y 100 caracteres</span>
         </div>
         <div class="form-group">
-          <label for="inputEditCourseMeta" title="Descripción breve del curso que aparecerá debajo del título">Descripción / Meta * (10-200 caracteres)</label>
-          <input id="inputEditCourseMeta" class="input" type="text" placeholder="Material oficial para docentes/consultores" required title="Descripción breve del curso (mínimo 10, máximo 200 caracteres)" maxlength="200" tabindex="2" aria-required="true" aria-label="Descripción del curso" aria-describedby="inputEditCourseMeta-help" />
+          <label for="inputEditCourseMeta"
+            title="Descripción breve del curso que aparecerá debajo del título">Descripción / Meta * (10-200
+            caracteres)</label>
+          <input id="inputEditCourseMeta" class="input" type="text"
+            placeholder="Material oficial para docentes/consultores" required
+            title="Descripción breve del curso (mínimo 10, máximo 200 caracteres)" maxlength="200" tabindex="2"
+            aria-required="true" aria-label="Descripción del curso" aria-describedby="inputEditCourseMeta-help" />
           <span id="inputEditCourseMeta-help" class="sr-only">La descripción debe tener entre 10 y 200 caracteres</span>
         </div>
         <div class="form-group">
-          <label for="inputEditCourseImage" title="URL de la imagen que aparecerá en la tarjeta del curso. Debe ser una URL pública (Google Drive, etc.)">URL de la Imagen *</label>
-          <input id="inputEditCourseImage" class="input" type="url" placeholder="https://..." required title="URL pública de la imagen" tabindex="3" aria-required="true" aria-label="URL de la imagen del curso" aria-describedby="inputEditCourseImage-help" />
-          <span id="inputEditCourseImage-help" class="sr-only">URL pública de la imagen. Sube a Google Drive y usa el formato proporcionado</span>
+          <label for="inputEditCourseImage"
+            title="URL de la imagen que aparecerá en la tarjeta del curso. Debe ser una URL pública (Google Drive, etc.)">URL
+            de la Imagen *</label>
+          <input id="inputEditCourseImage" class="input" type="url" placeholder="https://..." required
+            title="URL pública de la imagen" tabindex="3" aria-required="true" aria-label="URL de la imagen del curso"
+            aria-describedby="inputEditCourseImage-help" />
+          <span id="inputEditCourseImage-help" class="sr-only">URL pública de la imagen. Sube a Google Drive y usa el
+            formato proporcionado</span>
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
-            <i class="ph ph-folder"></i> Sube a Google Drive y usa el formato: https://drive.google.com/uc?export=view&id=TU_ID
+            <i class="ph ph-folder"></i> Sube a Google Drive y usa el formato:
+            https://drive.google.com/uc?export=view&id=TU_ID
           </div>
         </div>
         <div class="form-group">
-          <label for="inputEditCourseTag" title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag del Curso * (2-10 caracteres)</label>
-          <input id="inputEditCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10" title="Etiqueta única del curso (mínimo 2, máximo 10 caracteres)" tabindex="4" aria-required="true" aria-label="Tag del curso" aria-describedby="inputEditCourseTag-help" />
-          <span id="inputEditCourseTag-help" class="sr-only">Etiqueta única de 2 a 10 caracteres que identificará el curso</span>
+          <label for="inputEditCourseTag"
+            title="Etiqueta corta única para identificar el curso (máximo 10 caracteres, se mostrará en mayúsculas)">Tag
+            del Curso * (2-10 caracteres)</label>
+          <input id="inputEditCourseTag" class="input" type="text" placeholder="Ej: CURSO1" required maxlength="10"
+            title="Etiqueta única del curso (mínimo 2, máximo 10 caracteres)" tabindex="4" aria-required="true"
+            aria-label="Tag del curso" aria-describedby="inputEditCourseTag-help" />
+          <span id="inputEditCourseTag-help" class="sr-only">Etiqueta única de 2 a 10 caracteres que identificará el
+            curso</span>
         </div>
         <div class="form-group">
           <label for="selectEditCourseType" title="Tipo de contenido educativo">Clasificación *</label>
-          <select id="selectEditCourseType" class="input" required title="Tipo de contenido educativo" tabindex="5" aria-required="true" aria-label="Clasificación del curso">
+          <select id="selectEditCourseType" class="input" required title="Tipo de contenido educativo" tabindex="5"
+            aria-required="true" aria-label="Clasificación del curso">
             <option value="curso">Curso</option>
             <option value="diplomado">Diplomado</option>
             <option value="webinar">Webinar</option>
@@ -1034,30 +1270,38 @@
         </div>
         <div class="form-group">
           <label for="selectEditCourseVariant" title="Estilo visual de la tarjeta del curso">Estilo Visual *</label>
-          <select id="selectEditCourseVariant" class="input" required title="Estilo visual de la tarjeta" tabindex="6" aria-required="true" aria-label="Estilo visual de la tarjeta del curso">
+          <select id="selectEditCourseVariant" class="input" required title="Estilo visual de la tarjeta" tabindex="6"
+            aria-required="true" aria-label="Estilo visual de la tarjeta del curso">
             <option value="dramatic">Dramatic (Azul)</option>
             <option value="neon">Neon (Cian)</option>
             <option value="simple">Simple (Sin efectos)</option>
           </select>
         </div>
         <div class="form-group">
-          <label for="inputEditCourseAccent" title="Color de acento que se usará en la tarjeta del curso">Color Accent</label>
+          <label for="inputEditCourseAccent" title="Color de acento que se usará en la tarjeta del curso">Color
+            Accent</label>
           <div style="display:flex; gap:10px;">
-            <input id="inputEditCourseAccent" class="input" type="color" value="#5aa9ff" title="Selector de color" tabindex="7" aria-label="Color de acento" />
-            <input type="text" class="input" id="inputEditCourseAccentHex" value="#5aa9ff" maxlength="7" title="Código hexadecimal del color (ej: #5aa9ff)" tabindex="8" aria-label="Código hexadecimal del color" />
+            <input id="inputEditCourseAccent" class="input" type="color" value="#5aa9ff" title="Selector de color"
+              tabindex="7" aria-label="Color de acento" />
+            <input type="text" class="input" id="inputEditCourseAccentHex" value="#5aa9ff" maxlength="7"
+              title="Código hexadecimal del color (ej: #5aa9ff)" tabindex="8"
+              aria-label="Código hexadecimal del color" />
           </div>
         </div>
         <div class="form-group">
           <label for="inputEditCourseCode">Código Secreto (no se puede cambiar)</label>
-          <input id="inputEditCourseCode" class="input" type="text" readonly style="background: rgba(255,255,255,0.05); cursor: not-allowed;" />
+          <input id="inputEditCourseCode" class="input" type="text" readonly
+            style="background: rgba(255,255,255,0.05); cursor: not-allowed;" />
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
             <i class="ph ph-warning"></i> El código no se puede cambiar una vez creado el curso
           </div>
         </div>
         <input type="hidden" id="inputEditCourseHex" />
         <div class="form-actions">
-          <button type="button" class="btn secondary" id="btnCancelEditCourse" tabindex="9" aria-label="Cancelar edición de curso">Cancelar</button>
-          <button type="submit" class="btn" tabindex="10" aria-label="Guardar cambios del curso">Guardar Cambios</button>
+          <button type="button" class="btn secondary" id="btnCancelEditCourse" tabindex="9"
+            aria-label="Cancelar edición de curso">Cancelar</button>
+          <button type="submit" class="btn" tabindex="10" aria-label="Guardar cambios del curso">Guardar
+            Cambios</button>
         </div>
       </form>
     </div>
@@ -1069,23 +1313,26 @@
     <div class="modal-content" style="max-width: 500px;">
       <div class="modal-header">
         <h2><i class="ph ph-copy"></i> Duplicar Curso</h2>
-        <button class="modal-close" id="modalDuplicateCodeClose" aria-label="Cerrar formulario de duplicar curso" title="Cerrar (Escape)">&times;</button>
+        <button class="modal-close" id="modalDuplicateCodeClose" aria-label="Cerrar formulario de duplicar curso"
+          title="Cerrar (Escape)">&times;</button>
       </div>
-      
+
       <div style="padding: 20px;">
         <p style="color: var(--muted); margin-bottom: 20px;">
           Ingresa un nuevo código secreto único para el curso duplicado:
         </p>
-        
+
         <div class="form-group">
           <label for="inputDuplicateCode">Código Secreto *</label>
-          <input id="inputDuplicateCode" class="input" type="text" placeholder="Ej: CURSO_NUEVO_123" required autofocus aria-label="Código secreto para el curso duplicado" aria-describedby="inputDuplicateCode-help" aria-required="true" />
+          <input id="inputDuplicateCode" class="input" type="text" placeholder="Ej: CURSO_NUEVO_123" required autofocus
+            aria-label="Código secreto para el curso duplicado" aria-describedby="inputDuplicateCode-help"
+            aria-required="true" />
           <div id="inputDuplicateCode-help" style="font-size: 12px; color: var(--muted); margin-top: 4px;">
             <i class="ph ph-warning"></i> Este código debe ser único y no puede estar en uso
           </div>
         </div>
       </div>
-      
+
       <div style="display: flex; gap: 12px; justify-content: center; padding: 0 20px 20px;">
         <button id="btnCancelDuplicate" class="btn secondary" type="button">
           Cancelar
@@ -1103,29 +1350,35 @@
     <div class="modal-content" style="max-width: 500px;">
       <div class="modal-header">
         <h2>Confirmar Eliminación</h2>
-        <button class="modal-close" id="deleteConfirmClose" aria-label="Cerrar confirmación de eliminación" title="Cerrar (Escape)">&times;</button>
+        <button class="modal-close" id="deleteConfirmClose" aria-label="Cerrar confirmación de eliminación"
+          title="Cerrar (Escape)">&times;</button>
       </div>
-      
+
       <div style="text-align: center; padding: 20px 0;">
         <!-- Icono de advertencia -->
-        <div style="width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 50%; background: linear-gradient(135deg, rgba(255,90,90,0.2), rgba(255,90,90,0.1)); display: flex; align-items: center; justify-content: center;">
-          <svg style="width: 40px; height: 40px; color: var(--danger);" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+        <div
+          style="width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 50%; background: linear-gradient(135deg, rgba(255,90,90,0.2), rgba(255,90,90,0.1)); display: flex; align-items: center; justify-content: center;">
+          <svg style="width: 40px; height: 40px; color: var(--danger);" fill="currentColor" viewBox="0 0 20 20"
+            xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd"
+              d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+              clip-rule="evenodd"></path>
           </svg>
         </div>
-        
+
         <h3 id="deleteCourseName" style="margin-bottom: 12px; font-size: 20px;"></h3>
         <p id="deleteConfirmMessage" style="color: var(--muted); margin-bottom: 24px;">
           ¿Estás seguro de que deseas eliminar este curso?<br>
           <strong style="color: var(--danger);">Esta acción no se puede deshacer.</strong>
         </p>
       </div>
-      
+
       <div style="display: flex; gap: 12px; justify-content: center;">
         <button id="deleteConfirmCancel" class="btn secondary" type="button">
           Cancelar
         </button>
-        <button id="deleteConfirmYes" class="btn" type="button" style="background: linear-gradient(135deg, #ff5555, #cc0000);">
+        <button id="deleteConfirmYes" class="btn" type="button"
+          style="background: linear-gradient(135deg, #ff5555, #cc0000);">
           Sí, eliminar
         </button>
       </div>
@@ -1136,22 +1389,28 @@
   <div id="successModal" class="modal">
     <div class="modal-overlay"></div>
     <div class="modal-content" style="max-width: 450px;">
-      <button class="modal-close" id="successModalClose" aria-label="Cerrar mensaje de éxito" title="Cerrar (Escape)">&times;</button>
-      
+      <button class="modal-close" id="successModalClose" aria-label="Cerrar mensaje de éxito"
+        title="Cerrar (Escape)">&times;</button>
+
       <div style="text-align: center; padding: 30px 20px;">
         <!-- Icono de éxito -->
-        <div style="width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 50%; background: linear-gradient(135deg, rgba(74,222,128,0.2), rgba(34,197,94,0.1)); display: flex; align-items: center; justify-content: center;">
-          <svg style="width: 45px; height: 45px; color: #4ade80;" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+        <div
+          style="width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 50%; background: linear-gradient(135deg, rgba(74,222,128,0.2), rgba(34,197,94,0.1)); display: flex; align-items: center; justify-content: center;">
+          <svg style="width: 45px; height: 45px; color: #4ade80;" fill="currentColor" viewBox="0 0 20 20"
+            xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"></path>
           </svg>
         </div>
-        
+
         <h3 id="successModalTitle" style="margin-bottom: 12px; font-size: 22px; color: #4ade80;">¡Éxito!</h3>
         <p id="successModalMessage" style="color: var(--muted); margin-bottom: 28px; font-size: 16px;">
           El curso ha sido creado correctamente.
         </p>
-        
-        <button id="successModalBtn" class="btn" type="button" style="min-width: 140px; background: linear-gradient(135deg, #4ade80, #22c55e);">
+
+        <button id="successModalBtn" class="btn" type="button"
+          style="min-width: 140px; background: linear-gradient(135deg, #4ade80, #22c55e);">
           Continuar
         </button>
       </div>
@@ -1163,29 +1422,24 @@
     <div class="modal-content" style="max-width: 600px;">
       <div class="modal-header">
         <h2 id="modalCourseEmailsTitle"><i class="ph ph-envelope"></i> Correos Permitidos</h2>
-        <button class="modal-close" id="modalCourseEmailsClose" aria-label="Cerrar modal de correos" title="Cerrar (Escape)">&times;</button>
+        <button class="modal-close" id="modalCourseEmailsClose" aria-label="Cerrar modal de correos"
+          title="Cerrar (Escape)">&times;</button>
       </div>
       <div style="padding: 20px;">
         <!-- Formulario para agregar correo -->
         <div style="display:flex; gap:8px; margin-bottom:20px;">
-          <input 
-            id="input-course-email" 
-            class="input" 
-            type="email" 
-            placeholder="correo@ejemplo.com" 
-            style="flex:1;"
-            aria-label="Correo electrónico a autorizar para este curso"
-          />
+          <input id="input-course-email" class="input" type="email" placeholder="correo@ejemplo.com" style="flex:1;"
+            aria-label="Correo electrónico a autorizar para este curso" />
           <button id="btn-add-course-email" class="btn" type="button">
             <i class="ph ph-plus"></i> Agregar
           </button>
         </div>
-        
+
         <!-- Lista de correos -->
         <div id="course-emails-list" style="display:grid; gap:8px; min-height:60px; max-height:400px; overflow-y:auto;">
           <p style="color:var(--muted); text-align:center; padding:20px; margin:0;">Cargando correos autorizados...</p>
         </div>
-        
+
         <div id="msg-course-emails" class="msg" style="margin-top:12px;"></div>
       </div>
     </div>
@@ -1196,20 +1450,15 @@
     <div class="modal-content" style="max-width: 900px; max-height: 90vh;">
       <div class="modal-header">
         <h2><i class="ph ph-envelope"></i> Gestión General de Correos</h2>
-        <button class="modal-close" id="modalGeneralEmailsClose" aria-label="Cerrar modal de gestión de correos" title="Cerrar (Escape)">&times;</button>
+        <button class="modal-close" id="modalGeneralEmailsClose" aria-label="Cerrar modal de gestión de correos"
+          title="Cerrar (Escape)">&times;</button>
       </div>
       <div style="padding: 20px; overflow-y: auto; max-height: calc(90vh - 100px);">
         <!-- Búsqueda y filtros -->
         <div style="margin-bottom: 20px;">
           <div style="display:flex; gap:8px; margin-bottom:12px;">
-            <input 
-              id="input-search-course-emails" 
-              class="input" 
-              type="text" 
-              placeholder="Buscar curso o correo..." 
-              style="flex:1;"
-              aria-label="Buscar curso o correo"
-            />
+            <input id="input-search-course-emails" class="input" type="text" placeholder="Buscar curso o correo..."
+              style="flex:1;" aria-label="Buscar curso o correo" />
             <select id="filter-course-type-emails" class="input" style="min-width: 150px;">
               <option value="all">Todos los tipos</option>
               <option value="curso"><i class="ph ph-book-open"></i> Cursos</option>
@@ -1220,12 +1469,12 @@
             </select>
           </div>
         </div>
-        
+
         <!-- Lista de cursos con sus correos -->
         <div id="general-emails-list" style="display:grid; gap:16px;">
           <p style="color:var(--muted); text-align:center; padding:40px; margin:0;">Cargando cursos y correos...</p>
         </div>
-        
+
         <div id="msg-general-emails" class="msg" style="margin-top:12px;"></div>
       </div>
     </div>
@@ -1236,41 +1485,40 @@
     <div class="modal-content" style="max-width: 700px; max-height: 90vh;">
       <div class="modal-header">
         <h2><i class="ph ph-crown"></i> Gestión de Administradores</h2>
-        <button class="modal-close" id="modalAdminsClose" aria-label="Cerrar modal de administradores" title="Cerrar (Escape)">&times;</button>
+        <button class="modal-close" id="modalAdminsClose" aria-label="Cerrar modal de administradores"
+          title="Cerrar (Escape)">&times;</button>
       </div>
       <div style="padding: 20px; overflow-y: auto; max-height: calc(90vh - 100px);">
         <p style="color:var(--muted); font-size:14px; margin-bottom:20px;">
-          Los administradores tienen acceso completo a la vista maestra. Pueden gestionar todos los cursos, correos y configuraciones.
+          Los administradores tienen acceso completo a la vista maestra. Pueden gestionar todos los cursos, correos y
+          configuraciones.
         </p>
-        
+
         <!-- Formulario para agregar administrador -->
-        <div style="margin-bottom: 20px; padding: 16px; background: rgba(90,169,255,0.05); border-radius: 8px; border: 1px solid rgba(90,169,255,0.2);">
+        <div
+          style="margin-bottom: 20px; padding: 16px; background: rgba(90,169,255,0.05); border-radius: 8px; border: 1px solid rgba(90,169,255,0.2);">
           <h3 style="margin:0 0 12px 0; font-size:16px; font-weight:600;">Agregar Administrador</h3>
           <div style="display:flex; gap:8px;">
-            <input 
-              id="input-admin-email" 
-              class="input" 
-              type="email" 
-              placeholder="correo@ejemplo.com" 
-              style="flex:1;"
-              aria-label="Correo electrónico del administrador"
-            />
+            <input id="input-admin-email" class="input" type="email" placeholder="correo@ejemplo.com" style="flex:1;"
+              aria-label="Correo electrónico del administrador" />
             <button id="btn-add-admin" class="btn" type="button" style="white-space:nowrap;">Agregar</button>
           </div>
         </div>
-        
+
         <!-- Lista de administradores -->
         <div id="admins-list" style="display:grid; gap:8px; min-height:60px; max-height:400px; overflow-y:auto;">
           <p style="color:var(--muted); text-align:center; padding:20px; margin:0;">Cargando administradores...</p>
         </div>
-        
+
         <div id="msg-admins" class="msg" style="margin-top:12px;"></div>
       </div>
     </div>
   </div>
 
   <!-- Sistema de Notificaciones Toast -->
-  <div id="toastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 12px; pointer-events: none;"></div>
+  <div id="toastContainer"
+    style="position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 12px; pointer-events: none;">
+  </div>
 
   <!-- Scripts -->
   <!-- Firebase Realtime Database (100% gratis, sin facturación) -->
@@ -1291,14 +1539,14 @@
         });
       });
     }
-    
+
     window.addEventListener('DOMContentLoaded', () => {
       const refreshBtn = document.getElementById('btn-speed-refresh');
       if (!refreshBtn) return;
 
       // ✅ Variable global para controlar estado del botón
       window.btnSyncHasChanges = false;
-      
+
       // ✅ Función para actualizar el estado visual del botón
       window.updateSyncButtonState = (hasChanges) => {
         if (hasChanges !== window.btnSyncHasChanges) {
@@ -1325,15 +1573,15 @@
 
         try {
           console.log('[FAB] 🔄 Forzando sincronización desde servidor...');
-          
+
           // ✅ Llamar a la función global de refresh forzado (sin borrar localStorage)
           if (typeof window.forzarSincronizacion === 'function') {
             await window.forzarSincronizacion();
             console.log('[FAB] ✅ Sincronización completada');
-            
+
             // ✅ Resetear estado a azul después de sincronizar
             window.updateSyncButtonState(false);
-            
+
             // ✅ El modal se muestra desde forzarSincronizacion() en app.js
           } else {
             console.warn('[FAB] forzarSincronizacion no está disponible. Recargando...');
@@ -1363,19 +1611,19 @@
       });
     });
   </script>
-  
+
   <!-- Service Worker Registration -->
   <script>
     // ✅ MODO DESARROLLO: Cambia a false antes de hacer commit a producción
     // En desarrollo: Los cambios se ven inmediatamente sin limpiar caché
     // En producción: Usa caché optimizado para mejor rendimiento
     const IS_DEVELOPMENT = false; // ⚠️ CAMBIAR A false EN PRODUCCIÓN
-    
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // ✅ Usar ruta relativa para que funcione en cualquier path base
         const swPath = './sw.js';
-        
+
         if (IS_DEVELOPMENT) {
           // En desarrollo: desregistrar cualquier SW existente y registrar nuevo
           // Esto asegura que siempre se use la versión más reciente
@@ -1409,245 +1657,245 @@
 
   <!-- Script del modal de confirmación de eliminación -->
   <script>
-  // ✅ Modal de confirmación para eliminar
-  (function() {
-    const modal = document.getElementById('deleteConfirmModal');
-    const btnClose = document.getElementById('deleteConfirmClose');
-    const btnCancel = document.getElementById('deleteConfirmCancel');
-    const btnYes = document.getElementById('deleteConfirmYes');
-    const courseName = document.getElementById('deleteCourseName');
-    const confirmMessage = document.getElementById('deleteConfirmMessage');
-    
-    let onConfirmCallback = null;
-    
-    // Función global para mostrar el modal
-    window.showDeleteConfirmModal = function(title, onConfirm, type = 'curso') {
-      courseName.textContent = title;
-      onConfirmCallback = onConfirm;
-      
-      // ✅ Cambiar el mensaje según el tipo (curso o enlace)
-      // Detectar si es enlace por el título que empieza con "Enlace:" o por el parámetro type
-      const isEnlace = type === 'enlace' || (title && title.trim().startsWith('Enlace:'));
-      if (isEnlace) {
-        confirmMessage.innerHTML = '¿Estás seguro de que deseas eliminar este enlace?<br><strong style="color: var(--danger);">Esta acción no se puede deshacer.</strong>';
-      } else {
-        confirmMessage.innerHTML = '¿Estás seguro de que deseas eliminar este curso?<br><strong style="color: var(--danger);">Esta acción no se puede deshacer.</strong>';
-      }
-      
-      modal.classList.add('show');
-    };
-    
-    // Cerrar modal
-    function closeModal() {
-      modal.classList.remove('show');
-      onConfirmCallback = null;
-    }
-    
-    // Event listeners
-    btnClose.addEventListener('click', closeModal);
-    btnCancel.addEventListener('click', closeModal);
-    
-    btnYes.addEventListener('click', () => {
-      if (onConfirmCallback) {
-        onConfirmCallback();
-      }
-      closeModal();
-    });
-    
-    // Cerrar con Escape
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.classList.contains('show')) {
-        closeModal();
-      }
-    });
-    
-    // Cerrar al hacer click en el overlay
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        closeModal();
-      }
-    });
-  })();
+    // ✅ Modal de confirmación para eliminar
+    (function () {
+      const modal = document.getElementById('deleteConfirmModal');
+      const btnClose = document.getElementById('deleteConfirmClose');
+      const btnCancel = document.getElementById('deleteConfirmCancel');
+      const btnYes = document.getElementById('deleteConfirmYes');
+      const courseName = document.getElementById('deleteCourseName');
+      const confirmMessage = document.getElementById('deleteConfirmMessage');
 
-  // ✅ Modal de éxito
-  (function() {
-    const modal = document.getElementById('successModal');
-    const btnClose = document.getElementById('successModalClose');
-    const btnContinue = document.getElementById('successModalBtn');
-    const modalTitle = document.getElementById('successModalTitle');
-    const modalMessage = document.getElementById('successModalMessage');
-    
-    // Función global para mostrar el modal de éxito
-    // ✅ Modal para ingresar código al duplicar curso
-    (function() {
-      const modal = document.getElementById('modalDuplicateCode');
-      const input = document.getElementById('inputDuplicateCode');
-      const btnCancel = document.getElementById('btnCancelDuplicate');
-      const btnConfirm = document.getElementById('btnConfirmDuplicate');
-      const btnClose = document.getElementById('modalDuplicateCodeClose');
-      
       let onConfirmCallback = null;
-      
-      const closeModal = () => {
-        modal.classList.remove('show');
-        input.value = '';
-        onConfirmCallback = null;
-      };
-      
-      let handleConfirm = () => {
-        const code = input.value.trim();
-        if (!code) {
-          if (typeof window.showSuccessModal === 'function') {
-            window.showSuccessModal('Error', 'Por favor ingresa un código secreto');
-          } else {
-            alert('Por favor ingresa un código secreto');
-          }
-          return;
+
+      // Función global para mostrar el modal
+      window.showDeleteConfirmModal = function (title, onConfirm, type = 'curso') {
+        courseName.textContent = title;
+        onConfirmCallback = onConfirm;
+
+        // ✅ Cambiar el mensaje según el tipo (curso o enlace)
+        // Detectar si es enlace por el título que empieza con "Enlace:" o por el parámetro type
+        const isEnlace = type === 'enlace' || (title && title.trim().startsWith('Enlace:'));
+        if (isEnlace) {
+          confirmMessage.innerHTML = '¿Estás seguro de que deseas eliminar este enlace?<br><strong style="color: var(--danger);">Esta acción no se puede deshacer.</strong>';
+        } else {
+          confirmMessage.innerHTML = '¿Estás seguro de que deseas eliminar este curso?<br><strong style="color: var(--danger);">Esta acción no se puede deshacer.</strong>';
         }
+
+        modal.classList.add('show');
+      };
+
+      // Cerrar modal
+      function closeModal() {
+        modal.classList.remove('show');
+        onConfirmCallback = null;
+      }
+
+      // Event listeners
+      btnClose.addEventListener('click', closeModal);
+      btnCancel.addEventListener('click', closeModal);
+
+      btnYes.addEventListener('click', () => {
         if (onConfirmCallback) {
-          onConfirmCallback(code);
+          onConfirmCallback();
         }
         closeModal();
-      };
-      
-      // Event listeners (solo una vez)
-      if (btnConfirm) {
-        btnConfirm.addEventListener('click', () => handleConfirm());
-      }
-      if (btnCancel) {
-        btnCancel.addEventListener('click', closeModal);
-      }
-      if (btnClose) {
-        btnClose.addEventListener('click', closeModal);
-      }
-      
-      // Enter key para confirmar
-      if (input) {
-        input.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' && modal.classList.contains('show')) {
-            e.preventDefault();
-            handleConfirm();
-          }
-        });
-      }
-      
-      // Cerrar al hacer click fuera
-      if (modal) {
-        modal.addEventListener('click', (e) => {
-          if (e.target === modal || e.target.classList.contains('modal-overlay')) {
-            closeModal();
-          }
-        });
-      }
-      
+      });
+
       // Cerrar con Escape
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal.classList.contains('show')) {
           closeModal();
         }
       });
-      
-      // ✅ Validación en tiempo real para código duplicado
-      if (input) {
-        // Configurar validación cuando el input esté disponible
-        input.addEventListener('focus', () => {
-          if (typeof setupRealTimeValidation === 'function' && typeof validateCode === 'function') {
-            setupRealTimeValidation(input, validateCode, { minLength: 5, maxLength: 50 });
-          }
-        });
-      }
-      
-      // Función global para mostrar el modal
-      window.showDuplicateCodeModal = function(defaultCode, onConfirm) {
-        if (!modal || !input) {
-          // Fallback a prompt si el modal no está disponible
-          const code = prompt('Ingresa un nuevo código secreto para el curso duplicado:', defaultCode);
-          if (code && code.trim()) {
-            onConfirm(code.trim());
-          }
-          return;
+
+      // Cerrar al hacer click en el overlay
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          closeModal();
         }
-        
-        // Pre-llenar con código sugerido
-        input.value = defaultCode || '';
-        onConfirmCallback = onConfirm;
-        
-        // ✅ Configurar validación en tiempo real
-        if (typeof setupRealTimeValidation === 'function' && typeof validateCode === 'function') {
-          setupRealTimeValidation(input, validateCode, { minLength: 5, maxLength: 50 });
-        }
-        
-        // Mostrar modal y enfocar input
-        modal.classList.add('show');
-        setTimeout(() => input.focus(), 100);
-      };
-      
-      // ✅ Mejorar handleConfirm para validar antes de confirmar
-      const originalHandleConfirm = handleConfirm;
-      handleConfirm = () => {
-        const code = input.value.trim();
-        if (!code) {
-          if (typeof window.showSuccessModal === 'function') {
-            window.showSuccessModal('Error', 'Por favor ingresa un código secreto');
-          } else {
-            alert('Por favor ingresa un código secreto');
-          }
-          return;
-        }
-        
-        // ✅ Validar código antes de confirmar
-        if (typeof validateCode === 'function') {
-          const validation = validateCode(code);
-          if (!validation.valid) {
-            if (typeof window.showToast === 'function') {
-              window.showToast('error', 'Código inválido', validation.error);
-            } else if (typeof window.showSuccessModal === 'function') {
-              window.showSuccessModal('Error', validation.error);
+      });
+    })();
+
+    // ✅ Modal de éxito
+    (function () {
+      const modal = document.getElementById('successModal');
+      const btnClose = document.getElementById('successModalClose');
+      const btnContinue = document.getElementById('successModalBtn');
+      const modalTitle = document.getElementById('successModalTitle');
+      const modalMessage = document.getElementById('successModalMessage');
+
+      // Función global para mostrar el modal de éxito
+      // ✅ Modal para ingresar código al duplicar curso
+      (function () {
+        const modal = document.getElementById('modalDuplicateCode');
+        const input = document.getElementById('inputDuplicateCode');
+        const btnCancel = document.getElementById('btnCancelDuplicate');
+        const btnConfirm = document.getElementById('btnConfirmDuplicate');
+        const btnClose = document.getElementById('modalDuplicateCodeClose');
+
+        let onConfirmCallback = null;
+
+        const closeModal = () => {
+          modal.classList.remove('show');
+          input.value = '';
+          onConfirmCallback = null;
+        };
+
+        let handleConfirm = () => {
+          const code = input.value.trim();
+          if (!code) {
+            if (typeof window.showSuccessModal === 'function') {
+              window.showSuccessModal('Error', 'Por favor ingresa un código secreto');
             } else {
-              alert(validation.error);
+              alert('Por favor ingresa un código secreto');
             }
             return;
           }
-        }
-        
-        if (onConfirmCallback) {
-          onConfirmCallback(code);
-        }
-        closeModal();
-      };
-    })();
+          if (onConfirmCallback) {
+            onConfirmCallback(code);
+          }
+          closeModal();
+        };
 
-    window.showSuccessModal = function(title, message) {
-      if (title) modalTitle.textContent = title;
-      if (message) modalMessage.textContent = message;
-      modal.classList.add('show');
-      
-      // Auto-cerrar después de 3 segundos
-      setTimeout(() => {
-        closeModal();
-      }, 3000);
-    };
-    
-    // ✅ Sistema de Toast Notifications
-    window.showToast = function(type, title, message, duration = 4000) {
-      const container = document.getElementById('toastContainer');
-      if (!container) {
-        // Fallback a alert si no hay contenedor
-        alert(`${title}: ${message}`);
-        return;
-      }
-      
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      
-      const icons = {
-        success: '<i class="ph ph-check-circle"></i>',
-        error: '<i class="ph ph-x-circle"></i>',
-        warning: '<i class="ph ph-warning"></i>',
-        info: '<i class="ph ph-info"></i>'
+        // Event listeners (solo una vez)
+        if (btnConfirm) {
+          btnConfirm.addEventListener('click', () => handleConfirm());
+        }
+        if (btnCancel) {
+          btnCancel.addEventListener('click', closeModal);
+        }
+        if (btnClose) {
+          btnClose.addEventListener('click', closeModal);
+        }
+
+        // Enter key para confirmar
+        if (input) {
+          input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && modal.classList.contains('show')) {
+              e.preventDefault();
+              handleConfirm();
+            }
+          });
+        }
+
+        // Cerrar al hacer click fuera
+        if (modal) {
+          modal.addEventListener('click', (e) => {
+            if (e.target === modal || e.target.classList.contains('modal-overlay')) {
+              closeModal();
+            }
+          });
+        }
+
+        // Cerrar con Escape
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && modal.classList.contains('show')) {
+            closeModal();
+          }
+        });
+
+        // ✅ Validación en tiempo real para código duplicado
+        if (input) {
+          // Configurar validación cuando el input esté disponible
+          input.addEventListener('focus', () => {
+            if (typeof setupRealTimeValidation === 'function' && typeof validateCode === 'function') {
+              setupRealTimeValidation(input, validateCode, { minLength: 5, maxLength: 50 });
+            }
+          });
+        }
+
+        // Función global para mostrar el modal
+        window.showDuplicateCodeModal = function (defaultCode, onConfirm) {
+          if (!modal || !input) {
+            // Fallback a prompt si el modal no está disponible
+            const code = prompt('Ingresa un nuevo código secreto para el curso duplicado:', defaultCode);
+            if (code && code.trim()) {
+              onConfirm(code.trim());
+            }
+            return;
+          }
+
+          // Pre-llenar con código sugerido
+          input.value = defaultCode || '';
+          onConfirmCallback = onConfirm;
+
+          // ✅ Configurar validación en tiempo real
+          if (typeof setupRealTimeValidation === 'function' && typeof validateCode === 'function') {
+            setupRealTimeValidation(input, validateCode, { minLength: 5, maxLength: 50 });
+          }
+
+          // Mostrar modal y enfocar input
+          modal.classList.add('show');
+          setTimeout(() => input.focus(), 100);
+        };
+
+        // ✅ Mejorar handleConfirm para validar antes de confirmar
+        const originalHandleConfirm = handleConfirm;
+        handleConfirm = () => {
+          const code = input.value.trim();
+          if (!code) {
+            if (typeof window.showSuccessModal === 'function') {
+              window.showSuccessModal('Error', 'Por favor ingresa un código secreto');
+            } else {
+              alert('Por favor ingresa un código secreto');
+            }
+            return;
+          }
+
+          // ✅ Validar código antes de confirmar
+          if (typeof validateCode === 'function') {
+            const validation = validateCode(code);
+            if (!validation.valid) {
+              if (typeof window.showToast === 'function') {
+                window.showToast('error', 'Código inválido', validation.error);
+              } else if (typeof window.showSuccessModal === 'function') {
+                window.showSuccessModal('Error', validation.error);
+              } else {
+                alert(validation.error);
+              }
+              return;
+            }
+          }
+
+          if (onConfirmCallback) {
+            onConfirmCallback(code);
+          }
+          closeModal();
+        };
+      })();
+
+      window.showSuccessModal = function (title, message) {
+        if (title) modalTitle.textContent = title;
+        if (message) modalMessage.textContent = message;
+        modal.classList.add('show');
+
+        // Auto-cerrar después de 3 segundos
+        setTimeout(() => {
+          closeModal();
+        }, 3000);
       };
-      
-      toast.innerHTML = `
+
+      // ✅ Sistema de Toast Notifications
+      window.showToast = function (type, title, message, duration = 4000) {
+        const container = document.getElementById('toastContainer');
+        if (!container) {
+          // Fallback a alert si no hay contenedor
+          alert(`${title}: ${message}`);
+          return;
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+
+        const icons = {
+          success: '<i class="ph ph-check-circle"></i>',
+          error: '<i class="ph ph-x-circle"></i>',
+          warning: '<i class="ph ph-warning"></i>',
+          info: '<i class="ph ph-info"></i>'
+        };
+
+        toast.innerHTML = `
         <span class="toast-icon">${icons[type] || icons.info}</span>
         <div class="toast-content">
           <div class="toast-title">${title || ''}</div>
@@ -1655,248 +1903,254 @@
         </div>
         <button class="toast-close" onclick="this.parentElement.remove()" aria-label="Cerrar notificación" title="Cerrar">&times;</button>
       `;
-      
-      container.appendChild(toast);
-      
-      // Auto-remover después de duration
-      setTimeout(() => {
-        toast.classList.add('hiding');
+
+        container.appendChild(toast);
+
+        // Auto-remover después de duration
         setTimeout(() => {
-          if (toast.parentElement) {
-            toast.remove();
-          }
-        }, 300);
-      }, duration);
-      
-      return toast;
-    };
-    
-    // ✅ Indicador de carga global
-    window.showLoading = function(message = 'Cargando...') {
-      const overlay = document.createElement('div');
-      overlay.className = 'loading-overlay';
-      overlay.id = 'globalLoadingOverlay';
-      overlay.innerHTML = `
+          toast.classList.add('hiding');
+          setTimeout(() => {
+            if (toast.parentElement) {
+              toast.remove();
+            }
+          }, 300);
+        }, duration);
+
+        return toast;
+      };
+
+      // ✅ Indicador de carga global
+      window.showLoading = function (message = 'Cargando...') {
+        const overlay = document.createElement('div');
+        overlay.className = 'loading-overlay';
+        overlay.id = 'globalLoadingOverlay';
+        overlay.innerHTML = `
         <div style="text-align: center;">
           <div class="loading-spinner"></div>
           <div class="loading-text">${message}</div>
         </div>
       `;
-      document.body.appendChild(overlay);
-      return overlay;
-    };
-    
-    window.hideLoading = function() {
-      const overlay = document.getElementById('globalLoadingOverlay');
-      if (overlay) {
-        overlay.style.opacity = '0';
-        setTimeout(() => {
-          if (overlay.parentElement) {
-            overlay.remove();
-          }
-        }, 200);
-      }
-    };
-    
-    // Cerrar modal
-    function closeModal() {
-      modal.classList.remove('show');
-    }
-    
-    // Event listeners
-    btnClose.addEventListener('click', closeModal);
-    btnContinue.addEventListener('click', closeModal);
-    
-    // Cerrar con Escape
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.classList.contains('show')) {
-        closeModal();
-      }
-    });
-    
-    // Cerrar al hacer click en el overlay
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        closeModal();
-      }
-    });
-  })();
-  
-  // ===== MODAL PARA MOSTRAR CÓDIGO DEL GOOGLE APPS SCRIPT =====
-  
-  // Esperar a que el DOM esté listo
-  document.addEventListener('DOMContentLoaded', function() {
-    // Usar document.querySelector directamente (no depende de $ de app.js)
-    const modalCertScript = document.querySelector('#modalCertScript');
-    const btnShowCertScript = document.querySelector('#btn-show-cert-script');
-    const btnCopyCertScript = document.querySelector('#btn-copy-cert-script');
-    const certScriptCode = document.querySelector('#cert-script-code');
-    const modalCertScriptClose = document.querySelector('#modalCertScriptClose');
-    
-    console.log('[CERT SCRIPT] Elementos encontrados:', {
-      modalCertScript: !!modalCertScript,
-      btnShowCertScript: !!btnShowCertScript,
-      btnCopyCertScript: !!btnCopyCertScript,
-      certScriptCode: !!certScriptCode,
-      modalCertScriptClose: !!modalCertScriptClose
-    });
-    
-    // Mostrar modal cuando se hace clic en "Ver Código del Script"
-    if (btnShowCertScript && modalCertScript) {
-      btnShowCertScript.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        console.log('[CERT SCRIPT] Click en botón mostrar código');
-        
-        // Mostrar el modal primero (sin cargar código aún)
-        modalCertScript.style.display = 'flex';
-        modalCertScript.classList.add('show');
-        
-        // Mostrar indicador de carga
-        if (certScriptCode) {
-          const codeElement = certScriptCode.querySelector('code');
-          if (codeElement) {
-            codeElement.innerHTML = '<i class="ph ph-hourglass"></i> Cargando código...';
-          }
+        document.body.appendChild(overlay);
+        return overlay;
+      };
+
+      window.hideLoading = function () {
+        const overlay = document.getElementById('globalLoadingOverlay');
+        if (overlay) {
+          overlay.style.opacity = '0';
+          setTimeout(() => {
+            if (overlay.parentElement) {
+              overlay.remove();
+            }
+          }, 200);
         }
-        
-        // Verificar que el código esté disponible
-        if (!window.GOOGLE_APPS_SCRIPT_CODE) {
-          console.error('[CERT SCRIPT] ❌ El código del script no está disponible');
+      };
+
+      // Cerrar modal
+      function closeModal() {
+        modal.classList.remove('show');
+      }
+
+      // Event listeners
+      btnClose.addEventListener('click', closeModal);
+      btnContinue.addEventListener('click', closeModal);
+
+      // Cerrar con Escape
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('show')) {
+          closeModal();
+        }
+      });
+
+      // Cerrar al hacer click en el overlay
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          closeModal();
+        }
+      });
+    })();
+
+    // ===== MODAL PARA MOSTRAR CÓDIGO DEL GOOGLE APPS SCRIPT =====
+
+    // Esperar a que el DOM esté listo
+    document.addEventListener('DOMContentLoaded', function () {
+      // Usar document.querySelector directamente (no depende de $ de app.js)
+      const modalCertScript = document.querySelector('#modalCertScript');
+      const btnShowCertScript = document.querySelector('#btn-show-cert-script');
+      const btnCopyCertScript = document.querySelector('#btn-copy-cert-script');
+      const certScriptCode = document.querySelector('#cert-script-code');
+      const modalCertScriptClose = document.querySelector('#modalCertScriptClose');
+
+      console.log('[CERT SCRIPT] Elementos encontrados:', {
+        modalCertScript: !!modalCertScript,
+        btnShowCertScript: !!btnShowCertScript,
+        btnCopyCertScript: !!btnCopyCertScript,
+        certScriptCode: !!certScriptCode,
+        modalCertScriptClose: !!modalCertScriptClose
+      });
+
+      // Mostrar modal cuando se hace clic en "Ver Código del Script"
+      if (btnShowCertScript && modalCertScript) {
+        btnShowCertScript.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          console.log('[CERT SCRIPT] Click en botón mostrar código');
+
+          // Mostrar el modal primero (sin cargar código aún)
+          modalCertScript.style.display = 'flex';
+          modalCertScript.classList.add('show');
+
+          // Mostrar indicador de carga
           if (certScriptCode) {
             const codeElement = certScriptCode.querySelector('code');
             if (codeElement) {
-              codeElement.textContent = 'Error: No se pudo cargar el código del script. Por favor, recarga la página.';
+              codeElement.innerHTML = '<i class="ph ph-hourglass"></i> Cargando código...';
             }
           }
-          return;
-        }
-        
-        // Cargar el código de forma asíncrona
-        setTimeout(function() {
-          if (certScriptCode && window.GOOGLE_APPS_SCRIPT_CODE) {
-            const codeElement = certScriptCode.querySelector('code');
-            if (codeElement) {
-              codeElement.textContent = window.GOOGLE_APPS_SCRIPT_CODE;
-              console.log('[CERT SCRIPT] ✅ Código cargado exitosamente, longitud:', window.GOOGLE_APPS_SCRIPT_CODE.length);
-            } else {
-              certScriptCode.textContent = window.GOOGLE_APPS_SCRIPT_CODE;
-              console.log('[CERT SCRIPT] ✅ Código cargado directamente en pre');
+
+          // Verificar que el código esté disponible
+          if (!window.GOOGLE_APPS_SCRIPT_CODE) {
+            console.error('[CERT SCRIPT] ❌ El código del script no está disponible');
+            if (certScriptCode) {
+              const codeElement = certScriptCode.querySelector('code');
+              if (codeElement) {
+                codeElement.textContent = 'Error: No se pudo cargar el código del script. Por favor, recarga la página.';
+              }
             }
+            return;
           }
-        }, 50);
-        
-        console.log('[CERT SCRIPT] Modal mostrado');
-      });
-    } else {
-      console.error('[CERT SCRIPT] No se encontraron elementos necesarios:', {
-        btnShowCertScript: !!btnShowCertScript,
-        modalCertScript: !!modalCertScript
-      });
-    }
-    
-    // Copiar código al portapapeles
-    if (btnCopyCertScript) {
-      btnCopyCertScript.addEventListener('click', async function() {
-        console.log('[CERT SCRIPT] Intentando copiar código');
-        
-        if (!window.GOOGLE_APPS_SCRIPT_CODE) {
-          console.error('[CERT SCRIPT] ❌ El código no está disponible');
-          alert('Error: No se pudo cargar el código del script. Por favor, recarga la página.');
-          return;
-        }
-        
-        try {
-          await navigator.clipboard.writeText(window.GOOGLE_APPS_SCRIPT_CODE);
-          const originalText = btnCopyCertScript.textContent;
-          btnCopyCertScript.innerHTML = '<i class="ph ph-check-circle"></i> Código Copiado!';
-          btnCopyCertScript.style.background = '#4ade80';
-          
-          setTimeout(function() {
-            btnCopyCertScript.textContent = originalText;
-            btnCopyCertScript.style.background = '';
-          }, 2000);
-          console.log('[CERT SCRIPT] ✅ Código copiado exitosamente');
-        } catch (err) {
-          console.error('[CERT SCRIPT] Error copiando código:', err);
-          // Fallback: seleccionar el texto
-          const textarea = document.createElement('textarea');
-          textarea.value = window.GOOGLE_APPS_SCRIPT_CODE;
-          textarea.style.position = 'fixed';
-          textarea.style.opacity = '0';
-          document.body.appendChild(textarea);
-          textarea.select();
-          try {
-            document.execCommand('copy');
-            btnCopyCertScript.innerHTML = '<i class="ph ph-check-circle"></i> Código Copiado!';
-            setTimeout(function() {
-              btnCopyCertScript.innerHTML = '<i class="ph ph-clipboard"></i> Copiar Código Completo';
-            }, 2000);
-            console.log('[CERT SCRIPT] ✅ Código copiado con fallback');
-          } catch (fallbackErr) {
-            console.error('[CERT SCRIPT] Error en fallback:', fallbackErr);
-            alert('No se pudo copiar automáticamente. Selecciona y copia el código manualmente.');
-          }
-          document.body.removeChild(textarea);
-        }
-      });
-    } else {
-      console.error('[CERT SCRIPT] No se encontró btnCopyCertScript');
-    }
-    
-    // Cerrar modal
-    if (modalCertScriptClose && modalCertScript) {
-      modalCertScriptClose.addEventListener('click', function() {
-        modalCertScript.style.display = 'none';
-        console.log('[CERT SCRIPT] Modal cerrado');
-      });
-    }
-    
-    // Cerrar al hacer click fuera del modal
-    if (modalCertScript) {
-      modalCertScript.addEventListener('click', function(e) {
-        if (e.target === modalCertScript) {
-          modalCertScript.style.display = 'none';
-          console.log('[CERT SCRIPT] Modal cerrado (click fuera)');
-        }
-      });
-    }
-    
-    // Cerrar con ESC
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && modalCertScript && modalCertScript.style.display === 'flex') {
-        modalCertScript.style.display = 'none';
-        console.log('[CERT SCRIPT] Modal cerrado (ESC)');
+
+          // Cargar el código de forma asíncrona
+          setTimeout(function () {
+            if (certScriptCode && window.GOOGLE_APPS_SCRIPT_CODE) {
+              const codeElement = certScriptCode.querySelector('code');
+              if (codeElement) {
+                codeElement.textContent = window.GOOGLE_APPS_SCRIPT_CODE;
+                console.log('[CERT SCRIPT] ✅ Código cargado exitosamente, longitud:', window.GOOGLE_APPS_SCRIPT_CODE.length);
+              } else {
+                certScriptCode.textContent = window.GOOGLE_APPS_SCRIPT_CODE;
+                console.log('[CERT SCRIPT] ✅ Código cargado directamente en pre');
+              }
+            }
+          }, 50);
+
+          console.log('[CERT SCRIPT] Modal mostrado');
+        });
+      } else {
+        console.error('[CERT SCRIPT] No se encontraron elementos necesarios:', {
+          btnShowCertScript: !!btnShowCertScript,
+          modalCertScript: !!modalCertScript
+        });
       }
+
+      // Copiar código al portapapeles
+      if (btnCopyCertScript) {
+        btnCopyCertScript.addEventListener('click', async function () {
+          console.log('[CERT SCRIPT] Intentando copiar código');
+
+          if (!window.GOOGLE_APPS_SCRIPT_CODE) {
+            console.error('[CERT SCRIPT] ❌ El código no está disponible');
+            alert('Error: No se pudo cargar el código del script. Por favor, recarga la página.');
+            return;
+          }
+
+          try {
+            await navigator.clipboard.writeText(window.GOOGLE_APPS_SCRIPT_CODE);
+            const originalText = btnCopyCertScript.textContent;
+            btnCopyCertScript.innerHTML = '<i class="ph ph-check-circle"></i> Código Copiado!';
+            btnCopyCertScript.style.background = '#4ade80';
+
+            setTimeout(function () {
+              btnCopyCertScript.textContent = originalText;
+              btnCopyCertScript.style.background = '';
+            }, 2000);
+            console.log('[CERT SCRIPT] ✅ Código copiado exitosamente');
+          } catch (err) {
+            console.error('[CERT SCRIPT] Error copiando código:', err);
+            // Fallback: seleccionar el texto
+            const textarea = document.createElement('textarea');
+            textarea.value = window.GOOGLE_APPS_SCRIPT_CODE;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+              document.execCommand('copy');
+              btnCopyCertScript.innerHTML = '<i class="ph ph-check-circle"></i> Código Copiado!';
+              setTimeout(function () {
+                btnCopyCertScript.innerHTML = '<i class="ph ph-clipboard"></i> Copiar Código Completo';
+              }, 2000);
+              console.log('[CERT SCRIPT] ✅ Código copiado con fallback');
+            } catch (fallbackErr) {
+              console.error('[CERT SCRIPT] Error en fallback:', fallbackErr);
+              alert('No se pudo copiar automáticamente. Selecciona y copia el código manualmente.');
+            }
+            document.body.removeChild(textarea);
+          }
+        });
+      } else {
+        console.error('[CERT SCRIPT] No se encontró btnCopyCertScript');
+      }
+
+      // Cerrar modal
+      if (modalCertScriptClose && modalCertScript) {
+        modalCertScriptClose.addEventListener('click', function () {
+          modalCertScript.style.display = 'none';
+          console.log('[CERT SCRIPT] Modal cerrado');
+        });
+      }
+
+      // Cerrar al hacer click fuera del modal
+      if (modalCertScript) {
+        modalCertScript.addEventListener('click', function (e) {
+          if (e.target === modalCertScript) {
+            modalCertScript.style.display = 'none';
+            console.log('[CERT SCRIPT] Modal cerrado (click fuera)');
+          }
+        });
+      }
+
+      // Cerrar con ESC
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modalCertScript && modalCertScript.style.display === 'flex') {
+          modalCertScript.style.display = 'none';
+          console.log('[CERT SCRIPT] Modal cerrado (ESC)');
+        }
+      });
     });
-  });
   </script>
-  
+
   <!-- Modal para mostrar código del Google Apps Script -->
   <div id="modalCertScript" class="modal" style="display: none; z-index: 10000;">
-    <div class="modal-content" style="max-width: 95%; max-height: 95vh; overflow: hidden; display: flex; flex-direction: column;">
+    <div class="modal-content"
+      style="max-width: 95%; max-height: 95vh; overflow: hidden; display: flex; flex-direction: column;">
       <div class="modal-header" style="flex-shrink: 0;">
         <h2 style="margin: 0;"><i class="ph ph-note"></i> Código del Google Apps Script</h2>
-        <button class="modal-close" id="modalCertScriptClose" aria-label="Cerrar" title="Cerrar (Escape)" style="background: transparent; border: none; font-size: 28px; cursor: pointer; color: var(--text); padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">&times;</button>
+        <button class="modal-close" id="modalCertScriptClose" aria-label="Cerrar" title="Cerrar (Escape)"
+          style="background: transparent; border: none; font-size: 28px; cursor: pointer; color: var(--text); padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">&times;</button>
       </div>
       <div style="padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; min-height: 0;">
-        <div style="margin-bottom: 16px; padding: 12px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 14px; flex-shrink: 0;">
+        <div
+          style="margin-bottom: 16px; padding: 12px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 14px; flex-shrink: 0;">
           <strong><i class="ph ph-clipboard"></i> Instrucciones:</strong>
           <ol style="margin: 8px 0 0 20px; padding: 0;">
             <li>Copia el código completo de abajo</li>
-            <li>Ve a <a href="https://script.google.com" target="_blank" style="color: var(--accent);">script.google.com</a></li>
+            <li>Ve a <a href="https://script.google.com" target="_blank"
+                style="color: var(--accent);">script.google.com</a></li>
             <li>Crea un nuevo proyecto</li>
             <li>Pega el código completo</li>
             <li>Guarda y despliega como Web App (acceso: "Cualquiera, incluso anónimos")</li>
           </ol>
         </div>
         <div style="margin-bottom: 12px; flex-shrink: 0;">
-          <button id="btn-copy-cert-script" class="btn" type="button" style="width: 100%; padding: 12px; font-size: 16px; font-weight: 600;">
+          <button id="btn-copy-cert-script" class="btn" type="button"
+            style="width: 100%; padding: 12px; font-size: 16px; font-weight: 600;">
             <i class="ph ph-clipboard"></i> Copiar Código Completo
           </button>
         </div>
-        <pre id="cert-script-code" style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; overflow-x: auto; overflow-y: auto; flex: 1; min-height: 300px; font-size: 12px; line-height: 1.6; white-space: pre; word-wrap: normal; font-family: 'Courier New', 'Monaco', monospace; color: var(--text); margin: 0; border: 1px solid rgba(255,255,255,0.1);"><code style="display: block; color: inherit; font-family: inherit;">// El código se cargará aquí cuando hagas clic en "Ver Código del Script"</code></pre>
+        <pre id="cert-script-code"
+          style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; overflow-x: auto; overflow-y: auto; flex: 1; min-height: 300px; font-size: 12px; line-height: 1.6; white-space: pre; word-wrap: normal; font-family: 'Courier New', 'Monaco', monospace; color: var(--text); margin: 0; border: 1px solid rgba(255,255,255,0.1);"><code style="display: block; color: inherit; font-family: inherit;">// El código se cargará aquí cuando hagas clic en "Ver Código del Script"</code></pre>
       </div>
     </div>
   </div>
@@ -1915,108 +2169,109 @@
   </div>
 
   <script>
-  // Sistema de ayuda con iconos
-  document.addEventListener('DOMContentLoaded', function() {
-    // Contenido de ayuda para cada campo
-    const helpContent = {
-      'script-url': {
-        title: 'URL del Google Apps Script Web App',
-        body: '<p><strong><i class="ph ph-link"></i> URL del script desplegado como Web App</strong></p><p>Debe tener acceso: <strong>"Cualquiera, incluso anónimos"</strong></p><p><strong><i class="ph ph-warning"></i> Importante:</strong> Usa la URL de producción que termina en <code>/exec</code>, no la de desarrollo (<code>/dev</code>)</p><p><strong><i class="ph ph-book-open"></i> Pasos:</strong></p><ol><li>Copia el código del script (botón "<i class="ph ph-clipboard"></i> Ver Código del Script")</li><li>Ve a <a href="https://script.google.com" target="_blank" style="color: var(--accent);">script.google.com</a></li><li>Crea un nuevo proyecto y pega el código</li><li>Despliega como Web App</li><li>Configura: Ejecutar como "Yo", Acceso: "Cualquiera, incluso anónimos"</li><li>Copia la URL que termina en <code>/exec</code></li></ol>'
-      },
-      'slide-template': {
-        title: 'Plantilla de Google Slides',
-        body: '<p><strong><i class="ph ph-presentation-chart"></i> Selecciona una plantilla de Google Slides</strong></p><p>La plantilla debe contener <code>{{NOMBRE}}</code> como placeholder en el lugar donde quieres que aparezca el nombre de la persona.</p><p><strong>Ejemplo:</strong> Si tu plantilla tiene el texto "Certificado para {{NOMBRE}}", el sistema reemplazará <code>{{NOMBRE}}</code> con el nombre de cada persona de la lista.</p><p><strong><i class="ph ph-lightbulb"></i> Tip:</strong> Puedes usar "Actualizar lista" para ver todas tus plantillas de Google Slides.</p>'
-      },
-      'google-sheet': {
-        title: 'Google Sheet (Hoja de Cálculo)',
-        body: '<p><strong><i class="ph ph-clipboard"></i> La estructura de la hoja depende del modo seleccionado:</strong></p><p><strong><i class="ph ph-graduation-cap"></i> Modo Webinar (8 columnas):</strong></p><ol><li><strong>Nombre</strong> - Nombre completo de la persona</li><li><strong>Correo</strong> - Correo electrónico</li><li><strong>Teléfono</strong> - Número de teléfono (solo números)</li><li><strong>Correo link</strong> - Se genera automáticamente</li><li><strong>WhatsApp link</strong> - Se genera automáticamente</li><li><strong>Link PDF</strong> - Se genera automáticamente</li><li><strong>Estado</strong> - Estado del proceso (<i class="ph ph-check-circle"></i> Encontrado, <i class="ph ph-x-circle"></i> No encontrado)</li><li><strong>Certificado generado</strong> - <i class="ph ph-check-circle"></i> cuando está generado</li></ol><p><strong><i class="ph ph-key"></i> Modo con Código (9 columnas):</strong></p><ol><li><strong>Nombre</strong> - Nombre completo de la persona</li><li><strong>Código Validación</strong> - Código único de validación (obligatorio)</li><li><strong>Correo</strong> - Correo electrónico</li><li><strong>Teléfono</strong> - Número de teléfono (solo números)</li><li><strong>Correo link</strong> - Se genera automáticamente</li><li><strong>WhatsApp link</strong> - Se genera automáticamente</li><li><strong>Link PDF</strong> - Se genera automáticamente</li><li><strong>Estado</strong> - Estado del proceso (<i class="ph ph-check-circle"></i> Encontrado, <i class="ph ph-x-circle"></i> No encontrado)</li><li><strong>Certificado generado</strong> - <i class="ph ph-check-circle"></i> cuando está generado</li></ol><p><strong><i class="ph ph-lightbulb"></i> Tip:</strong> Puedes crear una nueva hoja desde aquí si no tienes una lista preparada. La estructura se creará automáticamente según el modo seleccionado.</p>'
-      },
-      'folder-originales': {
-        title: 'Carpeta para PDFs Originales',
-        body: '<p><strong><i class="ph ph-folder"></i> Carpeta donde se guardarán los PDFs sin proteger</strong></p><p>Aquí se guardarán los certificados PDF generados directamente desde la plantilla.</p><p><strong><i class="ph ph-warning"></i> Importante:</strong> Después de generar los PDFs, deberás protegerlos manualmente (usando PDF24 u otra herramienta) antes de generar los enlaces.</p><p><strong><i class="ph ph-lightbulb"></i> Tip:</strong> Puedes crear una nueva carpeta desde aquí si no tienes una preparada.</p>'
-      },
-      'folder-protegidos': {
-        title: 'Carpeta para PDFs Protegidos',
-        body: '<p><strong><i class="ph ph-lock"></i> Carpeta donde subiste los PDFs ya protegidos</strong></p><p>Esta carpeta debe contener los PDFs que ya protegiste manualmente después de generarlos.</p><p><strong><i class="ph ph-warning"></i> Importante:</strong> Los archivos deben llamarse exactamente: <code>Certificado - [NOMBRE].pdf</code> (donde [NOMBRE] es el nombre completo de la persona).</p><p><strong><i class="ph ph-note"></i> Pasos:</strong></p><ol><li>Genera los certificados PDF primero (botón "Generar PDFs")</li><li>Protege los PDFs manualmente usando PDF24 u otra herramienta</li><li>Sube los PDFs protegidos a esta carpeta</li><li>Luego usa "Generar Enlaces" para crear los enlaces de entrega</li></ol>'
-      },
-      'webinar-title': {
-        title: 'Título del Webinar/Evento',
-        body: '<p><strong><i class="ph ph-note"></i> Título que aparecerá en los mensajes</strong></p><p>Este título se usará en los mensajes de correo y WhatsApp.</p><p><strong>Ejemplo:</strong> "Webinar: Salud Mental en Pandemia"</p>'
-      },
-      'webinar-date': {
-        title: 'Fecha del Evento',
-        body: '<p><strong><i class="ph ph-calendar"></i> Fecha que aparecerá en los mensajes</strong></p><p>Esta fecha se usará en los mensajes de correo y WhatsApp.</p><p><strong>Ejemplo:</strong> "15 de noviembre de 2024" o "20/11/2024"</p>'
-      },
-      'email-message': {
-        title: 'Mensaje de Correo Electrónico',
-        body: '<p><strong><i class="ph ph-envelope-simple"></i> Mensaje personalizado para el correo (Opcional)</strong></p><p>Si dejas este campo vacío, se usará un mensaje por defecto.</p><p><strong>Variables disponibles:</strong></p><ul><li><code>{{NOMBRE}}</code> - Se reemplaza con el nombre de la persona</li><li><code>{{TITULO}}</code> - Se reemplaza con el título del webinar</li><li><code>{{FECHA}}</code> - Se reemplaza con la fecha del evento</li><li><code>{{ENLACE_PDF}}</code> - Se reemplaza con el enlace al PDF</li></ul><p><strong>Ejemplo:</strong></p><pre style="background: rgba(90,169,255,0.1); padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto;">Estimada/o {{NOMBRE}},\n\nGracias por participar en "{{TITULO}}" realizado el {{FECHA}}.\n\nTu certificado: {{ENLACE_PDF}}</pre>'
-      },
-      'whatsapp-message': {
-        title: 'Mensaje de WhatsApp',
-        body: '<p><strong><i class="ph ph-chat-circle"></i> Mensaje personalizado para WhatsApp (Opcional)</strong></p><p>Si dejas este campo vacío, se usará un mensaje por defecto.</p><p><strong>Variables disponibles:</strong></p><ul><li><code>{{NOMBRE}}</code> - Se reemplaza con el nombre de la persona</li><li><code>{{TITULO}}</code> - Se reemplaza con el título del webinar</li><li><code>{{FECHA}}</code> - Se reemplaza con la fecha del evento</li><li><code>{{ENLACE_PDF}}</code> - Se reemplaza con el enlace al PDF</li></ul><p><strong>Ejemplo:</strong></p><pre style="background: rgba(90,169,255,0.1); padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto;">Hola {{NOMBRE}}! \n\nGracias por participar en "{{TITULO}}" el {{FECHA}}.\n\nDescarga tu certificado: {{ENLACE_PDF}}</pre>'
-      },
-      'cert-mode': {
-        title: 'Modo de Generación de Certificados',
-        body: '<p><strong><i class="ph ph-target"></i> Selecciona el modo de generación de certificados</strong></p><p><strong><i class="ph ph-graduation-cap"></i> Modo Webinar:</strong></p><ul><li>Usa solo la variable <code>{{NOMBRE}}</code> en la plantilla</li><li>La hoja de cálculo tendrá 8 columnas: Nombre, Correo, Teléfono, Correo link, WhatsApp link, Link PDF, Estado, Certificado generado</li><li>Ideal para webinars y eventos simples</li></ul><p><strong><i class="ph ph-key"></i> Modo con Código de Validación:</strong></p><ul><li>Usa las variables <code>{{NOMBRE}}</code> y <code>{{CODIGO_VALIDACION}}</code> en la plantilla</li><li>La hoja de cálculo tendrá 9 columnas: Nombre, Código Validación, Correo, Teléfono, Correo link, WhatsApp link, Link PDF, Estado, Certificado generado</li><li>Ideal para certificados que requieren validación mediante código único</li><li><strong><i class="ph ph-warning"></i> Importante:</strong> Cada fila debe tener un código de validación único en la columna "Código Validación"</li></ul><p><strong><i class="ph ph-lightbulb"></i> Tip:</strong> El modo seleccionado afecta la estructura de la hoja de cálculo. Si cambias el modo después de crear una hoja, necesitarás ajustar las columnas manualmente o crear una nueva hoja.</p>'
-      }
-    };
-
-    // Elementos del modal
-    const helpModal = document.querySelector('#helpModal');
-    const helpModalTitle = document.querySelector('#helpModalTitle');
-    const helpModalBody = document.querySelector('#helpModalBody');
-    const helpModalClose = document.querySelector('#helpModalClose');
-
-    // Mostrar modal de ayuda
-    function showHelp(helpId) {
-      const content = helpContent[helpId];
-      if (content && helpModal) {
-        helpModalTitle.textContent = content.title;
-        helpModalBody.innerHTML = content.body;
-        helpModal.classList.add('show');
-      }
-    }
-
-    // Cerrar modal
-    function closeHelp() {
-      if (helpModal) {
-        helpModal.classList.remove('show');
-      }
-    }
-
-    // Event listeners para iconos de ayuda
-    document.querySelectorAll('.help-icon').forEach(function(icon) {
-      icon.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const helpId = this.getAttribute('data-help');
-        if (helpId) {
-          showHelp(helpId);
+    // Sistema de ayuda con iconos
+    document.addEventListener('DOMContentLoaded', function () {
+      // Contenido de ayuda para cada campo
+      const helpContent = {
+        'script-url': {
+          title: 'URL del Google Apps Script Web App',
+          body: '<p><strong><i class="ph ph-link"></i> URL del script desplegado como Web App</strong></p><p>Debe tener acceso: <strong>"Cualquiera, incluso anónimos"</strong></p><p><strong><i class="ph ph-warning"></i> Importante:</strong> Usa la URL de producción que termina en <code>/exec</code>, no la de desarrollo (<code>/dev</code>)</p><p><strong><i class="ph ph-book-open"></i> Pasos:</strong></p><ol><li>Copia el código del script (botón "<i class="ph ph-clipboard"></i> Ver Código del Script")</li><li>Ve a <a href="https://script.google.com" target="_blank" style="color: var(--accent);">script.google.com</a></li><li>Crea un nuevo proyecto y pega el código</li><li>Despliega como Web App</li><li>Configura: Ejecutar como "Yo", Acceso: "Cualquiera, incluso anónimos"</li><li>Copia la URL que termina en <code>/exec</code></li></ol>'
+        },
+        'slide-template': {
+          title: 'Plantilla de Google Slides',
+          body: '<p><strong><i class="ph ph-presentation-chart"></i> Selecciona una plantilla de Google Slides</strong></p><p>La plantilla debe contener <code>{{NOMBRE}}</code> como placeholder en el lugar donde quieres que aparezca el nombre de la persona.</p><p><strong>Ejemplo:</strong> Si tu plantilla tiene el texto "Certificado para {{NOMBRE}}", el sistema reemplazará <code>{{NOMBRE}}</code> con el nombre de cada persona de la lista.</p><p><strong><i class="ph ph-lightbulb"></i> Tip:</strong> Puedes usar "Actualizar lista" para ver todas tus plantillas de Google Slides.</p>'
+        },
+        'google-sheet': {
+          title: 'Google Sheet (Hoja de Cálculo)',
+          body: '<p><strong><i class="ph ph-clipboard"></i> La estructura de la hoja depende del modo seleccionado:</strong></p><p><strong><i class="ph ph-graduation-cap"></i> Modo Webinar (8 columnas):</strong></p><ol><li><strong>Nombre</strong> - Nombre completo de la persona</li><li><strong>Correo</strong> - Correo electrónico</li><li><strong>Teléfono</strong> - Número de teléfono (solo números)</li><li><strong>Correo link</strong> - Se genera automáticamente</li><li><strong>WhatsApp link</strong> - Se genera automáticamente</li><li><strong>Link PDF</strong> - Se genera automáticamente</li><li><strong>Estado</strong> - Estado del proceso (<i class="ph ph-check-circle"></i> Encontrado, <i class="ph ph-x-circle"></i> No encontrado)</li><li><strong>Certificado generado</strong> - <i class="ph ph-check-circle"></i> cuando está generado</li></ol><p><strong><i class="ph ph-key"></i> Modo con Código (9 columnas):</strong></p><ol><li><strong>Nombre</strong> - Nombre completo de la persona</li><li><strong>Código Validación</strong> - Código único de validación (obligatorio)</li><li><strong>Correo</strong> - Correo electrónico</li><li><strong>Teléfono</strong> - Número de teléfono (solo números)</li><li><strong>Correo link</strong> - Se genera automáticamente</li><li><strong>WhatsApp link</strong> - Se genera automáticamente</li><li><strong>Link PDF</strong> - Se genera automáticamente</li><li><strong>Estado</strong> - Estado del proceso (<i class="ph ph-check-circle"></i> Encontrado, <i class="ph ph-x-circle"></i> No encontrado)</li><li><strong>Certificado generado</strong> - <i class="ph ph-check-circle"></i> cuando está generado</li></ol><p><strong><i class="ph ph-lightbulb"></i> Tip:</strong> Puedes crear una nueva hoja desde aquí si no tienes una lista preparada. La estructura se creará automáticamente según el modo seleccionado.</p>'
+        },
+        'folder-originales': {
+          title: 'Carpeta para PDFs Originales',
+          body: '<p><strong><i class="ph ph-folder"></i> Carpeta donde se guardarán los PDFs sin proteger</strong></p><p>Aquí se guardarán los certificados PDF generados directamente desde la plantilla.</p><p><strong><i class="ph ph-warning"></i> Importante:</strong> Después de generar los PDFs, deberás protegerlos manualmente (usando PDF24 u otra herramienta) antes de generar los enlaces.</p><p><strong><i class="ph ph-lightbulb"></i> Tip:</strong> Puedes crear una nueva carpeta desde aquí si no tienes una preparada.</p>'
+        },
+        'folder-protegidos': {
+          title: 'Carpeta para PDFs Protegidos',
+          body: '<p><strong><i class="ph ph-lock"></i> Carpeta donde subiste los PDFs ya protegidos</strong></p><p>Esta carpeta debe contener los PDFs que ya protegiste manualmente después de generarlos.</p><p><strong><i class="ph ph-warning"></i> Importante:</strong> Los archivos deben llamarse exactamente: <code>Certificado - [NOMBRE].pdf</code> (donde [NOMBRE] es el nombre completo de la persona).</p><p><strong><i class="ph ph-note"></i> Pasos:</strong></p><ol><li>Genera los certificados PDF primero (botón "Generar PDFs")</li><li>Protege los PDFs manualmente usando PDF24 u otra herramienta</li><li>Sube los PDFs protegidos a esta carpeta</li><li>Luego usa "Generar Enlaces" para crear los enlaces de entrega</li></ol>'
+        },
+        'webinar-title': {
+          title: 'Título del Webinar/Evento',
+          body: '<p><strong><i class="ph ph-note"></i> Título que aparecerá en los mensajes</strong></p><p>Este título se usará en los mensajes de correo y WhatsApp.</p><p><strong>Ejemplo:</strong> "Webinar: Salud Mental en Pandemia"</p>'
+        },
+        'webinar-date': {
+          title: 'Fecha del Evento',
+          body: '<p><strong><i class="ph ph-calendar"></i> Fecha que aparecerá en los mensajes</strong></p><p>Esta fecha se usará en los mensajes de correo y WhatsApp.</p><p><strong>Ejemplo:</strong> "15 de noviembre de 2024" o "20/11/2024"</p>'
+        },
+        'email-message': {
+          title: 'Mensaje de Correo Electrónico',
+          body: '<p><strong><i class="ph ph-envelope-simple"></i> Mensaje personalizado para el correo (Opcional)</strong></p><p>Si dejas este campo vacío, se usará un mensaje por defecto.</p><p><strong>Variables disponibles:</strong></p><ul><li><code>{{NOMBRE}}</code> - Se reemplaza con el nombre de la persona</li><li><code>{{TITULO}}</code> - Se reemplaza con el título del webinar</li><li><code>{{FECHA}}</code> - Se reemplaza con la fecha del evento</li><li><code>{{ENLACE_PDF}}</code> - Se reemplaza con el enlace al PDF</li></ul><p><strong>Ejemplo:</strong></p><pre style="background: rgba(90,169,255,0.1); padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto;">Estimada/o {{NOMBRE}},\n\nGracias por participar en "{{TITULO}}" realizado el {{FECHA}}.\n\nTu certificado: {{ENLACE_PDF}}</pre>'
+        },
+        'whatsapp-message': {
+          title: 'Mensaje de WhatsApp',
+          body: '<p><strong><i class="ph ph-chat-circle"></i> Mensaje personalizado para WhatsApp (Opcional)</strong></p><p>Si dejas este campo vacío, se usará un mensaje por defecto.</p><p><strong>Variables disponibles:</strong></p><ul><li><code>{{NOMBRE}}</code> - Se reemplaza con el nombre de la persona</li><li><code>{{TITULO}}</code> - Se reemplaza con el título del webinar</li><li><code>{{FECHA}}</code> - Se reemplaza con la fecha del evento</li><li><code>{{ENLACE_PDF}}</code> - Se reemplaza con el enlace al PDF</li></ul><p><strong>Ejemplo:</strong></p><pre style="background: rgba(90,169,255,0.1); padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto;">Hola {{NOMBRE}}! \n\nGracias por participar en "{{TITULO}}" el {{FECHA}}.\n\nDescarga tu certificado: {{ENLACE_PDF}}</pre>'
+        },
+        'cert-mode': {
+          title: 'Modo de Generación de Certificados',
+          body: '<p><strong><i class="ph ph-target"></i> Selecciona el modo de generación de certificados</strong></p><p><strong><i class="ph ph-graduation-cap"></i> Modo Webinar:</strong></p><ul><li>Usa solo la variable <code>{{NOMBRE}}</code> en la plantilla</li><li>La hoja de cálculo tendrá 8 columnas: Nombre, Correo, Teléfono, Correo link, WhatsApp link, Link PDF, Estado, Certificado generado</li><li>Ideal para webinars y eventos simples</li></ul><p><strong><i class="ph ph-key"></i> Modo con Código de Validación:</strong></p><ul><li>Usa las variables <code>{{NOMBRE}}</code> y <code>{{CODIGO_VALIDACION}}</code> en la plantilla</li><li>La hoja de cálculo tendrá 9 columnas: Nombre, Código Validación, Correo, Teléfono, Correo link, WhatsApp link, Link PDF, Estado, Certificado generado</li><li>Ideal para certificados que requieren validación mediante código único</li><li><strong><i class="ph ph-warning"></i> Importante:</strong> Cada fila debe tener un código de validación único en la columna "Código Validación"</li></ul><p><strong><i class="ph ph-lightbulb"></i> Tip:</strong> El modo seleccionado afecta la estructura de la hoja de cálculo. Si cambias el modo después de crear una hoja, necesitarás ajustar las columnas manualmente o crear una nueva hoja.</p>'
         }
+      };
+
+      // Elementos del modal
+      const helpModal = document.querySelector('#helpModal');
+      const helpModalTitle = document.querySelector('#helpModalTitle');
+      const helpModalBody = document.querySelector('#helpModalBody');
+      const helpModalClose = document.querySelector('#helpModalClose');
+
+      // Mostrar modal de ayuda
+      function showHelp(helpId) {
+        const content = helpContent[helpId];
+        if (content && helpModal) {
+          helpModalTitle.textContent = content.title;
+          helpModalBody.innerHTML = content.body;
+          helpModal.classList.add('show');
+        }
+      }
+
+      // Cerrar modal
+      function closeHelp() {
+        if (helpModal) {
+          helpModal.classList.remove('show');
+        }
+      }
+
+      // Event listeners para iconos de ayuda
+      document.querySelectorAll('.help-icon').forEach(function (icon) {
+        icon.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const helpId = this.getAttribute('data-help');
+          if (helpId) {
+            showHelp(helpId);
+          }
+        });
       });
-    });
 
-    // Cerrar modal
-    if (helpModalClose) {
-      helpModalClose.addEventListener('click', closeHelp);
-    }
+      // Cerrar modal
+      if (helpModalClose) {
+        helpModalClose.addEventListener('click', closeHelp);
+      }
 
-    // Cerrar al hacer click fuera
-    if (helpModal) {
-      helpModal.addEventListener('click', function(e) {
-        if (e.target === helpModal) {
+      // Cerrar al hacer click fuera
+      if (helpModal) {
+        helpModal.addEventListener('click', function (e) {
+          if (e.target === helpModal) {
+            closeHelp();
+          }
+        });
+      }
+
+      // Cerrar con ESC
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && helpModal && helpModal.classList.contains('show')) {
           closeHelp();
         }
       });
-    }
-
-    // Cerrar con ESC
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && helpModal && helpModal.classList.contains('show')) {
-        closeHelp();
-      }
     });
-  });
   </script>
 </body>
+
 </html>
