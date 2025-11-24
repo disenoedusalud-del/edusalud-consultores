@@ -1305,7 +1305,23 @@ function setupNotificationsPanel() {
     if (isOpen) {
       console.log('[NOTIFICATIONS] ➕ Abriendo panel...');
       panelEl.style.display = 'flex';
+      panelEl.style.visibility = 'visible';
+      panelEl.style.opacity = '1';
+      panelEl.style.zIndex = '10000';
       btn.setAttribute('aria-expanded', 'true');
+      
+      // ✅ Verificar que el panel se abrió
+      setTimeout(() => {
+        const computedStyle = window.getComputedStyle(panelEl);
+        console.log('[NOTIFICATIONS] 📊 Estado del panel:', {
+          display: computedStyle.display,
+          visibility: computedStyle.visibility,
+          opacity: computedStyle.opacity,
+          zIndex: computedStyle.zIndex,
+          width: computedStyle.width,
+          height: computedStyle.height
+        });
+      }, 50);
       
       // Mostrar vacío primero
       const list = document.getElementById('notifications-list');
