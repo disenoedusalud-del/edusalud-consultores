@@ -7109,9 +7109,21 @@ function buildMasterGrid() {
           }
           
           // ✅ FALLBACK: Método local si no tiene firebaseId o Firebase falló
-          const next = files.slice();
-          next.splice(idx, 1);
-          saveFilesOverride(hex, next);
+          // ✅ CRÍTICO: Identificar el elemento por url+label en lugar de índice
+          const currentFiles = getFilesForHex(hex);
+          const itemKey = item.firebaseId || `${item.url}|||${item.label}`;
+          const updatedFiles = currentFiles.filter(f => {
+            const fKey = f.firebaseId || `${f.url}|||${f.label}`;
+            return fKey !== itemKey;
+          });
+          
+          if (updatedFiles.length === currentFiles.length) {
+            warn('[REMOVE] ⚠️ No se encontró el enlace a eliminar');
+            return;
+          }
+          
+          saveFilesOverride(hex, updatedFiles);
+          log('[REMOVE] 💾 localStorage actualizado (método local):', currentFiles.length, '→', updatedFiles.length);
           
           // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
           log('[REMOVE] 🗑️ Eliminando archivo inmediatamente de la vista');
@@ -7130,7 +7142,7 @@ function buildMasterGrid() {
           
           // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
           // Si no quedan más links, eliminar el hex completamente de la hoja de overrides
-          if (next.length === 0) {
+          if (updatedFiles.length === 0) {
             log('[REMOVE] 🧹 No quedan más links, eliminando hex de la hoja de overrides');
             remoteDeleteFiles(hex).then(removeOk => {
               if (removeOk) {
@@ -7142,7 +7154,7 @@ function buildMasterGrid() {
               console.error('[REMOVE] ❌ Error eliminando hex de la hoja de overrides:', e);
             });
           } else {
-            remoteSaveFiles(hex, next).then(removeOk => {
+            remoteSaveFiles(hex, updatedFiles).then(removeOk => {
               if (removeOk) {
                 log('[REMOVE] ✅ Guardado en remoto exitoso');
                 // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
