@@ -1322,15 +1322,38 @@ function setupNotificationsPanel() {
         activityEmpty.style.display = 'block';
       }
       
-      // Renderizar después
-      setTimeout(() => {
-        try {
-          if (typeof renderNotifications === 'function') renderNotifications();
-          if (typeof renderActivity === 'function') renderActivity();
-        } catch(e) { 
-          console.error('[NOTIFICATIONS] Error renderizando:', e); 
-        }
-      }, 100);
+      // Renderizar después (MUY ASÍNCRONO para no bloquear)
+      console.log('[NOTIFICATIONS] ⏳ Programando renderizado asíncrono...');
+      
+      // ✅ Renderizar notificaciones primero (más rápido)
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          try {
+            console.log('[NOTIFICATIONS] 🎨 Renderizando notificaciones...');
+            if (typeof renderNotifications === 'function') {
+              renderNotifications();
+              console.log('[NOTIFICATIONS] ✅ Notificaciones renderizadas');
+            }
+          } catch(e) { 
+            console.error('[NOTIFICATIONS] ❌ Error renderizando notificaciones:', e); 
+          }
+        }, 50);
+      });
+      
+      // ✅ Renderizar actividad después (más pesado)
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          try {
+            console.log('[ACTIVITY] 🎨 Renderizando actividad...');
+            if (typeof renderActivity === 'function') {
+              renderActivity();
+              console.log('[ACTIVITY] ✅ Actividad renderizada');
+            }
+          } catch(e) { 
+            console.error('[ACTIVITY] ❌ Error renderizando actividad:', e); 
+          }
+        }, 200);
+      });
       
       // Escape
       if (!escapeHandler) {
@@ -1440,11 +1463,16 @@ function setupNotificationsPanel() {
 
 // ✅ Renderizar notificaciones (con límite y protección)
 function renderNotifications() {
+  console.log('[NOTIFICATIONS] 🎨 Iniciando renderNotifications...');
   try {
-    const list = $('#notifications-list');
-    const empty = $('#notifications-empty');
-    if (!list || !empty) return;
+    const list = document.getElementById('notifications-list');
+    const empty = document.getElementById('notifications-empty');
+    if (!list || !empty) {
+      console.warn('[NOTIFICATIONS] Elementos no encontrados');
+      return;
+    }
     
+    console.log('[NOTIFICATIONS] Obteniendo notificaciones...');
     const notifications = getNotifications();
     if (!Array.isArray(notifications)) {
       list.style.display = 'none';
@@ -1456,75 +1484,97 @@ function renderNotifications() {
     const limitedNotifications = notifications.slice(0, 50);
     
     if (limitedNotifications.length === 0) {
+      console.log('[NOTIFICATIONS] No hay notificaciones');
       list.style.display = 'none';
       empty.style.display = 'block';
       return;
     }
     
+    console.log('[NOTIFICATIONS] Renderizando', limitedNotifications.length, 'notificaciones...');
     list.style.display = 'flex';
     empty.style.display = 'none';
     list.innerHTML = '';
     
-    limitedNotifications.forEach((notification, index) => {
-      try {
-        // ✅ Validar datos de notificación
-        if (!notification || !notification.id) {
-          return;
-        }
-        
-        const item = document.createElement('div');
-        item.style.cssText = `
-          padding: 12px;
-          background: ${notification.read ? 'rgba(90,169,255,0.05)' : 'rgba(90,169,255,0.1)'};
-          border-left: 3px solid ${getToastColor(notification.type || 'info')};
-          border-radius: 4px;
-          cursor: pointer;
-          transition: background 0.2s;
-        `;
-        
-        if (!notification.read) {
-          item.style.fontWeight = '500';
-        }
-        
-        item.addEventListener('click', () => {
-          try {
-            markNotificationAsRead(notification.id);
-            item.style.background = 'rgba(90,169,255,0.05)';
-            item.style.fontWeight = 'normal';
-            updateNotificationsBadge();
-          } catch (e) {
-            console.error('[NOTIFICATIONS] Error marcando como leída:', e);
+    // ✅ Renderizar en lotes pequeños para no bloquear
+    let rendered = 0;
+    const batchSize = 10;
+    
+    const renderBatch = () => {
+      const batch = limitedNotifications.slice(rendered, rendered + batchSize);
+      
+      batch.forEach((notification, index) => {
+        try {
+          // ✅ Validar datos de notificación
+          if (!notification || !notification.id) {
+            return;
           }
-        });
-        
-        const time = new Date(notification.timestamp || Date.now());
-        const timeStr = time.toLocaleString('es-ES', { 
-          day: 'numeric', 
-          month: 'short', 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        });
-        
-        const title = escapeHTML(String(notification.title || 'Sin título'));
-        const message = escapeHTML(String(notification.message || ''));
-        
-        item.innerHTML = `
-          <div style="display: flex; align-items: start; gap: 12px;">
-            <div style="font-size: 20px; flex-shrink: 0;">${getToastIcon(notification.type || 'info')}</div>
-            <div style="flex: 1; min-width: 0;">
-              <div style="font-weight: 600; font-size: 13px; color: var(--text); margin-bottom: 4px;">${title}</div>
-              <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">${message}</div>
-              <div style="font-size: 11px; color: var(--muted); opacity: 0.7;">${timeStr}</div>
+          
+          const item = document.createElement('div');
+          item.style.cssText = `
+            padding: 12px;
+            background: ${notification.read ? 'rgba(90,169,255,0.05)' : 'rgba(90,169,255,0.1)'};
+            border-left: 3px solid ${getToastColor(notification.type || 'info')};
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+          `;
+          
+          if (!notification.read) {
+            item.style.fontWeight = '500';
+          }
+          
+          item.addEventListener('click', () => {
+            try {
+              markNotificationAsRead(notification.id);
+              item.style.background = 'rgba(90,169,255,0.05)';
+              item.style.fontWeight = 'normal';
+              updateNotificationsBadge();
+            } catch (e) {
+              console.error('[NOTIFICATIONS] Error marcando como leída:', e);
+            }
+          });
+          
+          const time = new Date(notification.timestamp || Date.now());
+          const timeStr = time.toLocaleString('es-ES', { 
+            day: 'numeric', 
+            month: 'short', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          });
+          
+          const title = escapeHTML(String(notification.title || 'Sin título'));
+          const message = escapeHTML(String(notification.message || ''));
+          
+          item.innerHTML = `
+            <div style="display: flex; align-items: start; gap: 12px;">
+              <div style="font-size: 20px; flex-shrink: 0;">${getToastIcon(notification.type || 'info')}</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; font-size: 13px; color: var(--text); margin-bottom: 4px;">${title}</div>
+                <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">${message}</div>
+                <div style="font-size: 11px; color: var(--muted); opacity: 0.7;">${timeStr}</div>
+              </div>
+              ${!notification.read ? '<div style="width: 8px; height: 8px; background: var(--accent); border-radius: 50%; flex-shrink: 0; margin-top: 4px;"></div>' : ''}
             </div>
-            ${!notification.read ? '<div style="width: 8px; height: 8px; background: var(--accent); border-radius: 50%; flex-shrink: 0; margin-top: 4px;"></div>' : ''}
-          </div>
-        `;
-        
-        list.appendChild(item);
-      } catch (error) {
-        console.error(`[NOTIFICATIONS] Error renderizando notificación ${index}:`, error);
+          `;
+          
+          list.appendChild(item);
+        } catch (error) {
+          console.error(`[NOTIFICATIONS] Error renderizando notificación ${rendered + index}:`, error);
+        }
+      });
+      
+      rendered += batch.length;
+      
+      // ✅ Continuar con siguiente lote si hay más
+      if (rendered < limitedNotifications.length) {
+        setTimeout(renderBatch, 10); // Delay muy corto entre lotes
+      } else {
+        console.log('[NOTIFICATIONS] ✅ Todas las notificaciones renderizadas');
       }
-    });
+    };
+    
+    // ✅ Iniciar renderizado por lotes
+    renderBatch();
   } catch (error) {
     console.error('[NOTIFICATIONS] Error crítico en renderNotifications:', error);
     const list = $('#notifications-list');
