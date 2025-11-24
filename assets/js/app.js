@@ -6216,6 +6216,68 @@ function renderCourse(keyHex) {
   // startPeriodicRefresh(keyHex);
 }
 
+/**
+ * ✅ FUNCIÓN: Actualizar SOLO la lista de archivos sin pasar por memoización
+ * Usar cuando se agrega/elimina un enlace para actualización inmediata
+ */
+function updateFileListOnly(keyHex) {
+  const list = $('#filelist');
+  if (!list) {
+    log('[UPDATE FILE LIST] ⚠️ Lista de archivos no encontrada');
+    return;
+  }
+  
+  log('[UPDATE FILE LIST] 🔄 Actualizando lista de archivos para:', keyHex.substring(0, 8));
+  
+  list.innerHTML = '';
+  const files = getFilesForHex(keyHex);
+  
+  // ✅ PREVENIR DUPLICADOS
+  const seen = new Set();
+  const uniqueFiles = (files || []).filter(item => {
+    const key = item.firebaseId || `${item.url}|||${item.label}`;
+    if (seen.has(key)) {
+      log('[UPDATE FILE LIST] ⚠️ Duplicado filtrado:', item.label);
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+  
+  uniqueFiles.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'file';
+    let host = '';
+    try { host = new URL(item.url).hostname; } catch { host = ''; }
+    
+    row.dataset.fileLabel = (item.label || '').toLowerCase();
+    row.dataset.fileHost = host.toLowerCase();
+    
+    const safeLabel = escapeHTML(item.label || '');
+    const safeHost = escapeHTML(host);
+    row.innerHTML = `<div><strong>${safeLabel}</strong><div class="meta">${safeHost}</div></div>`;
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.type = 'button';
+    btn.textContent = 'Ver más';
+    btn.setAttribute('aria-label', `Ver o descargar archivo: ${item.label || 'Archivo'}`);
+    btn.addEventListener('click', () => downloadFile(item.url, item.label));
+    row.appendChild(btn);
+    list.appendChild(row);
+  });
+  
+  // ✅ Actualizar contador de archivos
+  const filesCountEl = $('#files-count');
+  if (filesCountEl) {
+    filesCountEl.textContent = (uniqueFiles || []).length;
+  }
+  
+  // ✅ Reconfigurar búsqueda de archivos
+  setupFilesSearch(keyHex, list);
+  
+  log('[UPDATE FILE LIST] ✅ Lista actualizada:', uniqueFiles.length, 'archivos');
+}
+
 /* ============ render user view ============ */
 function buildUserGrid() {
   const grid = $('#userGrid');
@@ -7155,17 +7217,9 @@ function buildMasterGrid() {
                 log('[REMOVE] ♻️ Re-renderizando Master');
                 buildMasterGrid();
               } else {
-                log('[REMOVE] ♻️ Re-renderizando Curso');
-                // ✅ FORZAR renderizado completo ignorando memoización
-                lastRenderCourseHex = null;
-                lastRenderCourseData = null;
-                renderCourse(hex);
-                // ✅ Actualizar contador de archivos
-                const filesCountEl = $('#files-count');
-                if (filesCountEl) {
-                  const updatedFiles = getFilesForHex(hex);
-                  filesCountEl.textContent = (updatedFiles || []).length;
-                }
+                log('[REMOVE] ♻️ Actualizando lista de archivos inmediatamente');
+                // ✅ ACTUALIZAR LISTA DE ARCHIVOS DIRECTAMENTE (sin memoización)
+                updateFileListOnly(hex);
               }
               
               return;
@@ -7207,16 +7261,9 @@ function buildMasterGrid() {
           if (isMasterView) {
             buildMasterGrid();
           } else {
-            // ✅ FORZAR renderizado completo ignorando memoización
-            lastRenderCourseHex = null;
-            lastRenderCourseData = null;
-            renderCourse(hex);
-            // ✅ Actualizar contador de archivos
-            const filesCountEl = $('#files-count');
-            if (filesCountEl) {
-              const updatedFiles = getFilesForHex(hex);
-              filesCountEl.textContent = (updatedFiles || []).length;
-            }
+            log('[REMOVE] ♻️ Actualizando lista de archivos inmediatamente');
+            // ✅ ACTUALIZAR LISTA DE ARCHIVOS DIRECTAMENTE (sin memoización)
+            updateFileListOnly(hex);
           }
           
           // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
@@ -7591,17 +7638,9 @@ function buildMasterGrid() {
             log('[ADD] ♻️ Re-renderizando Master');
             buildMasterGrid();
           } else {
-            log('[ADD] ♻️ Re-renderizando Curso');
-            // ✅ FORZAR renderizado completo ignorando memoización
-            lastRenderCourseHex = null;
-            lastRenderCourseData = null;
-            renderCourse(hex);
-            // ✅ Actualizar contador de archivos
-            const filesCountEl = $('#files-count');
-            if (filesCountEl) {
-              const updatedFiles = getFilesForHex(hex);
-              filesCountEl.textContent = (updatedFiles || []).length;
-            }
+            log('[ADD] ♻️ Actualizando lista de archivos inmediatamente');
+            // ✅ ACTUALIZAR LISTA DE ARCHIVOS DIRECTAMENTE (sin memoización)
+            updateFileListOnly(hex);
           }
           
           // ✅ Guardar en Google Sheets como backup (sin duplicar)
@@ -7666,17 +7705,10 @@ function buildMasterGrid() {
         buildMasterGrid();
         log('[ADD] ✅ Vista master actualizada');
       } else {
-        // ✅ FORZAR renderizado completo ignorando memoización
-        lastRenderCourseHex = null;
-        lastRenderCourseData = null;
-        renderCourse(hex);
+        log('[ADD] ♻️ Actualizando lista de archivos inmediatamente');
+        // ✅ ACTUALIZAR LISTA DE ARCHIVOS DIRECTAMENTE (sin memoización)
+        updateFileListOnly(hex);
         log('[ADD] ✅ Vista de curso actualizada');
-        // ✅ Actualizar contador de archivos
-        const filesCountEl = $('#files-count');
-        if (filesCountEl) {
-          const updatedFiles = getFilesForHex(hex);
-          filesCountEl.textContent = (updatedFiles || []).length;
-        }
       }
       
       // ✅ GUARDAR EN REMOTO (Google Sheets)
