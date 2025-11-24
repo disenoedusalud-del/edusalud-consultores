@@ -7458,28 +7458,69 @@ function buildMasterGrid() {
       const db = getFirestoreDB();
       if (db && typeof window.agregarLinkFirebase === 'function') {
         try {
+          // ✅ Bloquear re-renders durante la adición
+          userInteracting = true;
+          
           await window.agregarLinkFirebase(hex, labelVal, urlVal);
           
           // Limpiar inputs
           inputLabel.value = '';
           inputUrl.value = '';
           
-          log('[ADD] ✅ Link agregado a Firebase, sincronización automática activa');
+          log('[ADD] ✅ Link agregado a Firebase');
           
-          // ✅ También guardar en Google Sheets como backup
-          // Obtener los archivos actuales y agregar el nuevo link para guardar en Sheets
-          const current = getFilesForHex(hex);
+          // ✅ CRÍTICO: Actualizar localStorage INMEDIATAMENTE con el nuevo link
+          // Obtener los archivos actuales y agregar el nuevo link
+          const currentFiles = getFilesForHex(hex);
+          
+          // ✅ PREVENIR DUPLICADOS: Verificar si el link ya existe
+          const itemKey = `${urlVal}|||${labelVal}`;
+          const exists = currentFiles.some(f => {
+            const fKey = f.firebaseId ? `${f.url}|||${f.label}` : `${f.url}|||${f.label}`;
+            return fKey === itemKey;
+          });
+          
+          if (exists) {
+            warn('[ADD] ⚠️ El enlace ya existe, omitiendo duplicado');
+            userInteracting = false;
+            return;
+          }
+          
+          // ✅ Agregar el nuevo link temporalmente (Firebase lo actualizará con el ID correcto)
           const newLink = { label: labelVal, url: urlVal };
-          const next = current.concat(newLink);
-          log('[ADD] 💾 Guardando en Google Sheets como backup:', next.length, 'links');
+          const next = currentFiles.concat(newLink);
+          saveFilesOverride(hex, next);
+          log('[ADD] 💾 localStorage actualizado temporalmente:', next.length, 'links');
+          
+          // ✅ Desbloquear y ACTUALIZAR VISTA INMEDIATAMENTE
+          userInteracting = false;
+          const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
+          if (isMasterView) {
+            log('[ADD] ♻️ Re-renderizando Master');
+            buildMasterGrid();
+          } else {
+            log('[ADD] ♻️ Re-renderizando Curso');
+            renderCourse(hex);
+            // ✅ Actualizar contador de archivos
+            const filesCountEl = $('#files-count');
+            if (filesCountEl) {
+              const updatedFiles = getFilesForHex(hex);
+              filesCountEl.textContent = (updatedFiles || []).length;
+            }
+          }
+          
+          // ✅ Guardar en Google Sheets como backup (sin duplicar)
           remoteSaveFiles(hex, next).catch(e => {
             warn('[ADD] ⚠️ No se pudo guardar en Google Sheets (backup):', e);
           });
           
-          return; // Salir, Firebase se encarga de actualizar la vista
+          // ✅ Firebase actualizará la vista automáticamente con el ID correcto cuando el listener se active
+          // Pero ya actualizamos la vista manualmente para feedback inmediato
+          return;
           
         } catch (error) {
           console.error('[ADD] ❌ Error con Firebase, usando método local:', error);
+          userInteracting = false;
           // Continuar con método local si Firebase falla
         }
       }
@@ -7488,6 +7529,23 @@ function buildMasterGrid() {
       log('[ADD] Usando método local (Firebase no disponible)');
       const current = getFilesForHex(hex);
       log('[ADD] Links actuales:', current.length);
+      
+      // ✅ PREVENIR DUPLICADOS: Verificar si el link ya existe
+      const itemKey = `${urlVal}|||${labelVal}`;
+      const exists = current.some(f => {
+        const fKey = f.firebaseId ? `${f.url}|||${f.label}` : `${f.url}|||${f.label}`;
+        return fKey === itemKey;
+      });
+      
+      if (exists) {
+        if (typeof window.showSuccessModal === 'function') {
+          window.showSuccessModal('Error', 'Este enlace ya existe');
+        } else {
+          alert('Este enlace ya existe');
+        }
+        return;
+      }
+      
       const next = current.concat({ label: labelVal, url: urlVal });
       log('[ADD] Links después de agregar:', next.length);
       
@@ -7507,6 +7565,12 @@ function buildMasterGrid() {
       } else {
         renderCourse(hex);
         log('[ADD] ✅ Vista de curso actualizada');
+        // ✅ Actualizar contador de archivos
+        const filesCountEl = $('#files-count');
+        if (filesCountEl) {
+          const updatedFiles = getFilesForHex(hex);
+          filesCountEl.textContent = (updatedFiles || []).length;
+        }
       }
       
       // ✅ GUARDAR EN REMOTO (Google Sheets)
