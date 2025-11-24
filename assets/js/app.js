@@ -13373,6 +13373,23 @@ window.testGET = async function (hex) {
 /* ===================== NOTIFICACIONES Y ACTIVIDAD ===================== */
 
 /**
+ * ✅ Helper para formatear nombres de acciones
+ */
+function formatActionName(action) {
+  if (!action) return 'Acción Desconocida';
+  return action
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, l => l.toUpperCase())
+    .replace('Created', 'Creado')
+    .replace('Edited', 'Editado')
+    .replace('Deleted', 'Eliminado')
+    .replace('Added', 'Agregado')
+    .replace('Removed', 'Eliminado')
+    .replace('Login Success', 'Inicio de Sesión')
+    .replace('Login Failed', 'Fallo de Login');
+}
+
+/**
  * ✅ Configuración del panel de notificaciones y actividad
  */
 function setupNotificationsPanel() {
@@ -13385,21 +13402,31 @@ function setupNotificationsPanel() {
   const contentActivity = document.getElementById('activity-content');
   const badge = document.getElementById('notifications-badge');
 
-  if (!btnNotifications || !panel) return;
+  if (!btnNotifications || !panel) {
+    log('[NOTIFICATIONS] ⚠️ Elementos no encontrados, omitiendo inicialización');
+    return;
+  }
 
   // ✅ Abrir panel
   btnNotifications.addEventListener('click', (e) => {
     e.stopPropagation();
-    panel.style.display = 'flex';
-    // Renderizar actividad al abrir
-    renderActivityLog();
-    // Ocultar badge al abrir
-    if (badge) badge.style.display = 'none';
+    try {
+      panel.style.display = 'flex';
+      // Renderizar actividad al abrir
+      renderActivityLog();
+      // Ocultar badge al abrir
+      if (badge) badge.style.display = 'none';
+      log('[NOTIFICATIONS] Panel abierto');
+    } catch (error) {
+      console.error('[NOTIFICATIONS] Error abriendo panel:', error);
+      alert('Error al abrir el panel de notificaciones. Revisa la consola para más detalles.');
+    }
   });
 
   // ✅ Cerrar panel
   const closePanel = () => {
     panel.style.display = 'none';
+    log('[NOTIFICATIONS] Panel cerrado');
   };
 
   if (btnClose) btnClose.addEventListener('click', closePanel);
@@ -13438,79 +13465,103 @@ function setupNotificationsPanel() {
   function renderActivityLog() {
     const list = document.getElementById('activity-list');
     const emptyState = document.getElementById('activity-empty');
-    if (!list) return;
 
-    const logs = getFilteredAuditLogs(); // Usar función existente
-
-    if (logs.length === 0) {
-      list.innerHTML = '';
-      if (emptyState) emptyState.style.display = 'block';
+    if (!list) {
+      warn('[NOTIFICATIONS] activity-list no encontrado');
       return;
     }
 
-    if (emptyState) emptyState.style.display = 'none';
+    try {
+      // ✅ CRÍTICO: Limitar a los últimos 50 logs para evitar congelar el navegador
+      const allLogs = getFilteredAuditLogs();
+      const logs = allLogs.slice(0, 50); // Solo los primeros 50
 
-    list.innerHTML = logs.map(log => {
-      const date = new Date(log.timestamp).toLocaleString();
-      let icon = 'ph-info';
-      let color = 'var(--text)';
+      log(`[NOTIFICATIONS] Renderizando ${logs.length} de ${allLogs.length} logs totales`);
 
-      // Iconos según acción
-      if (log.action.includes('created') || log.action.includes('added')) {
-        icon = 'ph-plus-circle';
-        color = '#22c55e';
-      } else if (log.action.includes('deleted') || log.action.includes('removed')) {
-        icon = 'ph-trash';
-        color = '#ef4444';
-      } else if (log.action.includes('edited') || log.action.includes('updated')) {
-        icon = 'ph-pencil';
-        color = '#fbbf24';
-      } else if (log.action.includes('login')) {
-        icon = 'ph-sign-in';
-        color = '#a855f7';
+      if (logs.length === 0) {
+        list.innerHTML = '';
+        if (emptyState) emptyState.style.display = 'block';
+        return;
       }
 
-      // Formatear detalles
-      let detailsText = '';
-      if (log.details) {
-        if (log.details.title) detailsText = `Curso: <strong>${log.details.title}</strong>`;
-        else if (log.details.email) detailsText = `Email: <strong>${log.details.email}</strong>`;
-        else if (log.details.tag) detailsText = `Tag: <strong>${log.details.tag}</strong>`;
-        else detailsText = JSON.stringify(log.details).substring(0, 50);
+      if (emptyState) emptyState.style.display = 'none';
+
+      // ✅ Renderizar en fragmento para mejor rendimiento
+      const fragment = document.createDocumentFragment();
+
+      logs.forEach(log => {
+        try {
+          const div = document.createElement('div');
+          div.style.cssText = 'padding: 12px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 13px; margin-bottom: 8px;';
+
+          const date = new Date(log.timestamp).toLocaleString();
+          let icon = 'ph-info';
+          let color = '#5aa9ff';
+
+          // Iconos según acción
+          const action = (log.action || '').toLowerCase();
+          if (action.includes('created') || action.includes('added')) {
+            icon = 'ph-plus-circle';
+            color = '#22c55e';
+          } else if (action.includes('deleted') || action.includes('removed')) {
+            icon = 'ph-trash';
+            color = '#ef4444';
+          } else if (action.includes('edited') || action.includes('updated')) {
+            icon = 'ph-pencil';
+            color = '#fbbf24';
+          } else if (action.includes('login')) {
+            icon = 'ph-sign-in';
+            color = '#a855f7';
+          }
+
+          div.style.borderLeft = `3px solid ${color}`;
+
+          // Formatear detalles
+          let detailsText = '';
+          if (log.details) {
+            if (log.details.title) detailsText = `Curso: <strong>${escapeHTML(log.details.title)}</strong>`;
+            else if (log.details.email) detailsText = `Email: <strong>${escapeHTML(log.details.email)}</strong>`;
+            else if (log.details.tag) detailsText = `Tag: <strong>${escapeHTML(log.details.tag)}</strong>`;
+          }
+
+          div.innerHTML = `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                <i class="ph ${icon}" style="color: ${color}"></i>
+                ${formatActionName(log.action)}
+              </span>
+              <span style="color: var(--muted); font-size: 11px;">${escapeHTML(date)}</span>
+            </div>
+            ${detailsText ? `<div style="color: var(--text-secondary); margin-left: 20px; margin-bottom: 4px;">${detailsText}</div>` : ''}
+            <div style="color: var(--muted); font-size: 11px; margin-left: 20px;">
+              Usuario: ${escapeHTML(log.userId || 'Anónimo')}
+            </div>
+          `;
+
+          fragment.appendChild(div);
+        } catch (itemError) {
+          console.error('[NOTIFICATIONS] Error renderizando log individual:', itemError);
+        }
+      });
+
+      list.innerHTML = '';
+      list.appendChild(fragment);
+
+      // Mostrar mensaje si hay más logs
+      if (allLogs.length > 50) {
+        const moreDiv = document.createElement('div');
+        moreDiv.style.cssText = 'text-align: center; padding: 12px; color: var(--muted); font-size: 12px;';
+        moreDiv.textContent = `Mostrando los últimos 50 de ${allLogs.length} registros`;
+        list.appendChild(moreDiv);
       }
 
-      return `
-        <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 6px; border-left: 3px solid ${color}; font-size: 13px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
-              <i class="ph ${icon}" style="color: ${color}"></i>
-              ${formatActionName(log.action)}
-            </span>
-            <span style="color: var(--muted); font-size: 11px;">${date}</span>
-          </div>
-          <div style="color: var(--text-secondary); margin-left: 20px;">
-            ${detailsText}
-          </div>
-          <div style="color: var(--muted); font-size: 11px; margin-left: 20px; margin-top: 4px;">
-            Usuario: ${log.userId || 'Anónimo'}
-          </div>
-        </div>
-      `;
-    }).join('');
+    } catch (error) {
+      console.error('[NOTIFICATIONS] Error renderizando actividad:', error);
+      list.innerHTML = '<div style="color: #ef4444; padding: 12px;">Error al cargar actividad. Revisa la consola.</div>';
+    }
   }
 
-  function formatActionName(action) {
-    return action
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, l => l.toUpperCase())
-      .replace('Created', 'Creado')
-      .replace('Edited', 'Editado')
-      .replace('Deleted', 'Eliminado')
-      .replace('Added', 'Agregado')
-      .replace('Removed', 'Eliminado')
-      .replace('Login Success', 'Inicio de Sesión')
-      .replace('Login Failed', 'Fallo de Login');
-  }
+  log('[NOTIFICATIONS] ✅ Panel de notificaciones inicializado');
 }
 
 // Inicializar cuando el DOM esté listo
