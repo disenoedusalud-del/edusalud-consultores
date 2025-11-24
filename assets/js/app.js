@@ -13490,6 +13490,12 @@ function setupNotificationsPanel() {
       const fragment = document.createDocumentFragment();
 
       logs.forEach(log => {
+        // ✅ CRÍTICO: Verificar que el log existe y tiene datos válidos
+        if (!log || typeof log !== 'object') {
+          warn('[NOTIFICATIONS] Log inválido encontrado, omitiendo');
+          return;
+        }
+
         try {
           const div = document.createElement('div');
           div.style.cssText = 'padding: 12px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 13px; margin-bottom: 8px;';
@@ -13499,7 +13505,7 @@ function setupNotificationsPanel() {
           let color = '#5aa9ff';
 
           // Iconos según acción
-          const action = (log.action || '').toLowerCase();
+          const action = log.action ? String(log.action).toLowerCase() : '';
           if (action.includes('created') || action.includes('added')) {
             icon = 'ph-plus-circle';
             color = '#22c55e';
@@ -13518,7 +13524,7 @@ function setupNotificationsPanel() {
 
           // Formatear detalles
           let detailsText = '';
-          if (log.details) {
+          if (log.details && typeof log.details === 'object') {
             if (log.details.title) detailsText = `Curso: <strong>${escapeHTML(log.details.title)}</strong>`;
             else if (log.details.email) detailsText = `Email: <strong>${escapeHTML(log.details.email)}</strong>`;
             else if (log.details.tag) detailsText = `Tag: <strong>${escapeHTML(log.details.tag)}</strong>`;
