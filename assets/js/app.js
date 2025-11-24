@@ -6048,7 +6048,7 @@ function renderCourse(keyHex) {
         try { host = new URL(item.url).hostname; } catch { host = ''; }
 
         row.dataset.fileLabel = (item.label || '').toLowerCase();
-        row.dataset.fileHost = host.toLowerCase();
+        row.dataset.fileHost = (host || '').toLowerCase();
 
         const safeLabel = escapeHTML(item.label || '');
         const safeHost = escapeHTML(host);
@@ -8459,9 +8459,9 @@ function setupMasterSearch() {
       // Filtro por búsqueda de texto
       if (q) {
         filteredCards = filteredCards.filter(c => {
-          const t = (c.dataset.title || '').toLowerCase();
-          const tg = (c.dataset.tag || '').toLowerCase();
-          const type = (c.dataset.type || '').toLowerCase();
+          const t = ((c.dataset && c.dataset.title) || '').toLowerCase();
+          const tg = ((c.dataset && c.dataset.tag) || '').toLowerCase();
+          const type = ((c.dataset && c.dataset.type) || '').toLowerCase();
           return t.includes(q) || tg.includes(q) || type.includes(q);
         });
       }
@@ -8469,7 +8469,7 @@ function setupMasterSearch() {
       // Filtro por tipo
       if (advancedFiltersState.type) {
         filteredCards = filteredCards.filter(c => {
-          const type = (c.dataset.type || 'curso').toLowerCase();
+          const type = ((c.dataset && c.dataset.type) || 'curso').toLowerCase();
           const filterType = advancedFiltersState.type ? String(advancedFiltersState.type).toLowerCase() : '';
           return type === filterType;
         });
@@ -8479,7 +8479,7 @@ function setupMasterSearch() {
       if (advancedFiltersState.tag) {
         const tagFilter = String(advancedFiltersState.tag || '').trim().toLowerCase();
         filteredCards = filteredCards.filter(c => {
-          const tg = (c.dataset.tag || '').toLowerCase();
+          const tg = (String(c.dataset.tag) || '').toLowerCase();
           return tg.includes(tagFilter);
         });
       }
@@ -8680,9 +8680,9 @@ function setupAdvancedFilters() {
     // Filtro por búsqueda de texto
     if (q) {
       filteredCards = filteredCards.filter(c => {
-        const t = (c.dataset.title || '').toLowerCase();
-        const tg = (c.dataset.tag || '').toLowerCase();
-        const type = (c.dataset.type || '').toLowerCase();
+        const t = ((c.dataset && c.dataset.title) || '').toLowerCase();
+        const tg = ((c.dataset && c.dataset.tag) || '').toLowerCase();
+        const type = ((c.dataset && c.dataset.type) || '').toLowerCase();
         return t.includes(q) || tg.includes(q) || type.includes(q);
       });
     }
@@ -8690,7 +8690,7 @@ function setupAdvancedFilters() {
     // Filtro por tipo
     if (advancedFiltersState.type) {
       filteredCards = filteredCards.filter(c => {
-        const type = (c.dataset.type || 'curso').toLowerCase();
+        const type = ((c.dataset && c.dataset.type) || 'curso').toLowerCase();
         return type === advancedFiltersState.type.toLowerCase();
       });
     }
@@ -8699,7 +8699,7 @@ function setupAdvancedFilters() {
     if (advancedFiltersState.tag) {
       const tagFilter = advancedFiltersState.tag.trim().toLowerCase();
       filteredCards = filteredCards.filter(c => {
-        const tg = (c.dataset.tag || '').toLowerCase();
+        const tg = ((c.dataset && c.dataset.tag) || '').toLowerCase();
         return tg.includes(tagFilter);
       });
     }
