@@ -2356,7 +2356,7 @@ function downloadFile(url, label = '') {
 }
 
 /* ============ base de cursos (hash -> data) ============ */
-const MASTER_HASH = "7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8"; // EDUMASTER123456987
+const MASTER_HASH = "7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8";
 
 // ✅ CURSOS BASE ELIMINADOS - Todos los cursos ahora vienen de Firebase (customCourses)
 const ACCESS_HASH_MAP = {};
