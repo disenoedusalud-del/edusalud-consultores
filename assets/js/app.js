@@ -13369,3 +13369,154 @@ window.testGET = async function (hex) {
   }
 };
 
+
+/* ===================== NOTIFICACIONES Y ACTIVIDAD ===================== */
+
+/**
+ * ✅ Configuración del panel de notificaciones y actividad
+ */
+function setupNotificationsPanel() {
+  const btnNotifications = document.getElementById('btn-notifications');
+  const panel = document.getElementById('notificationsPanel');
+  const btnClose = document.getElementById('btn-close-notifications');
+  const tabNotifications = document.getElementById('tab-notifications');
+  const tabActivity = document.getElementById('tab-activity');
+  const contentNotifications = document.getElementById('notifications-content');
+  const contentActivity = document.getElementById('activity-content');
+  const badge = document.getElementById('notifications-badge');
+
+  if (!btnNotifications || !panel) return;
+
+  // ✅ Abrir panel
+  btnNotifications.addEventListener('click', (e) => {
+    e.stopPropagation();
+    panel.style.display = 'flex';
+    // Renderizar actividad al abrir
+    renderActivityLog();
+    // Ocultar badge al abrir
+    if (badge) badge.style.display = 'none';
+  });
+
+  // ✅ Cerrar panel
+  const closePanel = () => {
+    panel.style.display = 'none';
+  };
+
+  if (btnClose) btnClose.addEventListener('click', closePanel);
+
+  // Cerrar al hacer click fuera
+  panel.addEventListener('click', (e) => {
+    if (e.target === panel) closePanel();
+  });
+
+  // ✅ Cambiar pestañas
+  if (tabNotifications && tabActivity) {
+    tabNotifications.addEventListener('click', () => {
+      tabNotifications.classList.add('active');
+      tabNotifications.style.borderBottomColor = 'var(--accent)';
+      tabActivity.classList.remove('active');
+      tabActivity.style.borderBottomColor = 'transparent';
+
+      contentNotifications.style.display = 'block';
+      contentActivity.style.display = 'none';
+    });
+
+    tabActivity.addEventListener('click', () => {
+      tabActivity.classList.add('active');
+      tabActivity.style.borderBottomColor = 'var(--accent)';
+      tabNotifications.classList.remove('active');
+      tabNotifications.style.borderBottomColor = 'transparent';
+
+      contentActivity.style.display = 'block';
+      contentNotifications.style.display = 'none';
+
+      renderActivityLog();
+    });
+  }
+
+  // ✅ Renderizar Log de Actividad
+  function renderActivityLog() {
+    const list = document.getElementById('activity-list');
+    const emptyState = document.getElementById('activity-empty');
+    if (!list) return;
+
+    const logs = getFilteredAuditLogs(); // Usar función existente
+
+    if (logs.length === 0) {
+      list.innerHTML = '';
+      if (emptyState) emptyState.style.display = 'block';
+      return;
+    }
+
+    if (emptyState) emptyState.style.display = 'none';
+
+    list.innerHTML = logs.map(log => {
+      const date = new Date(log.timestamp).toLocaleString();
+      let icon = 'ph-info';
+      let color = 'var(--text)';
+
+      // Iconos según acción
+      if (log.action.includes('created') || log.action.includes('added')) {
+        icon = 'ph-plus-circle';
+        color = '#22c55e';
+      } else if (log.action.includes('deleted') || log.action.includes('removed')) {
+        icon = 'ph-trash';
+        color = '#ef4444';
+      } else if (log.action.includes('edited') || log.action.includes('updated')) {
+        icon = 'ph-pencil';
+        color = '#fbbf24';
+      } else if (log.action.includes('login')) {
+        icon = 'ph-sign-in';
+        color = '#a855f7';
+      }
+
+      // Formatear detalles
+      let detailsText = '';
+      if (log.details) {
+        if (log.details.title) detailsText = `Curso: <strong>${log.details.title}</strong>`;
+        else if (log.details.email) detailsText = `Email: <strong>${log.details.email}</strong>`;
+        else if (log.details.tag) detailsText = `Tag: <strong>${log.details.tag}</strong>`;
+        else detailsText = JSON.stringify(log.details).substring(0, 50);
+      }
+
+      return `
+        <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 6px; border-left: 3px solid ${color}; font-size: 13px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
+              <i class="ph ${icon}" style="color: ${color}"></i>
+              ${formatActionName(log.action)}
+            </span>
+            <span style="color: var(--muted); font-size: 11px;">${date}</span>
+          </div>
+          <div style="color: var(--text-secondary); margin-left: 20px;">
+            ${detailsText}
+          </div>
+          <div style="color: var(--muted); font-size: 11px; margin-left: 20px; margin-top: 4px;">
+            Usuario: ${log.userId || 'Anónimo'}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function formatActionName(action) {
+    return action
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase())
+      .replace('Created', 'Creado')
+      .replace('Edited', 'Editado')
+      .replace('Deleted', 'Eliminado')
+      .replace('Added', 'Agregado')
+      .replace('Removed', 'Eliminado')
+      .replace('Login Success', 'Inicio de Sesión')
+      .replace('Login Failed', 'Fallo de Login');
+  }
+}
+
+// Inicializar cuando el DOM esté listo
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupNotificationsPanel);
+} else {
+  setupNotificationsPanel();
+}
+
