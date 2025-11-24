@@ -6020,7 +6020,10 @@ function renderCourse(keyHex) {
   if (!data) return;
   
   // ✅ Verificar si es necesario renderizar (memoización)
-  if (!shouldRenderCourse(keyHex, data)) {
+  // ✅ PERO: Si lastRenderCourseHex fue invalidado (null), forzar renderizado
+  const shouldForceRender = lastRenderCourseHex === null;
+  
+  if (!shouldForceRender && !shouldRenderCourse(keyHex, data)) {
     // Solo actualizar contador de archivos si es necesario
     const files = getFilesForHex(keyHex);
     const filesCountEl = $('#files-count');
@@ -7105,6 +7108,9 @@ function buildMasterGrid() {
                 buildMasterGrid();
               } else {
                 log('[REMOVE] ♻️ Re-renderizando Curso');
+                // ✅ FORZAR renderizado completo ignorando memoización
+                lastRenderCourseHex = null;
+                lastRenderCourseData = null;
                 renderCourse(hex);
                 // ✅ Actualizar contador de archivos
                 const filesCountEl = $('#files-count');
@@ -7526,6 +7532,9 @@ function buildMasterGrid() {
             buildMasterGrid();
           } else {
             log('[ADD] ♻️ Re-renderizando Curso');
+            // ✅ FORZAR renderizado completo ignorando memoización
+            lastRenderCourseHex = null;
+            lastRenderCourseData = null;
             renderCourse(hex);
             // ✅ Actualizar contador de archivos
             const filesCountEl = $('#files-count');
@@ -7595,6 +7604,9 @@ function buildMasterGrid() {
         buildMasterGrid();
         log('[ADD] ✅ Vista master actualizada');
       } else {
+        // ✅ FORZAR renderizado completo ignorando memoización
+        lastRenderCourseHex = null;
+        lastRenderCourseData = null;
         renderCourse(hex);
         log('[ADD] ✅ Vista de curso actualizada');
         // ✅ Actualizar contador de archivos
