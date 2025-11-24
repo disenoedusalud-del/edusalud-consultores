@@ -8466,13 +8466,14 @@ function setupMasterSearch() {
       if (advancedFiltersState.type) {
         filteredCards = filteredCards.filter(c => {
           const type = (c.dataset.type || 'curso').toLowerCase();
-          return type === advancedFiltersState.type.toLowerCase();
+          const filterType = advancedFiltersState.type ? String(advancedFiltersState.type).toLowerCase() : '';
+          return type === filterType;
         });
       }
 
       // Filtro por tag
       if (advancedFiltersState.tag) {
-        const tagFilter = advancedFiltersState.tag.trim().toLowerCase();
+        const tagFilter = String(advancedFiltersState.tag).trim().toLowerCase();
         filteredCards = filteredCards.filter(c => {
           const tg = (c.dataset.tag || '').toLowerCase();
           return tg.includes(tagFilter);
