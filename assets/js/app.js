@@ -746,12 +746,17 @@ function shouldBuildMasterGrid(coursesData) {
   const cacheKey = 'master_grid';
   const dataToCompare = {
     coursesCount: Object.keys(coursesData || {}).length,
-    courses: Object.entries(coursesData || {}).map(([hex, data]) => ({
-      hex: hex.substring(0, 8),
-      title: data?.title,
-      type: data?.type,
-      filesCount: (data?.files || []).length
-    }))
+    courses: Object.entries(coursesData || {}).map(([hex, data]) => {
+      // ✅ CRÍTICO: Usar getFilesForHex() para obtener el conteo REAL de archivos
+      // No usar data?.files porque los archivos se guardan en localStorage
+      const realFiles = getFilesForHex(hex);
+      return {
+        hex: hex.substring(0, 8),
+        title: data?.title,
+        type: data?.type,
+        filesCount: (realFiles || []).length // ✅ Usar archivos reales de localStorage
+      };
+    })
   };
   
   // Si los datos no cambiaron, no renderizar
@@ -7085,6 +7090,10 @@ function buildMasterGrid() {
               
               // ✅ Desbloquear y re-renderizar inmediatamente
               userInteracting = false;
+              
+              // ✅ CRÍTICO: Invalidar caché de memoización para forzar re-render
+              lastMasterGridData = null;
+              
               const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
               if (isMasterView) {
                 log('[REMOVE] ♻️ Re-renderizando Master');
@@ -7127,6 +7136,10 @@ function buildMasterGrid() {
           
           // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
           log('[REMOVE] 🗑️ Eliminando archivo inmediatamente de la vista');
+          
+          // ✅ CRÍTICO: Invalidar caché de memoización para forzar re-render
+          lastMasterGridData = null;
+          
           const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
           if (isMasterView) {
             buildMasterGrid();
@@ -7494,6 +7507,10 @@ function buildMasterGrid() {
           
           // ✅ Desbloquear y ACTUALIZAR VISTA INMEDIATAMENTE
           userInteracting = false;
+          
+          // ✅ CRÍTICO: Invalidar caché de memoización para forzar re-render
+          lastMasterGridData = null;
+          
           const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
           if (isMasterView) {
             log('[ADD] ♻️ Re-renderizando Master');
@@ -7557,6 +7574,10 @@ function buildMasterGrid() {
       
       // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
       log('[ADD] ➕ Agregando link inmediatamente a la vista');
+      
+      // ✅ CRÍTICO: Invalidar caché de memoización para forzar re-render
+      lastMasterGridData = null;
+      
       const isMasterView = document.getElementById('master') && !document.getElementById('master').classList.contains('hidden');
       
       if (isMasterView) {
