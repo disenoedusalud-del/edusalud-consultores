@@ -7462,8 +7462,51 @@ function buildMasterGrid() {
       const [moved] = next.splice(from, 1);
       next.splice(to, 0, moved);
 
-      // ✅ Feedback visual: mostrar animación de éxito
-      const movedElement = list.querySelector(`[data-index="${from}"]`);
+      // ✅ Guardar nuevo orden inmediatamente
+      saveFilesOverride(hex, next);
+
+      // ✅ CRÍTICO: Reordenar elementos DOM manualmente ANTES de cualquier otra cosa
+      log('[REORDER] ♻️ Reordenando elementos DOM manualmente en tiempo real');
+
+      // Obtener todos los elementos .file actuales en el orden del DOM
+      const fileElements = Array.from(list.querySelectorAll('.file'));
+      
+      // Crear un mapa de elementos por su índice original en el array files
+      const elementMap = new Map();
+      fileElements.forEach((el) => {
+        const idx = Number(el.dataset.index);
+        if (!Number.isNaN(idx)) {
+          elementMap.set(idx, el);
+        }
+      });
+
+      // ✅ Reordenar físicamente los elementos en el DOM según el nuevo orden
+      // Primero, guardar referencias a todos los elementos
+      const elementsToReorder = [];
+      next.forEach((item, newIndex) => {
+        // Buscar el elemento correspondiente en el mapa usando el índice original
+        const oldIndex = files.findIndex(f => {
+          const fKey = f.firebaseId || `${f.url}|||${f.label}`;
+          const itemKey = item.firebaseId || `${item.url}|||${item.label}`;
+          return fKey === itemKey;
+        });
+
+        if (oldIndex !== -1 && elementMap.has(oldIndex)) {
+          const element = elementMap.get(oldIndex);
+          // Actualizar data-index al nuevo índice
+          element.dataset.index = String(newIndex);
+          elementsToReorder.push(element);
+        }
+      });
+
+      // Limpiar la lista y reconstruir en el nuevo orden
+      list.innerHTML = '';
+      elementsToReorder.forEach(element => {
+        list.appendChild(element);
+      });
+
+      // ✅ Feedback visual: mostrar animación de éxito en el elemento movido
+      const movedElement = list.querySelector(`[data-index="${to}"]`);
       if (movedElement) {
         movedElement.style.transition = 'all 0.3s ease';
         movedElement.style.transform = 'scale(1.02)';
@@ -7477,45 +7520,15 @@ function buildMasterGrid() {
         }, 300);
       }
 
-      saveFilesOverride(hex, next);
-
-      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
-      log('[REORDER] 🔄 Reordenando inmediatamente en la vista');
-      // ✅ Verificar si estamos en vista master Y autenticados
-      const masterEl = document.getElementById('master');
-      const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
-      if (isMasterView) {
-        buildMasterGrid();
-      } else {
-        // ✅ CRÍTICO: Reordenar elementos DOM manualmente para preservar event listeners
-        log('[REORDER] ♻️ Reordenando elementos DOM manualmente');
-
-        // Obtener todos los elementos .file actuales
-        const fileElements = Array.from(list.querySelectorAll('.file'));
-
-        // Reordenar físicamente los elementos en el DOM según el nuevo orden
-        next.forEach((item, newIndex) => {
-          const oldIndex = files.findIndex(f => {
-            const fKey = f.firebaseId || `${f.url}|||${f.label}`;
-            const itemKey = item.firebaseId || `${item.url}|||${item.label}`;
-            return fKey === itemKey;
-          });
-
-          if (oldIndex !== -1 && fileElements[oldIndex]) {
-            const element = fileElements[oldIndex];
-            // Actualizar data-index al nuevo índice
-            element.dataset.index = String(newIndex);
-            // Mover elemento al final de la lista
-            list.appendChild(element);
-          }
-        });
-
-        // Actualizar contador de archivos
-        const filesCountEl = $('#files-count');
-        if (filesCountEl) {
-          filesCountEl.textContent = next.length;
-        }
+      // Actualizar contador de archivos
+      const filesCountEl = $('#files-count');
+      if (filesCountEl) {
+        filesCountEl.textContent = next.length;
       }
+
+      // ✅ Invalidar caché de memoización para forzar re-render si es necesario
+      lastRenderCourseHex = null;
+      lastRenderCourseData = null;
 
       // ✅ Mostrar toast de confirmación
       if (typeof window.showToast === 'function') {
