@@ -1068,10 +1068,13 @@ function showToast(type, title, message, duration = 3000) {
 
   // Icono
   const icon = document.createElement('div');
-  icon.textContent = getToastIcon(type);
+  icon.innerHTML = getToastIcon(type);
   icon.style.cssText = `
     font-size: 20px;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   `;
 
   // Contenido
@@ -1174,10 +1177,10 @@ function getToastColor(type) {
 
 function getToastIcon(type) {
   const icons = {
-    success: '✅',
-    error: '❌',
-    warning: '⚠️',
-    info: 'ℹ️'
+    success: '<i class="ph ph-check-circle" style="font-size: 20px;"></i>',
+    error: '<i class="ph ph-x-circle" style="font-size: 20px;"></i>',
+    warning: '<i class="ph ph-warning-circle" style="font-size: 20px;"></i>',
+    info: '<i class="ph ph-info" style="font-size: 20px;"></i>'
   };
   return icons[type] || icons.info;
 }
@@ -1660,15 +1663,15 @@ function renderActivity(filter = 'all') {
     empty.style.display = 'none';
 
     const actionLabels = {
-      'course_created': { icon: '✅', label: 'Curso creado', color: '#4ade80' },
-      'course_edited': { icon: '✏️', label: 'Curso editado', color: '#5aa9ff' },
-      'course_deleted': { icon: '🗑️', label: 'Curso eliminado', color: '#ff5555' },
-      'email_added': { icon: '📧', label: 'Email agregado', color: '#fbbf24' },
-      'email_removed': { icon: '📧', label: 'Email eliminado', color: '#ff5555' },
-      'admin_added': { icon: '👤', label: 'Admin agregado', color: '#a855f7' },
-      'admin_removed': { icon: '👤', label: 'Admin eliminado', color: '#ff5555' },
-      'backup_exported': { icon: '💾', label: 'Backup exportado', color: '#4ade80' },
-      'backup_imported': { icon: '📥', label: 'Backup importado', color: '#5aa9ff' }
+      'course_created': { icon: '<i class="ph ph-check-circle" style="font-size: 20px;"></i>', label: 'Curso creado', color: '#4ade80' },
+      'course_edited': { icon: '<i class="ph ph-pencil" style="font-size: 20px;"></i>', label: 'Curso editado', color: '#5aa9ff' },
+      'course_deleted': { icon: '<i class="ph ph-trash" style="font-size: 20px;"></i>', label: 'Curso eliminado', color: '#ff5555' },
+      'email_added': { icon: '<i class="ph ph-envelope" style="font-size: 20px;"></i>', label: 'Email agregado', color: '#fbbf24' },
+      'email_removed': { icon: '<i class="ph ph-envelope" style="font-size: 20px;"></i>', label: 'Email eliminado', color: '#ff5555' },
+      'admin_added': { icon: '<i class="ph ph-user" style="font-size: 20px;"></i>', label: 'Admin agregado', color: '#a855f7' },
+      'admin_removed': { icon: '<i class="ph ph-user" style="font-size: 20px;"></i>', label: 'Admin eliminado', color: '#ff5555' },
+      'backup_exported': { icon: '<i class="ph ph-floppy-disk" style="font-size: 20px;"></i>', label: 'Backup exportado', color: '#4ade80' },
+      'backup_imported': { icon: '<i class="ph ph-download" style="font-size: 20px;"></i>', label: 'Backup importado', color: '#5aa9ff' }
     };
 
     // ✅ Renderizar en lotes más pequeños con delay
@@ -1683,7 +1686,7 @@ function renderActivity(filter = 'all') {
           try {
             if (!log || !log.action) return;
 
-            const action = actionLabels[log.action] || { icon: 'ℹ️', label: log.action || 'Acción', color: '#5aa9ff' };
+            const action = actionLabels[log.action] || { icon: '<i class="ph ph-info" style="font-size: 20px;"></i>', label: log.action || 'Acción', color: '#5aa9ff' };
             const time = new Date(log.timestamp || Date.now());
             const timeStr = time.toLocaleString('es-ES', {
               day: 'numeric',
@@ -4630,14 +4633,14 @@ function setButtonLoading(button, loadingText = 'Procesando...', successText = n
     if (success && successText) {
       // ✅ Sanitizar texto dinámico
       const safeText = sanitizeHTML(customText || successText);
-      button.innerHTML = `✅ ${safeText}`;
+      button.innerHTML = `<i class="ph ph-check-circle" style="font-size: 14px; vertical-align: middle;"></i> ${safeText}`;
       setTimeout(() => {
         button.innerHTML = originalHTML;
       }, 2000);
     } else if (!success) {
       // ✅ Sanitizar texto dinámico
       const safeText = sanitizeHTML(customText || errorText);
-      button.innerHTML = `❌ ${safeText}`;
+      button.innerHTML = `<i class="ph ph-x-circle" style="font-size: 14px; vertical-align: middle;"></i> ${safeText}`;
       setTimeout(() => {
         button.innerHTML = originalHTML;
       }, 3000);
@@ -6341,7 +6344,7 @@ function buildUserGrid() {
       const loadingPlaceholder = document.createElement('div');
       loadingPlaceholder.className = 'image-loading-placeholder';
       loadingPlaceholder.style.cssText = 'position:absolute; inset:0; background:linear-gradient(90deg, rgba(90,169,255,0.1) 0%, rgba(90,169,255,0.2) 50%, rgba(90,169,255,0.1) 100%); background-size:200% 100%; animation:shimmer 1.5s infinite; display:flex; align-items:center; justify-content:center;';
-      loadingPlaceholder.innerHTML = '<div style="font-size:24px; opacity:0.5;">🖼️</div>';
+      loadingPlaceholder.innerHTML = '<div style="font-size:24px; opacity:0.5; display:flex; align-items:center; justify-content:center;"><i class="ph ph-image" style="font-size:24px;"></i></div>';
       imgContainer.appendChild(loadingPlaceholder);
 
       const img = document.createElement('img');
@@ -6376,7 +6379,7 @@ function buildUserGrid() {
         img.style.display = 'none';
         const errorPlaceholder = document.createElement('div');
         errorPlaceholder.style.cssText = 'width:100%; height:100%; background:linear-gradient(135deg, rgba(255,122,122,0.2), rgba(255,122,122,0.05)); display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--danger); gap:8px;';
-        errorPlaceholder.innerHTML = '<span style="font-size:32px;">🖼️</span><span style="font-size:12px; text-align:center; padding:0 12px;">Imagen no disponible</span>';
+        errorPlaceholder.innerHTML = '<span style="font-size:32px; display:flex; align-items:center; justify-content:center;"><i class="ph ph-image" style="font-size:32px;"></i></span><span style="font-size:12px; text-align:center; padding:0 12px;">Imagen no disponible</span>';
         imgContainer.appendChild(errorPlaceholder);
       };
 
@@ -7000,19 +7003,23 @@ function buildMasterGrid() {
 
       // ✅ Icono según tipo de archivo
       const icon = document.createElement('div');
-      icon.style.cssText = 'font-size: 24px; flex-shrink: 0;';
+      icon.style.cssText = 'font-size: 24px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;';
       const icons = {
-        'pdf': '📄',
-        'doc': '📝',
-        'sheet': '📊',
-        'presentation': '📽️',
-        'archive': '📦',
-        'image': '🖼️',
-        'drive': '☁️',
-        'video': '🎥',
-        'file': '📎'
+        'pdf': 'ph-file-pdf',
+        'doc': 'ph-file-text',
+        'sheet': 'ph-table',
+        'presentation': 'ph-presentation',
+        'archive': 'ph-package',
+        'image': 'ph-image',
+        'drive': 'ph-cloud',
+        'video': 'ph-video',
+        'file': 'ph-paperclip'
       };
-      icon.textContent = icons[fileType] || icons.file;
+      const iconClass = icons[fileType] || icons.file;
+      const iconElement = document.createElement('i');
+      iconElement.className = `ph ${iconClass}`;
+      iconElement.style.cssText = 'font-size: 24px;';
+      icon.appendChild(iconElement);
 
       const info = document.createElement('div');
       info.style.cssText = 'flex: 1; min-width: 0;';
@@ -11307,7 +11314,7 @@ async function addAdminUI() {
     // Limpiar input
     input.value = '';
     if (msgEl) {
-      msgEl.textContent = `✅ Administrador "${email}" agregado exitosamente.`;
+      msgEl.innerHTML = `<i class="ph ph-check-circle" style="font-size: 14px; vertical-align: middle;"></i> Administrador "${escapeHTML(email)}" agregado exitosamente.`;
       msgEl.classList.remove('error');
     }
     if (typeof window.showToast === 'function') {
@@ -12492,7 +12499,7 @@ function setupAddCourseModal() {
             errorMsg.style.cssText = 'font-size: 12px; color: #ff5555; margin-top: 4px; padding: 4px 8px; border-radius: 4px; background: rgba(255,85,85,0.1); border-left: 3px solid #ff5555;';
             inputImage.parentElement.appendChild(errorMsg);
           }
-          errorMsg.textContent = `⚠️ ${urlValidation.error}`;
+          errorMsg.innerHTML = `<i class="ph ph-warning-circle" style="font-size: 14px; vertical-align: middle;"></i> ${escapeHTML(urlValidation.error)}`;
           inputImage.setAttribute('aria-describedby', 'inputCourseImage-error');
         }
         return;
@@ -12511,7 +12518,7 @@ function setupAddCourseModal() {
         const msg = document.createElement('div');
         msg.className = 'image-checking';
         msg.style.cssText = 'font-size: 12px; color: var(--accent); margin-top: 4px; padding: 4px 8px; border-radius: 4px; background: rgba(90,169,255,0.1); border-left: 3px solid var(--accent);';
-        msg.textContent = '🔄 Verificando imagen...';
+        msg.innerHTML = '<i class="ph ph-spinner" style="font-size: 14px; vertical-align: middle; animation: spin 1s linear infinite;"></i> Verificando imagen...';
         inputImage.parentElement.appendChild(msg);
       }
 
@@ -12534,7 +12541,7 @@ function setupAddCourseModal() {
           successMsg.setAttribute('role', 'status');
           successMsg.setAttribute('aria-live', 'polite');
           successMsg.style.cssText = 'font-size: 12px; color: #4ade80; margin-top: 4px; padding: 4px 8px; border-radius: 4px; background: rgba(74,222,128,0.1); border-left: 3px solid #4ade80;';
-          successMsg.textContent = `✅ Imagen válida (${imageCheck.width}x${imageCheck.height}px)`;
+          successMsg.innerHTML = `<i class="ph ph-check-circle" style="font-size: 14px; vertical-align: middle;"></i> Imagen válida (${imageCheck.width}x${imageCheck.height}px)`;
           inputImage.parentElement.appendChild(successMsg);
 
           // Remover después de 3 segundos
@@ -12554,7 +12561,7 @@ function setupAddCourseModal() {
           warningMsg.id = 'inputCourseImage-warning';
           warningMsg.setAttribute('role', 'alert');
           warningMsg.style.cssText = 'font-size: 12px; color: #fbbf24; margin-top: 4px; padding: 4px 8px; border-radius: 4px; background: rgba(251,191,36,0.1); border-left: 3px solid #fbbf24;';
-          warningMsg.textContent = `⚠️ No se pudo verificar la imagen: ${imageCheck.error}`;
+          warningMsg.innerHTML = `<i class="ph ph-warning-circle" style="font-size: 14px; vertical-align: middle;"></i> No se pudo verificar la imagen: ${escapeHTML(imageCheck.error || 'Error desconocido')}`;
           inputImage.parentElement.appendChild(warningMsg);
           inputImage.setAttribute('aria-describedby', 'inputCourseImage-warning');
         }
