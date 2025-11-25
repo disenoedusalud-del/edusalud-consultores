@@ -7487,9 +7487,34 @@ function buildMasterGrid() {
       if (isMasterView) {
         buildMasterGrid();
       } else {
-        log('[REORDER] ♻️ Actualizando lista de archivos inmediatamente');
-        // ✅ ACTUALIZAR LISTA DE ARCHIVOS DIRECTAMENTE (sin memoización)
-        updateFileListOnly(hex);
+        // ✅ CRÍTICO: Reordenar elementos DOM manualmente para preservar event listeners
+        log('[REORDER] ♻️ Reordenando elementos DOM manualmente');
+
+        // Obtener todos los elementos .file actuales
+        const fileElements = Array.from(list.querySelectorAll('.file'));
+
+        // Reordenar físicamente los elementos en el DOM según el nuevo orden
+        next.forEach((item, newIndex) => {
+          const oldIndex = files.findIndex(f => {
+            const fKey = f.firebaseId || `${f.url}|||${f.label}`;
+            const itemKey = item.firebaseId || `${item.url}|||${item.label}`;
+            return fKey === itemKey;
+          });
+
+          if (oldIndex !== -1 && fileElements[oldIndex]) {
+            const element = fileElements[oldIndex];
+            // Actualizar data-index al nuevo índice
+            element.dataset.index = String(newIndex);
+            // Mover elemento al final de la lista
+            list.appendChild(element);
+          }
+        });
+
+        // Actualizar contador de archivos
+        const filesCountEl = $('#files-count');
+        if (filesCountEl) {
+          filesCountEl.textContent = next.length;
+        }
       }
 
       // ✅ Mostrar toast de confirmación
