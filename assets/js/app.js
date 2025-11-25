@@ -7487,16 +7487,9 @@ function buildMasterGrid() {
       if (isMasterView) {
         buildMasterGrid();
       } else {
-        // ✅ FORZAR renderizado completo ignorando memoización
-        lastRenderCourseHex = null;
-        lastRenderCourseData = null;
-        renderCourse(hex);
-        // ✅ Actualizar contador de archivos
-        const filesCountEl = $('#files-count');
-        if (filesCountEl) {
-          const updatedFiles = getFilesForHex(hex);
-          filesCountEl.textContent = (updatedFiles || []).length;
-        }
+        log('[REORDER] ♻️ Actualizando lista de archivos inmediatamente');
+        // ✅ ACTUALIZAR LISTA DE ARCHIVOS DIRECTAMENTE (sin memoización)
+        updateFileListOnly(hex);
       }
 
       // ✅ Mostrar toast de confirmación
