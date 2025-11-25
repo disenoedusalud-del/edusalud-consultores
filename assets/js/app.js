@@ -4076,7 +4076,7 @@ function showImportPreviewModal(data, file) {
       ` : ''}
       
       <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-        <h3 style="margin-bottom: 12px;">📊 Resumen del Backup</h3>
+        <h3 style="margin-bottom: 12px;"><i class="ph ph-chart-bar"></i> Resumen del Backup</h3>
         <div style="display: grid; gap: 8px;">
           <div><strong>Versión:</strong> ${preview.version}</div>
           <div><strong>Fecha de exportación:</strong> ${preview.exportedAt ? new Date(preview.exportedAt).toLocaleString('es-ES') : 'No disponible'}</div>
@@ -5185,11 +5185,11 @@ function showExportFilterModal() {
         </p>
         <select id="exportTypeFilter" class="input" style="width: 100%; margin-bottom: 16px;">
           <option value="all">Todos los cursos</option>
-          <option value="curso">📖 Solo Cursos</option>
-          <option value="diplomado">🎓 Solo Diplomados</option>
-          <option value="webinar">💻 Solo Webinars</option>
-          <option value="seminario">📝 Solo Seminarios</option>
-          <option value="taller">🔧 Solo Talleres</option>
+          <option value="curso"><i class="ph ph-book-open"></i> Solo Cursos</option>
+          <option value="diplomado"><i class="ph ph-graduation-cap"></i> Solo Diplomados</option>
+          <option value="webinar"><i class="ph ph-monitor"></i> Solo Webinars</option>
+          <option value="seminario"><i class="ph ph-note"></i> Solo Seminarios</option>
+          <option value="taller"><i class="ph ph-wrench"></i> Solo Talleres</option>
         </select>
         <div style="display: flex; gap: 12px; justify-content: flex-end;">
           <button class="btn secondary" onclick="this.closest('.modal').remove()">Cancelar</button>
@@ -6088,13 +6088,13 @@ function renderCourse(keyHex) {
   // ✅ Mostrar clasificación del curso (badge en la parte superior)
   const courseType = data.type || 'curso';
   const typeLabels = {
-    'curso': '📖 Curso',
-    'diplomado': '🎓 Diplomado',
-    'webinar': '💻 Webinar',
-    'seminario': '📝 Seminario',
-    'taller': '🔧 Taller'
+    'curso': '<i class="ph ph-book-open"></i> Curso',
+    'diplomado': '<i class="ph ph-graduation-cap"></i> Diplomado',
+    'webinar': '<i class="ph ph-monitor"></i> Webinar',
+    'seminario': '<i class="ph ph-note"></i> Seminario',
+    'taller': '<i class="ph ph-wrench"></i> Taller'
   };
-  const typeLabel = typeLabels[courseType] || '📖 Curso';
+  const typeLabel = typeLabels[courseType] || '<i class="ph ph-book-open"></i> Curso';
 
   // ✅ Obtener el contenedor del título (el div que contiene courseTitle y courseMeta)
   const titleContainer = $('#courseTitle')?.parentElement;
@@ -6322,13 +6322,13 @@ function buildUserGrid() {
     // ✅ Badge de tipo en la parte superior izquierda
     const courseType = data.type || 'curso';
     const typeLabels = {
-      'curso': '📖 Curso',
-      'diplomado': '🎓 Diplomado',
-      'webinar': '💻 Webinar',
-      'seminario': '📝 Seminario',
-      'taller': '🔧 Taller'
+      'curso': '<i class="ph ph-book-open"></i> Curso',
+      'diplomado': '<i class="ph ph-graduation-cap"></i> Diplomado',
+      'webinar': '<i class="ph ph-monitor"></i> Webinar',
+      'seminario': '<i class="ph ph-note"></i> Seminario',
+      'taller': '<i class="ph ph-wrench"></i> Taller'
     };
-    const typeLabel = typeLabels[courseType] || '📖 Curso';
+    const typeLabel = typeLabels[courseType] || '<i class="ph ph-book-open"></i> Curso';
 
     const typeBadge = document.createElement('div');
     typeBadge.style.cssText = 'position:absolute; top:12px; left:12px; z-index:10; padding:6px 12px; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); border-radius:20px; font-size:11px; font-weight:600; color:#ffffff; text-transform:uppercase; letter-spacing:0.5px; pointer-events:none;';
@@ -6603,13 +6603,13 @@ function buildMasterGrid() {
     // ✅ Mostrar clasificación del curso (badge en la parte superior)
     const courseType = data.type || 'curso';
     const typeLabels = {
-      'curso': '📖 Curso',
-      'diplomado': '🎓 Diplomado',
-      'webinar': '💻 Webinar',
-      'seminario': '📝 Seminario',
-      'taller': '🔧 Taller'
+      'curso': '<i class="ph ph-book-open"></i> Curso',
+      'diplomado': '<i class="ph ph-graduation-cap"></i> Diplomado',
+      'webinar': '<i class="ph ph-monitor"></i> Webinar',
+      'seminario': '<i class="ph ph-note"></i> Seminario',
+      'taller': '<i class="ph ph-wrench"></i> Taller'
     };
-    const typeLabel = typeLabels[courseType] || '📖 Curso';
+    const typeLabel = typeLabels[courseType] || '<i class="ph ph-book-open"></i> Curso';
 
     const typeBadge = document.createElement('div');
     typeBadge.style.cssText = 'font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;';
@@ -8086,12 +8086,12 @@ function updateRecentCourses(coursesWithData) {
     meta.style.cssText = 'font-size: 11px; color: var(--muted); display: flex; gap: 8px; align-items: center;';
 
     const typeIcon = {
-      'curso': '📖',
-      'diplomado': '🎓',
-      'webinar': '💻',
-      'seminario': '📝',
-      'taller': '🔧'
-    }[course.type] || '📚';
+      'curso': '<i class="ph ph-book-open"></i>',
+      'diplomado': '<i class="ph ph-graduation-cap"></i>',
+      'webinar': '<i class="ph ph-monitor"></i>',
+      'seminario': '<i class="ph ph-note"></i>',
+      'taller': '<i class="ph ph-wrench"></i>'
+    }[course.type] || '<i class="ph ph-books"></i>';
 
     const date = new Date(course.createdAt);
     const dateStr = date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
@@ -9384,7 +9384,7 @@ function showKeyboardShortcutsHelp() {
         </div>
         
         <div style="margin-top: 20px; padding: 12px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 13px; color: var(--muted);">
-          <strong>💡 Tip:</strong> Los shortcuts no funcionan cuando estás escribiendo en un campo de texto.
+          <strong><i class="ph ph-lightbulb"></i> Tip:</strong> Los shortcuts no funcionan cuando estás escribiendo en un campo de texto.
         </div>
       </div>
     </div>
@@ -11081,13 +11081,13 @@ async function renderGeneralEmailsList() {
 // ✅ Función auxiliar para obtener ícono de tipo
 function getTypeIcon(type) {
   const icons = {
-    'curso': '📖',
-    'diplomado': '🎓',
-    'webinar': '💻',
-    'seminario': '📝',
-    'taller': '🔧'
+    'curso': '<i class="ph ph-book-open"></i>',
+    'diplomado': '<i class="ph ph-graduation-cap"></i>',
+    'webinar': '<i class="ph ph-monitor"></i>',
+    'seminario': '<i class="ph ph-note"></i>',
+    'taller': '<i class="ph ph-wrench"></i>'
   };
-  return icons[type] || '📚';
+  return icons[type] || '<i class="ph ph-books"></i>';
 }
 
 // ✅ Agregar correo desde la vista general (función global para usar en onclick)
@@ -12054,11 +12054,11 @@ function filterGeneralEmailsList() {
       emails.some(e => e.includes(searchTerm));
 
     const matchesType = filterType === 'all' ||
-      (filterType === 'curso' && typeIcon.includes('📖')) ||
-      (filterType === 'diplomado' && typeIcon.includes('🎓')) ||
-      (filterType === 'webinar' && typeIcon.includes('💻')) ||
-      (filterType === 'seminario' && typeIcon.includes('📝')) ||
-      (filterType === 'taller' && typeIcon.includes('🔧'));
+      (filterType === 'curso' && typeIcon.includes('ph-book-open')) ||
+      (filterType === 'diplomado' && typeIcon.includes('ph-graduation-cap')) ||
+      (filterType === 'webinar' && typeIcon.includes('ph-monitor')) ||
+      (filterType === 'seminario' && typeIcon.includes('ph-note')) ||
+      (filterType === 'taller' && typeIcon.includes('ph-wrench'));
 
     card.style.display = (matchesSearch && matchesType) ? 'block' : 'none';
   });
