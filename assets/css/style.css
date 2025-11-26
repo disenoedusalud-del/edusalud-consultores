@@ -820,8 +820,49 @@ a:focus-visible {
 .master-card .left{ min-height:220px; }
 .master-card .right .filelist{ margin-top:0; }
 @media (max-width:900px){
-  .master-card{ grid-template-columns: 1fr; }
-  .master-card .left{ order: -1; }
+  .master-card{ 
+    grid-template-columns: 1fr;
+    padding: 14px; /* Reducir padding en tablet */
+  }
+  .master-card .left{ 
+    order: -1;
+    min-height: auto !important;
+  }
+  
+  /* ✅ Imagen responsive basada en aspect ratio */
+  .master-card .left > div {
+    height: auto !important;
+    aspect-ratio: 16/9; /* Proporción cinematográfica */
+    max-height: 200px;
+  }
+}
+
+/* ✅ Ajustes adicionales para móviles pequeños */
+@media (max-width: 600px){
+  .master-card {
+    padding: 12px; /* Padding aún más reducido en móvil */
+  }
+  
+  .master-card .left > div {
+    aspect-ratio: 16/9;
+    max-height: 160px; /* Imagen más compacta en móvil */
+  }
+
+  /* ✅ Imágenes en tarjetas individuales (grid de usuarios) */
+  .course-card-image {
+    height: auto !important;
+    aspect-ratio: 16/9;
+    max-height: 180px;
+  }
+}
+
+/* ✅ Ajustes para tablets */
+@media (max-width: 900px) and (min-width: 601px) {
+  .course-card-image {
+    height: auto !important;
+    aspect-ratio: 16/9;
+    max-height: 200px;
+  }
 }
 .master-search{
   display:flex; gap:10px; align-items:center;
