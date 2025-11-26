@@ -4730,7 +4730,24 @@ function toggleTheme() {
  * ✅ Actualiza el texto e icono del toggle en el menú
  * @param {string} theme - 'light' o 'dark'
  */
-function updateThemeToggleUI(theme) {
+function updateThemeToggleUI(theme, customIconId, customTextId) {
+  // Si se pasan IDs personalizados, actualizar solo esos
+  if (customIconId && customTextId) {
+    const customIcon = document.getElementById(customIconId);
+    const customText = document.getElementById(customTextId);
+    
+    if (customIcon && customText) {
+      if (theme === 'light') {
+        customIcon.className = 'ph ph-moon';
+        customText.textContent = 'Cambiar a Modo Oscuro';
+      } else {
+        customIcon.className = 'ph ph-sun';
+        customText.textContent = 'Cambiar a Modo Claro';
+      }
+    }
+    return;
+  }
+
   // ✅ Actualizar toggle de la vista maestra
   const icon = document.getElementById('theme-toggle-icon');
   const text = document.getElementById('theme-toggle-text');
@@ -4759,6 +4776,20 @@ function updateThemeToggleUI(theme) {
     } else {
       iconContent.className = 'ph ph-sun';
       textContent.textContent = 'Cambiar a Modo Claro';
+    }
+  }
+
+  // ✅ Actualizar toggle de la vista de certificados
+  const iconCert = document.getElementById('theme-toggle-icon-cert');
+  const textCert = document.getElementById('theme-toggle-text-cert');
+
+  if (iconCert && textCert) {
+    if (theme === 'light') {
+      iconCert.className = 'ph ph-moon';
+      textCert.textContent = 'Cambiar a Modo Oscuro';
+    } else {
+      iconCert.className = 'ph ph-sun';
+      textCert.textContent = 'Cambiar a Modo Claro';
     }
   }
 
@@ -5159,6 +5190,514 @@ function setupSettingsMenuContent() {
 
   log('[SETTINGS CONTENT] ✅ Menú de ajustes de consultores configurado correctamente');
 }
+
+// ✅ Función para configurar el menú de ajustes del Generador de Certificados
+function setupSettingsMenuCertificates() {
+  const btnSettings = document.getElementById('btn-settings-certificates');
+  const dropdown = document.getElementById('settingsDropdownCertificates');
+
+  if (!btnSettings || !dropdown) {
+    warn('[SETTINGS CERT] Botón de ajustes de certificados o dropdown no encontrado');
+    return;
+  }
+
+  // ✅ PREVENIR MÚLTIPLES REGISTROS
+  if (btnSettings.dataset.settingsConfigured === 'true') {
+    log('[SETTINGS CERT] Menú ya configurado, saltando...');
+    return;
+  }
+
+  btnSettings.dataset.settingsConfigured = 'true';
+
+  const categories = dropdown.querySelectorAll('.settings-category');
+
+  function collapseAllCategories() {
+    categories.forEach((category) => {
+      const categoryName = category.dataset.category;
+      const submenu = dropdown.querySelector(`[data-submenu="${categoryName}"]`);
+      if (submenu) {
+        category.setAttribute('aria-expanded', 'false');
+        submenu.classList.remove('expanded');
+        setTimeout(() => {
+          if (!submenu.classList.contains('expanded')) {
+            submenu.style.display = 'none';
+          }
+        }, 100);
+      }
+    });
+  }
+
+  // Toggle del menú
+  btnSettings.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isVisible = dropdown.style.display !== 'none';
+    if (isVisible) {
+      collapseAllCategories();
+    }
+    dropdown.style.display = isVisible ? 'none' : 'block';
+    btnSettings.setAttribute('aria-expanded', isVisible ? 'false' : 'true');
+  });
+
+  // Cerrar menú al hacer click fuera
+  document.addEventListener('click', (e) => {
+    if (!btnSettings.contains(e.target) && !dropdown.contains(e.target)) {
+      collapseAllCategories();
+      dropdown.style.display = 'none';
+      btnSettings.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Expandir/colapsar categorías
+  function toggleCategory(categoryElement) {
+    const categoryName = categoryElement.dataset.category;
+    const submenu = dropdown.querySelector(`[data-submenu="${categoryName}"]`);
+    if (!submenu) return;
+
+    const isExpanded = categoryElement.getAttribute('aria-expanded') === 'true';
+    if (isExpanded) {
+      categoryElement.setAttribute('aria-expanded', 'false');
+      submenu.classList.remove('expanded');
+      setTimeout(() => {
+        if (!submenu.classList.contains('expanded')) {
+          submenu.style.display = 'none';
+        }
+      }, 300);
+    } else {
+      submenu.style.display = 'block';
+      setTimeout(() => {
+        categoryElement.setAttribute('aria-expanded', 'true');
+        submenu.classList.add('expanded');
+      }, 10);
+    }
+  }
+
+  categories.forEach((category) => {
+    category.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleCategory(category);
+    });
+
+    category.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleCategory(category);
+      }
+    });
+  });
+
+  // ===== ACCIONES DEL MENÚ =====
+
+  // Toggle de Tema
+  dropdown.querySelector('[data-action="toggle-theme-cert"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleTheme();
+  });
+
+  // Abrir Manual
+  dropdown.querySelector('[data-action="open-manual"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
+    window.open('https://drive.google.com/file/d/1DpnuJx6TIn1DA98IjkU1z0hpvpC4k8tg/view?usp=sharing', '_blank');
+  });
+
+  // Guía Rápida
+  dropdown.querySelector('[data-action="quick-guide"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
+    showQuickGuideModal();
+  });
+
+  // Atajos de Teclado
+  dropdown.querySelector('[data-action="keyboard-shortcuts-cert"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
+    showKeyboardShortcutsModal();
+  });
+
+  // Verificar Conexión
+  dropdown.querySelector('[data-action="test-connection"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
+    testScriptConnection();
+  });
+
+  // Actualizar Listas
+  dropdown.querySelector('[data-action="refresh-lists"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
+    refreshAllLists();
+  });
+
+  // Limpiar Caché
+  dropdown.querySelector('[data-action="clear-cache"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
+    clearBrowserCache();
+  });
+
+  // Crear Hoja de Ejemplo
+  dropdown.querySelector('[data-action="create-demo-sheet"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
+    createDemoSheet();
+  });
+
+  // Crear Estructura de Carpetas
+  dropdown.querySelector('[data-action="create-folder-structure"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
+    createFolderStructure();
+  });
+
+  // Actualizar UI del toggle según el tema actual
+  const currentTheme = getTheme();
+  updateThemeToggleUI(currentTheme, 'theme-toggle-icon-cert', 'theme-toggle-text-cert');
+
+  log('[SETTINGS CERT] ✅ Menú de ajustes de certificados configurado correctamente');
+}
+
+// ===== FUNCIONES DE ACCIONES DEL MENÚ DE CERTIFICADOS =====
+
+// Guía Rápida
+function showQuickGuideModal() {
+  const modal = document.createElement('div');
+  modal.className = 'modal show';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 700px;">
+      <div class="modal-header">
+        <h2><i class="ph ph-lightbulb"></i> Guía Rápida - Generador de Certificados</h2>
+        <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+      </div>
+      <div style="padding: 20px;">
+        <div style="margin-bottom: 20px;">
+          <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--accent);">
+            <i class="ph ph-number-circle-one"></i> Paso 1: Preparación
+          </h3>
+          <ul style="margin-left: 20px; color: var(--muted); line-height: 1.8;">
+            <li>Crea tu plantilla en Google Slides con variables <code>{{NOMBRE}}</code></li>
+            <li>Si usas código de validación, añade <code>{{CODIGO_VALIDACION}}</code></li>
+            <li>Crea o selecciona tu hoja de Google Sheets</li>
+            <li>Crea carpetas para PDFs originales y protegidos</li>
+          </ul>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--accent);">
+            <i class="ph ph-number-circle-two"></i> Paso 2: Generar PDFs
+          </h3>
+          <ul style="margin-left: 20px; color: var(--muted); line-height: 1.8;">
+            <li>Selecciona plantilla, hoja y carpeta</li>
+            <li>Haz clic en "Generar PDFs desde Plantilla"</li>
+            <li>Espera a que termine el proceso</li>
+          </ul>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--accent);">
+            <i class="ph ph-number-circle-three"></i> Paso 3: Proteger PDFs
+          </h3>
+          <ul style="margin-left: 20px; color: var(--muted); line-height: 1.8;">
+            <li>Descarga los PDFs de Drive</li>
+            <li>Protégelos con PDF24 u otra herramienta</li>
+            <li>Sube los PDFs protegidos a Drive</li>
+          </ul>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--accent);">
+            <i class="ph ph-number-circle-four"></i> Paso 4: Generar Enlaces
+          </h3>
+          <ul style="margin-left: 20px; color: var(--muted); line-height: 1.8;">
+            <li>Selecciona carpeta de PDFs protegidos</li>
+            <li>Completa título y fecha del evento</li>
+            <li>Haz clic en "Generar Enlaces"</li>
+            <li>Usa los enlaces en tu Google Sheet para enviar</li>
+          </ul>
+        </div>
+
+        <div style="padding: 16px; background: rgba(90,169,255,0.1); border-radius: 8px; margin-top: 20px;">
+          <strong><i class="ph ph-info"></i> Tip:</strong> Para más detalles, consulta el 
+          <a href="https://drive.google.com/file/d/1DpnuJx6TIn1DA98IjkU1z0hpvpC4k8tg/view?usp=sharing" 
+             target="_blank" style="color: var(--accent); text-decoration: underline;">
+            Manual Completo en PDF
+          </a>
+        </div>
+
+        <div style="text-align: right; margin-top: 20px;">
+          <button class="btn" onclick="this.closest('.modal').remove()">Entendido</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+// Mostrar Atajos de Teclado
+function showKeyboardShortcutsModal() {
+  const modal = document.createElement('div');
+  modal.className = 'modal show';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h2><i class="ph ph-keyboard"></i> Atajos de Teclado</h2>
+        <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+      </div>
+      <div style="padding: 20px;">
+        <p style="color: var(--muted); margin-bottom: 20px;">
+          Usa estos atajos para navegar más rápido en el generador de certificados:
+        </p>
+
+        <div style="display: grid; gap: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(90,169,255,0.05); border-radius: 6px;">
+            <span style="color: var(--muted);">Cambiar tema</span>
+            <kbd style="padding: 4px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 4px; font-family: monospace; font-size: 12px;">Ctrl + K</kbd>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(90,169,255,0.05); border-radius: 6px;">
+            <span style="color: var(--muted);">Abrir manual</span>
+            <kbd style="padding: 4px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 4px; font-family: monospace; font-size: 12px;">Ctrl + H</kbd>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(90,169,255,0.05); border-radius: 6px;">
+            <span style="color: var(--muted);">Verificar conexión</span>
+            <kbd style="padding: 4px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 4px; font-family: monospace; font-size: 12px;">Ctrl + T</kbd>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(90,169,255,0.05); border-radius: 6px;">
+            <span style="color: var(--muted);">Actualizar listas</span>
+            <kbd style="padding: 4px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 4px; font-family: monospace; font-size: 12px;">Ctrl + R</kbd>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(90,169,255,0.05); border-radius: 6px;">
+            <span style="color: var(--muted);">Abrir ajustes</span>
+            <kbd style="padding: 4px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 4px; font-family: monospace; font-size: 12px;">Ctrl + ,</kbd>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(90,169,255,0.05); border-radius: 6px;">
+            <span style="color: var(--muted);">Cerrar ventanas</span>
+            <kbd style="padding: 4px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 4px; font-family: monospace; font-size: 12px;">Esc</kbd>
+          </div>
+        </div>
+
+        <div style="padding: 16px; background: rgba(90,169,255,0.1); border-radius: 8px; margin-top: 20px;">
+          <strong><i class="ph ph-info"></i> Nota:</strong> Los atajos funcionan solo en la vista de certificados.
+        </div>
+
+        <div style="text-align: right; margin-top: 20px;">
+          <button class="btn" onclick="this.closest('.modal').remove()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+// Verificar Conexión con Script
+async function testScriptConnection() {
+  const scriptUrl = $('#input-script-url')?.value;
+  if (!scriptUrl) {
+    if (typeof window.showToast === 'function') {
+      window.showToast('error', 'Error', 'Debes configurar la URL del script primero');
+    }
+    return;
+  }
+
+  if (typeof window.showToast === 'function') {
+    window.showToast('info', 'Verificando...', 'Probando conexión con Google Apps Script');
+  }
+
+  try {
+    const response = await fetch(`${scriptUrl}?action=test`);
+    const data = await response.json();
+    
+    if (data.success) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('success', '✅ Conexión Exitosa', 'El script está funcionando correctamente');
+      }
+    } else {
+      throw new Error(data.error || 'Error desconocido');
+    }
+  } catch (error) {
+    if (typeof window.showToast === 'function') {
+      window.showToast('error', '❌ Error de Conexión', error.message);
+    }
+  }
+}
+
+// Actualizar todas las listas
+function refreshAllLists() {
+  if (typeof window.showToast === 'function') {
+    window.showToast('info', 'Actualizando...', 'Actualizando todas las listas');
+  }
+
+  // Refrescar plantillas
+  $('#btn-refresh-templates')?.click();
+  
+  // Refrescar hojas
+  setTimeout(() => $('#btn-refresh-sheets')?.click(), 500);
+  
+  // Refrescar carpetas
+  setTimeout(() => $('#btn-refresh-folders')?.click(), 1000);
+  setTimeout(() => $('#btn-refresh-folders-prot')?.click(), 1500);
+
+  setTimeout(() => {
+    if (typeof window.showToast === 'function') {
+      window.showToast('success', '✅ Actualizado', 'Listas actualizadas correctamente');
+    }
+  }, 2000);
+}
+
+// Limpiar Caché del navegador
+function clearBrowserCache() {
+  const modal = document.createElement('div');
+  modal.className = 'modal show';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2><i class="ph ph-trash"></i> Limpiar Caché</h2>
+        <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+      </div>
+      <div style="padding: 20px;">
+        <p style="color: var(--muted); margin-bottom: 16px;">
+          ¿Deseas limpiar la caché del generador de certificados?
+        </p>
+        <p style="color: var(--muted); margin-bottom: 16px; font-size: 14px;">
+          <i class="ph ph-warning"></i> Esto eliminará las listas guardadas y tendrás que actualizarlas nuevamente.
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button class="btn secondary" onclick="this.closest('.modal').remove()">Cancelar</button>
+          <button class="btn" onclick="localStorage.removeItem('certificates_cache'); this.closest('.modal').remove(); if(typeof window.showToast === 'function') window.showToast('success', 'Caché Limpiada', 'La caché se ha eliminado correctamente');">
+            Limpiar Caché
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+// Crear Hoja de Ejemplo
+async function createDemoSheet() {
+  const scriptUrl = $('#input-script-url')?.value;
+  const mode = $('#select-cert-mode')?.value || 'webinar';
+  
+  if (!scriptUrl) {
+    if (typeof window.showToast === 'function') {
+      window.showToast('error', 'Error', 'Configura la URL del script primero');
+    }
+    return;
+  }
+
+  if (typeof window.showToast === 'function') {
+    window.showToast('info', 'Creando...', 'Creando hoja de ejemplo');
+  }
+
+  try {
+    const response = await fetch(scriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'createSheet',
+        params: {
+          name: `Ejemplo Certificados - ${new Date().toLocaleDateString()}`,
+          mode: mode
+        }
+      })
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('success', '✅ Hoja Creada', 'Hoja de ejemplo creada correctamente');
+      }
+      // Refrescar lista de hojas
+      setTimeout(() => $('#btn-refresh-sheets')?.click(), 500);
+    } else {
+      throw new Error(data.error);
+    }
+  } catch (error) {
+    if (typeof window.showToast === 'function') {
+      window.showToast('error', 'Error', error.message);
+    }
+  }
+}
+
+// Crear Estructura de Carpetas
+async function createFolderStructure() {
+  const scriptUrl = $('#input-script-url')?.value;
+  
+  if (!scriptUrl) {
+    if (typeof window.showToast === 'function') {
+      window.showToast('error', 'Error', 'Configura la URL del script primero');
+    }
+    return;
+  }
+
+  const eventName = prompt('Nombre del evento:', 'Webinar - ' + new Date().toLocaleDateString());
+  if (!eventName) return;
+
+  if (typeof window.showToast === 'function') {
+    window.showToast('info', 'Creando...', 'Creando estructura de carpetas');
+  }
+
+  try {
+    // Crear carpeta principal
+    const mainFolder = await fetch(scriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'createFolder',
+        params: { name: `Certificados - ${eventName}` }
+      })
+    });
+    
+    const mainData = await mainFolder.json();
+    if (!mainData.success) throw new Error(mainData.error);
+
+    // Crear subcarpetas
+    await fetch(scriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'createFolder',
+        params: { name: `Certificados - ${eventName}/Originales` }
+      })
+    });
+
+    await fetch(scriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'createFolder',
+        params: { name: `Certificados - ${eventName}/Protegidos` }
+      })
+    });
+
+    if (typeof window.showToast === 'function') {
+      window.showToast('success', '✅ Carpetas Creadas', 'Estructura creada correctamente');
+    }
+
+    // Refrescar listas de carpetas
+    setTimeout(() => {
+      $('#btn-refresh-folders')?.click();
+      $('#btn-refresh-folders-prot')?.click();
+    }, 1000);
+  } catch (error) {
+    if (typeof window.showToast === 'function') {
+      window.showToast('error', 'Error', error.message);
+    }
+  }
+}
+
+// ===== FIN DE FUNCIONES DE CERTIFICADOS =====
 
 // ✅ Función para crear custom select con iconos Phosphor
 function createCustomSelect(options, defaultValue = 'all') {
@@ -6045,6 +6584,8 @@ function setupMasterNavigation() {
       navTabCourses.classList.remove('active');
       if (certificatesView) certificatesView.classList.remove('hidden');
       if (coursesView) coursesView.classList.add('hidden');
+      // Configurar menú de ajustes de certificados
+      setupSettingsMenuCertificates();
     });
   }
 
