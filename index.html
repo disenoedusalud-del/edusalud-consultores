@@ -793,6 +793,100 @@
                aria-label="Abrir manual del generador de certificados en PDF">
               <i class="ph ph-book-open"></i> <span>Manual PDF</span>
             </a>
+
+            <!-- ✅ Botón de Ajustes con menú desplegable -->
+            <div style="position: relative;">
+              <button id="btn-settings-certificates" class="btn secondary" type="button"
+                aria-label="Abrir menú de ajustes del generador" aria-expanded="false" aria-haspopup="true"
+                title="Ajustes y herramientas del generador">
+                <i class="ph ph-gear"></i> Ajustes
+              </button>
+
+              <!-- Menú desplegable de ajustes para certificados -->
+              <div id="settingsDropdownCertificates" class="settings-dropdown" style="display: none;" role="menu"
+                aria-label="Menú de ajustes del generador">
+                
+                <!-- Categoría: Apariencia -->
+                <div class="settings-category" data-category="appearance-cert" role="menuitem" tabindex="0"
+                  aria-expanded="false" title="Opciones de apariencia">
+                  <span class="settings-category-icon"><i class="ph ph-palette"></i></span>
+                  <span class="settings-category-label">Apariencia</span>
+                  <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
+                </div>
+                <div class="settings-submenu" data-submenu="appearance-cert" style="display: none;">
+                  <div class="settings-menu-item" data-action="toggle-theme-cert" role="menuitem" tabindex="0"
+                    title="Alternar entre modo claro y oscuro">
+                    <i id="theme-toggle-icon-cert" class="ph ph-sun"></i> <span id="theme-toggle-text-cert">Cambiar a Modo Claro</span>
+                  </div>
+                </div>
+
+                <!-- Categoría: Ayuda -->
+                <div class="settings-category" data-category="help-cert" role="menuitem" tabindex="0"
+                  aria-expanded="false" title="Ayuda y documentación">
+                  <span class="settings-category-icon"><i class="ph ph-question"></i></span>
+                  <span class="settings-category-label">Ayuda</span>
+                  <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
+                </div>
+                <div class="settings-submenu" data-submenu="help-cert" style="display: none;">
+                  <div class="settings-menu-item" data-action="open-manual" role="menuitem" tabindex="0"
+                    title="Abrir manual completo en PDF">
+                    <i class="ph ph-book-open"></i> Ver Manual Completo
+                  </div>
+                  <div class="settings-menu-item" data-action="quick-guide" role="menuitem" tabindex="0"
+                    title="Ver guía rápida de uso">
+                    <i class="ph ph-lightbulb"></i> Guía Rápida
+                  </div>
+                  <div class="settings-divider" role="separator"></div>
+                  <div class="settings-menu-item" data-action="keyboard-shortcuts-cert" role="menuitem" tabindex="0"
+                    title="Ver atajos de teclado disponibles">
+                    <i class="ph ph-keyboard"></i> Atajos de Teclado
+                  </div>
+                </div>
+
+                <!-- Categoría: Configuración -->
+                <div class="settings-category" data-category="config-cert" role="menuitem" tabindex="0"
+                  aria-expanded="false" title="Configuración del sistema">
+                  <span class="settings-category-icon"><i class="ph ph-wrench"></i></span>
+                  <span class="settings-category-label">Configuración</span>
+                  <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
+                </div>
+                <div class="settings-submenu" data-submenu="config-cert" style="display: none;">
+                  <div class="settings-menu-item" data-action="test-connection" role="menuitem" tabindex="0"
+                    title="Verificar conexión con Google Apps Script">
+                    <i class="ph ph-plug"></i> Verificar Conexión
+                  </div>
+                  <div class="settings-menu-item" data-action="refresh-lists" role="menuitem" tabindex="0"
+                    title="Actualizar todas las listas (Slides, Sheets, Carpetas)">
+                    <i class="ph ph-arrow-clockwise"></i> Actualizar Listas
+                  </div>
+                  <div class="settings-divider" role="separator"></div>
+                  <div class="settings-menu-item" data-action="clear-cache" role="menuitem" tabindex="0"
+                    title="Limpiar caché del navegador">
+                    <i class="ph ph-trash"></i> Limpiar Caché
+                  </div>
+                </div>
+
+                <!-- Categoría: Plantillas Rápidas -->
+                <div class="settings-category" data-category="templates-cert" role="menuitem" tabindex="0"
+                  aria-expanded="false" title="Acciones rápidas y plantillas">
+                  <span class="settings-category-icon"><i class="ph ph-lightning"></i></span>
+                  <span class="settings-category-label">Acciones Rápidas</span>
+                  <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
+                </div>
+                <div class="settings-submenu" data-submenu="templates-cert" style="display: none;">
+                  <div class="settings-menu-item" data-action="create-demo-sheet" role="menuitem" tabindex="0"
+                    title="Crear hoja de ejemplo con datos de prueba">
+                    <i class="ph ph-table"></i> Crear Hoja de Ejemplo
+                  </div>
+                  <div class="settings-menu-item" data-action="create-folder-structure" role="menuitem" tabindex="0"
+                    title="Crear estructura de carpetas recomendada">
+                    <i class="ph ph-folder-plus"></i> Crear Estructura de Carpetas
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
             <button id="btn-master-exit-cert" class="btn secondary" type="button" 
               style="display:flex; align-items:center; gap:8px;"
               aria-label="Salir de la vista maestra"
