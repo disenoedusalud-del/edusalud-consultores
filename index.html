@@ -61,7 +61,7 @@
 <body>
   <div class="wrap">
     <header>
-      <div style="display:flex; gap:16px; align-items:center;">
+      <div class="d-flex gap-md items-center header-content">
         <div class="logo" aria-hidden="false">
           <img src="assets/logo-edusalud.png" alt="EduSalud" class="logo-img" />
         </div>
@@ -80,7 +80,8 @@
       <div style="position: absolute; top: 16px; right: 16px; z-index: 1000;">
         <button id="btn-theme-toggle-header" class="btn secondary" type="button" aria-label="Cambiar tema"
           title="Alternar entre modo claro y oscuro"
-          style="padding: 8px 12px; min-width: auto; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+          style="padding: 8px 12px; min-width: auto; border-radius: 50%; width: 40px; height: 40px;"
+          class="d-flex items-center justify-center">
           <i id="theme-toggle-icon-header" class="ph ph-sun" style="font-size: 18px;"></i>
         </button>
       </div>
@@ -91,15 +92,14 @@
       <h2 id="access-title" class="sr-only">Acceso restringido</h2>
 
       <!-- Pestañas de método de acceso -->
-      <div class="auth-tabs"
-        style="display:flex; gap:12px; margin-bottom:24px; border-bottom:1px solid rgba(255,255,255,.08);">
+      <div class="auth-tabs d-flex gap-sm mb-lg" style="border-bottom:1px solid rgba(255,255,255,.08);">
         <button id="tab-code" class="auth-tab active" type="button" data-tab="code" aria-label="Acceder con código"
           aria-selected="true" role="tab"><i class="ph ph-key"></i> Código</button>
         <button id="tab-account" class="auth-tab" type="button" data-tab="account" aria-label="Acceder con cuenta"
           aria-selected="false" role="tab"><i class="ph ph-user"></i> Cuenta</button>
       </div>
 
-      <div class="grid cols-2" style="align-items:center;">
+      <div class="grid cols-2 items-center">
         <div>
           <!-- Formulario de acceso por código -->
           <div id="form-code" class="auth-form">
@@ -312,7 +312,7 @@
 
     <!-- Vista de Usuario (para usuarios con email) -->
     <section id="user-view" class="hidden">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+      <div class="d-flex items-center justify-between gap-sm mb-sm">
         <h3 style="margin:0">Mis Cursos</h3>
         <div class="row">
           <button id="btn-user-logout" class="btn secondary" type="button" aria-label="Cerrar sesión"
@@ -323,7 +323,7 @@
       <!-- Información del usuario -->
       <div id="userInfo"
         style="margin-bottom: 16px; padding: 16px; background: rgba(90,169,255,0.1); border-radius: 8px; font-size: 14px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="d-flex items-center gap-sm">
           <i class="ph ph-user" style="font-weight: 600; color: var(--accent); font-size: 18px;"></i>
           <span id="userEmailDisplay">Cargando...</span>
         </div>
@@ -345,7 +345,7 @@
     <section id="content" class="hidden" style="margin-top:16px;">
       <div class="card" id="courseCard">
         <div class="course">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <div class="d-flex items-center justify-between gap-sm course-header-mobile">
             <div>
               <h3 id="courseTitle">Curso / Diplomado</h3>
               <div class="meta" id="courseMeta">Material oficial para consultoría</div>
@@ -397,12 +397,12 @@
 
           <hr style="border:0; border-top:1px solid rgba(255,255,255,.06);" />
 
-          <div class="course-row" style="margin-top:12px;">
+          <div class="course-row mt-sm">
             <div class="card-left-wrapper" aria-hidden="false"><!-- insertElectricCard() coloca la tarjeta aquí -->
             </div>
             <div class="card-right">
               <!-- ✅ Búsqueda de archivos -->
-              <div style="margin-bottom: 16px; display: flex; gap: 8px; align-items: center;">
+              <div class="mb-md d-flex gap-sm items-center">
                 <div style="position: relative; flex: 1;">
                   <input id="search-files" type="text" class="input" placeholder="Buscar archivos..."
                     aria-label="Buscar archivos en el curso" style="width: 100%; padding-left: 36px;" />
@@ -445,7 +445,7 @@
 
       <!-- Vista de Cursos (contenido actual) -->
       <div id="master-courses-view">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+        <div class="d-flex items-center justify-between gap-sm mb-sm">
           <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
           <div class="row">
             <button id="btn-add-course" class="btn" type="button" aria-label="Agregar nuevo curso"
@@ -543,12 +543,11 @@
         </div>
 
         <!-- ✅ Panel de Notificaciones y Actividad -->
-        <div id="notificationsPanel" class="modal"
-          style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000; background: rgba(0,0,0,0.5); align-items: flex-start; justify-content: flex-end; padding: 20px;">
+        <div id="notificationsPanel" class="modal d-flex items-center justify-end p-md"
+          style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000; background: rgba(0,0,0,0.5);">
           <div class="modal-content"
             style="max-width: 450px; width: 100%; max-height: 90vh; overflow-y: auto; margin: 0; background: #1a1f35 !important; border: 1px solid rgba(90,169,255,0.3) !important; box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;">
-            <div
-              style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+            <div class="d-flex items-center justify-between mb-md pb-md border-bottom">
               <h3 style="margin: 0; font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
                 <i class="ph ph-bell"></i> Notificaciones y Actividad
               </h3>
@@ -559,7 +558,7 @@
             </div>
 
             <!-- Pestañas -->
-            <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border);">
+            <div class="d-flex gap-sm mb-md border-bottom">
               <button id="tab-notifications" class="btn secondary active" type="button" data-tab="notifications"
                 style="border-radius: 0; border-bottom: 2px solid var(--accent); padding: 8px 16px;">
                 <i class="ph ph-bell"></i> Notificaciones
@@ -611,12 +610,11 @@
         <!-- ✅ Estadísticas Avanzadas -->
         <div id="masterStats" style="margin-bottom: 16px;">
           <!-- Tarjetas de Métricas Principales -->
-          <div
-            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
+          <div class="grid-stats gap-sm mb-md">
             <!-- Total de Cursos -->
             <div
               style="padding: 16px; background: rgba(90,169,255,0.1); border: 1px solid rgba(90,169,255,0.2); border-radius: 8px;">
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <div class="d-flex items-center gap-sm mb-sm">
                 <i class="ph ph-books" style="font-size: 24px; color: var(--accent);"></i>
                 <span style="font-size: 13px; color: var(--muted);">Total de Cursos</span>
               </div>
@@ -626,7 +624,7 @@
             <!-- Total de Archivos -->
             <div
               style="padding: 16px; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); border-radius: 8px;">
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <div class="d-flex items-center gap-sm mb-sm">
                 <i class="ph ph-file" style="font-size: 24px; color: #22c55e;"></i>
                 <span style="font-size: 13px; color: var(--muted);">Total de Archivos</span>
               </div>
@@ -636,7 +634,7 @@
             <!-- Cursos con Emails -->
             <div
               style="padding: 16px; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.2); border-radius: 8px;">
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <div class="d-flex items-center gap-sm mb-sm">
                 <i class="ph ph-envelope" style="font-size: 24px; color: #fbbf24;"></i>
                 <span style="font-size: 13px; color: var(--muted);">Cursos con Emails</span>
               </div>
@@ -646,7 +644,7 @@
             <!-- Actividad Reciente -->
             <div
               style="padding: 16px; background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.2); border-radius: 8px;">
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <div class="d-flex items-center gap-sm mb-sm">
                 <i class="ph ph-clock" style="font-size: 24px; color: #a855f7;"></i>
                 <span style="font-size: 13px; color: var(--muted);">Acciones Hoy</span>
               </div>
@@ -707,7 +705,7 @@
         <!-- ✅ Filtros Avanzados -->
         <div id="advancedFilters"
           style="margin-bottom: 16px; padding: 16px; background: rgba(90,169,255,0.05); border: 1px solid rgba(90,169,255,0.2); border-radius: 8px; display: none;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+          <div class="d-flex items-center justify-between mb-md">
             <h4 style="margin: 0; font-size: 16px; font-weight: 600;">Filtros Avanzados</h4>
             <button id="btn-close-filters" class="btn secondary" type="button" aria-label="Cerrar filtros"
               style="padding: 4px 8px; min-width: auto;">
@@ -715,7 +713,7 @@
             </button>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          <div class="grid-stats gap-md">
             <!-- Filtro por Tipo -->
             <div>
               <label for="filterType"
@@ -752,7 +750,7 @@
             </div>
           </div>
 
-          <div style="display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end;">
+          <div class="d-flex gap-sm mt-md justify-end">
             <button id="btn-reset-filters" class="btn secondary" type="button"
               aria-label="Restablecer filtros">Restablecer</button>
             <button id="btn-apply-filters" class="btn" type="button" aria-label="Aplicar filtros">Aplicar
@@ -761,8 +759,8 @@
         </div>
 
         <!-- Botón para mostrar filtros avanzados -->
-        <div style="margin-bottom: 16px; display: flex; gap: 8px; align-items: center; justify-content: space-between;">
-          <div style="display: flex; gap: 8px; align-items: center;">
+        <div class="mb-md d-flex gap-sm items-center justify-between">
+          <div class="d-flex gap-sm items-center">
             <button id="btn-show-filters" class="btn secondary" type="button" aria-label="Mostrar filtros avanzados"
               aria-expanded="false" style="padding: 8px 16px;">
               <i class="ph ph-funnel"></i> Filtros Avanzados
@@ -781,9 +779,9 @@
 
       <!-- Vista de Generador de Certificados -->
       <div id="master-certificates-view" class="hidden">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px;">
+        <div class="d-flex items-center justify-between gap-sm mb-lg">
           <h3 style="margin:0"><i class="ph ph-graduation-cap"></i> Generador de Certificados</h3>
-          <div style="display:flex; align-items:center; gap:8px;">
+          <div class="d-flex items-center gap-sm">
 
             <!-- ✅ Botón de Ajustes con menú desplegable -->
             <div style="position: relative;">
@@ -796,7 +794,7 @@
               <!-- Menú desplegable de ajustes para certificados -->
               <div id="settingsDropdownCertificates" class="settings-dropdown" style="display: none;" role="menu"
                 aria-label="Menú de ajustes del generador">
-                
+
                 <!-- Categoría: Apariencia -->
                 <div class="settings-category" data-category="appearance-cert" role="menuitem" tabindex="0"
                   aria-expanded="false" title="Opciones de apariencia">
@@ -807,7 +805,8 @@
                 <div class="settings-submenu" data-submenu="appearance-cert" style="display: none;">
                   <div class="settings-menu-item" data-action="toggle-theme-cert" role="menuitem" tabindex="0"
                     title="Alternar entre modo claro y oscuro">
-                    <i id="theme-toggle-icon-cert" class="ph ph-sun"></i> <span id="theme-toggle-text-cert">Cambiar a Modo Claro</span>
+                    <i id="theme-toggle-icon-cert" class="ph ph-sun"></i> <span id="theme-toggle-text-cert">Cambiar a
+                      Modo Claro</span>
                   </div>
                 </div>
 
@@ -878,18 +877,16 @@
               </div>
             </div>
 
-            <button id="btn-master-exit-cert" class="btn secondary" type="button" 
-              style="display:flex; align-items:center; gap:8px;"
-              aria-label="Salir de la vista maestra"
-              title="Volver a la pantalla de acceso">
+            <button id="btn-master-exit-cert" class="btn secondary d-flex items-center gap-sm" type="button"
+              aria-label="Salir de la vista maestra" title="Volver a la pantalla de acceso">
               <i class="ph ph-sign-out"></i> Salir
             </button>
           </div>
         </div>
 
         <!-- Configuración del Script -->
-        <div class="card" style="margin-bottom:20px;">
-          <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
+        <div class="card mb-lg">
+          <h4 class="mb-md text-lg d-flex items-center gap-sm header-reset">
             <i class="ph ph-gear"></i> Configuración del Google Apps Script
           </h4>
 
@@ -905,7 +902,7 @@
               App</span>
           </div>
 
-          <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
+          <div class="d-flex gap-sm mt-lg flex-wrap">
             <button id="btn-save-cert-config" class="btn secondary" type="button"
               aria-label="Guardar configuración de certificados"><i class="ph ph-floppy-disk"></i> Guardar
               Configuración</button>
@@ -924,8 +921,8 @@
         </div>
 
         <!-- Selector de Modo -->
-        <div class="card" style="margin-bottom:20px; border:2px solid rgba(90,169,255,0.3);">
-          <h4 style="margin:0 0 16px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
+        <div class="card mb-lg border-accent-light">
+          <h4 class="mb-md text-lg d-flex items-center gap-sm header-reset">
             <i class="ph ph-target"></i> Modo de Generación
           </h4>
 
@@ -959,9 +956,9 @@
               Seleccionar plantilla existente *
               <span class="help-icon" data-help="slide-template" title="Haz clic para ver ayuda">?</span>
             </label>
-            <div style="display:flex; gap:8px;">
-              <select id="select-slide-template" class="input" style="flex:1;"
-                aria-label="Seleccionar plantilla de certificado" aria-required="true">
+            <div class="d-flex gap-sm">
+              <select id="select-slide-template" class="input flex-1" aria-label="Seleccionar plantilla de certificado"
+                aria-required="true">
                 <option value="">-- Seleccionar plantilla --</option>
               </select>
               <button id="btn-refresh-templates" class="btn secondary" type="button"
@@ -982,8 +979,8 @@
               Seleccionar Google Sheet *
               <span class="help-icon" data-help="google-sheet" title="Haz clic para ver ayuda">?</span>
             </label>
-            <div style="display:flex; gap:8px;">
-              <select id="select-google-sheet" class="input" style="flex:1;"
+            <div class="d-flex gap-sm">
+              <select id="select-google-sheet" class="input flex-1"
                 aria-label="Seleccionar hoja de cálculo de Google Sheets" aria-required="true">
                 <option value="">-- Seleccionar hoja --</option>
               </select>
@@ -995,8 +992,8 @@
 
           <div class="form-group" style="margin-top:16px;">
             <label for="input-new-sheet-name">O crear nueva hoja</label>
-            <div style="display:flex; gap:8px;">
-              <input id="input-new-sheet-name" class="input" type="text" placeholder="Nombre de la hoja" style="flex:1;"
+            <div class="d-flex gap-sm">
+              <input id="input-new-sheet-name" class="input flex-1" type="text" placeholder="Nombre de la hoja"
                 aria-label="Nombre para nueva hoja de cálculo" />
               <button id="btn-create-sheet" class="btn secondary" type="button"
                 aria-label="Crear nueva hoja de cálculo"><i class="ph ph-plus"></i> Crear nueva hoja</button>
@@ -1015,9 +1012,9 @@
               Carpeta para PDFs originales *
               <span class="help-icon" data-help="folder-originales" title="Haz clic para ver ayuda">?</span>
             </label>
-            <div style="display:flex; gap:8px;">
-              <select id="select-folder-originales" class="input" style="flex:1;"
-                aria-label="Carpeta para PDFs originales" aria-required="true">
+            <div class="d-flex gap-sm">
+              <select id="select-folder-originales" class="input flex-1" aria-label="Carpeta para PDFs originales"
+                aria-required="true">
                 <option value="">-- Seleccionar carpeta --</option>
               </select>
               <button id="btn-refresh-folders" class="btn secondary" type="button"
@@ -1027,9 +1024,9 @@
           </div>
 
           <div class="form-group" style="margin-top:16px;">
-            <div style="display:flex; gap:8px;">
-              <input id="input-new-folder-originales" class="input" type="text" placeholder="Nombre de la carpeta"
-                style="flex:1;" aria-label="Nombre para nueva carpeta de PDFs originales" />
+            <div class="d-flex gap-sm">
+              <input id="input-new-folder-originales" class="input flex-1" type="text"
+                placeholder="Nombre de la carpeta" aria-label="Nombre para nueva carpeta de PDFs originales" />
               <button id="btn-create-folder-originales" class="btn secondary" type="button"
                 aria-label="Crear nueva carpeta para PDFs originales"><i class="ph ph-plus"></i> Crear nueva
                 carpeta</button>
@@ -1088,99 +1085,101 @@
 
           <!-- Paso 4: Carpeta de Protegidos -->
           <div class="form-group" style="margin-bottom:16px;">
-            <label for="select-folder-protegidos" class="label-with-help">
-              Carpeta para PDFs protegidos *
-              <span class="help-icon" data-help="folder-protegidos" title="Haz clic para ver ayuda">?</span>
-            </label>
-            <div style="display:flex; gap:8px;">
-              <select id="select-folder-protegidos" class="input" style="flex:1;"
-                aria-label="Carpeta para PDFs protegidos" aria-required="true">
-                <option value="">-- Seleccionar carpeta --</option>
-              </select>
-              <button id="btn-refresh-folders-prot" class="btn secondary" type="button"
-                aria-label="Actualizar lista de carpetas protegidas"><i class="ph ph-arrow-clockwise"></i>
-                Actualizar</button>
+            <div class="form-group mb-md">
+              <label for="select-folder-protegidos" class="label-with-help">
+                Carpeta para PDFs protegidos *
+                <span class="help-icon" data-help="folder-protegidos" title="Haz clic para ver ayuda">?</span>
+              </label>
+              <div class="d-flex gap-sm">
+                <select id="select-folder-protegidos" class="input flex-1" aria-label="Carpeta para PDFs protegidos"
+                  aria-required="true">
+                  <option value="">-- Seleccionar carpeta --</option>
+                </select>
+                <button id="btn-refresh-folders-prot" class="btn secondary" type="button"
+                  aria-label="Actualizar lista de carpetas protegidas"><i class="ph ph-arrow-clockwise"></i>
+                  Actualizar</button>
+              </div>
             </div>
-          </div>
 
-          <div class="form-group" style="margin-bottom:16px;">
-            <div style="display:flex; gap:8px;">
-              <input id="input-new-folder-protegidos" class="input" type="text" placeholder="Nombre de la carpeta"
-                style="flex:1;" aria-label="Nombre para nueva carpeta de PDFs protegidos" />
-              <button id="btn-create-folder-protegidos" class="btn secondary" type="button"
-                aria-label="Crear nueva carpeta para PDFs protegidos"><i class="ph ph-plus"></i> Crear nueva
-                carpeta</button>
+            <div class="form-group mb-md">
+              <div class="d-flex gap-sm">
+                <input id="input-new-folder-protegidos" class="input flex-1" type="text"
+                  placeholder="Nombre de la carpeta" aria-label="Nombre para nueva carpeta de PDFs protegidos" />
+                <button id="btn-create-folder-protegidos" class="btn secondary" type="button"
+                  aria-label="Crear nueva carpeta para PDFs protegidos"><i class="ph ph-plus"></i> Crear nueva
+                  carpeta</button>
+              </div>
             </div>
-          </div>
 
-          <!-- Paso 5: Mensajes Personalizados -->
-          <div class="form-group" style="margin-bottom:16px;">
-            <label for="input-webinar-title" class="label-with-help">
-              Título del Webinar/Evento *
-              <span class="help-icon" data-help="webinar-title" title="Haz clic para ver ayuda">?</span>
-            </label>
-            <input id="input-webinar-title" class="input" type="text" placeholder="Webinar: Título del Evento"
-              aria-label="Título del webinar o evento" aria-required="true" />
-          </div>
-
-          <div class="form-group" style="margin-bottom:16px;">
-            <label for="input-webinar-date" class="label-with-help">
-              Fecha del Evento *
-              <span class="help-icon" data-help="webinar-date" title="Haz clic para ver ayuda">?</span>
-            </label>
-            <input id="input-webinar-date" class="input" type="text" placeholder="15 de noviembre de 2024"
-              aria-label="Fecha del evento" aria-required="true" />
-          </div>
-
-          <div class="form-group" style="margin-bottom:16px;">
-            <label for="textarea-email-message" class="label-with-help">
-              Mensaje de Correo Electrónico (Opcional)
-              <span class="help-icon" data-help="email-message" title="Haz clic para ver ayuda">?</span>
-            </label>
-            <textarea id="textarea-email-message" class="input" rows="6"
-              placeholder="Mensaje por defecto se usará si está vacío. Variables disponibles: {{NOMBRE}}, {{TITULO}}, {{FECHA}}, {{ENLACE_PDF}}"
-              aria-label="Mensaje personalizado de correo electrónico (opcional)"></textarea>
-          </div>
-
-          <div class="form-group" style="margin-bottom:16px;">
-            <label for="textarea-whatsapp-message" class="label-with-help">
-              Mensaje de WhatsApp (Opcional)
-              <span class="help-icon" data-help="whatsapp-message" title="Haz clic para ver ayuda">?</span>
-            </label>
-            <textarea id="textarea-whatsapp-message" class="input" rows="6"
-              placeholder="Mensaje por defecto se usará si está vacío. Variables disponibles: {{NOMBRE}}, {{TITULO}}, {{FECHA}}, {{ENLACE_PDF}}"
-              aria-label="Mensaje personalizado de WhatsApp (opcional)"></textarea>
-          </div>
-
-          <div id="links-validation-status"
-            style="padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; margin-bottom:16px; font-size:13px; display:none;">
-            <div style="font-weight:600; margin-bottom:8px;"><i class="ph ph-warning"></i> Faltan los siguientes campos:
+            <!-- Paso 5: Mensajes Personalizados -->
+            <div class="form-group" style="margin-bottom:16px;">
+              <label for="input-webinar-title" class="label-with-help">
+                Título del Webinar/Evento *
+                <span class="help-icon" data-help="webinar-title" title="Haz clic para ver ayuda">?</span>
+              </label>
+              <input id="input-webinar-title" class="input" type="text" placeholder="Webinar: Título del Evento"
+                aria-label="Título del webinar o evento" aria-required="true" />
             </div>
-            <ul id="links-missing-fields" style="margin:0; padding-left:20px; color:var(--muted);"></ul>
-          </div>
 
-          <button id="btn-generate-links" class="btn" type="button"
-            aria-label="Generar enlaces de entrega para correo, WhatsApp y Drive" style="width:100%;">
-            <i class="ph ph-link"></i> Generar Enlaces
-          </button>
+            <div class="form-group" style="margin-bottom:16px;">
+              <label for="input-webinar-date" class="label-with-help">
+                Fecha del Evento *
+                <span class="help-icon" data-help="webinar-date" title="Haz clic para ver ayuda">?</span>
+              </label>
+              <input id="input-webinar-date" class="input" type="text" placeholder="15 de noviembre de 2024"
+                aria-label="Fecha del evento" aria-required="true" />
+            </div>
 
-          <!-- Progreso de generación de enlaces -->
-          <div id="cert-links-progress"
-            style="display:none; padding:16px; background:rgba(90,169,255,0.05); border-radius:8px; border:1px solid rgba(90,169,255,0.1); margin-top:16px;">
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-              <div class="loading-spinner" style="width:16px; height:16px; border-width:2px;"></div>
-              <span id="cert-links-status" style="font-weight:500;">Generando enlaces...</span>
+            <div class="form-group" style="margin-bottom:16px;">
+              <label for="textarea-email-message" class="label-with-help">
+                Mensaje de Correo Electrónico (Opcional)
+                <span class="help-icon" data-help="email-message" title="Haz clic para ver ayuda">?</span>
+              </label>
+              <textarea id="textarea-email-message" class="input" rows="6"
+                placeholder="Mensaje por defecto se usará si está vacío. Variables disponibles: {{NOMBRE}}, {{TITULO}}, {{FECHA}}, {{ENLACE_PDF}}"
+                aria-label="Mensaje personalizado de correo electrónico (opcional)"></textarea>
             </div>
-            <div style="background:rgba(255,255,255,0.05); border-radius:8px; height:8px; overflow:hidden;">
-              <div id="cert-links-progress-bar"
-                style="background:var(--accent); height:100%; width:0%; transition:width 0.3s;"></div>
+
+            <div class="form-group" style="margin-bottom:16px;">
+              <label for="textarea-whatsapp-message" class="label-with-help">
+                Mensaje de WhatsApp (Opcional)
+                <span class="help-icon" data-help="whatsapp-message" title="Haz clic para ver ayuda">?</span>
+              </label>
+              <textarea id="textarea-whatsapp-message" class="input" rows="6"
+                placeholder="Mensaje por defecto se usará si está vacío. Variables disponibles: {{NOMBRE}}, {{TITULO}}, {{FECHA}}, {{ENLACE_PDF}}"
+                aria-label="Mensaje personalizado de WhatsApp (opcional)"></textarea>
             </div>
-            <div id="cert-links-details" style="font-size:12px; color:var(--muted); margin-top:8px;"></div>
+
+            <div id="links-validation-status"
+              style="padding:12px; background:rgba(90,169,255,0.1); border-radius:8px; margin-bottom:16px; font-size:13px; display:none;">
+              <div style="font-weight:600; margin-bottom:8px;"><i class="ph ph-warning"></i> Faltan los siguientes
+                campos:
+              </div>
+              <ul id="links-missing-fields" style="margin:0; padding-left:20px; color:var(--muted);"></ul>
+            </div>
+
+            <button id="btn-generate-links" class="btn" type="button"
+              aria-label="Generar enlaces de entrega para correo, WhatsApp y Drive" style="width:100%;">
+              <i class="ph ph-link"></i> Generar Enlaces
+            </button>
+
+            <!-- Progreso de generación de enlaces -->
+            <div id="cert-links-progress"
+              style="display:none; padding:16px; background:rgba(90,169,255,0.05); border-radius:8px; border:1px solid rgba(90,169,255,0.1); margin-top:16px;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <div class="loading-spinner" style="width:16px; height:16px; border-width:2px;"></div>
+                <span id="cert-links-status" style="font-weight:500;">Generando enlaces...</span>
+              </div>
+              <div style="background:rgba(255,255,255,0.05); border-radius:8px; height:8px; overflow:hidden;">
+                <div id="cert-links-progress-bar"
+                  style="background:var(--accent); height:100%; width:0%; transition:width 0.3s;"></div>
+              </div>
+              <div id="cert-links-details" style="font-size:12px; color:var(--muted); margin-top:8px;"></div>
+            </div>
           </div>
         </div>
       </div>
-  </div>
-  </section>
+    </section>
   </div>
 
   <!-- Botón flotante para sincronización manual -->
