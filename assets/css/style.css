@@ -1099,50 +1099,27 @@ a:focus-visible {
 
 .master-card:hover {
   transform: translateY(-4px) scale(1.01);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, .35);
-  border-color: rgba(90, 169, 255, .2);
-}
-
-/* ✅ Focus visible para tarjetas de curso */
-.master-card:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 2px;
-  border-color: var(--accent);
+  padding: 16px;
 }
 
 .master-card .left {
-  min-height: 220px;
+  order: -1;
+  min-height: auto !important;
 }
 
-.master-card .right .filelist {
-  margin-top: 0;
+/* ✅ CLAVE: Cambiar aspect-ratio de la tarjeta eléctrica en móvil */
+.ec-wrapper {
+  aspect-ratio: 16/9 !important;
+  /* Cambiar de 3/4 vertical a 16/9 horizontal */
+  max-height: 200px !important;
 }
 
-/* ✅ RESPONSIVE MOBILE FIRST */
-@media (max-width:900px) {
-  .master-card {
-    grid-template-columns: 1fr;
-    padding: 16px;
-  }
-
-  .master-card .left {
-    order: -1;
-    min-height: auto !important;
-  }
-
-  /* ✅ CLAVE: Cambiar aspect-ratio de la tarjeta eléctrica en móvil */
-  .ec-wrapper {
-    aspect-ratio: 16/9 !important;
-    /* Cambiar de 3/4 vertical a 16/9 horizontal */
-    max-height: 200px !important;
-  }
-
-  /* Ajustar imágenes normales (no electric-card) */
-  .master-card .left>div:not(.ec-wrapper),
-  .course-card-image {
-    height: 160px !important;
-    max-height: 160px;
-  }
+/* Ajustar imágenes normales (no electric-card) */
+.master-card .left>div:not(.ec-wrapper),
+.course-card-image {
+  height: 160px !important;
+  max-height: 160px;
+}
 }
 
 /* ✅ Móviles pequeños */
