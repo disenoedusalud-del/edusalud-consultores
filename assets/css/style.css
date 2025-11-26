@@ -828,29 +828,55 @@ a:focus-visible {
   }
   .master-card .left{ 
     order: -1;
-    min-height: 160px !important;
+    min-height: auto !important;
   }
   
-  /* Reducir altura de la imagen en móvil */
-  .master-card .left > div,
+  /* ✅ CLAVE: Cambiar aspect-ratio de la tarjeta eléctrica en móvil */
+  .ec-wrapper {
+    aspect-ratio: 16/9 !important; /* Cambiar de 3/4 vertical a 16/9 horizontal */
+    max-height: 200px !important;
+  }
+  
+  /* Ajustar imágenes normales (no electric-card) */
+  .master-card .left > div:not(.ec-wrapper),
   .course-card-image {
     height: 160px !important;
     max-height: 160px;
   }
 }
 
-/* ✅ Móviles muy pequeños - más compacto */
+/* ✅ Móviles pequeños */
+@media (max-width: 600px){
+  .master-card {
+    padding: 14px;
+    gap: 14px;
+  }
+  
+  .ec-wrapper {
+    aspect-ratio: 16/9 !important;
+    max-height: 180px !important;
+  }
+  
+  .master-card .left > div:not(.ec-wrapper),
+  .course-card-image {
+    height: 150px !important;
+    max-height: 150px;
+  }
+}
+
+/* ✅ Móviles muy pequeños */
 @media (max-width: 480px){
   .master-card {
     padding: 12px;
     gap: 12px;
   }
   
-  .master-card .left{ 
-    min-height: 140px !important;
+  .ec-wrapper {
+    aspect-ratio: 16/9 !important;
+    max-height: 160px !important;
   }
   
-  .master-card .left > div,
+  .master-card .left > div:not(.ec-wrapper),
   .course-card-image {
     height: 140px !important;
     max-height: 140px;
@@ -2016,4 +2042,5 @@ img[loading="lazy"].loaded {
   border: 1px solid rgba(0,0,0,.12);
   box-shadow: 0 8px 24px rgba(0,0,0,.1);
 }
+
 
