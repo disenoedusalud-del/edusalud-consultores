@@ -819,49 +819,41 @@ a:focus-visible {
 }
 .master-card .left{ min-height:220px; }
 .master-card .right .filelist{ margin-top:0; }
+
+/* ✅ RESPONSIVE MOBILE FIRST */
 @media (max-width:900px){
   .master-card{ 
     grid-template-columns: 1fr;
-    padding: 14px; /* Reducir padding en tablet */
+    padding: 16px;
   }
   .master-card .left{ 
     order: -1;
-    min-height: auto !important;
+    min-height: 160px !important;
   }
   
-  /* ✅ Imagen responsive basada en aspect ratio */
-  .master-card .left > div {
-    height: auto !important;
-    aspect-ratio: 16/9; /* Proporción cinematográfica */
-    max-height: 200px;
+  /* Reducir altura de la imagen en móvil */
+  .master-card .left > div,
+  .course-card-image {
+    height: 160px !important;
+    max-height: 160px;
   }
 }
 
-/* ✅ Ajustes adicionales para móviles pequeños */
-@media (max-width: 600px){
+/* ✅ Móviles muy pequeños - más compacto */
+@media (max-width: 480px){
   .master-card {
-    padding: 12px; /* Padding aún más reducido en móvil */
+    padding: 12px;
+    gap: 12px;
   }
   
-  .master-card .left > div {
-    aspect-ratio: 16/9;
-    max-height: 160px; /* Imagen más compacta en móvil */
+  .master-card .left{ 
+    min-height: 140px !important;
   }
-
-  /* ✅ Imágenes en tarjetas individuales (grid de usuarios) */
+  
+  .master-card .left > div,
   .course-card-image {
-    height: auto !important;
-    aspect-ratio: 16/9;
-    max-height: 180px;
-  }
-}
-
-/* ✅ Ajustes para tablets */
-@media (max-width: 900px) and (min-width: 601px) {
-  .course-card-image {
-    height: auto !important;
-    aspect-ratio: 16/9;
-    max-height: 200px;
+    height: 140px !important;
+    max-height: 140px;
   }
 }
 .master-search{
