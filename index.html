@@ -783,8 +783,23 @@
       <div id="master-certificates-view" class="hidden">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px;">
           <h3 style="margin:0"><i class="ph ph-graduation-cap"></i> Generador de Certificados</h3>
-          <button id="btn-master-exit-cert" class="btn secondary" type="button" aria-label="Salir de la vista maestra"
-            title="Volver a la pantalla de acceso">Salir</button>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <a href="https://drive.google.com/file/d/1DpnuJx6TIn1DA98IjkU1z0hpvpC4k8tg/view?usp=sharing" 
+               target="_blank" 
+               rel="noopener noreferrer"
+               class="btn" 
+               style="padding:10px 16px; display:flex; align-items:center; gap:8px; background:var(--accent);"
+               title="Ver manual completo del generador de certificados"
+               aria-label="Abrir manual del generador de certificados en PDF">
+              <i class="ph ph-book-open"></i> <span>Manual PDF</span>
+            </a>
+            <button id="btn-master-exit-cert" class="btn secondary" type="button" 
+              style="display:flex; align-items:center; gap:8px;"
+              aria-label="Salir de la vista maestra"
+              title="Volver a la pantalla de acceso">
+              <i class="ph ph-sign-out"></i> Salir
+            </button>
+          </div>
         </div>
 
         <!-- Configuración del Script -->
