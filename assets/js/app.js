@@ -6978,6 +6978,7 @@ function buildUserGrid() {
     if (data.card?.img) {
       const imgContainer = document.createElement('div');
       imgContainer.style.cssText = 'position:relative; width:100%; height:220px; border-radius:12px 12px 0 0; overflow:hidden;';
+      imgContainer.className = 'course-card-image'; // ✅ Clase para CSS responsive
 
       // ✅ Placeholder de carga (skeleton)
       const loadingPlaceholder = document.createElement('div');
@@ -7028,6 +7029,7 @@ function buildUserGrid() {
     } else {
       const placeholder = document.createElement('div');
       placeholder.style.cssText = 'width:100%; height:220px; background:linear-gradient(135deg, rgba(90,169,255,0.2), rgba(90,169,255,0.05)); display:flex; align-items:center; justify-content:center; color:var(--muted); border-radius:12px 12px 0 0;';
+      placeholder.className = 'course-card-image'; // ✅ Clase para CSS responsive
       placeholder.textContent = 'Sin imagen';
       cardContent.appendChild(placeholder);
     }
