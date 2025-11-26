@@ -5160,6 +5160,91 @@ function setupSettingsMenuContent() {
   log('[SETTINGS CONTENT] ✅ Menú de ajustes de consultores configurado correctamente');
 }
 
+// ✅ Función para crear custom select con iconos Phosphor
+function createCustomSelect(options, defaultValue = 'all') {
+  const selectId = 'customSelect_' + Date.now();
+  let selectedValue = defaultValue;
+  
+  const optionsData = options.map(opt => ({
+    value: opt.value,
+    icon: opt.icon,
+    label: opt.label
+  }));
+  
+  const selectedOption = optionsData.find(opt => opt.value === selectedValue) || optionsData[0];
+  
+  const html = `
+    <div class="custom-select" id="${selectId}" data-value="${selectedValue}">
+      <div class="custom-select-trigger">
+        <i class="${selectedOption.icon}"></i>
+        <span class="custom-select-label">${selectedOption.label}</span>
+        <i class="ph ph-caret-down custom-select-arrow"></i>
+      </div>
+      <div class="custom-select-options">
+        ${optionsData.map(opt => `
+          <div class="custom-select-option ${opt.value === selectedValue ? 'selected' : ''}" data-value="${opt.value}">
+            <i class="${opt.icon}"></i>
+            <span>${opt.label}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  
+  // Retornar objeto con HTML y función para inicializar eventos
+  return {
+    html,
+    init: function(container) {
+      const customSelect = container.querySelector(`#${selectId}`);
+      const trigger = customSelect.querySelector('.custom-select-trigger');
+      const options = customSelect.querySelectorAll('.custom-select-option');
+      const label = customSelect.querySelector('.custom-select-label');
+      const icon = trigger.querySelector('i:first-child');
+      
+      // Toggle dropdown
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        customSelect.classList.toggle('open');
+      });
+      
+      // Cerrar al hacer clic fuera
+      document.addEventListener('click', () => {
+        customSelect.classList.remove('open');
+      });
+      
+      // Seleccionar opción
+      options.forEach(option => {
+        option.addEventListener('click', (e) => {
+          e.stopPropagation();
+          
+          // Remover selected de todas
+          options.forEach(opt => opt.classList.remove('selected'));
+          
+          // Marcar como selected
+          option.classList.add('selected');
+          
+          // Actualizar valor
+          selectedValue = option.dataset.value;
+          customSelect.dataset.value = selectedValue;
+          
+          // Actualizar trigger
+          const optIcon = option.querySelector('i').className;
+          const optLabel = option.querySelector('span').textContent;
+          icon.className = optIcon;
+          label.textContent = optLabel;
+          
+          // Cerrar dropdown
+          customSelect.classList.remove('open');
+        });
+      });
+    },
+    getValue: function() {
+      const customSelect = document.querySelector(`#${selectId}`);
+      return customSelect ? customSelect.dataset.value : selectedValue;
+    }
+  };
+}
+
 // ✅ Función para exportar filtrado por tipo
 function showExportFilterModal() {
   // ✅ PREVENIR MÚLTIPLES MODALES: Verificar si ya hay un modal abierto
@@ -5174,23 +5259,16 @@ function showExportFilterModal() {
   modal.className = 'modal show';
   modal.id = 'exportFilterModal';
   modal.innerHTML = `
-    <div class="modal-content" style="max-width: 400px;">
+    <div class="modal-content" style="max-width: 500px;">
       <div class="modal-header">
-        <h2>📤 Exportar por Tipo</h2>
+        <h2><i class="ph ph-upload"></i> Exportar por Tipo</h2>
         <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
       </div>
       <div style="padding: 20px;">
         <p style="color: var(--muted); margin-bottom: 16px;">
           Selecciona qué tipo de cursos deseas exportar:
         </p>
-        <select id="exportTypeFilter" class="input" style="width: 100%; margin-bottom: 16px;">
-          <option value="all">Todos los cursos</option>
-          <option value="curso"><i class="ph ph-book-open"></i> Solo Cursos</option>
-          <option value="diplomado"><i class="ph ph-graduation-cap"></i> Solo Diplomados</option>
-          <option value="webinar"><i class="ph ph-monitor"></i> Solo Webinars</option>
-          <option value="seminario"><i class="ph ph-note"></i> Solo Seminarios</option>
-          <option value="taller"><i class="ph ph-wrench"></i> Solo Talleres</option>
-        </select>
+        <div id="exportTypeSelectContainer" style="margin-bottom: 16px;"></div>
         <div style="display: flex; gap: 12px; justify-content: flex-end;">
           <button class="btn secondary" onclick="this.closest('.modal').remove()">Cancelar</button>
           <button class="btn" onclick="exportFilteredByType()">Exportar</button>
@@ -5199,6 +5277,26 @@ function showExportFilterModal() {
     </div>
   `;
   document.body.appendChild(modal);
+  
+  // Crear custom select con iconos Phosphor
+  const customSelect = createCustomSelect([
+    { value: 'all', icon: 'ph ph-books', label: 'Todos los cursos' },
+    { value: 'curso', icon: 'ph ph-book-open', label: 'Solo Cursos' },
+    { value: 'diplomado', icon: 'ph ph-graduation-cap', label: 'Solo Diplomados' },
+    { value: 'webinar', icon: 'ph ph-monitor', label: 'Solo Webinars' },
+    { value: 'seminario', icon: 'ph ph-note', label: 'Solo Seminarios' },
+    { value: 'taller', icon: 'ph ph-wrench', label: 'Solo Talleres' }
+  ], 'all');
+  
+  // Insertar HTML del custom select
+  const container = modal.querySelector('#exportTypeSelectContainer');
+  container.innerHTML = customSelect.html;
+  
+  // Inicializar eventos
+  customSelect.init(container);
+  
+  // Guardar referencia para exportFilteredByType
+  window.currentExportSelect = customSelect;
 }
 
 // ✅ Función para exportar filtrado
@@ -5212,7 +5310,7 @@ function exportFilteredByType() {
     return;
   }
 
-  const filterType = document.getElementById('exportTypeFilter')?.value || 'all';
+  const filterType = window.currentExportSelect ? window.currentExportSelect.getValue() : 'all';
   const mergedMap = getMergedAccessHashMap();
 
   // ✅ Marcar como exportando
@@ -6109,7 +6207,7 @@ function renderCourse(keyHex) {
     const typeBadge = document.createElement('div');
     typeBadge.className = 'course-type-badge';
     typeBadge.style.cssText = 'font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; display: block; line-height: 1.4;';
-    typeBadge.textContent = typeLabel;
+    typeBadge.innerHTML = typeLabel;
 
     // Insertar antes del título (h3)
     const titleElement = $('#courseTitle');
@@ -6332,7 +6430,7 @@ function buildUserGrid() {
 
     const typeBadge = document.createElement('div');
     typeBadge.style.cssText = 'position:absolute; top:12px; left:12px; z-index:10; padding:6px 12px; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); border-radius:20px; font-size:11px; font-weight:600; color:#ffffff; text-transform:uppercase; letter-spacing:0.5px; pointer-events:none;';
-    typeBadge.textContent = typeLabel;
+    typeBadge.innerHTML = typeLabel;
     cardContent.appendChild(typeBadge);
 
     // ✅ Imagen del curso
@@ -6613,7 +6711,7 @@ function buildMasterGrid() {
 
     const typeBadge = document.createElement('div');
     typeBadge.style.cssText = 'font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;';
-    typeBadge.textContent = typeLabel;
+    typeBadge.innerHTML = typeLabel;
     t.appendChild(typeBadge);
 
     // ✅ Crear título y meta
