@@ -6708,7 +6708,7 @@ function renderCourse(keyHex) {
       // ✅ Actualizar contador de archivos
       const filesCountEl = $('#files-count');
       if (filesCountEl) {
-        filesCountEl.textContent = (uniqueFiles || []).length;
+        filesCountEl.textContent = `${(uniqueFiles || []).length} archivo(s)`;
       }
     }
     return;
@@ -6788,7 +6788,7 @@ function renderCourse(keyHex) {
   // ✅ Actualizar contador de archivos
   const filesCountEl = $('#files-count');
   if (filesCountEl) {
-    filesCountEl.textContent = (files || []).length;
+    filesCountEl.textContent = `${(files || []).length} archivo(s)`;
   }
 
   // ✅ PREVENIR DUPLICADOS al renderizar: usar Set para identificar únicos por firebaseId o URL+Label
@@ -6905,7 +6905,7 @@ function updateFileListOnly(keyHex) {
   // ✅ Actualizar contador de archivos
   const filesCountEl = $('#files-count');
   if (filesCountEl) {
-    filesCountEl.textContent = (uniqueFiles || []).length;
+    filesCountEl.textContent = `${(uniqueFiles || []).length} archivo(s)`;
   }
 
   // ✅ Reconfigurar búsqueda de archivos
@@ -7606,7 +7606,7 @@ function buildMasterGrid() {
     const files = getFilesForHex(hex);
     const filesCountEl = $('#files-count');
     if (filesCountEl) {
-      filesCountEl.textContent = (files || []).length;
+      filesCountEl.textContent = `${(files || []).length} archivo(s)`;
     }
 
     // lista de archivos (editable con DnD)
@@ -7758,7 +7758,7 @@ function buildMasterGrid() {
             const filesCountEl = $('#files-count');
             if (filesCountEl) {
               const updatedFiles = getFilesForHex(hex);
-              filesCountEl.textContent = (updatedFiles || []).length;
+              filesCountEl.textContent = `${(updatedFiles || []).length} archivo(s)`;
             }
           }
 
@@ -8171,7 +8171,7 @@ function buildMasterGrid() {
       // Actualizar contador de archivos
       const filesCountEl = $('#files-count');
       if (filesCountEl) {
-        filesCountEl.textContent = next.length;
+        filesCountEl.textContent = `${next.length} archivo(s)`;
       }
 
       // ✅ Invalidar caché de memoización para forzar re-render si es necesario
