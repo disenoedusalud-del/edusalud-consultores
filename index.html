@@ -399,14 +399,17 @@
             </div>
             <div class="card-right">
               <!-- ✅ Búsqueda de archivos -->
-              <div class="mb-md d-flex gap-sm items-center">
-                <div style="position: relative; flex: 1;">
-                  <input id="search-files" type="text" class="input" placeholder="Buscar archivos..."
-                    aria-label="Buscar archivos en el curso" style="width: 100%; padding-left: 36px;" />
-                  <i class="ph ph-magnifying-glass"
-                    style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none;"></i>
+              <div class="mb-md">
+                <div class="d-flex gap-sm items-center mb-md">
+                  <div style="position: relative; flex: 1;">
+                    <input id="search-files" type="text" class="input" placeholder="Buscar archivos..."
+                      aria-label="Buscar archivos en el curso" style="width: 100%; padding-left: 36px;" />
+                    <i class="ph ph-magnifying-glass"
+                      style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none;"></i>
+                  </div>
                 </div>
-                <div id="files-stats" style="font-size: 13px; color: var(--muted); white-space: nowrap;">
+                <!-- ✅ Contador debajo del input -->
+                <div id="files-stats" style="font-size: 13px; color: var(--muted); margin-bottom: 12px;">
                   <span id="files-count">0 archivo(s)</span>
                 </div>
               </div>
