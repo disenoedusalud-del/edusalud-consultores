@@ -1001,8 +1001,8 @@ a:focus-visible {
 }
 
 .card-left-wrapper {
-  flex: 0 0 360px;
-  max-width: 360px;
+  flex: 0 0 220px;
+  max-width: 220px;
 }
 
 .card-right {
@@ -1019,13 +1019,13 @@ a:focus-visible {
   }
 
   .card-left-wrapper {
-    flex: 0 0 120px;
+    flex: 0 0 100px;
     /* ✅ Imagen pequeña en móvil */
-    max-width: 120px;
-    min-width: 120px;
-    height: 160px;
+    max-width: 100px;
+    min-width: 100px;
+    height: 133px;
     /* ✅ Altura fija para la tarjeta */
-    min-height: 160px;
+    min-height: 133px;
     overflow: hidden;
     /* ✅ Cambiar a hidden para la tarjeta eléctrica */
     position: relative;
@@ -1048,21 +1048,23 @@ a:focus-visible {
 
   .card-left-wrapper {
     flex: 0 0 180px;
-    /* ✅ Reducido para tablet */
+    /* ✅ Tamaño moderado para tablet */
     max-width: 180px;
   }
 }
 
 @media (max-width: 1200px) and (min-width: 901px) {
   .card-left-wrapper {
-    flex: 0 0 300px;
-    max-width: 300px;
-    height: 350px;
-    /* ✅ Altura fija para la tarjeta */
-    min-height: 350px;
-    overflow: hidden;
-    /* ✅ Cambiar a hidden */
-    position: relative;
+    flex: 0 0 200px;
+    max-width: 200px;
+  }
+}
+
+/* Para pantallas muy grandes (>1200px) mantener tamaño razonable */
+@media (min-width: 1201px) {
+  .card-left-wrapper {
+    flex: 0 0 220px;
+    max-width: 220px;
   }
 }
 
@@ -2588,3 +2590,4 @@ a:focus-visible {
       padding: 12px;
     }
   }
+}
