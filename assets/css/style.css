@@ -122,7 +122,6 @@
   background: transparent;
   padding: 18px;
   border-radius: 16px;
-  width: 100%;
   max-width: 100%;
 }
 
@@ -140,8 +139,6 @@
   padding: 16px;
   margin-bottom: 16px;
   backdrop-filter: blur(4px);
-  width: 100%;
-  max-width: 100%;
 }
 
 :root[data-theme="light"] .course-header-mobile {
@@ -448,7 +445,6 @@
 /* Utility Classes */
 .d-flex {
   display: flex;
-  min-width: 0; /* ✅ Permitir que flex se encoja */
 }
 
 .flex-col {
@@ -492,13 +488,6 @@
 }
 
 
-/* ✅ Prevenir scroll horizontal en toda la aplicación */
-html, body {
-  overflow-x: hidden;
-  max-width: 100vw;
-  box-sizing: border-box;
-}
-
 body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial;
@@ -510,17 +499,6 @@ body {
   min-height: 100vh;
 }
 
-/* ✅ Asegurar que todos los elementos usen border-box */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
-/* ✅ Asegurar que las imágenes no causen overflow */
-img {
-  max-width: 100%;
-  height: auto;
-}
-
 /* ✅ Transiciones suaves al cambiar de vista */
 #access,
 #content,
@@ -529,8 +507,6 @@ img {
   opacity: 1;
   transform: translateY(0);
   visibility: visible;
-  width: 100%;
-  max-width: 100vw;
   /* ✅ Las secciones principales NO usan display:none para permitir transiciones */
 }
 
@@ -547,10 +523,8 @@ img {
 
 .wrap {
   max-width: 1100px;
-  width: 100%;
   margin: 0 auto;
   padding: 28px 20px;
-  box-sizing: border-box;
 }
 
 header {
@@ -560,8 +534,6 @@ header {
   gap: 20px;
   align-items: center;
   margin-bottom: 18px;
-  width: 100%;
-  max-width: 100%;
 }
 
 @media (min-width:980px) {
@@ -653,8 +625,6 @@ p.lead {
     0 8px 32px rgba(0, 0, 0, .4);
   backdrop-filter: blur(8px);
   overflow: visible;
-  width: 100%;
-  max-width: 100%;
 }
 
 .card::before {
@@ -722,8 +692,6 @@ label {
   display: flex;
   gap: 10px;
   align-items: stretch;
-  flex-wrap: wrap; /* ✅ Permitir que los elementos se envuelvan */
-  min-width: 0; /* ✅ Permitir que flex se encoja */
 }
 
 .input {
@@ -790,8 +758,6 @@ a:focus-visible {
   border-radius: 12px;
   cursor: pointer;
   transition: transform .06s;
-  white-space: nowrap; /* ✅ Evitar que el texto se parta */
-  flex-shrink: 0; /* ✅ Evitar que se compriman demasiado */
 }
 
 .btn:hover {
@@ -900,8 +866,6 @@ a:focus-visible {
   display: grid;
   gap: 10px;
   margin-top: 12px;
-  width: 100%;
-  max-width: 100%;
 }
 
 .file {
@@ -913,9 +877,6 @@ a:focus-visible {
   border: 1px solid rgba(255, 255, 255, .06);
   border-radius: 12px;
   background: #0e1630;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0; /* ✅ Permitir que flex se encoja */
 }
 
 /* ✅ Focus visible para archivos */
@@ -1191,8 +1152,6 @@ a:focus-visible {
   border-radius: 12px;
   margin-bottom: 20px;
   backdrop-filter: blur(4px);
-  width: 100%;
-  max-width: 100%;
 }
 
 .master-header-nav .logo {
@@ -1476,8 +1435,6 @@ a:focus-visible {
 .master-grid {
   display: grid;
   gap: 16px;
-  width: 100%;
-  max-width: 100%;
 }
 
 .master-card {
@@ -1487,7 +1444,6 @@ a:focus-visible {
   /* Mobile First */
   gap: 18px;
   width: 100%; /* ✅ Ancho completo */
-  max-width: 100%; /* ✅ No exceder viewport */
   background-color: hsla(240, 15%, 9%, 1);
   background-image:
     radial-gradient(at 88% 40%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
@@ -1586,8 +1542,6 @@ a:focus-visible {
     align-items: start; /* ✅ Cambiar de center a start para mejor alineación */
     margin: 6px 0 14px;
     position: relative;
-    width: 100%;
-    max-width: 100%;
     /* ✅ Para posicionar autocompletado */
   }
 
@@ -2975,11 +2929,10 @@ img[loading="lazy"].loaded {
   }
 
   .course-header-mobile .btn {
-    flex: 1 1 auto; /* ✅ Permitir que crezcan y se encojan */
+    flex: 1;
     min-width: fit-content;
     font-size: 13px;
     padding: 10px 12px;
-    flex-shrink: 1; /* ✅ Permitir encogerse en móvil */
   }
 }
 
@@ -2997,8 +2950,6 @@ img[loading="lazy"].loaded {
   .course-header-mobile .btn {
     width: 100%;
     text-align: center;
-    flex-shrink: 1; /* ✅ Permitir encogerse */
-    white-space: normal; /* ✅ Permitir que el texto se envuelva en móvil muy pequeño */
   }
 
   .course-header-mobile h3 {
@@ -3038,19 +2989,6 @@ img[loading="lazy"].loaded {
 /* ===================== MEJORAS ADICIONALES PARA MÓVIL ===================== */
 
 /* Ajustar padding del wrap en móvil */
-@media (max-width: 900px) {
-  /* ✅ Asegurar que los botones se adapten en tablets */
-  .course-header-mobile .row {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-  
-  .course-header-mobile .btn {
-    flex: 1 1 auto;
-    min-width: 120px;
-  }
-}
-
 @media (max-width: 600px) {
   .wrap {
     padding: 16px 12px;
