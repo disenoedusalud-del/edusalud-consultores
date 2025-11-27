@@ -4735,7 +4735,7 @@ function updateThemeToggleUI(theme, customIconId, customTextId) {
   if (customIconId && customTextId) {
     const customIcon = document.getElementById(customIconId);
     const customText = document.getElementById(customTextId);
-    
+
     if (customIcon && customText) {
       if (theme === 'light') {
         customIcon.className = 'ph ph-moon';
@@ -5517,7 +5517,7 @@ async function testScriptConnection() {
   try {
     const response = await fetch(`${scriptUrl}?action=test`);
     const data = await response.json();
-    
+
     if (data.success) {
       if (typeof window.showToast === 'function') {
         window.showToast('success', '✅ Conexión Exitosa', 'El script está funcionando correctamente');
@@ -5540,10 +5540,10 @@ function refreshAllLists() {
 
   // Refrescar plantillas
   $('#btn-refresh-templates')?.click();
-  
+
   // Refrescar hojas
   setTimeout(() => $('#btn-refresh-sheets')?.click(), 500);
-  
+
   // Refrescar carpetas
   setTimeout(() => $('#btn-refresh-folders')?.click(), 1000);
   setTimeout(() => $('#btn-refresh-folders-prot')?.click(), 1500);
@@ -5588,7 +5588,7 @@ function clearBrowserCache() {
 async function createDemoSheet() {
   const scriptUrl = $('#input-script-url')?.value;
   const mode = $('#select-cert-mode')?.value || 'webinar';
-  
+
   if (!scriptUrl) {
     if (typeof window.showToast === 'function') {
       window.showToast('error', 'Error', 'Configura la URL del script primero');
@@ -5633,7 +5633,7 @@ async function createDemoSheet() {
 // Crear Estructura de Carpetas
 async function createFolderStructure() {
   const scriptUrl = $('#input-script-url')?.value;
-  
+
   if (!scriptUrl) {
     if (typeof window.showToast === 'function') {
       window.showToast('error', 'Error', 'Configura la URL del script primero');
@@ -5658,7 +5658,7 @@ async function createFolderStructure() {
         params: { name: `Certificados - ${eventName}` }
       })
     });
-    
+
     const mainData = await mainFolder.json();
     if (!mainData.success) throw new Error(mainData.error);
 
@@ -5703,15 +5703,15 @@ async function createFolderStructure() {
 function createCustomSelect(options, defaultValue = 'all') {
   const selectId = 'customSelect_' + Date.now();
   let selectedValue = defaultValue;
-  
+
   const optionsData = options.map(opt => ({
     value: opt.value,
     icon: opt.icon,
     label: opt.label
   }));
-  
+
   const selectedOption = optionsData.find(opt => opt.value === selectedValue) || optionsData[0];
-  
+
   const html = `
     <div class="custom-select" id="${selectId}" data-value="${selectedValue}">
       <div class="custom-select-trigger">
@@ -5729,55 +5729,55 @@ function createCustomSelect(options, defaultValue = 'all') {
       </div>
     </div>
   `;
-  
+
   // Retornar objeto con HTML y función para inicializar eventos
   return {
     html,
-    init: function(container) {
+    init: function (container) {
       const customSelect = container.querySelector(`#${selectId}`);
       const trigger = customSelect.querySelector('.custom-select-trigger');
       const options = customSelect.querySelectorAll('.custom-select-option');
       const label = customSelect.querySelector('.custom-select-label');
       const icon = trigger.querySelector('i:first-child');
-      
+
       // Toggle dropdown
       trigger.addEventListener('click', (e) => {
         e.stopPropagation();
         customSelect.classList.toggle('open');
       });
-      
+
       // Cerrar al hacer clic fuera
       document.addEventListener('click', () => {
         customSelect.classList.remove('open');
       });
-      
+
       // Seleccionar opción
       options.forEach(option => {
         option.addEventListener('click', (e) => {
           e.stopPropagation();
-          
+
           // Remover selected de todas
           options.forEach(opt => opt.classList.remove('selected'));
-          
+
           // Marcar como selected
           option.classList.add('selected');
-          
+
           // Actualizar valor
           selectedValue = option.dataset.value;
           customSelect.dataset.value = selectedValue;
-          
+
           // Actualizar trigger
           const optIcon = option.querySelector('i').className;
           const optLabel = option.querySelector('span').textContent;
           icon.className = optIcon;
           label.textContent = optLabel;
-          
+
           // Cerrar dropdown
           customSelect.classList.remove('open');
         });
       });
     },
-    getValue: function() {
+    getValue: function () {
       const customSelect = document.querySelector(`#${selectId}`);
       return customSelect ? customSelect.dataset.value : selectedValue;
     }
@@ -5816,7 +5816,7 @@ function showExportFilterModal() {
     </div>
   `;
   document.body.appendChild(modal);
-  
+
   // Crear custom select con iconos Phosphor
   const customSelect = createCustomSelect([
     { value: 'all', icon: 'ph ph-books', label: 'Todos los cursos' },
@@ -5826,14 +5826,14 @@ function showExportFilterModal() {
     { value: 'seminario', icon: 'ph ph-note', label: 'Solo Seminarios' },
     { value: 'taller', icon: 'ph ph-wrench', label: 'Solo Talleres' }
   ], 'all');
-  
+
   // Insertar HTML del custom select
   const container = modal.querySelector('#exportTypeSelectContainer');
   container.innerHTML = customSelect.html;
-  
+
   // Inicializar eventos
   customSelect.init(container);
-  
+
   // Guardar referencia para exportFilteredByType
   window.currentExportSelect = customSelect;
 }
@@ -7221,7 +7221,7 @@ function buildMasterGrid() {
     ? coursesArray.slice((currentPage - 1) * COURSES_PER_PAGE, currentPage * COURSES_PER_PAGE)
     : coursesArray;
 
-  coursesToRender.forEach(([hex, data]) => {
+    coursesToRender.forEach(([hex, data]) => {
     // excluir el master si algún día lo metes en el mismo objeto
     if (hex === MASTER_HASH) return;
 
@@ -7229,19 +7229,34 @@ function buildMasterGrid() {
     cardEl.className = 'master-card';
     cardEl.dataset.title = (data.title || '').toLowerCase();
     cardEl.dataset.tag = (data.card?.tag || '').toLowerCase();
-    cardEl.dataset.type = (data.type || 'curso').toLowerCase(); // ✅ Para búsqueda por tipo
+    cardEl.dataset.type = (data.type || 'curso').toLowerCase();
 
+    // ✅ 1. LADO IZQUIERDO: IMAGEN (16:9)
     const left = document.createElement('div');
     left.className = 'left';
+    
+    if (data.card?.img) {
+      const img = document.createElement('img');
+      img.src = addCacheBuster(data.card.img);
+      img.alt = data.title || 'Curso';
+      img.loading = 'lazy';
+      left.appendChild(img);
+    } else {
+      left.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05);"><i class="ph ph-image" style="font-size:48px;color:rgba(255,255,255,0.2);"></i></div>`;
+    }
+
+    // ✅ 2. LADO DERECHO: CONTENIDO
     const right = document.createElement('div');
     right.className = 'right';
 
-    // cabecera derecha (clasificación + título + meta + código secreto + botón abrir curso)
+    // --- HEADER (Siempre visible) ---
     const header = document.createElement('div');
-    header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;';
-    const t = document.createElement('div');
-
-    // ✅ Mostrar clasificación del curso (badge en la parte superior)
+    header.className = 'master-card-header';
+    header.style.cssText = 'display:flex; justify-content:space-between; align-items:flex-start; cursor:pointer; margin-bottom:8px;';
+    
+    const headerInfo = document.createElement('div');
+    
+    // Badge de tipo
     const courseType = data.type || 'curso';
     const typeLabels = {
       'curso': '<i class="ph ph-book-open"></i> Curso',
@@ -7251,69 +7266,92 @@ function buildMasterGrid() {
       'taller': '<i class="ph ph-wrench"></i> Taller'
     };
     const typeLabel = typeLabels[courseType] || '<i class="ph ph-book-open"></i> Curso';
-
     const typeBadge = document.createElement('div');
     typeBadge.style.cssText = 'font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;';
     typeBadge.innerHTML = typeLabel;
-    t.appendChild(typeBadge);
+    headerInfo.appendChild(typeBadge);
 
-    // ✅ Crear título y meta
+    // Título
     const titleDiv = document.createElement('div');
     titleDiv.style.fontWeight = '700';
+    titleDiv.style.fontSize = '18px';
+    titleDiv.style.marginBottom = '4px';
     titleDiv.textContent = data.title;
-    t.appendChild(titleDiv);
+    headerInfo.appendChild(titleDiv);
 
+    // Meta (descripción corta)
     const metaDiv = document.createElement('div');
     metaDiv.className = 'meta';
     metaDiv.textContent = data.meta || '';
-    t.appendChild(metaDiv);
+    headerInfo.appendChild(metaDiv);
 
-    // ✅ Mostrar código secreto solo en la vista maestra y solo si existe
+    // Icono de expansión
+    const expandIcon = document.createElement('div');
+    expandIcon.innerHTML = '<i class="ph ph-caret-down" style="font-size:20px; color:var(--muted);"></i>';
+    expandIcon.style.transition = 'transform 0.3s ease';
+    
+    header.appendChild(headerInfo);
+    header.appendChild(expandIcon);
+    right.appendChild(header);
+
+    // --- DETALLES (Desplegable) ---
+    const details = document.createElement('div');
+    details.className = 'master-card-details';
+    details.style.display = 'none'; // Oculto por defecto
+    details.style.marginTop = '16px';
+    details.style.borderTop = '1px solid var(--border)';
+    details.style.paddingTop = '16px';
+    details.style.animation = 'fadeIn 0.3s ease';
+
+    // Lógica de expansión
+    header.addEventListener('click', () => {
+      const isHidden = details.style.display === 'none';
+      details.style.display = isHidden ? 'block' : 'none';
+      expandIcon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+    });
+
+    // Código secreto (solo si es custom course)
     if (isCustomCourse(hex)) {
       const customCourses = loadCustomCourses();
       const courseData = customCourses[hex];
       const codeToShow = courseData?.code || data.code || '';
 
-      // Crear elemento clickeable para el código
       if (codeToShow) {
         const codeDiv = document.createElement('div');
-        codeDiv.style.cssText = 'font-size: 11px; color: var(--accent); margin-top: 4px; font-family: monospace; background: rgba(90,169,255,0.1); padding: 4px 8px; border-radius: 4px; display: inline-block; cursor: pointer; transition: all 0.2s;';
+        codeDiv.style.cssText = 'font-size: 13px; color: var(--accent); margin-bottom: 16px; font-family: monospace; background: rgba(90,169,255,0.1); padding: 8px 12px; border-radius: 6px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; border: 1px solid rgba(90,169,255,0.2);';
         codeDiv.title = 'Click para copiar código';
-        // ✅ Sanitizar código antes de usar en innerHTML
         const safeCode = sanitizeHTML(codeToShow);
-        codeDiv.innerHTML = `<i class="ph ph-key"></i> Código: ${safeCode} <i class="ph ph-clipboard"></i>`;
-        codeDiv.addEventListener('click', async () => {
+        codeDiv.innerHTML = `<span><i class="ph ph-key"></i> Código de acceso: <strong>${safeCode}</strong></span> <i class="ph ph-copy"></i>`;
+        
+        codeDiv.addEventListener('click', async (e) => {
+          e.stopPropagation(); // Evitar colapsar al copiar
           try {
             await navigator.clipboard.writeText(codeToShow);
             codeDiv.style.background = 'rgba(90,169,255,0.3)';
-            setTimeout(() => {
-              codeDiv.style.background = 'rgba(90,169,255,0.1)';
-            }, 300);
-            if (typeof window.showSuccessModal === 'function') {
-              window.showSuccessModal('Código copiado', `El código "${codeToShow}" ha sido copiado al portapapeles`);
+            setTimeout(() => codeDiv.style.background = 'rgba(90,169,255,0.1)', 300);
+            if (typeof window.showToast === 'function') {
+              window.showToast('success', 'Código copiado', `El código "${codeToShow}" ha sido copiado.`);
             } else {
               alert(`Código copiado: ${codeToShow}`);
             }
           } catch (err) {
             console.error('Error copiando código:', err);
-            alert('Error al copiar código');
           }
         });
-        t.appendChild(codeDiv);
+        details.appendChild(codeDiv);
       }
     }
 
-    const headerActions = document.createElement('div');
-    headerActions.style.cssText = 'display:flex; gap:8px;';
+    // Botones de acción
+    const actionsDiv = document.createElement('div');
+    actionsDiv.style.cssText = 'display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;';
 
-    const open = document.createElement('button');
-    open.className = 'btn secondary';
-    open.type = 'button';
-    open.textContent = 'Abrir curso';
-    open.setAttribute('aria-label', `Abrir curso: ${data.title || 'Curso'}`);
-    open.setAttribute('title', `Abrir el curso "${data.title || 'Curso'}"`);
-    open.addEventListener('click', async () => {
-      // ✅ Verificar acceso por email si el usuario está autenticado con email
+    // Botón Abrir Curso
+    const btnOpen = document.createElement('button');
+    btnOpen.className = 'btn';
+    btnOpen.innerHTML = '<i class="ph ph-arrow-right"></i> Abrir Curso';
+    btnOpen.onclick = async (e) => {
+      e.stopPropagation();
       const isEmailAuth = window.currentUserEmail && !currentKeyHex;
       if (isEmailAuth) {
         const hasAccess = await checkEmailAllowedForCourse(window.currentUserEmail, hex);
@@ -7326,1241 +7364,205 @@ function buildMasterGrid() {
           return;
         }
       }
-
-      // Mostrar loader inmediatamente
       showLoader();
-
-      // ✅ NUEVO: Esperar a que termine el refresh ANTES de cerrar el loader
       if (hasRemote()) {
-        log('[SYNC] Iniciando refresh antes del loader...');
-        await refreshFromRemoteSilent(hex).catch(e => {
-          warn('[SYNC] Error en refresh:', e);
-          return false;
-        });
-        log('[SYNC] ✅ Refresh completado, cerrando loader...');
+        await refreshFromRemoteSilent(hex).catch(e => warn('[SYNC] Error en refresh:', e));
       }
-
-      // Ejecutar animación de loader ahora que ya tenemos los datos
       await runLoader();
-
-      // ✅ Limpiar flag cuando se abre desde master (no desde vista de usuario)
       window.isFromUserView = false;
       currentKeyHex = hex;
       renderCourse(hex);
       showContent();
-    });
-    headerActions.appendChild(open);
+    };
+    actionsDiv.appendChild(btnOpen);
 
-    // ✅ Botón para gestionar correos permitidos (solo visible para master con código)
-    // No mostrar si el usuario está autenticado con email
+    // Botones de gestión (solo master)
     const isEmailAuth = window.currentUserEmail && !currentKeyHex;
     if (!isEmailAuth) {
+      // Gestionar correos
       const btnEmails = document.createElement('button');
       btnEmails.className = 'btn secondary';
-      btnEmails.type = 'button';
-      btnEmails.innerHTML = '<i class="ph ph-envelope"></i> Correos';
-      btnEmails.setAttribute('aria-label', `Gestionar correos permitidos para: ${data.title || 'Curso'}`);
-      btnEmails.setAttribute('title', `Gestionar qué correos pueden acceder a "${data.title || 'Curso'}"`);
-      btnEmails.addEventListener('click', () => {
+      btnEmails.innerHTML = '<i class="ph ph-users"></i> Alumnos';
+      btnEmails.onclick = (e) => {
+        e.stopPropagation();
         showCourseEmailsModal(hex, data.title || 'Curso');
-      });
-      headerActions.appendChild(btnEmails);
-    }
-
-    // Botones de editar y eliminar solo para cursos personalizados
-    if (isCustomCourse(hex)) {
-      // Botón editar curso
-      const btnEditCourse = document.createElement('button');
-      btnEditCourse.className = 'btn secondary';
-      btnEditCourse.type = 'button';
-      btnEditCourse.innerHTML = '<i class="ph ph-pencil"></i> Editar';
-      btnEditCourse.setAttribute('aria-label', `Editar curso: ${data.title || 'Curso'}`);
-      btnEditCourse.setAttribute('title', `Editar el curso "${data.title || 'Curso'}"`);
-      btnEditCourse.addEventListener('click', () => {
-        // Abrir modal de edición con datos del curso
-        if (typeof window.openEditCourseModal === 'function') {
-          window.openEditCourseModal(hex, data);
-        }
-      });
-      headerActions.appendChild(btnEditCourse);
-
-      // Botón duplicar curso
-      const btnDuplicate = document.createElement('button');
-      btnDuplicate.className = 'btn secondary';
-      btnDuplicate.type = 'button';
-      btnDuplicate.innerHTML = '<i class="ph ph-copy"></i> Duplicar';
-      btnDuplicate.setAttribute('aria-label', `Duplicar curso: ${data.title || 'Curso'}`);
-      btnDuplicate.setAttribute('title', `Duplicar el curso "${data.title || 'Curso'}" con un nuevo código`);
-      btnDuplicate.addEventListener('click', async () => {
-        // Generar código sugerido
-        const suggestedCode = `${data.card?.tag || 'CURSO'}_${Date.now()}`;
-
-        // ✅ Usar modal elegante en lugar de prompt
-        if (typeof window.showDuplicateCodeModal === 'function') {
-          window.showDuplicateCodeModal(suggestedCode, async (newCode) => {
-            if (!newCode || !newCode.trim()) {
-              return;
-            }
-
-            try {
-              // Generar nuevo hex del código
-              const newHex = await sha256Hex(newCode.trim());
-
-              // Verificar que el código no exista
-              const existingCourses = getMergedAccessHashMap();
-              if (existingCourses[newHex]) {
-                if (typeof window.showSuccessModal === 'function') {
-                  window.showSuccessModal('Error', 'Este código ya existe. Use otro.');
-                } else {
-                  alert('Este código ya existe. Use otro.');
-                }
-                return;
-              }
-
-              // Crear copia del curso con nuevo código
-              const duplicatedCourse = {
-                title: `${data.title} (Copia)`,
-                meta: data.meta || '',
-                files: [...(data.files || [])], // Copiar array de archivos
-                code: newCode.trim(),
-                card: {
-                  ...data.card,
-                  tag: `${data.card?.tag || 'TAG'}_COPY`,
-                  seed: Math.floor(Math.random() * 100) // Nuevo seed para variación visual
-                }
-              };
-
-              // Guardar curso duplicado
-              await addCustomCourse(newHex, duplicatedCourse);
-
-              // Reconstruir grid
-              buildMasterGrid();
-
-              // Mostrar éxito
-              if (typeof window.showSuccessModal === 'function') {
-                window.showSuccessModal(
-                  '¡Curso Duplicado!',
-                  `El curso ha sido duplicado con el código: ${newCode.trim()}`
-                );
-              } else {
-                alert(`Curso duplicado con código: ${newCode.trim()}`);
-              }
-
-              // Analytics tracking
-              if (typeof gtag !== 'undefined') {
-                gtag('event', 'course_duplicated', {
-                  'event_category': 'management',
-                  'event_label': data.card?.tag || 'unknown'
-                });
-              }
-            } catch (error) {
-              console.error('[DUPLICATE] Error:', error);
-              if (typeof window.showSuccessModal === 'function') {
-                window.showSuccessModal('Error', 'Error al duplicar el curso: ' + (error.message || 'Error desconocido'));
-              } else {
-                alert('Error al duplicar el curso: ' + (error.message || 'Error desconocido'));
-              }
-            }
-          });
-        } else {
-          // Fallback a prompt si el modal no está disponible
-          const newCode = prompt('Ingresa un nuevo código secreto para el curso duplicado:', suggestedCode);
-          if (!newCode || !newCode.trim()) {
-            return;
-          }
-
-          try {
-            // Generar nuevo hex del código
-            const newHex = await sha256Hex(newCode.trim());
-
-            // Verificar que el código no exista
-            const existingCourses = getMergedAccessHashMap();
-            if (existingCourses[newHex]) {
-              alert('Este código ya existe. Use otro.');
-              return;
-            }
-
-            // Crear copia del curso con nuevo código
-            const duplicatedCourse = {
-              title: `${data.title} (Copia)`,
-              meta: data.meta || '',
-              files: [...(data.files || [])],
-              code: newCode.trim(),
-              card: {
-                ...data.card,
-                tag: `${data.card?.tag || 'TAG'}_COPY`,
-                seed: Math.floor(Math.random() * 100)
-              }
-            };
-
-            await addCustomCourse(newHex, duplicatedCourse);
-            buildMasterGrid();
-
-            if (typeof window.showSuccessModal === 'function') {
-              window.showSuccessModal('¡Curso Duplicado!', `El curso ha sido duplicado con el código: ${newCode.trim()}`);
-            } else {
-              alert(`Curso duplicado con código: ${newCode.trim()}`);
-            }
-
-            if (typeof gtag !== 'undefined') {
-              gtag('event', 'course_duplicated', {
-                'event_category': 'management',
-                'event_label': data.card?.tag || 'unknown'
-              });
-            }
-          } catch (error) {
-            console.error('[DUPLICATE] Error:', error);
-            alert('Error al duplicar el curso: ' + (error.message || 'Error desconocido'));
-          }
-        }
-      });
-      headerActions.appendChild(btnDuplicate);
-
-      // Botón eliminar curso
-      const btnDelete = document.createElement('button');
-      btnDelete.className = 'btn';
-      btnDelete.type = 'button';
-      btnDelete.innerHTML = '<i class="ph ph-trash"></i> Eliminar';
-      btnDelete.setAttribute('aria-label', `Eliminar curso: ${data.title || 'Curso'}`);
-      btnDelete.setAttribute('title', `Eliminar el curso "${data.title || 'Curso'}" (acción irreversible)`);
-      btnDelete.style.background = 'linear-gradient(135deg, #ff4444, #cc0000)';
-      btnDelete.addEventListener('click', async () => {
-        // ✅ Mostrar modal de confirmación elegante
-        window.showDeleteConfirmModal(data.title, async () => {
-          // ✅ Rate limiting: prevenir eliminaciones repetidas
-          if (!checkRateLimitSimple('eliminar curso')) {
-            return;
-          }
-
-          // ✅ Obtener botón de confirmación y activar indicador de carga
-          const confirmBtn = document.getElementById('deleteConfirmYes');
-          let restoreButton = null;
-          if (confirmBtn) {
-            restoreButton = setButtonLoading(confirmBtn, 'Eliminando curso...', 'Curso eliminado');
-          }
-
-          log('[DELETE] Eliminando curso:', data.title);
-
-          // ✅ Bloquear re-renders durante la eliminación
-          userInteracting = true;
-
-          try {
-            // ✅ Eliminar curso (local, Firebase y respaldo)
-            await removeCustomCourse(hex);
-
-            // ✅ NO hacer refreshCustomCourses porque Firebase ya sincroniza en tiempo real
-            // El listener de Firebase actualizará automáticamente la vista en todos los dispositivos
-            // Solo hacer refresh si Firebase no está disponible
-            const db = getFirestoreDB();
-            if (!db) {
-              log('[DELETE] Firebase no disponible, usando refresh manual');
-              await refreshCustomCourses().catch(e => {
-                warn('[DELETE] Error refrescando cursos después de eliminar (fallback):', e);
-              });
-            }
-
-            // ✅ Restaurar botón con éxito
-            if (restoreButton) {
-              restoreButton(true, 'Curso eliminado');
-            }
-
-            // ✅ Desbloquear y re-renderizar inmediatamente
-            userInteracting = false;
-            buildMasterGrid();
-            // ✅ Actualizar estadísticas después de eliminar
-            setTimeout(() => updateMasterStats().catch(e => warn('[STATS] Error actualizando estadísticas:', e)), 100);
-            log('[DELETE] ✅ Curso eliminado exitosamente');
-
-            // Cerrar modal
-            const deleteModal = document.getElementById('deleteConfirmModal');
-            if (deleteModal) {
-              deleteModal.classList.remove('show');
-            }
-
-            // Analytics tracking
-            if (typeof gtag !== 'undefined') {
-              gtag('event', 'course_deleted', {
-                'event_category': 'management',
-                'event_label': data.card?.tag || 'unknown'
-              });
-            }
-          } catch (error) {
-            console.error('[DELETE] Error eliminando curso:', error);
-            // ✅ Restaurar botón con error
-            if (restoreButton) {
-              restoreButton(false, 'Error al eliminar');
-            }
-            userInteracting = false;
-            alert('Error al eliminar el curso. Por favor, intente nuevamente.');
-          }
-        });
-      });
-      headerActions.appendChild(btnDelete);
-    }
-
-    header.appendChild(t);
-    header.appendChild(headerActions);
-    right.appendChild(header);
-
-    // ✅ Actualizar estadísticas de archivos
-    const files = getFilesForHex(hex);
-    const filesCountEl = $('#files-count');
-    if (filesCountEl) {
-      filesCountEl.textContent = (files || []).length;
-    }
-
-    // lista de archivos (editable con DnD)
-    const list = document.createElement('div');
-    list.className = 'filelist';
-    list.id = 'filelist';
-
-    // ✅ Configurar búsqueda de archivos
-    setupFilesSearch(hex, list);
-
-    (files || []).forEach((item, idx) => {
-      const row = document.createElement('div');
-      row.className = 'file';
-      row.draggable = true;
-      row.dataset.index = String(idx);
-      let host = '';
-      let fileType = 'file';
-      try {
-        const url = new URL(item.url);
-        host = url.hostname;
-        // Detectar tipo de archivo por extensión o dominio
-        const path = url.pathname.toLowerCase();
-        if (path.includes('.pdf')) fileType = 'pdf';
-        else if (path.includes('.doc') || path.includes('.docx')) fileType = 'doc';
-        else if (path.includes('.xls') || path.includes('.xlsx')) fileType = 'sheet';
-        else if (path.includes('.ppt') || path.includes('.pptx')) fileType = 'presentation';
-        else if (path.includes('.zip') || path.includes('.rar')) fileType = 'archive';
-        else if (path.includes('.jpg') || path.includes('.png') || path.includes('.gif')) fileType = 'image';
-        else if (host.includes('drive.google.com')) fileType = 'drive';
-        else if (host.includes('youtube.com') || host.includes('youtu.be')) fileType = 'video';
-      } catch { host = ''; }
-
-      const leftInfo = document.createElement('div');
-      leftInfo.style.cssText = 'display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;';
-
-      // ✅ Icono según tipo de archivo
-      const icon = document.createElement('div');
-      icon.style.cssText = 'font-size: 24px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;';
-      const icons = {
-        'pdf': 'ph-file-pdf',
-        'doc': 'ph-file-text',
-        'sheet': 'ph-table',
-        'presentation': 'ph-presentation',
-        'archive': 'ph-package',
-        'image': 'ph-image',
-        'drive': 'ph-cloud',
-        'video': 'ph-video',
-        'file': 'ph-paperclip'
       };
-      const iconClass = icons[fileType] || icons.file;
-      const iconElement = document.createElement('i');
-      iconElement.className = `ph ${iconClass}`;
-      iconElement.style.cssText = 'font-size: 24px;';
-      icon.appendChild(iconElement);
+      actionsDiv.appendChild(btnEmails);
 
-      const info = document.createElement('div');
-      info.style.cssText = 'flex: 1; min-width: 0;';
-      // ✅ Sanitizar para prevenir XSS
-      const safeLabel = escapeHTML(item.label || '');
-      const safeHost = escapeHTML(host);
-      info.innerHTML = `<strong style="display: block; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${safeLabel}</strong><div class="meta" style="font-size: 12px; color: var(--muted);">${safeHost}</div>`;
+      if (isCustomCourse(hex)) {
+        // Editar
+        const btnEdit = document.createElement('button');
+        btnEdit.className = 'btn secondary';
+        btnEdit.innerHTML = '<i class="ph ph-pencil"></i> Editar';
+        btnEdit.onclick = (e) => {
+          e.stopPropagation();
+          if (typeof window.openEditCourseModal === 'function') window.openEditCourseModal(hex, data);
+        };
+        actionsDiv.appendChild(btnEdit);
 
-      leftInfo.appendChild(icon);
-      leftInfo.appendChild(info);
-
-      // ✅ Agregar atributos para búsqueda
-      row.dataset.fileLabel = (item.label || '').toLowerCase();
-      row.dataset.fileHost = host.toLowerCase();
-
-      const actions = document.createElement('div');
-      actions.style.display = 'flex';
-      actions.style.gap = '8px';
-
-      const btnOpen = document.createElement('button');
-      btnOpen.className = 'btn';
-      btnOpen.type = 'button';
-      btnOpen.textContent = 'Descargar';
-      btnOpen.setAttribute('aria-label', `Descargar archivo: ${item.label || 'Archivo'}`);
-      btnOpen.addEventListener('click', () => downloadFile(item.url, item.label));
-
-      const btnEdit = document.createElement('button');
-      btnEdit.className = 'btn secondary';
-      btnEdit.type = 'button';
-      btnEdit.textContent = 'Editar';
-      btnEdit.setAttribute('aria-label', `Editar archivo: ${item.label || 'Archivo'}`);
-      btnEdit.addEventListener('click', () => {
-        // ✅ Deshabilitar los 3 botones principales
-        btnOpen.disabled = true;
-        btnEdit.disabled = true;
-        btnRemove.disabled = true;
-        btnOpen.style.opacity = '0.5';
-        btnEdit.style.opacity = '0.5';
-        btnRemove.style.opacity = '0.5';
-        btnOpen.style.cursor = 'not-allowed';
-        btnEdit.style.cursor = 'not-allowed';
-        btnRemove.style.cursor = 'not-allowed';
-
-        // Crear inputs temporales para editar
-        const editWrap = document.createElement('div');
-        editWrap.dataset.editForm = 'true'; // Marcar para evitar refreshes
-        editWrap.style.cssText = 'display:flex; flex-direction:column; gap:8px; margin-top:8px; padding:12px; background:#0e1630; border:1px solid rgba(255,255,255,.1); border-radius:8px;';
-
-        const editLabel = document.createElement('input');
-        editLabel.type = 'text';
-        editLabel.value = item.label;
-        editLabel.className = 'input';
-        editLabel.placeholder = 'Etiqueta';
-
-        const editUrl = document.createElement('input');
-        editUrl.type = 'url';
-        editUrl.value = item.url;
-        editUrl.className = 'input';
-        editUrl.placeholder = 'URL';
-
-        const editActions = document.createElement('div');
-        editActions.style.cssText = 'display:flex; gap:8px;';
-
-        const btnSave = document.createElement('button');
-        btnSave.className = 'btn';
-        btnSave.textContent = 'Guardar';
-        btnSave.addEventListener('click', async () => {
-          // ✅ Sanitizar inputs
-          const newLabel = safeInput(editLabel.value, 'text');
-          const newUrl = safeInput(editUrl.value, 'url');
-          if (!newLabel || !newUrl) {
-            alert('Complete etiqueta y URL');
-            return;
-          }
-          try {
-            new URL(newUrl);
-          } catch {
-            alert('URL inválida');
-            return;
-          }
-
-          const next = files.slice();
-          next[idx] = { label: newLabel, url: newUrl };
-          saveFilesOverride(hex, next);
-
-          // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
-          log('[EDIT] ✏️ Actualizando vista inmediatamente');
-          const masterEl = document.getElementById('master');
-          const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
-          if (isMasterView) {
-            buildMasterGrid();
-          } else {
-            renderCourse(hex);
-            // ✅ Actualizar contador de archivos
-            const filesCountEl = $('#files-count');
-            if (filesCountEl) {
-              const updatedFiles = getFilesForHex(hex);
-              filesCountEl.textContent = (updatedFiles || []).length;
-            }
-          }
-
-          // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
-          remoteSaveFiles(hex, next).then(editOk => {
-            if (editOk) {
-              log('[EDIT] ✅ Guardado en remoto exitoso');
-              // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
-              refreshFromRemoteSilent(hex).catch(() => { });
-            } else {
-              warn('[EDIT] ⚠️ Error guardando en remoto');
-            }
-          }).catch(e => {
-            console.error('[EDIT] ❌ Error guardando en remoto:', e);
-          });
-        });
-
-        const btnCancel = document.createElement('button');
-        btnCancel.className = 'btn secondary';
-        btnCancel.textContent = 'Cancelar';
-        btnCancel.addEventListener('click', () => {
-          // ✅ Restaurar los 3 botones principales
-          btnOpen.disabled = false;
-          btnEdit.disabled = false;
-          btnRemove.disabled = false;
-          btnOpen.style.opacity = '';
-          btnEdit.style.opacity = '';
-          btnRemove.style.opacity = '';
-          btnOpen.style.cursor = '';
-          btnEdit.style.cursor = '';
-          btnRemove.style.cursor = '';
-
-          row.removeChild(editWrap);
-        });
-
-        editActions.appendChild(btnSave);
-        editActions.appendChild(btnCancel);
-        editWrap.appendChild(editLabel);
-        editWrap.appendChild(editUrl);
-        editWrap.appendChild(editActions);
-        row.appendChild(editWrap);
-
-        // Enfocar el primer input
-        setTimeout(() => editLabel.focus(), 100);
-      });
-
-      const btnRemove = document.createElement('button');
-      btnRemove.className = 'btn secondary';
-      btnRemove.type = 'button';
-      btnRemove.textContent = 'Quitar';
-      btnRemove.setAttribute('aria-label', `Eliminar archivo: ${item.label || 'Archivo'}`);
-      btnRemove.addEventListener('click', async () => {
-        // ✅ ADVERTENCIA: Usar modal de confirmación elegante (igual que al eliminar curso)
-        // Siempre usar el modal, nunca el confirm nativo del navegador
-        // Pasar 'enlace' como tercer parámetro para que muestre el mensaje correcto
-        window.showDeleteConfirmModal(`Enlace: ${item.label}`, async () => {
-          // ✅ FIREBASE: Eliminar de Firebase primero si tiene firebaseId
-          if (item.firebaseId && typeof window.eliminarLinkFirebase === 'function') {
-            try {
-              // ✅ Bloquear re-renders durante la eliminación
-              userInteracting = true;
-
-              log('[REMOVE] 🔥 Eliminando de Firebase:', item.firebaseId);
-              await window.eliminarLinkFirebase(hex, item.firebaseId);
-              log('[REMOVE] ✅ Eliminado de Firebase');
-
-              // ✅ CRÍTICO: Actualizar localStorage INMEDIATAMENTE
-              const currentFiles = getFilesForHex(hex);
-              const updatedFiles = currentFiles.filter(f => f.firebaseId !== item.firebaseId);
-              saveFilesOverride(hex, updatedFiles);
-              log('[REMOVE] 💾 localStorage actualizado:', currentFiles.length, '→', updatedFiles.length);
-
-              // ✅ Actualizar Google Sheets (sincronización)
-              // Si no quedan más links, eliminar el hex completamente de la hoja de overrides
-              if (updatedFiles.length === 0) {
-                log('[REMOVE] 🧹 No quedan más links, eliminando hex de la hoja de overrides');
-                remoteDeleteFiles(hex).catch(e => {
-                  warn('[REMOVE] ⚠️ Error eliminando hex de Google Sheets:', e);
-                });
-              } else {
-                remoteSaveFiles(hex, updatedFiles).catch(e => {
-                  warn('[REMOVE] ⚠️ Error actualizando Google Sheets:', e);
-                });
-              }
-
-              // ✅ Desbloquear y re-renderizar inmediatamente
-              userInteracting = false;
-
-              // ✅ CRÍTICO: Invalidar caché de memoización para forzar re-render
-              lastMasterGridData = null;
-              lastRenderCourseHex = null; // ✅ Invalidar también el caché del curso
-              lastRenderCourseData = null;
-
-              // ✅ Verificar si estamos en vista master Y autenticados
-              const masterEl = document.getElementById('master');
-              const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
-              if (isMasterView) {
-                log('[REMOVE] ♻️ Re-renderizando Master');
+        // Duplicar
+        const btnDuplicate = document.createElement('button');
+        btnDuplicate.className = 'btn secondary';
+        btnDuplicate.innerHTML = '<i class="ph ph-copy"></i> Duplicar';
+        btnDuplicate.onclick = async (e) => {
+          e.stopPropagation();
+          const suggestedCode = `${data.card?.tag || 'CURSO'}_${Date.now()}`;
+          if (typeof window.showDuplicateCodeModal === 'function') {
+            window.showDuplicateCodeModal(suggestedCode, async (newCode) => {
+              if (!newCode || !newCode.trim()) return;
+              try {
+                const newHex = await sha256Hex(newCode.trim());
+                const customCourses = loadCustomCourses();
+                if (customCourses[newHex]) {
+                  window.showToast('error', 'Error', 'Ya existe un curso con ese código');
+                  return;
+                }
+                const newCourseData = JSON.parse(JSON.stringify(data));
+                newCourseData.code = newCode.trim();
+                newCourseData.createdAt = Date.now();
+                newCourseData.title = `${data.title} (Copia)`;
+                customCourses[newHex] = newCourseData;
+                saveCustomCourses(customCourses);
+                const files = getFilesForHex(hex);
+                saveFilesOverride(newHex, files);
+                await saveCustomCoursesToFirebase(customCourses);
+                await remoteSaveFiles(newHex, files);
+                window.showToast('success', 'Curso duplicado', 'El curso se ha duplicado correctamente');
                 buildMasterGrid();
-              } else {
-                log('[REMOVE] ♻️ Actualizando lista de archivos inmediatamente');
-                // ✅ ACTUALIZAR LISTA DE ARCHIVOS DIRECTAMENTE (sin memoización)
-                updateFileListOnly(hex);
+              } catch (err) {
+                console.error(err);
+                window.showToast('error', 'Error', 'No se pudo duplicar el curso');
               }
-
-              return;
-            } catch (error) {
-              console.error('[REMOVE] ❌ Error eliminando de Firebase, usando método local:', error);
-              userInteracting = false;
-              // Continuar con método local si Firebase falla
-            }
-          }
-
-          // ✅ FALLBACK: Método local si no tiene firebaseId o Firebase falló
-          // ✅ CRÍTICO: Identificar el elemento por url+label en lugar de índice
-          const currentFiles = getFilesForHex(hex);
-          const itemKey = item.firebaseId || `${item.url}|||${item.label}`;
-          const updatedFiles = currentFiles.filter(f => {
-            const fKey = f.firebaseId || `${f.url}|||${f.label}`;
-            return fKey !== itemKey;
-          });
-
-          if (updatedFiles.length === currentFiles.length) {
-            warn('[REMOVE] ⚠️ No se encontró el enlace a eliminar');
-            return;
-          }
-
-          saveFilesOverride(hex, updatedFiles);
-          log('[REMOVE] 💾 localStorage actualizado (método local):', currentFiles.length, '→', updatedFiles.length);
-
-          // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
-          log('[REMOVE] 🗑️ Eliminando archivo inmediatamente de la vista');
-
-          // ✅ CRÍTICO: Invalidar caché de memoización para forzar re-render
-          lastMasterGridData = null;
-          lastRenderCourseHex = null; // ✅ Invalidar también el caché del curso
-          lastRenderCourseData = null;
-
-          // ✅ Verificar si estamos en vista master Y autenticados
-          const masterEl = document.getElementById('master');
-          const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
-          if (isMasterView) {
-            buildMasterGrid();
-          } else {
-            log('[REMOVE] ♻️ Actualizando lista de archivos inmediatamente');
-            // ✅ ACTUALIZAR LISTA DE ARCHIVOS DIRECTAMENTE (sin memoización)
-            updateFileListOnly(hex);
-          }
-
-          // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
-          // Si no quedan más links, eliminar el hex completamente de la hoja de overrides
-          if (updatedFiles.length === 0) {
-            log('[REMOVE] 🧹 No quedan más links, eliminando hex de la hoja de overrides');
-            remoteDeleteFiles(hex).then(removeOk => {
-              if (removeOk) {
-                log('[REMOVE] ✅ Hex eliminado de la hoja de overrides');
-              } else {
-                warn('[REMOVE] ⚠️ Error eliminando hex de la hoja de overrides');
-              }
-            }).catch(e => {
-              console.error('[REMOVE] ❌ Error eliminando hex de la hoja de overrides:', e);
-            });
-          } else {
-            remoteSaveFiles(hex, updatedFiles).then(removeOk => {
-              if (removeOk) {
-                log('[REMOVE] ✅ Guardado en remoto exitoso');
-                // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
-                refreshFromRemoteSilent(hex).catch(() => { });
-              } else {
-                warn('[REMOVE] ⚠️ Error guardando en remoto');
-              }
-            }).catch(e => {
-              console.error('[REMOVE] ❌ Error guardando en remoto:', e);
             });
           }
-        }, 'enlace'); // ✅ Tercer parámetro para que muestre "eliminar enlace" en lugar de "eliminar curso"
-      });
+        };
+        actionsDiv.appendChild(btnDuplicate);
 
-      actions.appendChild(btnOpen);
-      actions.appendChild(btnEdit);
-      actions.appendChild(btnRemove);
-
-      row.appendChild(leftInfo);
-      row.appendChild(actions);
-      list.appendChild(row);
-    });
-    right.appendChild(list);
-
-    // ✅ Drag & Drop con feedback visual mejorado
-    let draggedElement = null;
-    let dragOverElement = null;
-    let dragOverPosition = null; // 'top' o 'bottom'
-
-    list.addEventListener('dragstart', (e) => {
-      const el = e.target instanceof HTMLElement ? e.target.closest('.file') : null;
-      if (!el) return;
-
-      draggedElement = el;
-      const idx = el.dataset.index;
-      if (idx != null) {
-        e.dataTransfer?.setData('text/plain', idx);
-        e.dataTransfer.effectAllowed = 'move';
-
-        // ✅ Agregar clase de arrastre
-        el.classList.add('dragging');
-        list.classList.add('drag-active');
-
-        // ✅ Feedback visual: opacidad reducida y cursor
-        el.style.cursor = 'grabbing';
-
-        // ✅ Crear imagen de arrastre personalizada (opcional)
-        const dragImage = el.cloneNode(true);
-        dragImage.style.opacity = '0.8';
-        dragImage.style.transform = 'rotate(2deg)';
-        document.body.appendChild(dragImage);
-        dragImage.style.position = 'absolute';
-        dragImage.style.top = '-1000px';
-        e.dataTransfer.setDragImage(dragImage, e.offsetX, e.offsetY);
-        setTimeout(() => document.body.removeChild(dragImage), 0);
-      }
-    });
-
-    list.addEventListener('dragend', (e) => {
-      // ✅ Limpiar clases y estilos
-      if (draggedElement) {
-        draggedElement.classList.remove('dragging');
-        draggedElement.style.cursor = '';
-        draggedElement = null;
-      }
-
-      // ✅ Limpiar indicadores de drop
-      list.querySelectorAll('.file').forEach(file => {
-        file.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
-      });
-
-      // ✅ Remover indicadores de posición
-      list.querySelectorAll('.file-drop-indicator').forEach(indicator => {
-        indicator.remove();
-      });
-
-      list.classList.remove('drag-active');
-      dragOverElement = null;
-      dragOverPosition = null;
-    });
-
-    list.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-
-      const targetFile = e.target instanceof HTMLElement ? e.target.closest('.file') : null;
-
-      if (!targetFile || targetFile === draggedElement) {
-        // ✅ Limpiar indicadores si no hay target válido
-        if (dragOverElement) {
-          dragOverElement.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
-          dragOverElement.querySelectorAll('.file-drop-indicator').forEach(ind => ind.remove());
-        }
-        dragOverElement = null;
-        dragOverPosition = null;
-        return;
-      }
-
-      // ✅ Calcular posición (arriba o abajo del elemento)
-      const rect = targetFile.getBoundingClientRect();
-      const mouseY = e.clientY;
-      const middleY = rect.top + rect.height / 2;
-      const position = mouseY < middleY ? 'top' : 'bottom';
-
-      // ✅ Actualizar indicadores visuales
-      if (dragOverElement !== targetFile || dragOverPosition !== position) {
-        // Limpiar indicadores anteriores
-        if (dragOverElement && dragOverElement !== targetFile) {
-          dragOverElement.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
-          dragOverElement.querySelectorAll('.file-drop-indicator').forEach(ind => ind.remove());
-        }
-
-        // Aplicar nuevos indicadores
-        targetFile.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
-        targetFile.classList.add('drag-over', `drag-over-${position}`);
-
-        // ✅ Agregar indicador de línea de drop
-        const existingIndicator = targetFile.querySelector('.file-drop-indicator');
-        if (existingIndicator) {
-          existingIndicator.remove();
-        }
-
-        const indicator = document.createElement('div');
-        indicator.className = 'file-drop-indicator active';
-        if (position === 'top') {
-          targetFile.insertBefore(indicator, targetFile.firstChild);
-        } else {
-          targetFile.appendChild(indicator);
-        }
-
-        dragOverElement = targetFile;
-        dragOverPosition = position;
-      }
-    });
-
-    list.addEventListener('dragleave', (e) => {
-      // ✅ Solo limpiar si realmente salimos del área de drop
-      if (!list.contains(e.relatedTarget)) {
-        if (dragOverElement) {
-          dragOverElement.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
-          dragOverElement.querySelectorAll('.file-drop-indicator').forEach(ind => ind.remove());
-        }
-        dragOverElement = null;
-        dragOverPosition = null;
-      }
-    });
-
-    list.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const fromStr = e.dataTransfer?.getData('text/plain');
-      const toEl = e.target instanceof HTMLElement ? e.target.closest('.file') : null;
-
-      if (!fromStr || !toEl) {
-        // ✅ Limpiar indicadores si el drop no es válido
-        list.querySelectorAll('.file').forEach(file => {
-          file.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
-        });
-        list.querySelectorAll('.file-drop-indicator').forEach(ind => ind.remove());
-        return;
-      }
-
-      const from = Number(fromStr);
-      let to = Number(toEl.dataset.index || 0);
-
-      // ✅ Ajustar posición según dragOverPosition
-      if (dragOverPosition === 'bottom' && from < to) {
-        to = to + 1;
-      } else if (dragOverPosition === 'top' && from > to) {
-        // Ya está en la posición correcta
-      }
-
-      if (Number.isNaN(from) || Number.isNaN(to) || from === to) {
-        // ✅ Limpiar indicadores
-        list.querySelectorAll('.file').forEach(file => {
-          file.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
-        });
-        list.querySelectorAll('.file-drop-indicator').forEach(ind => ind.remove());
-        return;
-      }
-
-      // ✅ Animación de reordenamiento
-      const next = files.slice();
-      const [moved] = next.splice(from, 1);
-      next.splice(to, 0, moved);
-
-      // ✅ Guardar nuevo orden inmediatamente
-      saveFilesOverride(hex, next);
-
-      // ✅ CRÍTICO: Reordenar elementos DOM manualmente ANTES de cualquier otra cosa
-      log('[REORDER] ♻️ Reordenando elementos DOM manualmente en tiempo real');
-
-      // Obtener todos los elementos .file actuales en el orden del DOM
-      const fileElements = Array.from(list.querySelectorAll('.file'));
-      
-      // Crear un mapa de elementos por su índice original en el array files
-      const elementMap = new Map();
-      fileElements.forEach((el) => {
-        const idx = Number(el.dataset.index);
-        if (!Number.isNaN(idx)) {
-          elementMap.set(idx, el);
-        }
-      });
-
-      // ✅ Reordenar físicamente los elementos en el DOM según el nuevo orden
-      // Primero, guardar referencias a todos los elementos
-      const elementsToReorder = [];
-      next.forEach((item, newIndex) => {
-        // Buscar el elemento correspondiente en el mapa usando el índice original
-        const oldIndex = files.findIndex(f => {
-          const fKey = f.firebaseId || `${f.url}|||${f.label}`;
-          const itemKey = item.firebaseId || `${item.url}|||${item.label}`;
-          return fKey === itemKey;
-        });
-
-        if (oldIndex !== -1 && elementMap.has(oldIndex)) {
-          const element = elementMap.get(oldIndex);
-          // Actualizar data-index al nuevo índice
-          element.dataset.index = String(newIndex);
-          elementsToReorder.push(element);
-        }
-      });
-
-      // Limpiar la lista y reconstruir en el nuevo orden
-      list.innerHTML = '';
-      elementsToReorder.forEach(element => {
-        list.appendChild(element);
-      });
-
-      // ✅ Feedback visual: mostrar animación de éxito en el elemento movido
-      const movedElement = list.querySelector(`[data-index="${to}"]`);
-      if (movedElement) {
-        movedElement.style.transition = 'all 0.3s ease';
-        movedElement.style.transform = 'scale(1.02)';
-        movedElement.style.boxShadow = '0 4px 16px rgba(90, 169, 255, 0.4)';
-
-        setTimeout(() => {
-          if (movedElement) {
-            movedElement.style.transform = '';
-            movedElement.style.boxShadow = '';
+        // Eliminar
+        const btnDelete = document.createElement('button');
+        btnDelete.className = 'btn secondary';
+        btnDelete.style.color = 'var(--danger)';
+        btnDelete.style.borderColor = 'var(--danger)';
+        btnDelete.innerHTML = '<i class="ph ph-trash"></i> Eliminar';
+        btnDelete.onclick = (e) => {
+          e.stopPropagation();
+          if (confirm(`¿Estás seguro de eliminar el curso "${data.title}"? Esta acción no se puede deshacer.`)) {
+            deleteCustomCourse(hex);
           }
-        }, 300);
-      }
-
-      // Actualizar contador de archivos
-      const filesCountEl = $('#files-count');
-      if (filesCountEl) {
-        filesCountEl.textContent = next.length;
-      }
-
-      // ✅ Invalidar caché de memoización para forzar re-render si es necesario
-      lastRenderCourseHex = null;
-      lastRenderCourseData = null;
-
-      // ✅ Mostrar toast de confirmación
-      if (typeof window.showToast === 'function') {
-        window.showToast('success', 'Archivo reordenado', 'El orden se ha actualizado correctamente', 2000);
-      }
-
-      // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
-      remoteSaveFiles(hex, next).then(reorderOk => {
-        if (reorderOk) {
-          log('[REORDER] ✅ Guardado en remoto exitoso');
-          // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
-          refreshFromRemoteSilent(hex).catch(() => { });
-        } else {
-          warn('[REORDER] ⚠️ Error guardando en remoto');
-        }
-      }).catch(e => {
-        console.error('[REORDER] ❌ Error guardando en remoto:', e);
-      });
-    });
-
-    // formulario para agregar nuevo link
-    const addWrap = document.createElement('div');
-    addWrap.style.marginTop = '12px';
-    addWrap.setAttribute('data-edit-form', 'add-link'); // ✅ Marcar para que el refresh no interfiera
-    const addLabel = document.createElement('label');
-    addLabel.textContent = 'Agregar nuevo enlace';
-    addLabel.style.display = 'block';
-    addLabel.style.fontWeight = '600';
-    addLabel.style.marginBottom = '8px';
-
-    const addRow = document.createElement('div');
-    addRow.className = 'row';
-
-    const inputLabel = document.createElement('input');
-    inputLabel.className = 'input';
-    inputLabel.type = 'text';
-    inputLabel.placeholder = 'Etiqueta (ej. Manual de Marca)';
-    inputLabel.setAttribute('data-edit-form', 'add-link'); // ✅ Marcar también los inputs
-
-    const inputUrl = document.createElement('input');
-    inputUrl.className = 'input';
-    inputUrl.type = 'url';
-    inputUrl.placeholder = 'URL (https://...)';
-    inputUrl.setAttribute('data-edit-form', 'add-link'); // ✅ Marcar también los inputs
-
-    const btnAdd = document.createElement('button');
-    btnAdd.className = 'btn';
-    btnAdd.type = 'button';
-    btnAdd.textContent = 'Agregar link';
-    btnAdd.addEventListener('click', async () => {
-      // ✅ Sanitizar inputs
-      const labelVal = safeInput(inputLabel.value, 'text');
-      const urlVal = safeInput(inputUrl.value, 'url');
-
-      if (!labelVal || !urlVal) {
-        if (typeof window.showSuccessModal === 'function') {
-          window.showSuccessModal('Error', 'Complete etiqueta y URL');
-        } else {
-          alert('Complete etiqueta y URL');
-        }
-        return;
-      }
-
-      // ✅ Validación mejorada de URL
-      const urlValidation = validateURL(urlVal);
-      if (!urlValidation.valid) {
-        if (typeof window.showToast === 'function') {
-          window.showToast('error', 'URL inválida', urlValidation.error);
-        } else if (typeof window.showSuccessModal === 'function') {
-          window.showSuccessModal('Error', urlValidation.error);
-        } else {
-          alert(urlValidation.error);
-        }
-        inputUrl.focus();
-        inputUrl.style.borderColor = '#ff5555';
-        return;
-      }
-
-      // Restaurar borde normal
-      inputUrl.style.borderColor = '';
-
-      // ✅ FIREBASE: Intentar agregar a Firestore primero (sincronización en tiempo real)
-      const db = getFirestoreDB();
-      if (db && typeof window.agregarLinkFirebase === 'function') {
-        try {
-          // ✅ Bloquear re-renders durante la adición
-          userInteracting = true;
-
-          await window.agregarLinkFirebase(hex, labelVal, urlVal);
-
-          // Limpiar inputs
-          inputLabel.value = '';
-          inputUrl.value = '';
-
-          log('[ADD] ✅ Link agregado a Firebase');
-
-          // ✅ CRÍTICO: Actualizar localStorage INMEDIATAMENTE con el nuevo link
-          // Obtener los archivos actuales y agregar el nuevo link
-          const currentFiles = getFilesForHex(hex);
-
-          // ✅ PREVENIR DUPLICADOS: Verificar si el link ya existe
-          const itemKey = `${urlVal}|||${labelVal}`;
-          const exists = currentFiles.some(f => {
-            const fKey = f.firebaseId ? `${f.url}|||${f.label}` : `${f.url}|||${f.label}`;
-            return fKey === itemKey;
-          });
-
-          if (exists) {
-            warn('[ADD] ⚠️ El enlace ya existe, omitiendo duplicado');
-            userInteracting = false;
-
-            // ✅ FIX: Force render even if it exists, because the listener might have skipped it
-            // due to userInteracting=true
-            const masterEl = document.getElementById('master');
-            const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
-            if (isMasterView) {
-              log('[ADD] ♻️ Re-renderizando Master (duplicate path)');
-              buildMasterGrid();
-            } else {
-              log('[ADD] ♻️ Actualizando lista de archivos inmediatamente (duplicate path)');
-              updateFileListOnly(hex);
-            }
-
-            return;
-          }
-
-          // ✅ Agregar el nuevo link temporalmente (Firebase lo actualizará con el ID correcto)
-          const newLink = { label: labelVal, url: urlVal };
-          const next = currentFiles.concat(newLink);
-          saveFilesOverride(hex, next);
-          log('[ADD] 💾 localStorage actualizado temporalmente:', next.length, 'links');
-
-          // ✅ Desbloquear y ACTUALIZAR VISTA INMEDIATAMENTE
-          userInteracting = false;
-
-          // ✅ CRÍTICO: Invalidar caché de memoización para forzar re-render
-          lastMasterGridData = null;
-          lastRenderCourseHex = null; // ✅ Invalidar también el caché del curso
-          lastRenderCourseData = null;
-
-          // ✅ Verificar si estamos en vista master Y autenticados
-          const masterEl = document.getElementById('master');
-          const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
-          if (isMasterView) {
-            log('[ADD] ♻️ Re-renderizando Master');
-            buildMasterGrid();
-          } else {
-            log('[ADD] ♻️ Actualizando lista de archivos inmediatamente');
-            // ✅ ACTUALIZAR LISTA DE ARCHIVOS DIRECTAMENTE (sin memoización)
-            updateFileListOnly(hex);
-          }
-
-          // ✅ Guardar en Google Sheets como backup (sin duplicar)
-          remoteSaveFiles(hex, next).catch(e => {
-            warn('[ADD] ⚠️ No se pudo guardar en Google Sheets (backup):', e);
-          });
-
-          // ✅ Firebase actualizará la vista automáticamente con el ID correcto cuando el listener se active
-          // Pero ya actualizamos la vista manualmente para feedback inmediato
-          return;
-
-        } catch (error) {
-          console.error('[ADD] ❌ Error con Firebase, usando método local:', error);
-          userInteracting = false;
-          // Continuar con método local si Firebase falla
-        }
-      }
-
-      // ✅ FALLBACK: Método local si Firebase no está disponible
-      log('[ADD] Usando método local (Firebase no disponible)');
-      const current = getFilesForHex(hex);
-      log('[ADD] Links actuales:', current.length);
-
-      // ✅ PREVENIR DUPLICADOS: Verificar si el link ya existe
-      const itemKey = `${urlVal}|||${labelVal}`;
-      const exists = current.some(f => {
-        const fKey = f.firebaseId ? `${f.url}|||${f.label}` : `${f.url}|||${f.label}`;
-        return fKey === itemKey;
-      });
-
-      if (exists) {
-        if (typeof window.showSuccessModal === 'function') {
-          window.showSuccessModal('Error', 'Este enlace ya existe');
-        } else {
-          alert('Este enlace ya existe');
-        }
-        return;
-      }
-
-      const next = current.concat({ label: labelVal, url: urlVal });
-      log('[ADD] Links después de agregar:', next.length);
-
-      // Limpiar inputs
-      inputLabel.value = '';
-      inputUrl.value = '';
-
-      saveFilesOverride(hex, next);
-
-      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE
-      log('[ADD] ➕ Agregando link inmediatamente a la vista');
-
-      // ✅ CRÍTICO: Invalidar caché de memoización para forzar re-render
-      lastMasterGridData = null;
-      lastRenderCourseHex = null; // ✅ Invalidar también el caché del curso
-      lastRenderCourseData = null;
-
-      // ✅ Verificar si estamos en vista master Y autenticados
-      const masterEl = document.getElementById('master');
-      const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
-
-      if (isMasterView) {
-        buildMasterGrid();
-        log('[ADD] ✅ Vista master actualizada');
-      } else {
-        log('[ADD] ♻️ Actualizando lista de archivos inmediatamente');
-        // ✅ ACTUALIZAR LISTA DE ARCHIVOS DIRECTAMENTE (sin memoización)
-        updateFileListOnly(hex);
-        log('[ADD] ✅ Vista de curso actualizada');
-      }
-
-      // ✅ GUARDAR EN REMOTO (Google Sheets)
-      remoteSaveFiles(hex, next).then(saveResult => {
-        if (saveResult) {
-          log('[ADD] ✅ Guardado en remoto - POST exitoso');
-          setTimeout(() => {
-            refreshFromRemoteSilent(hex).then(() => {
-              log('[ADD] ✅ SINCRONIZACIÓN CONFIRMADA');
-            }).catch(() => {
-              log('[ADD] ⚠️ Error en sincronización post-guardado');
-            });
-          }, 500);
-        } else {
-          warn('[ADD] ⚠️ No se pudo guardar en remoto');
-        }
-      }).catch(e => {
-        console.error('[ADD] ❌ Error guardando en remoto:', e);
-      });
-    });
-
-    addRow.appendChild(inputLabel);
-    addRow.appendChild(inputUrl);
-    addRow.appendChild(btnAdd);
-    addWrap.appendChild(addLabel);
-    addWrap.appendChild(addRow);
-    right.appendChild(addWrap);
-
-    // restaurar originales
-    const btnRestore = document.createElement('button');
-    btnRestore.className = 'btn secondary';
-    btnRestore.type = 'button';
-    btnRestore.textContent = 'Restaurar enlaces originales';
-    btnRestore.style.marginTop = '10px';
-    btnRestore.addEventListener('click', async () => {
-      if (!confirm('¿Restaurar la lista original de enlaces? Se perderán los cambios locales.')) return;
-      clearFilesOverride(hex);
-
-      // ✅ ACTUALIZAR VISTA INMEDIATAMENTE (sin esperar nada)
-      log('[RESTORE] ♻️ Restaurando vista inmediatamente');
-      // ✅ Verificar si estamos en vista master Y autenticados
-      const masterEl = document.getElementById('master');
-      const isMasterView = masterEl && !masterEl.classList.contains('hidden') && isMasterAuthenticated;
-      if (isMasterView) {
-        buildMasterGrid();
-      } else {
-        // ✅ FORZAR renderizado completo ignorando memoización
-        lastRenderCourseHex = null;
-        lastRenderCourseData = null;
-        renderCourse(hex);
-      }
-
-      // ✅ GUARDAR EN REMOTO (en segundo plano, sin bloquear UI)
-      remoteSaveFiles(hex, getFilesForHex(hex)).then(restoreOk => {
-        if (restoreOk) {
-          log('[RESTORE] ✅ Guardado en remoto exitoso');
-          // 🔄 Push optimista: sincronizar con remoto (sin await, en background)
-          refreshFromRemoteSilent(hex).catch(() => { });
-        } else {
-          warn('[RESTORE] ⚠️ Error guardando en remoto');
-        }
-      }).catch(e => {
-        console.error('[RESTORE] ❌ Error guardando en remoto:', e);
-      });
-    });
-    right.appendChild(btnRestore);
-
-    // tarjeta izquierda (solo imagen) - ✅ Lazy loading con estilos variant y accent
-    let wrapper = null;
-    if (window.insertElectricCard) {
-      // ✅ Pasar variant y accent al crear la tarjeta
-      const variant = data.card?.variant || 'dramatic';
-      const accent = data.card?.accent || '#5aa9ff';
-      wrapper = window.insertElectricCard(left, variant, accent);
-    }
-    if (wrapper && data.card?.img && window.setCardImage) {
-      // ✅ Lazy loading: usar data-src y cargar solo cuando es visible
-      const imgUrl = addCacheBuster(data.card.img);
-      const imgElement = wrapper.querySelector('img');
-      if (imgElement) {
-        imgElement.setAttribute('data-src', imgUrl);
-        imgElement.setAttribute('loading', 'lazy');
-        imgElement.style.opacity = '0.5'; // Placeholder mientras carga
-
-        // ✅ Intersection Observer para cargar imagen cuando es visible
-        const imageObserver = new IntersectionObserver((entries, observer) => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting) {
-              const img = entry.target;
-              const src = img.getAttribute('data-src');
-              if (src) {
-                img.src = src;
-                img.removeAttribute('data-src');
-                img.style.opacity = '1';
-                img.style.transition = 'opacity 0.3s';
-                observer.unobserve(img);
-              }
-            }
-          });
-        }, { rootMargin: '50px' }); // Cargar 50px antes de que sea visible
-
-        imageObserver.observe(imgElement);
-      } else {
-        // Fallback: cargar inmediatamente si no hay img element
-        window.setCardImage(wrapper, imgUrl);
+        };
+        actionsDiv.appendChild(btnDelete);
       }
     }
+    details.appendChild(actionsDiv);
+
+    // Lista de archivos (Vista rápida)
+    const filesTitle = document.createElement('div');
+    filesTitle.style.cssText = 'font-weight:600; margin-bottom:8px; font-size:14px; color:var(--muted);';
+    filesTitle.textContent = 'Contenido del curso:';
+    details.appendChild(filesTitle);
+
+    const fileListDiv = document.createElement('div');
+    fileListDiv.className = 'filelist';
+    
+    // Renderizar archivos
+    const files = getFilesForHex(hex);
+    if (files && files.length > 0) {
+      files.forEach(file => {
+        const fileEl = document.createElement('div');
+        fileEl.className = 'file';
+        fileEl.style.padding = '8px 12px';
+        
+        const fileInfo = document.createElement('div');
+        fileInfo.style.display = 'flex';
+        fileInfo.style.alignItems = 'center';
+        fileInfo.style.gap = '10px';
+        
+        const icon = document.createElement('i');
+        icon.className = getIconForUrl(file.url);
+        icon.style.color = 'var(--accent)';
+        
+        const label = document.createElement('span');
+        label.textContent = file.label;
+        label.style.fontSize = '13px';
+        
+        fileInfo.appendChild(icon);
+        fileInfo.appendChild(label);
+        
+        const link = document.createElement('a');
+        link.href = file.url;
+        link.target = '_blank';
+        link.className = 'btn-link';
+        link.innerHTML = '<i class="ph ph-arrow-square-out"></i>';
+        
+        fileEl.appendChild(fileInfo);
+        fileEl.appendChild(link);
+        fileListDiv.appendChild(fileEl);
+      });
+    } else {
+      fileListDiv.innerHTML = '<div style="color:var(--muted); font-size:13px; font-style:italic;">No hay contenido agregado aún.</div>';
+    }
+    details.appendChild(fileListDiv);
+
+    right.appendChild(details);
 
     cardEl.appendChild(left);
     cardEl.appendChild(right);
     grid.appendChild(cardEl);
   });
 
-  // ✅ Finalizar medición de renderizado del grid
-  const coursesCount = Object.keys(mergedMap).filter(h => h !== MASTER_HASH).length;
-  endPerformanceMeasure('Renderizado del grid', gridStart, { cursos: coursesCount });
+// ✅ Finalizar medición de renderizado del grid
+const coursesCount = Object.keys(mergedMap).filter(h => h !== MASTER_HASH).length;
+endPerformanceMeasure('Renderizado del grid', gridStart, { cursos: coursesCount });
 
-  // ✅ Agregar controles de paginación si hay más de 12 cursos
-  const existingPagination = $('#masterPagination');
-  if (existingPagination) existingPagination.remove();
+// ✅ Agregar controles de paginación si hay más de 12 cursos
+const existingPagination = $('#masterPagination');
+if (existingPagination) existingPagination.remove();
 
-  if (coursesArray.length > COURSES_PER_PAGE) {
-    const paginationDiv = document.createElement('div');
-    paginationDiv.id = 'masterPagination';
-    paginationDiv.style.cssText = 'display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 24px; padding: 16px;';
+if (coursesArray.length > COURSES_PER_PAGE) {
+  const paginationDiv = document.createElement('div');
+  paginationDiv.id = 'masterPagination';
+  paginationDiv.style.cssText = 'display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 24px; padding: 16px;';
 
-    const prevBtn = document.createElement('button');
-    prevBtn.className = 'btn secondary';
-    prevBtn.textContent = '◀ Anterior';
-    prevBtn.disabled = currentPage === 1;
-    prevBtn.addEventListener('click', () => {
-      if (currentPage > 1) {
-        currentPage--;
-        try { sessionStorage.setItem(pageKey, String(currentPage)); } catch (e) { }
-        buildMasterGrid();
-      }
-    });
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'btn secondary';
+  prevBtn.textContent = '◀ Anterior';
+  prevBtn.disabled = currentPage === 1;
+  prevBtn.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      try { sessionStorage.setItem(pageKey, String(currentPage)); } catch (e) { }
+      buildMasterGrid();
+    }
+  });
 
-    const pageInfo = document.createElement('span');
-    pageInfo.style.cssText = 'color: var(--text); font-size: 14px;';
-    pageInfo.textContent = `Página ${currentPage} de ${totalPages} (${coursesArray.length} cursos)`;
+  const pageInfo = document.createElement('span');
+  pageInfo.style.cssText = 'color: var(--text); font-size: 14px;';
+  pageInfo.textContent = `Página ${currentPage} de ${totalPages} (${coursesArray.length} cursos)`;
 
-    const nextBtn = document.createElement('button');
-    nextBtn.className = 'btn secondary';
-    nextBtn.textContent = 'Siguiente ▶';
-    nextBtn.disabled = currentPage === totalPages;
-    nextBtn.addEventListener('click', () => {
-      if (currentPage < totalPages) {
-        currentPage++;
-        try { sessionStorage.setItem(pageKey, String(currentPage)); } catch (e) { }
-        buildMasterGrid();
-      }
-    });
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'btn secondary';
+  nextBtn.textContent = 'Siguiente ▶';
+  nextBtn.disabled = currentPage === totalPages;
+  nextBtn.addEventListener('click', () => {
+    if (currentPage < totalPages) {
+      currentPage++;
+      try { sessionStorage.setItem(pageKey, String(currentPage)); } catch (e) { }
+      buildMasterGrid();
+    }
+  });
 
-    paginationDiv.appendChild(prevBtn);
-    paginationDiv.appendChild(pageInfo);
-    paginationDiv.appendChild(nextBtn);
-    grid.parentNode.insertBefore(paginationDiv, grid.nextSibling);
-  }
+  paginationDiv.appendChild(prevBtn);
+  paginationDiv.appendChild(pageInfo);
+  paginationDiv.appendChild(nextBtn);
+  grid.parentNode.insertBefore(paginationDiv, grid.nextSibling);
+}
 
-  // ✅ FIREBASE: Iniciar listeners para todos los cursos en Master
-  const courseHexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
-  initFirestoreRealtimeMaster(courseHexes);
+// ✅ FIREBASE: Iniciar listeners para todos los cursos en Master
+const courseHexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
+initFirestoreRealtimeMaster(courseHexes);
 
-  // herramientas exportar/importar
-  try { ensureMasterTools(); } catch (e) { }
+// herramientas exportar/importar
+try { ensureMasterTools(); } catch (e) { }
 }
 
 // ✅ Función para actualizar estadísticas en la vista maestra
