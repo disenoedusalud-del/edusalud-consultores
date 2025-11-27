@@ -194,6 +194,32 @@
   opacity: 0.85;
 }
 
+/* ===== TARJETAS DE GRID DE USUARIO Y MASTER ===== */
+
+/* Reducir altura de imagen en tarjetas de grid */
+.master-card .course-card-image,
+#userGrid .master-card .course-card-image {
+  height: 180px !important;
+  max-height: 180px !important;
+}
+
+/* Responsive para tarjetas de grid */
+@media (max-width: 768px) {
+  .master-card .course-card-image,
+  #userGrid .master-card .course-card-image {
+    height: 160px !important;
+    max-height: 160px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .master-card .course-card-image,
+  #userGrid .master-card .course-card-image {
+    height: 140px !important;
+    max-height: 140px !important;
+  }
+}
+
 :root[data-theme="light"] .input {
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, .12);
