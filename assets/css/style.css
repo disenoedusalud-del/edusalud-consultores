@@ -1466,6 +1466,29 @@ a:focus-visible {
   width: 100%;
 }
 
+/* ✅ Mobile: Limitar altura de imagen en master-card */
+.master-card .ec-wrapper {
+  aspect-ratio: 16/9 !important; /* ✅ Cambiar de 3/4 a 16/9 en móvil */
+  max-height: 220px !important;
+  width: 100%;
+}
+
+/* ✅ Móvil pequeño: Imagen aún más compacta */
+@media (max-width: 600px) {
+  .master-card .ec-wrapper {
+    aspect-ratio: 16/9 !important;
+    max-height: 180px !important;
+  }
+}
+
+/* ✅ Móvil muy pequeño */
+@media (max-width: 480px) {
+  .master-card .ec-wrapper {
+    aspect-ratio: 16/9 !important;
+    max-height: 160px !important;
+  }
+}
+
 @media (min-width: 900px) {
   .master-card {
     display: grid;
@@ -1481,6 +1504,12 @@ a:focus-visible {
   .master-card .right {
     min-width: 0; /* ✅ Permite que flex/grid funcione correctamente */
     width: 100%;
+  }
+
+  /* ✅ Desktop: Restaurar aspect-ratio vertical para electric-card */
+  .master-card .ec-wrapper {
+    aspect-ratio: 3/4 !important; /* ✅ Restaurar proporción vertical en desktop */
+    max-height: none !important;
   }
 
   .master-search {
