@@ -98,7 +98,7 @@
     wrapper.style.cssText = `
       position: relative;
       width: 100%;
-      aspect-ratio: 3/4;
+      aspect-ratio: 1/1;
       border-radius: 12px;
       overflow: hidden;
       background: ${bgColor};
