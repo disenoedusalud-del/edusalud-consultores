@@ -558,6 +558,11 @@ body.master-view header {
   display: none;
 }
 
+/* ✅ Reducir padding superior en vista maestra */
+body.master-view .wrap {
+  padding-top: 12px;
+}
+
 .logo {
   width: 56px;
   height: 56px;
@@ -1384,7 +1389,7 @@ a:focus-visible {
 
 /* Vista Master */
 #master {
-  margin-top: 16px;
+  margin-top: 0; /* ✅ Eliminar margin-top innecesario */
 }
 
 .master-grid {
