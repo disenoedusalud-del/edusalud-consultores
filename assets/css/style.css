@@ -1398,6 +1398,7 @@ a:focus-visible {
   flex-direction: column;
   /* Mobile First */
   gap: 18px;
+  width: 100%; /* ✅ Ancho completo */
   background-color: hsla(240, 15%, 9%, 1);
   background-image:
     radial-gradient(at 88% 40%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
@@ -1459,15 +1460,27 @@ a:focus-visible {
   opacity: 0.8;
 }
 
+/* ✅ Mobile: Asegurar ancho completo para elementos internos */
+.master-card .left,
+.master-card .right {
+  width: 100%;
+}
+
 @media (min-width: 900px) {
   .master-card {
     display: grid;
     grid-template-columns: 360px 1fr;
     gap: 10px;
-    align-items: center;
+    align-items: start; /* ✅ Cambiar de center a start para mejor alineación */
     margin: 6px 0 14px;
     position: relative;
     /* ✅ Para posicionar autocompletado */
+  }
+
+  /* ✅ Asegurar que la columna derecha se expanda */
+  .master-card .right {
+    min-width: 0; /* ✅ Permite que flex/grid funcione correctamente */
+    width: 100%;
   }
 
   .master-search {
