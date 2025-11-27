@@ -128,6 +128,13 @@
   background: transparent;
   padding: 18px;
   border-radius: 16px;
+  max-width: 100%;
+}
+
+@media (max-width: 600px) {
+  #courseCard {
+    padding: 12px 0;
+  }
 }
 
 /* Header del curso - Añadir fondo sutil */
@@ -1354,35 +1361,36 @@ a:focus-visible {
   border-radius: 16px;
 }
 
-/* ✅ Responsive mejorado - Mobile First - Layout horizontal siempre */
+/* ✅ Responsive mejorado - Mobile VERTICAL */
 @media (max-width: 600px) {
   .course-row {
-    flex-direction: row;
-    /* ✅ Mantener horizontal en móvil */
-    gap: 12px;
-    align-items: flex-start;
+    flex-direction: column;
+    /* ✅ Vertical en móvil */
+    gap: 16px;
+    align-items: stretch;
   }
 
   .card-left-wrapper {
-    flex: 0 0 80px;
-    /* ✅ Imagen pequeña en móvil */
-    max-width: 80px;
-    min-width: 80px;
-    padding: 4px;
+    flex: 0 0 auto;
+    /* ✅ Imagen centrada en móvil */
+    max-width: 100%;
+    width: 180px;
+    margin: 0 auto;
+    padding: 6px;
   }
 
   .card-right {
     flex: 1 1 auto;
     min-width: 0;
-    padding: 12px;
+    padding: 14px;
   }
 }
 
 @media (max-width: 900px) and (min-width: 601px) {
   .course-row {
     flex-direction: row;
-    /* ✅ Mantener horizontal en tablet */
-    gap: 16px;
+    /* ✅ Horizontal en tablet */
+    gap: 14px;
     align-items: flex-start;
   }
 
@@ -1390,10 +1398,13 @@ a:focus-visible {
     flex: 0 0 110px;
     /* ✅ Tamaño compacto para tablet */
     max-width: 110px;
+    padding: 6px;
   }
 
   .card-right {
     padding: 16px;
+    flex: 1 1 auto;
+    min-width: 0;
   }
 }
 
@@ -2857,27 +2868,45 @@ a:focus-visible {
       flex-direction: column;
       align-items: flex-start !important;
       gap: 12px;
+      padding: 14px;
     }
 
     .course-header-mobile .row {
       width: 100%;
       flex-wrap: wrap;
+      gap: 8px;
     }
 
     .course-header-mobile .btn {
       flex: 1;
       min-width: fit-content;
+      font-size: 13px;
+      padding: 10px 12px;
     }
   }
 
   @media (max-width: 480px) {
+    .course-header-mobile {
+      padding: 12px;
+    }
+
     .course-header-mobile .row {
       flex-direction: column;
       width: 100%;
+      gap: 8px;
     }
 
     .course-header-mobile .btn {
       width: 100%;
+      text-align: center;
+    }
+
+    .course-header-mobile h3 {
+      font-size: 16px !important;
+    }
+
+    .course-header-mobile .meta {
+      font-size: 12px;
     }
   }
 
@@ -2915,16 +2944,17 @@ a:focus-visible {
     }
 
     h1 {
-      font-size: 22px !important;
+      font-size: 20px !important;
     }
 
     h3 {
-      font-size: 18px !important;
+      font-size: 17px !important;
     }
 
     /* Ajustar búsqueda de archivos en móvil */
     #search-files {
       font-size: 14px;
+      padding: 10px 12px;
     }
 
     /* Hacer los botones más accesibles en móvil */
@@ -2936,6 +2966,10 @@ a:focus-visible {
     /* Ajustar tarjetas en móvil */
     .card {
       padding: 14px;
+    }
+
+    .card-left-wrapper, .card-right {
+      padding: 12px;
     }
 
     /* Ajustar el info de usuario */
@@ -2962,6 +2996,25 @@ a:focus-visible {
 
     .d-flex.items-center.justify-between .row {
       width: 100%;
+      flex-wrap: wrap;
+    }
+
+    /* Ajustar filelist en móvil */
+    .filelist {
+      gap: 8px;
+    }
+
+    .file {
+      padding: 10px;
+      font-size: 13px;
+    }
+
+    .file strong {
+      font-size: 13px;
+    }
+
+    .meta {
+      font-size: 11px;
     }
   }
 
@@ -2972,20 +3025,39 @@ a:focus-visible {
     }
 
     .btn {
-      padding: 8px 12px;
-      font-size: 13px;
+      padding: 8px 10px;
+      font-size: 12px;
     }
 
     h1 {
-      font-size: 20px !important;
+      font-size: 18px !important;
     }
 
     h3 {
-      font-size: 16px !important;
+      font-size: 15px !important;
     }
 
     .card {
-      padding: 12px;
+      padding: 10px;
+    }
+
+    .card-left-wrapper {
+      width: 140px;
+      padding: 5px;
+    }
+
+    .card-right {
+      padding: 10px;
+    }
+
+    .file {
+      padding: 8px;
+      font-size: 12px;
+    }
+
+    #search-files {
+      font-size: 13px;
+      padding: 8px 10px;
     }
   }
 }
