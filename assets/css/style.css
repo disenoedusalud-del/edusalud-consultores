@@ -1251,8 +1251,8 @@ a:focus-visible {
 
 .card-left-wrapper {
   position: relative;
-  flex: 0 0 160px;
-  max-width: 160px;
+  flex: 0 0 120px;
+  max-width: 120px;
   background-color: hsla(240, 15%, 9%, 1);
   background-image: 
     radial-gradient(at 88% 40%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
@@ -1262,7 +1262,7 @@ a:focus-visible {
     radial-gradient(at 41% 94%, hsla(284, 100%, 84%, 0.2) 0px, transparent 85%),
     radial-gradient(at 100% 99%, hsla(306, 100%, 57%, 0.3) 0px, transparent 85%);
   border-radius: 16px;
-  padding: 8px;
+  padding: 6px;
   box-shadow: 
     0px -16px 24px 0px rgba(255, 255, 255, 0.05) inset,
     0 8px 32px rgba(0, 0, 0, .4);
@@ -1364,11 +1364,11 @@ a:focus-visible {
   }
 
   .card-left-wrapper {
-    flex: 0 0 90px;
+    flex: 0 0 80px;
     /* ✅ Imagen pequeña en móvil */
-    max-width: 90px;
-    min-width: 90px;
-    padding: 6px;
+    max-width: 80px;
+    min-width: 80px;
+    padding: 4px;
   }
 
   .card-right {
@@ -1387,9 +1387,9 @@ a:focus-visible {
   }
 
   .card-left-wrapper {
-    flex: 0 0 140px;
+    flex: 0 0 110px;
     /* ✅ Tamaño compacto para tablet */
-    max-width: 140px;
+    max-width: 110px;
   }
 
   .card-right {
@@ -1399,16 +1399,16 @@ a:focus-visible {
 
 @media (max-width: 1200px) and (min-width: 901px) {
   .card-left-wrapper {
-    flex: 0 0 160px;
-    max-width: 160px;
+    flex: 0 0 120px;
+    max-width: 120px;
   }
 }
 
 /* Para pantallas muy grandes (>1200px) mantener tamaño compacto */
 @media (min-width: 1201px) {
   .card-left-wrapper {
-    flex: 0 0 160px;
-    max-width: 160px;
+    flex: 0 0 120px;
+    max-width: 120px;
   }
 }
 
