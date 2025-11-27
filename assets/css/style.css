@@ -1252,8 +1252,8 @@ a:focus-visible {
 .card-left-wrapper {
   position: relative;
   flex: 0 0 auto;
-  width: 150px;
-  max-width: 150px;
+  width: 100%; /* ✅ Ancho completo en móvil */
+  max-width: 100%;
   margin: 0 auto;
   background-color: hsla(240, 15%, 9%, 1);
   background-image:
@@ -1352,7 +1352,7 @@ a:focus-visible {
   border-radius: 16px;
 }
 
-/* Desktop overrides */
+/* ✅ Desktop - Imagen grande como en Master */
 @media (min-width: 769px) {
   .course-row {
     flex-direction: row;
@@ -1360,14 +1360,22 @@ a:focus-visible {
   }
 
   .card-left-wrapper {
-    flex: 0 0 120px;
-    max-width: 120px;
+    flex: 0 0 360px; /* ✅ Igual que en Master (antes 120px) */
+    max-width: 360px;
     margin: 0;
-    padding: 6px;
+    padding: 8px; /* ✅ Mejorado de 6px a 8px */
   }
 
   .card-right {
     padding: 18px;
+  }
+}
+
+/* ✅ Tablets - Tamaño intermedio */
+@media (min-width: 769px) and (max-width: 1200px) {
+  .card-left-wrapper {
+    flex: 0 0 280px; /* ✅ Tamaño intermedio para tablets */
+    max-width: 280px;
   }
 }
 
