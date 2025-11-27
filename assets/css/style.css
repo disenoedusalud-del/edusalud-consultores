@@ -42,9 +42,185 @@
 }
 
 :root[data-theme="light"] .card {
+  background-color: hsl(0, 0%, 100%);
+  background-image:
+    radial-gradient(at 88% 40%, hsl(0, 0%, 100%) 0px, transparent 85%),
+    radial-gradient(at 49% 30%, hsl(0, 0%, 100%) 0px, transparent 85%),
+    radial-gradient(at 14% 26%, hsl(0, 0%, 100%) 0px, transparent 85%),
+    radial-gradient(at 0% 64%, hsla(220, 93%, 56%, 0.15) 0px, transparent 85%),
+    radial-gradient(at 41% 94%, hsla(240, 100%, 84%, 0.1) 0px, transparent 85%),
+    radial-gradient(at 100% 99%, hsla(260, 100%, 57%, 0.15) 0px, transparent 85%);
+  box-shadow:
+    0px -16px 24px 0px rgba(0, 0, 0, 0.03) inset,
+    0 8px 32px rgba(0, 0, 0, .15);
+}
+
+:root[data-theme="light"] .card::before {
+  background: linear-gradient(135deg,
+      hsl(220, 92%, 58%) 0%,
+      hsl(0, 0%, 70%) 50%,
+      hsl(220, 92%, 58%) 100%);
+  opacity: 0.6;
+}
+
+:root[data-theme="light"] .card:hover {
+  box-shadow:
+    0px -16px 24px 0px rgba(0, 0, 0, 0.05) inset,
+    0 12px 40px rgba(59, 130, 246, .35);
+}
+
+:root[data-theme="light"] .card:hover::before {
+  opacity: 0.85;
+}
+
+:root[data-theme="light"] .card-left-wrapper {
+  background-color: hsl(0, 0%, 100%);
+  background-image:
+    radial-gradient(at 88% 40%, hsl(0, 0%, 100%) 0px, transparent 85%),
+    radial-gradient(at 49% 30%, hsl(0, 0%, 100%) 0px, transparent 85%),
+    radial-gradient(at 14% 26%, hsl(0, 0%, 100%) 0px, transparent 85%),
+    radial-gradient(at 0% 64%, hsla(220, 93%, 56%, 0.15) 0px, transparent 85%),
+    radial-gradient(at 41% 94%, hsla(240, 100%, 84%, 0.1) 0px, transparent 85%),
+    radial-gradient(at 100% 99%, hsla(260, 100%, 57%, 0.15) 0px, transparent 85%);
+  box-shadow:
+    0px -16px 24px 0px rgba(0, 0, 0, 0.03) inset,
+    0 8px 32px rgba(0, 0, 0, .15);
+}
+
+:root[data-theme="light"] .card-left-wrapper::before {
+  background: linear-gradient(135deg,
+      hsl(220, 92%, 58%) 0%,
+      hsl(0, 0%, 70%) 50%,
+      hsl(220, 92%, 58%) 100%);
+  opacity: 0.6;
+}
+
+:root[data-theme="light"] .card-right {
+  background-color: hsl(0, 0%, 100%);
+  background-image:
+    radial-gradient(at 88% 40%, hsl(0, 0%, 100%) 0px, transparent 85%),
+    radial-gradient(at 49% 30%, hsl(0, 0%, 100%) 0px, transparent 85%),
+    radial-gradient(at 14% 26%, hsl(0, 0%, 100%) 0px, transparent 85%),
+    radial-gradient(at 0% 64%, hsla(220, 93%, 56%, 0.15) 0px, transparent 85%),
+    radial-gradient(at 41% 94%, hsla(240, 100%, 84%, 0.1) 0px, transparent 85%),
+    radial-gradient(at 100% 99%, hsla(260, 100%, 57%, 0.15) 0px, transparent 85%);
+  box-shadow:
+    0px -16px 24px 0px rgba(0, 0, 0, 0.03) inset,
+    0 8px 32px rgba(0, 0, 0, .15);
+}
+
+:root[data-theme="light"] .card-right::before {
+  background: linear-gradient(135deg,
+      hsl(220, 92%, 58%) 0%,
+      hsl(0, 0%, 70%) 50%,
+      hsl(220, 92%, 58%) 100%);
+  opacity: 0.6;
+}
+
+/* Contenedor principal del curso - Sin tarjeta visible */
+#courseCard {
+  background: transparent;
+  padding: 18px;
+  border-radius: 16px;
+  max-width: 100%;
+}
+
+@media (max-width: 600px) {
+  #courseCard {
+    padding: 12px 0;
+  }
+}
+
+/* Header del curso - Añadir fondo sutil */
+.course-header-mobile {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .02), rgba(0, 0, 0, .04));
+  border: 1px solid rgba(255, 255, 255, .04);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(4px);
+}
+
+:root[data-theme="light"] .course-header-mobile {
   background: linear-gradient(180deg, rgba(255, 255, 255, .8), rgba(255, 255, 255, .6));
   border: 1px solid rgba(0, 0, 0, .08);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .1);
+}
+
+/* Ajustar el contenedor de la imagen eléctrica dentro de card-left-wrapper */
+.card-left-wrapper>.ec-wrapper {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Efectos hover */
+.card-left-wrapper:hover {
+  box-shadow:
+    0px -16px 24px 0px rgba(255, 255, 255, 0.08) inset,
+    0 12px 40px rgba(90, 169, 255, .4);
+}
+
+.card-left-wrapper:hover::before {
+  opacity: 0.7;
+}
+
+.card-right:hover {
+  box-shadow:
+    0px -16px 24px 0px rgba(255, 255, 255, 0.08) inset,
+    0 12px 40px rgba(90, 169, 255, .35);
+}
+
+.card-right:hover::before {
+  opacity: 0.7;
+}
+
+:root[data-theme="light"] .card-left-wrapper:hover {
+  box-shadow:
+    0px -16px 24px 0px rgba(0, 0, 0, 0.05) inset,
+    0 12px 40px rgba(59, 130, 246, .4);
+}
+
+:root[data-theme="light"] .card-left-wrapper:hover::before {
+  opacity: 0.85;
+}
+
+:root[data-theme="light"] .card-right:hover {
+  box-shadow:
+    0px -16px 24px 0px rgba(0, 0, 0, 0.05) inset,
+    0 12px 40px rgba(59, 130, 246, .35);
+}
+
+:root[data-theme="light"] .card-right:hover::before {
+  opacity: 0.85;
+}
+
+/* ===== TARJETAS DE GRID DE USUARIO Y MASTER ===== */
+
+/* Reducir altura de imagen en tarjetas de grid */
+.master-card .course-card-image,
+#userGrid .master-card .course-card-image {
+  height: 180px !important;
+  max-height: 180px !important;
+}
+
+/* Responsive para tarjetas de grid */
+@media (max-width: 768px) {
+
+  .master-card .course-card-image,
+  #userGrid .master-card .course-card-image {
+    height: 160px !important;
+    max-height: 160px !important;
+  }
+}
+
+@media (max-width: 480px) {
+
+  .master-card .course-card-image,
+  #userGrid .master-card .course-card-image {
+    height: 140px !important;
+    max-height: 140px !important;
+  }
 }
 
 :root[data-theme="light"] .input {
@@ -186,8 +362,25 @@
 }
 
 :root[data-theme="light"] .master-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, .8), rgba(255, 255, 255, .6));
-  border: 1px solid rgba(0, 0, 0, .08);
+  background-color: hsl(0, 0%, 100%);
+  background-image:
+    radial-gradient(at 88% 40%, hsl(0, 0%, 100%) 0px, transparent 85%),
+    radial-gradient(at 49% 30%, hsl(0, 0%, 100%) 0px, transparent 85%),
+    radial-gradient(at 14% 26%, hsl(0, 0%, 100%) 0px, transparent 85%),
+    radial-gradient(at 0% 64%, hsla(220, 93%, 56%, 0.15) 0px, transparent 85%),
+    radial-gradient(at 41% 94%, hsla(240, 100%, 84%, 0.1) 0px, transparent 85%),
+    radial-gradient(at 100% 99%, hsla(260, 100%, 57%, 0.15) 0px, transparent 85%);
+  box-shadow:
+    0px -16px 24px 0px rgba(0, 0, 0, 0.03) inset,
+    0 8px 32px rgba(0, 0, 0, .15);
+}
+
+:root[data-theme="light"] .master-card::before {
+  background: linear-gradient(135deg,
+      hsl(220, 92%, 58%) 0%,
+      hsl(0, 0%, 70%) 50%,
+      hsl(220, 92%, 58%) 100%);
+  opacity: 0.6;
 }
 
 :root[data-theme="light"] .master-search input {
@@ -231,8 +424,13 @@
 
 :root[data-theme="light"] .master-card:hover {
   transform: translateY(-4px) scale(1.01);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, .15);
-  border-color: rgba(59, 130, 246, .15);
+  box-shadow:
+    0px -16px 24px 0px rgba(0, 0, 0, 0.05) inset,
+    0 12px 48px rgba(59, 130, 246, .4);
+}
+
+:root[data-theme="light"] .master-card:hover::before {
+  opacity: 0.9;
 }
 
 :root[data-theme="light"] .reload-fab {
@@ -244,9 +442,51 @@
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(245, 247, 250, 0.98));
 }
 
-* {
-  box-sizing: border-box
+/* Utility Classes */
+.d-flex {
+  display: flex;
 }
+
+.flex-col {
+  flex-direction: column;
+}
+
+.flex-row {
+  flex-direction: row;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.gap-xs {
+  gap: 4px;
+}
+
+.gap-sm {
+  gap: 8px;
+}
+
+.gap-md {
+  gap: 16px;
+}
+
+.gap-lg {
+  gap: 24px;
+}
+
+.w-full {
+  width: 100%;
+}
+
 
 body {
   margin: 0;
@@ -289,22 +529,29 @@ body {
 
 header {
   position: relative;
-  display: grid;
-  grid-template-columns: 1fr 360px;
+  display: flex;
+  flex-direction: column;
   gap: 20px;
   align-items: center;
   margin-bottom: 18px;
 }
 
-@media (max-width:980px) {
+@media (min-width:980px) {
   header {
-    grid-template-columns: 1fr
+    display: grid;
+    grid-template-columns: 1fr 360px;
   }
 
   .hero {
-    display: none
+    display: block;
   }
 }
+
+.hero {
+  display: none;
+}
+
+/* Mobile default */
 
 /* Ocultar header principal cuando se muestra la vista maestra */
 body.master-view header {
@@ -357,12 +604,62 @@ p.lead {
 }
 
 .card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, .02), rgba(0, 0, 0, .06));
-  border: 1px solid rgba(255, 255, 255, .04);
-  border-radius: 14px;
+  position: relative;
+  background-color: hsla(240, 15%, 9%, 1);
+  background-image:
+    radial-gradient(at 88% 40%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 49% 30%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 14% 26%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 0% 64%, hsla(263, 93%, 56%, 0.3) 0px, transparent 85%),
+    radial-gradient(at 41% 94%, hsla(284, 100%, 84%, 0.2) 0px, transparent 85%),
+    radial-gradient(at 100% 99%, hsla(306, 100%, 57%, 0.3) 0px, transparent 85%);
+  border-radius: 16px;
   padding: 18px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
-  backdrop-filter: blur(4px);
+  box-shadow:
+    0px -16px 24px 0px rgba(255, 255, 255, 0.05) inset,
+    0 8px 32px rgba(0, 0, 0, .4);
+  backdrop-filter: blur(8px);
+  overflow: visible;
+}
+
+.card::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  background: linear-gradient(135deg,
+      hsl(266, 92%, 58%) 0%,
+      hsl(0, 0%, 100%) 50%,
+      hsl(266, 92%, 58%) 100%);
+  border-radius: 16px;
+  opacity: 0.5;
+}
+
+.card::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: inherit;
+  border-radius: 16px;
+}
+
+.card:hover {
+  box-shadow:
+    0px -16px 24px 0px rgba(255, 255, 255, 0.08) inset,
+    0 12px 40px rgba(90, 169, 255, .35);
+}
+
+.card:hover::before {
+  opacity: 0.7;
 }
 
 .grid {
@@ -594,7 +891,7 @@ a:focus-visible {
 }
 
 .access-hero {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   padding-left: 10px;
@@ -609,9 +906,9 @@ a:focus-visible {
   transform: translateY(2px);
 }
 
-@media (max-width:900px) {
+@media (min-width:900px) {
   .access-hero {
-    display: none
+    display: flex;
   }
 }
 
@@ -944,76 +1241,133 @@ a:focus-visible {
   color: #1e293b;
 }
 
-/* Layout curso */
+/* Layout curso - Mobile First */
 .course-row {
   display: flex;
-  gap: 18px;
+  flex-direction: column;
+  gap: 14px;
   align-items: flex-start;
 }
 
 .card-left-wrapper {
-  flex: 0 0 360px;
-  max-width: 360px;
+  position: relative;
+  flex: 0 0 auto;
+  width: 150px;
+  max-width: 150px;
+  margin: 0 auto;
+  background-color: hsla(240, 15%, 9%, 1);
+  background-image:
+    radial-gradient(at 88% 40%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 49% 30%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 14% 26%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 0% 64%, hsla(263, 93%, 56%, 0.3) 0px, transparent 85%),
+    radial-gradient(at 41% 94%, hsla(284, 100%, 84%, 0.2) 0px, transparent 85%),
+    radial-gradient(at 100% 99%, hsla(306, 100%, 57%, 0.3) 0px, transparent 85%);
+  border-radius: 16px;
+  padding: 5px;
+  box-shadow:
+    0px -16px 24px 0px rgba(255, 255, 255, 0.05) inset,
+    0 8px 32px rgba(0, 0, 0, .4);
+  backdrop-filter: blur(8px);
+  overflow: visible;
+}
+
+.card-left-wrapper::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  background: linear-gradient(135deg,
+      hsl(266, 92%, 58%) 0%,
+      hsl(0, 0%, 100%) 50%,
+      hsl(266, 92%, 58%) 100%);
+  border-radius: 16px;
+  opacity: 0.5;
+}
+
+.card-left-wrapper::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: inherit;
+  border-radius: 16px;
 }
 
 .card-right {
+  position: relative;
   flex: 1 1 auto;
+  background-color: hsla(240, 15%, 9%, 1);
+  background-image:
+    radial-gradient(at 88% 40%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 49% 30%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 14% 26%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 0% 64%, hsla(263, 93%, 56%, 0.3) 0px, transparent 85%),
+    radial-gradient(at 41% 94%, hsla(284, 100%, 84%, 0.2) 0px, transparent 85%),
+    radial-gradient(at 100% 99%, hsla(306, 100%, 57%, 0.3) 0px, transparent 85%);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow:
+    0px -16px 24px 0px rgba(255, 255, 255, 0.05) inset,
+    0 8px 32px rgba(0, 0, 0, .4);
+  backdrop-filter: blur(8px);
+  overflow: visible;
 }
 
-/* ✅ Responsive mejorado - Mobile First - Layout horizontal siempre */
-@media (max-width: 600px) {
+.card-right::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  background: linear-gradient(135deg,
+      hsl(266, 92%, 58%) 0%,
+      hsl(0, 0%, 100%) 50%,
+      hsl(266, 92%, 58%) 100%);
+  border-radius: 16px;
+  opacity: 0.5;
+}
+
+.card-right::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: inherit;
+  border-radius: 16px;
+}
+
+/* Desktop overrides */
+@media (min-width: 769px) {
   .course-row {
     flex-direction: row;
-    /* ✅ Mantener horizontal en móvil */
-    gap: 12px;
-    align-items: flex-start;
+    gap: 18px;
   }
 
   .card-left-wrapper {
     flex: 0 0 120px;
-    /* ✅ Imagen pequeña en móvil */
     max-width: 120px;
-    min-width: 120px;
-    height: 160px;
-    /* ✅ Altura fija para la tarjeta */
-    min-height: 160px;
-    overflow: hidden;
-    /* ✅ Cambiar a hidden para la tarjeta eléctrica */
-    position: relative;
+    margin: 0;
+    padding: 6px;
   }
 
   .card-right {
-    flex: 1 1 auto;
-    min-width: 0;
-    /* ✅ Permite que se ajuste */
-  }
-}
-
-@media (max-width: 900px) and (min-width: 601px) {
-  .course-row {
-    flex-direction: row;
-    /* ✅ Mantener horizontal en tablet */
-    gap: 16px;
-    align-items: flex-start;
-  }
-
-  .card-left-wrapper {
-    flex: 0 0 180px;
-    /* ✅ Reducido para tablet */
-    max-width: 180px;
-  }
-}
-
-@media (max-width: 1200px) and (min-width: 901px) {
-  .card-left-wrapper {
-    flex: 0 0 300px;
-    max-width: 300px;
-    height: 350px;
-    /* ✅ Altura fija para la tarjeta */
-    min-height: 350px;
-    overflow: hidden;
-    /* ✅ Cambiar a hidden */
-    position: relative;
+    padding: 18px;
   }
 }
 
@@ -1028,74 +1382,100 @@ a:focus-visible {
 }
 
 .master-card {
-  display: grid;
-  grid-template-columns: 480px 1fr;
-  /* ✅ Modificado para 16:9 */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* Mobile First */
   gap: 18px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .02), rgba(0, 0, 0, .06));
-  border: 1px solid rgba(255, 255, 255, .04);
-  border-radius: 14px;
+  background-color: hsla(240, 15%, 9%, 1);
+  background-image:
+    radial-gradient(at 88% 40%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 49% 30%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 14% 26%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
+    radial-gradient(at 0% 64%, hsla(263, 93%, 56%, 0.3) 0px, transparent 85%),
+    radial-gradient(at 41% 94%, hsla(284, 100%, 84%, 0.2) 0px, transparent 85%),
+    radial-gradient(at 100% 99%, hsla(306, 100%, 57%, 0.3) 0px, transparent 85%);
+  border-radius: 16px;
   padding: 18px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
-  backdrop-filter: blur(4px);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow:
+    0px -16px 24px 0px rgba(255, 255, 255, 0.05) inset,
+    0 8px 32px rgba(0, 0, 0, .4);
+  backdrop-filter: blur(8px);
+  overflow: visible;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
+}
+
+.master-card::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  background: linear-gradient(135deg,
+      hsl(266, 92%, 58%) 0%,
+      hsl(0, 0%, 100%) 50%,
+      hsl(266, 92%, 58%) 100%);
+  border-radius: 16px;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.master-card::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: inherit;
+  border-radius: 16px;
 }
 
 .master-card:hover {
   transform: translateY(-4px) scale(1.01);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, .35);
-  border-color: rgba(90, 169, 255, .2);
+  box-shadow:
+    0px -16px 24px 0px rgba(255, 255, 255, 0.08) inset,
+    0 12px 48px rgba(90, 169, 255, .5);
 }
 
-/* ✅ Focus visible para tarjetas de curso */
-.master-card:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 2px;
-  border-color: var(--accent);
+.master-card:hover::before {
+  opacity: 0.8;
 }
 
-.master-card .left {
-  min-height: 270px;
-}
-
-/* ✅ Modificado para 16:9 */
-.master-card .right .filelist {
-  margin-top: 0;
-}
-
-@media (max-width:900px) {
+@media (min-width: 900px) {
   .master-card {
-    grid-template-columns: 1fr;
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 10px;
+    align-items: center;
+    margin: 6px 0 14px;
+    position: relative;
+    /* ✅ Para posicionar autocompletado */
   }
 
-  .master-card .left {
-    order: -1;
+  .master-search {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin: 6px 0 14px;
+    position: relative;
   }
-}
 
-.master-search {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin: 6px 0 14px;
-  position: relative;
-  /* ✅ Para posicionar autocompletado */
-}
-
-.master-search input {
-  flex: 1 1 auto;
-  border: 1px solid rgba(255, 255, 255, .08);
-  background: #0e1630;
-  color: var(--text);
-  padding: 10px 12px;
-  border-radius: 12px;
-  outline: none;
-}
-
-.master-search input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px rgba(90, 169, 255, .12);
+  .master-search input {
+    flex: 1 1 auto;
+    border: 1px solid rgba(255, 255, 255, .08);
+    background: #0e1630;
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 12px;
+    outline: none;
+  }
 }
 
 .master-search button {
@@ -2203,4 +2583,434 @@ img[loading="lazy"].loaded {
   background: #ffffff !important;
   border: 1px solid rgba(90, 169, 255, 0.2) !important;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ===== CUSTOM SELECT CON ICONOS ===== */
+.custom-select {
+  position: relative;
+  width: 100%;
+  user-select: none;
+}
+
+.custom-select-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.custom-select-trigger:hover {
+  border-color: var(--accent);
+}
+
+.custom-select.open .custom-select-trigger {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(90, 169, 255, 0.1);
+}
+
+.custom-select-arrow {
+  margin-left: auto;
+  transition: transform 0.2s ease;
+}
+
+.custom-select.open .custom-select-arrow {
+  transform: rotate(180deg);
+}
+
+.custom-select-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+}
+
+.custom-select.open .custom-select-options {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.custom-select-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.custom-select-option:hover {
+  background: rgba(90, 169, 255, 0.1);
+}
+
+.custom-select-option.selected {
+  background: rgba(90, 169, 255, 0.15);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.custom-select-option i {
+  font-size: 16px;
+}
+
+/* Tema claro */
+:root[data-theme="light"] .custom-select-trigger {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, .12);
+}
+
+:root[data-theme="light"] .custom-select-options {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, .12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .1);
+}
+
+/* ===================== CLASES UTILITARIAS DE ESPACIADO ===================== */
+
+/* Margin Bottom */
+.mb-xs {
+  margin-bottom: 4px;
+}
+
+.mb-sm {
+  margin-bottom: 8px;
+}
+
+.mb-md {
+  margin-bottom: 16px;
+}
+
+.mb-lg {
+  margin-bottom: 24px;
+}
+
+.mb-xl {
+  margin-bottom: 32px;
+}
+
+/* Margin Top */
+.mt-xs {
+  margin-top: 4px;
+}
+
+.mt-sm {
+  margin-top: 8px;
+}
+
+.mt-md {
+  margin-top: 16px;
+}
+
+.mt-lg {
+  margin-top: 24px;
+}
+
+.mt-xl {
+  margin-top: 32px;
+}
+
+/* Padding Bottom */
+.pb-xs {
+  padding-bottom: 4px;
+}
+
+.pb-sm {
+  padding-bottom: 8px;
+}
+
+.pb-md {
+  padding-bottom: 16px;
+}
+
+.pb-lg {
+  padding-bottom: 24px;
+}
+
+.pb-xl {
+  padding-bottom: 32px;
+}
+
+/* Padding Top */
+.pt-xs {
+  padding-top: 4px;
+}
+
+.pt-sm {
+  padding-top: 8px;
+}
+
+.pt-md {
+  padding-top: 16px;
+}
+
+.pt-lg {
+  padding-top: 24px;
+}
+
+.pt-xl {
+  padding-top: 32px;
+}
+
+/* Border Bottom utility */
+.border-bottom {
+  border-bottom: 1px solid var(--border);
+}
+
+/* Justify End */
+.justify-end {
+  justify-content: flex-end;
+}
+
+/* ===================== RESPONSIVE PARA GRID DE CURSOS ===================== */
+
+/* Grid de cursos en vista de usuario */
+#userGrid {
+  display: grid;
+  gap: 20px;
+  width: 100%;
+}
+
+/* Desktop */
+@media (min-width: 901px) {
+  #userGrid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+/* Tablet */
+@media (min-width: 601px) and (max-width: 900px) {
+  #userGrid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  #userGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+/* ===================== RESPONSIVE PARA HEADER DE CURSO ===================== */
+
+/* Header de curso individual */
+.course-header-mobile {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .course-header-mobile {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .course-header-mobile .row {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .course-header-mobile .btn {
+    flex: 1;
+    min-width: fit-content;
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .course-header-mobile {
+    padding: 12px;
+  }
+
+  .course-header-mobile .row {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .course-header-mobile .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .course-header-mobile h3 {
+    font-size: 16px !important;
+  }
+
+  .course-header-mobile .meta {
+    font-size: 12px;
+  }
+}
+
+/* ===================== GRID DE ESTADÍSTICAS ===================== */
+
+.grid-stats {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 1200px) {
+  .grid-stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .grid-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .grid-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===================== MEJORAS ADICIONALES PARA MÓVIL ===================== */
+
+/* Ajustar padding del wrap en móvil */
+@media (max-width: 600px) {
+  .wrap {
+    padding: 16px 12px;
+  }
+
+  h1 {
+    font-size: 20px !important;
+  }
+
+  h3 {
+    font-size: 17px !important;
+  }
+
+  /* Ajustar búsqueda de archivos en móvil */
+  #search-files {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+  /* Hacer los botones más accesibles en móvil */
+  .btn {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  /* Ajustar tarjetas en móvil */
+  .card {
+    padding: 14px;
+  }
+
+  .card-left-wrapper,
+  .card-right {
+    padding: 12px;
+  }
+
+  /* Ajustar el info de usuario */
+  #userInfo {
+    padding: 12px !important;
+    font-size: 13px !important;
+  }
+
+  /* Ajustar header en móvil */
+  header {
+    margin-bottom: 12px;
+  }
+
+  /* Botones del header en stack */
+  .d-flex.items-center.justify-between {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+
+  .d-flex.items-center.justify-between h3 {
+    margin-bottom: 0 !important;
+  }
+
+  .d-flex.items-center.justify-between .row {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  /* Ajustar filelist en móvil */
+  .filelist {
+    gap: 8px;
+  }
+
+  .file {
+    padding: 10px;
+    font-size: 13px;
+  }
+
+  .file strong {
+    font-size: 13px;
+  }
+
+  .meta {
+    font-size: 11px;
+  }
+}
+
+/* Ajustes para pantallas muy pequeñas */
+@media (max-width: 360px) {
+  .wrap {
+    padding: 12px 8px;
+  }
+
+  .btn {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  h1 {
+    font-size: 18px !important;
+  }
+
+  h3 {
+    font-size: 15px !important;
+  }
+
+  .card {
+    padding: 10px;
+  }
+
+  .card-left-wrapper {
+    width: 140px;
+    padding: 5px;
+  }
+
+  .card-right {
+    padding: 10px;
+  }
+
+  .file {
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  #search-files {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
 }
