@@ -1277,6 +1277,12 @@ a:focus-visible {
   overflow: visible;
 }
 
+/* ✅ Mobile: Limitar altura de imagen */
+.card-left-wrapper .ec-wrapper {
+  aspect-ratio: 16/9 !important;
+  max-height: 220px !important;
+}
+
 .card-left-wrapper::before {
   content: "";
   pointer-events: none;
@@ -1358,18 +1364,50 @@ a:focus-visible {
   border-radius: 16px;
 }
 
-/* ✅ Desktop - Imagen grande como en Master */
-@media (min-width: 769px) {
+/* ✅ Tablets - Layout vertical para evitar overflow horizontal */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .course-row {
+    flex-direction: column; /* ✅ Vertical en tablets */
+    gap: 16px;
+  }
+
+  .card-left-wrapper {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 8px;
+  }
+  
+  /* ✅ Limitar altura de imagen en tablets */
+  .card-left-wrapper .ec-wrapper {
+    aspect-ratio: 16/9 !important;
+    max-height: 280px !important;
+  }
+  
+  .card-right {
+    width: 100%;
+    padding: 16px;
+  }
+}
+
+/* ✅ Desktop grande - Layout horizontal con imagen grande */
+@media (min-width: 1025px) {
   .course-row {
     flex-direction: row;
     gap: 18px;
   }
 
   .card-left-wrapper {
-    flex: 0 0 360px; /* ✅ Igual que en Master (antes 120px) */
+    flex: 0 0 360px; /* ✅ Imagen grande solo en pantallas grandes */
     max-width: 360px;
     margin: 0;
-    padding: 8px; /* ✅ Mejorado de 6px a 8px */
+    padding: 8px;
+  }
+  
+  /* ✅ Restaurar aspect-ratio vertical en desktop */
+  .card-left-wrapper .ec-wrapper {
+    aspect-ratio: 3/4 !important;
+    max-height: none !important;
   }
 
   .card-right {
@@ -1379,11 +1417,11 @@ a:focus-visible {
   }
 }
 
-/* ✅ Tablets - Tamaño intermedio */
-@media (min-width: 769px) and (max-width: 1200px) {
+/* ✅ Desktop muy grande - Imagen aún más grande */
+@media (min-width: 1400px) {
   .card-left-wrapper {
-    flex: 0 0 280px; /* ✅ Tamaño intermedio para tablets */
-    max-width: 280px;
+    flex: 0 0 420px;
+    max-width: 420px;
   }
 }
 
