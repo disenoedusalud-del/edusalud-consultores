@@ -8468,6 +8468,57 @@ function buildMasterGrid() {
       }
     }
 
+    // ✅ Sistema de expansión: ocultar información inicialmente
+    right.style.cssText = 'max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out; opacity: 0; padding-top: 0; padding-bottom: 0;';
+    cardEl.dataset.expanded = 'false';
+    cardEl.style.cursor = 'pointer';
+    
+    // ✅ Función para toggle de expansión
+    const toggleExpand = (e) => {
+      // ✅ Prevenir toggle si se hace clic en un botón, input, enlace o dentro de right
+      if (e.target.closest('button, input, a, .right')) {
+        e.stopPropagation();
+        return;
+      }
+      
+      const isExpanded = cardEl.dataset.expanded === 'true';
+      
+      if (isExpanded) {
+        // Colapsar
+        cardEl.dataset.expanded = 'false';
+        right.style.maxHeight = '0';
+        right.style.opacity = '0';
+        right.style.paddingTop = '0';
+        right.style.paddingBottom = '0';
+      } else {
+        // Expandir
+        cardEl.dataset.expanded = 'true';
+        // Calcular altura aproximada del contenido
+        right.style.maxHeight = '2000px'; // Valor alto para permitir expansión completa
+        right.style.opacity = '1';
+        right.style.paddingTop = '18px';
+        right.style.paddingBottom = '18px';
+      }
+    };
+    
+    // ✅ Event listener para toggle solo en left/imagen
+    left.addEventListener('click', toggleExpand);
+    
+    // ✅ Prevenir que los botones dentro de right activen el toggle
+    right.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+    
+    // ✅ Prevenir toggle en todos los botones dentro de right (después de que se crean)
+    setTimeout(() => {
+      const allButtons = right.querySelectorAll('button');
+      allButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+      });
+    }, 0);
+    
     cardEl.appendChild(left);
     cardEl.appendChild(right);
     grid.appendChild(cardEl);
