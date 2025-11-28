@@ -6933,6 +6933,7 @@ function buildUserGrid() {
 
   if (emptyState) emptyState.style.display = 'none';
   grid.style.display = 'grid';
+  grid.style.gap = '20px'; // ✅ Asegurar separación entre tarjetas
 
   // Filtrar solo cursos permitidos
   const coursesToShow = allowedCourses
