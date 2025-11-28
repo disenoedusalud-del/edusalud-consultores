@@ -8468,20 +8468,56 @@ function buildMasterGrid() {
       }
     }
 
-    // ✅ Eliminar sistema de expansión - ocultar right completamente
-    right.style.display = 'none';
+    // ✅ Sistema de expansión: ocultar información inicialmente
+    right.style.cssText = 'max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out; opacity: 0; padding-top: 0; padding-bottom: 0;';
+    cardEl.dataset.expanded = 'false';
     cardEl.style.cursor = 'pointer';
     
-    // ✅ Event listener para abrir modal al hacer clic en la tarjeta
-    cardEl.addEventListener('click', (e) => {
-      // ✅ Prevenir si se hace clic en un botón (aunque no debería haber)
-      if (e.target.closest('button')) {
+    // ✅ Función para toggle de expansión
+    const toggleExpand = (e) => {
+      // ✅ Prevenir toggle si se hace clic en un botón, input, enlace o dentro de right
+      if (e.target.closest('button, input, a, .right')) {
+        e.stopPropagation();
         return;
       }
       
-      // ✅ Abrir modal con información del curso
-      openCourseModal(hex, data);
+      const isExpanded = cardEl.dataset.expanded === 'true';
+      
+      if (isExpanded) {
+        // Colapsar
+        cardEl.dataset.expanded = 'false';
+        right.style.maxHeight = '0';
+        right.style.opacity = '0';
+        right.style.paddingTop = '0';
+        right.style.paddingBottom = '0';
+      } else {
+        // Expandir
+        cardEl.dataset.expanded = 'true';
+        // Calcular altura aproximada del contenido
+        right.style.maxHeight = '2000px'; // Valor alto para permitir expansión completa
+        right.style.opacity = '1';
+        right.style.paddingTop = '18px';
+        right.style.paddingBottom = '18px';
+      }
+    };
+    
+    // ✅ Event listener para toggle solo en left/imagen
+    left.addEventListener('click', toggleExpand);
+    
+    // ✅ Prevenir que los botones dentro de right activen el toggle
+    right.addEventListener('click', (e) => {
+      e.stopPropagation();
     });
+    
+    // ✅ Prevenir toggle en todos los botones dentro de right (después de que se crean)
+    setTimeout(() => {
+      const allButtons = right.querySelectorAll('button');
+      allButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+      });
+    }, 0);
     
     cardEl.appendChild(left);
     cardEl.appendChild(right);
@@ -8541,265 +8577,6 @@ function buildMasterGrid() {
 
   // herramientas exportar/importar
   try { ensureMasterTools(); } catch (e) { }
-}
-
-// ✅ Función para abrir modal estilo Netflix
-function openCourseModal(hex, data) {
-  const modal = document.getElementById('courseModal');
-  const modalBody = modal.querySelector('.course-modal-body');
-  const modalClose = modal.querySelector('.course-modal-close');
-  const overlay = modal.querySelector('.course-modal-overlay');
-  
-  if (!modal || !modalBody) return;
-  
-  // ✅ Construir contenido del modal
-  const courseType = data.type || 'curso';
-  const typeLabels = {
-    'curso': '<i class="ph ph-book-open"></i> Curso',
-    'diplomado': '<i class="ph ph-graduation-cap"></i> Diplomado',
-    'webinar': '<i class="ph ph-monitor"></i> Webinar',
-    'seminario': '<i class="ph ph-note"></i> Seminario',
-    'taller': '<i class="ph ph-wrench"></i> Taller'
-  };
-  const typeLabel = typeLabels[courseType] || '<i class="ph ph-book-open"></i> Curso';
-  
-  let html = `
-    <div style="margin-bottom: 24px;">
-      <div style="font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
-        ${typeLabel}
-      </div>
-      <h2 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 700;">${sanitizeHTML(data.title || 'Curso')}</h2>
-      ${data.meta ? `<div class="meta" style="font-size: 16px; color: var(--muted); margin-bottom: 16px;">${sanitizeHTML(data.meta)}</div>` : ''}
-    </div>
-  `;
-  
-  // ✅ Código secreto (si existe)
-  if (isCustomCourse(hex)) {
-    const customCourses = loadCustomCourses();
-    const courseData = customCourses[hex];
-    const codeToShow = courseData?.code || data.code || '';
-    
-    if (codeToShow) {
-      html += `
-        <div style="margin-bottom: 24px;">
-          <div style="font-size: 12px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted);">
-            Código de Acceso
-          </div>
-          <div style="font-size: 14px; color: var(--accent); font-family: monospace; background: rgba(90,169,255,0.1); padding: 12px 16px; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s;" 
-               onclick="navigator.clipboard.writeText('${codeToShow}').then(() => { this.style.background = 'rgba(90,169,255,0.3)'; setTimeout(() => { this.style.background = 'rgba(90,169,255,0.1)'; }, 300); });">
-            <i class="ph ph-key"></i> ${sanitizeHTML(codeToShow)} <i class="ph ph-clipboard"></i>
-          </div>
-        </div>
-      `;
-    }
-  }
-  
-  // ✅ Botones de acción
-  html += '<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px;">';
-  
-  // Botón Abrir curso
-  html += `
-    <button class="btn" onclick="
-      (async () => {
-        const isEmailAuth = window.currentUserEmail && !currentKeyHex;
-        if (isEmailAuth) {
-          const hasAccess = await checkEmailAllowedForCourse(window.currentUserEmail, '${hex}');
-          if (!hasAccess) {
-            if (typeof window.showToast === 'function') {
-              window.showToast('Acceso denegado', 'No tienes permiso para acceder a este curso', 'error');
-            } else {
-              alert('No tienes permiso para acceder a este curso.');
-            }
-            return;
-          }
-        }
-        document.getElementById('courseModal').classList.remove('show');
-        showLoader();
-        if (hasRemote()) {
-          await refreshFromRemoteSilent('${hex}').catch(e => {});
-        }
-        await runLoader();
-        window.isFromUserView = false;
-        currentKeyHex = '${hex}';
-        renderCourse('${hex}');
-        showContent();
-      })();
-    " style="flex: 1; min-width: 150px;">
-      <i class="ph ph-play"></i> Abrir Curso
-    </button>
-  `;
-  
-  // ✅ Botón Correos (solo si no es email auth)
-  const isEmailAuth = window.currentUserEmail && !currentKeyHex;
-  if (!isEmailAuth) {
-    html += `
-      <button class="btn secondary" onclick="showCourseEmailsModal('${hex}', '${sanitizeHTML(data.title || 'Curso')}'); document.getElementById('courseModal').classList.remove('show');" style="flex: 1; min-width: 150px;">
-        <i class="ph ph-envelope"></i> Gestionar Correos
-      </button>
-    `;
-  }
-  
-  // ✅ Botones Editar, Duplicar, Eliminar (solo para cursos personalizados)
-  if (isCustomCourse(hex)) {
-    html += `
-      <button class="btn secondary" onclick="if (typeof window.openEditCourseModal === 'function') { window.openEditCourseModal('${hex}', ${JSON.stringify(data).replace(/"/g, '&quot;')}); document.getElementById('courseModal').classList.remove('show'); }" style="flex: 1; min-width: 150px;">
-        <i class="ph ph-pencil"></i> Editar
-      </button>
-    `;
-    
-    // Duplicar - usar función externa para evitar problemas con comillas
-    const duplicateCourseData = {
-      hex: hex,
-      title: data.title || 'Curso',
-      meta: data.meta || '',
-      files: data.files || [],
-      card: data.card || {},
-      type: data.type || 'curso'
-    };
-    html += `
-      <button class="btn secondary" onclick="handleDuplicateCourseFromModal(${JSON.stringify(duplicateCourseData).replace(/"/g, '&quot;')})" style="flex: 1; min-width: 150px;">
-        <i class="ph ph-copy"></i> Duplicar
-      </button>
-    `;
-    
-    // Eliminar
-    html += `
-      <button class="btn" onclick="
-        if (typeof window.showDeleteConfirmModal === 'function') {
-          window.showDeleteConfirmModal('${sanitizeHTML(data.title || 'Curso')}', async () => {
-            try {
-              await removeCustomCourse('${hex}');
-              buildMasterGrid();
-              document.getElementById('courseModal').classList.remove('show');
-            } catch (error) {
-              console.error('[DELETE] Error:', error);
-            }
-          });
-        }
-      " style="flex: 1; min-width: 150px; background: linear-gradient(135deg, #ff4444, #cc0000);">
-        <i class="ph ph-trash"></i> Eliminar
-      </button>
-    `;
-  }
-  
-  html += '</div>';
-  
-  modalBody.innerHTML = html;
-  
-  // ✅ Mostrar modal
-  modal.classList.add('show');
-  
-  // ✅ Cerrar con botón X
-  modalClose.onclick = () => {
-    modal.classList.remove('show');
-  };
-  
-  // ✅ Cerrar con overlay
-  overlay.onclick = () => {
-    modal.classList.remove('show');
-  };
-  
-  // ✅ Cerrar con ESC
-  const handleEsc = (e) => {
-    if (e.key === 'Escape' && modal.classList.contains('show')) {
-      modal.classList.remove('show');
-      document.removeEventListener('keydown', handleEsc);
-    }
-  };
-  document.addEventListener('keydown', handleEsc);
-}
-
-// ✅ Función auxiliar para duplicar curso desde el modal
-async function handleDuplicateCourseFromModal(courseData) {
-  const suggestedCode = `${courseData.card?.tag || 'CURSO'}_${Date.now()}`;
-  
-  if (typeof window.showDuplicateCodeModal === 'function') {
-    window.showDuplicateCodeModal(suggestedCode, async (newCode) => {
-      if (!newCode || !newCode.trim()) return;
-      
-      try {
-        const newHex = await sha256Hex(newCode.trim());
-        const existingCourses = getMergedAccessHashMap();
-        if (existingCourses[newHex]) {
-          if (typeof window.showSuccessModal === 'function') {
-            window.showSuccessModal('Error', 'Este código ya existe. Use otro.');
-          } else {
-            alert('Este código ya existe. Use otro.');
-          }
-          return;
-        }
-        
-        const duplicatedCourse = {
-          title: `${courseData.title} (Copia)`,
-          meta: courseData.meta || '',
-          files: [...(courseData.files || [])],
-          code: newCode.trim(),
-          card: {
-            ...courseData.card,
-            tag: `${courseData.card?.tag || 'TAG'}_COPY`,
-            seed: Math.floor(Math.random() * 100)
-          },
-          type: courseData.type || 'curso'
-        };
-        
-        await addCustomCourse(newHex, duplicatedCourse);
-        buildMasterGrid();
-        document.getElementById('courseModal').classList.remove('show');
-        
-        if (typeof window.showSuccessModal === 'function') {
-          window.showSuccessModal('¡Curso Duplicado!', `El curso ha sido duplicado con el código: ${newCode.trim()}`);
-        } else {
-          alert(`Curso duplicado con código: ${newCode.trim()}`);
-        }
-      } catch (error) {
-        console.error('[DUPLICATE] Error:', error);
-        if (typeof window.showSuccessModal === 'function') {
-          window.showSuccessModal('Error', 'Error al duplicar el curso: ' + (error.message || 'Error desconocido'));
-        } else {
-          alert('Error al duplicar el curso: ' + (error.message || 'Error desconocido'));
-        }
-      }
-    });
-  } else {
-    // Fallback a prompt
-    const newCode = prompt('Ingresa un nuevo código secreto para el curso duplicado:', suggestedCode);
-    if (!newCode || !newCode.trim()) return;
-    
-    try {
-      const newHex = await sha256Hex(newCode.trim());
-      const existingCourses = getMergedAccessHashMap();
-      if (existingCourses[newHex]) {
-        alert('Este código ya existe. Use otro.');
-        return;
-      }
-      
-      const duplicatedCourse = {
-        title: `${courseData.title} (Copia)`,
-        meta: courseData.meta || '',
-        files: [...(courseData.files || [])],
-        code: newCode.trim(),
-        card: {
-          ...courseData.card,
-          tag: `${courseData.card?.tag || 'TAG'}_COPY`,
-          seed: Math.floor(Math.random() * 100)
-        },
-        type: courseData.type || 'curso'
-      };
-      
-      await addCustomCourse(newHex, duplicatedCourse);
-      buildMasterGrid();
-      document.getElementById('courseModal').classList.remove('show');
-      
-      if (typeof window.showSuccessModal === 'function') {
-        window.showSuccessModal('¡Curso Duplicado!', `El curso ha sido duplicado con el código: ${newCode.trim()}`);
-      } else {
-        alert(`Curso duplicado con código: ${newCode.trim()}`);
-      }
-    } catch (error) {
-      console.error('[DUPLICATE] Error:', error);
-      alert('Error al duplicar el curso: ' + (error.message || 'Error desconocido'));
-    }
-  }
 }
 
 // ✅ Función para actualizar estadísticas en la vista maestra
