@@ -7022,18 +7022,6 @@ function buildUserGrid() {
       cardContent.appendChild(placeholder);
     }
 
-    // ✅ Botón "Abrir" fuera de la imagen, debajo
-    const buttonContainer = document.createElement('div');
-    buttonContainer.style.cssText = 'padding:16px; background:var(--card-bg, rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.06); border-top:none; border-radius:0 0 12px 12px; flex-shrink:0;';
-
-    const openBtn = document.createElement('button');
-    openBtn.className = 'btn';
-    openBtn.type = 'button';
-    openBtn.textContent = 'Abrir';
-    openBtn.style.cssText = 'width:100%;';
-    openBtn.setAttribute('aria-label', `Abrir curso: ${data.title || 'Curso'}`);
-    openBtn.setAttribute('title', `Abrir el curso "${data.title || 'Curso'}"`);
-
     // ✅ Función para abrir el curso (reutilizable)
     const openCourse = async (e) => {
       if (e) {
@@ -7071,16 +7059,11 @@ function buildUserGrid() {
       showContent();
     };
 
-    // ✅ Event listener en el botón
-    openBtn.addEventListener('click', openCourse);
-
-    // ✅ Event listener en toda la tarjeta
+    // ✅ Event listener en toda la tarjeta (clic en cualquier parte de la tarjeta)
     cardEl.style.cursor = 'pointer';
     cardEl.addEventListener('click', openCourse);
 
-    buttonContainer.appendChild(openBtn);
     cardEl.appendChild(cardContent);
-    cardEl.appendChild(buttonContainer);
     grid.appendChild(cardEl);
   });
 
