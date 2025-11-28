@@ -1511,6 +1511,18 @@ a:focus-visible {
   width: 100%;
 }
 
+/* ✅ Mobile: Layout vertical cuando está colapsado */
+.master-card[data-expanded="false"] {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ✅ Mobile: Layout vertical cuando está expandido */
+.master-card[data-expanded="true"] {
+  display: flex;
+  flex-direction: column;
+}
+
 /* ✅ Mobile: Limitar altura de imagen en master-card */
 .master-card .ec-wrapper {
   aspect-ratio: 16/9 !important; /* ✅ Cambiar de 3/4 a 16/9 en móvil */
@@ -1534,6 +1546,88 @@ a:focus-visible {
   }
 }
 
+/* ===================== SISTEMA DE EXPANSIÓN PARA TARJETAS MASTER ===================== */
+
+/* ✅ Ocultar información inicialmente (solo mostrar imagen) */
+.master-card .right {
+  max-height: 0 !important;
+  overflow: hidden !important;
+  opacity: 0;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* ✅ Estado expandido */
+.master-card[data-expanded="true"] .right {
+  max-height: 2000px !important;
+  opacity: 1;
+  padding-top: 18px !important;
+  padding-bottom: 18px !important;
+}
+
+/* ✅ Asegurar que los botones dentro de right no activen el toggle */
+.master-card .right button,
+.master-card .right input,
+.master-card .right a {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* ✅ Indicador visual de que se puede expandir */
+.master-card .left {
+  cursor: pointer;
+  position: relative;
+}
+
+.master-card .left::after {
+  content: '';
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.master-card[data-expanded="true"] .left::after {
+  transform: rotate(180deg);
+}
+
+.master-card .left::before {
+  content: '▼';
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  color: #ffffff;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 11;
+  transition: transform 0.3s ease;
+}
+
+.master-card[data-expanded="true"] .left::before {
+  transform: rotate(180deg);
+}
+
+.master-card:hover .left::after {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.master-card[data-expanded="true"]:hover .left::after {
+  transform: rotate(180deg) scale(1.1);
+}
+
 @media (min-width: 900px) {
   .master-card {
     display: grid;
@@ -1549,6 +1643,16 @@ a:focus-visible {
   .master-card .right {
     min-width: 0; /* ✅ Permite que flex/grid funcione correctamente */
     width: 100%;
+  }
+  
+  /* ✅ En desktop, cuando está expandido, mostrar grid normal */
+  .master-card[data-expanded="true"] {
+    grid-template-columns: 360px 1fr;
+  }
+  
+  /* ✅ En desktop, cuando está colapsado, solo mostrar imagen */
+  .master-card[data-expanded="false"] {
+    grid-template-columns: 360px;
   }
 
   /* ✅ Desktop: Aspect-ratio horizontal para electric-card */
