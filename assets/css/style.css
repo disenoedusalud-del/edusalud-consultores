@@ -1434,32 +1434,7 @@ a:focus-visible {
 
 .master-grid {
   display: grid;
-  gap: 24px;
-  grid-template-columns: repeat(4, 1fr); /* ✅ 4 columnas estilo Netflix */
-}
-
-/* ✅ Tablet: 3 columnas */
-@media (max-width: 1200px) and (min-width: 769px) {
-  .master-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-  }
-}
-
-/* ✅ Mobile: 2 columnas */
-@media (max-width: 768px) and (min-width: 481px) {
-  .master-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-  }
-}
-
-/* ✅ Mobile pequeño: 1 columna */
-@media (max-width: 480px) {
-  .master-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
+  gap: 16px;
 }
 
 .master-card {
@@ -1561,142 +1536,112 @@ a:focus-visible {
   }
 }
 
-/* ===================== MODAL ESTILO NETFLIX ===================== */
+/* ===================== SISTEMA DE EXPANSIÓN PARA TARJETAS MASTER ===================== */
 
-/* ✅ Ocultar información en el grid - solo mostrar imagen */
+/* ✅ Ocultar información inicialmente (solo mostrar imagen) */
 .master-card .right {
-  display: none !important;
-}
-
-/* ✅ Modal estilo Netflix */
-.course-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 10000;
-  display: none;
-  align-items: center;
-  justify-content: center;
+  max-height: 0 !important;
+  overflow: hidden !important;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }
 
-.course-modal.show {
-  display: flex;
+/* ✅ Estado expandido */
+.master-card[data-expanded="true"] .right {
+  max-height: 2000px !important;
   opacity: 1;
+  padding-top: 18px !important;
+  padding-bottom: 18px !important;
 }
 
-.course-modal-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
+/* ✅ Asegurar que los botones dentro de right no activen el toggle */
+.master-card .right button,
+.master-card .right input,
+.master-card .right a {
+  pointer-events: auto;
   cursor: pointer;
 }
 
-.course-modal-content {
+/* ✅ Indicador visual de que se puede expandir */
+.master-card .left {
+  cursor: pointer;
   position: relative;
-  background: var(--bg);
-  border: 1px solid rgba(90, 169, 255, 0.3);
-  border-radius: 16px;
-  max-width: 800px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-  transform: scale(0.9);
-  opacity: 0;
-  transition: transform 0.3s ease, opacity 0.3s ease;
-  z-index: 10001;
 }
 
-.course-modal.show .course-modal-content {
-  transform: scale(1);
-  opacity: 1;
-}
-
-.course-modal-close {
+.master-card .left::after {
+  content: '';
   position: absolute;
-  top: 16px;
-  right: 16px;
+  bottom: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
   background: rgba(0, 0, 0, 0.6);
-  border: none;
-  color: #fff;
-  font-size: 24px;
-  width: 40px;
-  height: 40px;
+  backdrop-filter: blur(8px);
   border-radius: 50%;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10002;
-  transition: all 0.2s ease;
+  opacity: 0.7;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  z-index: 10;
 }
 
-.course-modal-close:hover {
-  background: rgba(255, 0, 0, 0.8);
-  transform: rotate(90deg);
+.master-card[data-expanded="true"] .left::after {
+  transform: rotate(180deg);
 }
 
-.course-modal-body {
-  padding: 32px;
+.master-card .left::before {
+  content: '▼';
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  color: #ffffff;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 11;
+  transition: transform 0.3s ease;
 }
 
-/* ✅ Responsive para modal */
-@media (max-width: 768px) {
-  .course-modal-content {
-    width: 95%;
-    max-height: 95vh;
-  }
-  
-  .course-modal-body {
-    padding: 24px;
-  }
+.master-card[data-expanded="true"] .left::before {
+  transform: rotate(180deg);
 }
 
-/* ✅ Tema claro para modal */
-:root[data-theme="light"] .course-modal-overlay {
-  background: rgba(0, 0, 0, 0.6);
+.master-card:hover .left::after {
+  opacity: 1;
+  transform: scale(1.1);
 }
 
-:root[data-theme="light"] .course-modal-content {
-  background: #ffffff;
-  border: 1px solid rgba(90, 169, 255, 0.2);
+.master-card[data-expanded="true"]:hover .left::after {
+  transform: rotate(180deg) scale(1.1);
 }
 
 @media (min-width: 900px) {
   .master-card {
-    display: flex; /* ✅ Cambiar a flex para layout vertical en grid */
-    flex-direction: column; /* ✅ Imagen arriba, info abajo */
-    gap: 0;
-    margin: 0; /* ✅ Sin margin, el grid controla el espaciado */
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 10px;
+    align-items: start;
+    margin: 6px 0 14px;
     position: relative;
   }
 
-  /* ✅ Asegurar que imagen e info ocupen todo el ancho */
-  .master-card .left {
-    width: 100%;
-  }
-
+  /* ✅ Asegurar que la columna derecha se expanda */
   .master-card .right {
-    width: 100%;
     min-width: 0;
+    width: 100%;
   }
   
-  /* ✅ Cuando está expandido: mostrar info debajo de imagen */
+  /* ✅ En desktop, cuando está expandido, mostrar grid normal */
   .master-card[data-expanded="true"] {
-    flex-direction: column;
+    grid-template-columns: 360px 1fr;
   }
   
-  /* ✅ Cuando está colapsado: solo imagen */
+  /* ✅ En desktop, cuando está colapsado, solo mostrar imagen */
   .master-card[data-expanded="false"] {
-    flex-direction: column;
+    grid-template-columns: 360px;
   }
 
   /* ✅ Desktop: Aspect-ratio horizontal para electric-card */
