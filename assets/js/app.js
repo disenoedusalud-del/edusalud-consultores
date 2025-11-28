@@ -7201,12 +7201,7 @@ function buildMasterGrid() {
     const right = document.createElement('div');
     right.className = 'right';
 
-    // cabecera derecha (clasificación + título + meta + código secreto + botón abrir curso)
-    const header = document.createElement('div');
-    header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;';
-    const t = document.createElement('div');
-
-    // ✅ Mostrar clasificación del curso (badge en la parte superior)
+    // ✅ Mostrar clasificación del curso (badge sobre la imagen en left)
     const courseType = data.type || 'curso';
     const typeLabels = {
       'curso': '<i class="ph ph-book-open"></i> Curso',
@@ -7217,10 +7212,10 @@ function buildMasterGrid() {
     };
     const typeLabel = typeLabels[courseType] || '<i class="ph ph-book-open"></i> Curso';
 
-    const typeBadge = document.createElement('div');
-    typeBadge.style.cssText = 'font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;';
-    typeBadge.innerHTML = typeLabel;
-    t.appendChild(typeBadge);
+    // cabecera derecha (título + meta + código secreto + botón abrir curso)
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;';
+    const t = document.createElement('div');
 
     // ✅ Crear título y meta
     const titleDiv = document.createElement('div');
@@ -8467,6 +8462,13 @@ function buildMasterGrid() {
         window.setCardImage(wrapper, imgUrl);
       }
     }
+
+    // ✅ Badge de tipo sobre la imagen (agregar después de crear la imagen)
+    const typeBadge = document.createElement('div');
+    typeBadge.className = 'master-card-type-badge';
+    typeBadge.style.cssText = 'position: absolute; top: 12px; left: 12px; font-size: 11px; font-weight: 600; color: var(--accent); background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); padding: 6px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; z-index: 5; pointer-events: none;';
+    typeBadge.innerHTML = typeLabel;
+    left.appendChild(typeBadge);
 
     // ✅ Sistema de expansión: ocultar información inicialmente
     right.style.cssText = 'max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out; opacity: 0; padding-top: 0; padding-bottom: 0;';
