@@ -1406,9 +1406,9 @@ a:focus-visible {
     padding: 8px;
   }
   
-  /* ✅ Restaurar aspect-ratio vertical en desktop */
+  /* ✅ Aspect-ratio horizontal en desktop */
   .card-left-wrapper .ec-wrapper {
-    aspect-ratio: 3/4 !important;
+    aspect-ratio: 16/9 !important;
     max-height: none !important;
   }
 
@@ -1551,9 +1551,9 @@ a:focus-visible {
     width: 100%;
   }
 
-  /* ✅ Desktop: Restaurar aspect-ratio vertical para electric-card */
+  /* ✅ Desktop: Aspect-ratio horizontal para electric-card */
   .master-card .ec-wrapper {
-    aspect-ratio: 3/4 !important; /* ✅ Restaurar proporción vertical en desktop */
+    aspect-ratio: 16/9 !important; /* ✅ Formato horizontal 16:9 (1920x1080px) */
     max-height: none !important;
   }
 
