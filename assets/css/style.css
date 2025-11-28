@@ -1571,6 +1571,15 @@ a:focus-visible {
   position: relative;
 }
 
+/* ✅ Badge de tipo sobre la imagen */
+.master-card-type-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  pointer-events: none;
+}
+
 .master-card .left::after {
   content: '';
   position: absolute;
