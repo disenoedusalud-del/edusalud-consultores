@@ -1434,7 +1434,32 @@ a:focus-visible {
 
 .master-grid {
   display: grid;
-  gap: 16px;
+  gap: 24px;
+  grid-template-columns: repeat(4, 1fr); /* ✅ 4 columnas estilo Netflix */
+}
+
+/* ✅ Tablet: 3 columnas */
+@media (max-width: 1200px) and (min-width: 769px) {
+  .master-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+
+/* ✅ Mobile: 2 columnas */
+@media (max-width: 768px) and (min-width: 481px) {
+  .master-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+/* ✅ Mobile pequeño: 1 columna */
+@media (max-width: 480px) {
+  .master-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 }
 
 .master-card {
@@ -1511,17 +1536,7 @@ a:focus-visible {
   width: 100%;
 }
 
-/* ✅ Mobile: Layout vertical cuando está colapsado */
-.master-card[data-expanded="false"] {
-  display: flex;
-  flex-direction: column;
-}
-
-/* ✅ Mobile: Layout vertical cuando está expandido */
-.master-card[data-expanded="true"] {
-  display: flex;
-  flex-direction: column;
-}
+/* ✅ Mobile: Layout vertical (ya está definido en .master-card base) */
 
 /* ✅ Mobile: Limitar altura de imagen en master-card */
 .master-card .ec-wrapper {
@@ -1630,29 +1645,31 @@ a:focus-visible {
 
 @media (min-width: 900px) {
   .master-card {
-    display: grid;
-    grid-template-columns: 360px 1fr;
-    gap: 10px;
-    align-items: start; /* ✅ Cambiar de center a start para mejor alineación */
-    margin: 6px 0 14px;
+    display: flex; /* ✅ Cambiar a flex para layout vertical en grid */
+    flex-direction: column; /* ✅ Imagen arriba, info abajo */
+    gap: 0;
+    margin: 0; /* ✅ Sin margin, el grid controla el espaciado */
     position: relative;
-    /* ✅ Para posicionar autocompletado */
   }
 
-  /* ✅ Asegurar que la columna derecha se expanda */
-  .master-card .right {
-    min-width: 0; /* ✅ Permite que flex/grid funcione correctamente */
+  /* ✅ Asegurar que imagen e info ocupen todo el ancho */
+  .master-card .left {
     width: 100%;
   }
-  
-  /* ✅ En desktop, cuando está expandido, mostrar grid normal */
-  .master-card[data-expanded="true"] {
-    grid-template-columns: 360px 1fr;
+
+  .master-card .right {
+    width: 100%;
+    min-width: 0;
   }
   
-  /* ✅ En desktop, cuando está colapsado, solo mostrar imagen */
+  /* ✅ Cuando está expandido: mostrar info debajo de imagen */
+  .master-card[data-expanded="true"] {
+    flex-direction: column;
+  }
+  
+  /* ✅ Cuando está colapsado: solo imagen */
   .master-card[data-expanded="false"] {
-    grid-template-columns: 360px;
+    flex-direction: column;
   }
 
   /* ✅ Desktop: Aspect-ratio horizontal para electric-card */
