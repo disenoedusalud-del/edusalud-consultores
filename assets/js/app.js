@@ -2171,7 +2171,7 @@ function setupRealTimeValidation(input, validator, options = {}) {
     minLength = 0,
     maxLength = Infinity,
     debounceMs = 300,
-    showIndicator = true,
+    showIndicator = false, // ✅ Desactivado por defecto
     showMessage = true
   } = options;
 
@@ -2185,16 +2185,6 @@ function setupRealTimeValidation(input, validator, options = {}) {
     input.parentElement.appendChild(errorContainer);
   }
 
-  // Agregar indicador visual si no existe
-  let indicator = input.parentElement.querySelector('.validation-indicator');
-  if (!indicator && showIndicator) {
-    indicator = document.createElement('span');
-    indicator.className = 'validation-indicator';
-    indicator.setAttribute('aria-hidden', 'true');
-    input.parentElement.style.position = 'relative';
-    input.parentElement.appendChild(indicator);
-  }
-
   // Función de validación con debounce
   let timeoutId;
   const validate = () => {
@@ -2203,22 +2193,17 @@ function setupRealTimeValidation(input, validator, options = {}) {
       const value = input.value;
       const result = validator(value, minLength, maxLength);
 
-      // Actualizar estado visual
-      if (indicator) {
-        if (value.length === 0) {
-          indicator.className = 'validation-indicator';
-          input.classList.remove('input-valid', 'input-invalid');
-        } else if (result.valid) {
-          indicator.className = 'validation-indicator validation-indicator-valid';
-          input.classList.add('input-valid');
-          input.classList.remove('input-invalid');
-          input.setAttribute('aria-invalid', 'false');
-        } else {
-          indicator.className = 'validation-indicator validation-indicator-invalid';
-          input.classList.add('input-invalid');
-          input.classList.remove('input-valid');
-          input.setAttribute('aria-invalid', 'true');
-        }
+      // Actualizar estado visual del input (sin indicador verde)
+      if (value.length === 0) {
+        input.classList.remove('input-valid', 'input-invalid');
+      } else if (result.valid) {
+        input.classList.add('input-valid');
+        input.classList.remove('input-invalid');
+        input.setAttribute('aria-invalid', 'false');
+      } else {
+        input.classList.add('input-invalid');
+        input.classList.remove('input-valid');
+        input.setAttribute('aria-invalid', 'true');
       }
 
       // Mostrar mensaje de error
@@ -6933,7 +6918,9 @@ function buildUserGrid() {
 
   if (emptyState) emptyState.style.display = 'none';
   grid.style.display = 'grid';
-  grid.style.gap = '20px'; // ✅ Asegurar separación entre tarjetas
+  grid.style.gap = '24px'; // ✅ Asegurar separación entre tarjetas
+  grid.style.rowGap = '24px'; // ✅ Separación vertical
+  grid.style.columnGap = '24px'; // ✅ Separación horizontal
 
   // Filtrar solo cursos permitidos
   const coursesToShow = allowedCourses
