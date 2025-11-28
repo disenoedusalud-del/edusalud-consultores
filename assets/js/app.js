@@ -7096,12 +7096,6 @@ function buildUserGrid() {
     grid.appendChild(cardEl);
   });
 
-  // ✅ Finalizar medición de renderizado
-  endPerformanceMeasure('Renderizado del grid', gridStart, {
-    cursos: coursesArray.length,
-    paginado: coursesArray.length > COURSES_PER_PAGE
-  });
-
   // ✅ Aplicar lazy loading a todas las imágenes del grid
   setupLazyImages(grid);
 }
