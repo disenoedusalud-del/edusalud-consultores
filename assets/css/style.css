@@ -2879,31 +2879,39 @@ img[loading="lazy"].loaded {
 
 /* Grid de cursos en vista de usuario */
 #userGrid {
-  display: grid;
-  gap: 20px;
+  display: grid !important;
+  gap: 20px !important;
+  width: 100%;
+  margin-top: 16px;
+}
+
+/* Asegurar que las tarjetas en el grid de usuario tengan separación */
+#userGrid .master-card {
+  margin: 0 !important;
   width: 100%;
 }
 
 /* Desktop */
 @media (min-width: 901px) {
   #userGrid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+    gap: 20px !important;
   }
 }
 
 /* Tablet */
 @media (min-width: 601px) and (max-width: 900px) {
   #userGrid {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
+    gap: 16px !important;
   }
 }
 
 /* Mobile */
 @media (max-width: 600px) {
   #userGrid {
-    grid-template-columns: 1fr;
-    gap: 12px;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
 }
 
