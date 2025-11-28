@@ -10322,6 +10322,9 @@ async function tryLoginByEmail() {
     return false;
   }
 
+  // ✅ Marcar que estamos procesando login
+  window.isProcessingLogin = true;
+
   // ✅ Sanitizar inputs
   const email = getSafeInputValue('#input-email', 'email');
   const password = getSafeInputValue('#input-password', 'password'); // Password no se sanitiza
@@ -10384,6 +10387,12 @@ async function tryLoginByEmail() {
       log('[AUTH] ✅ Usuario es administrador, otorgando acceso master');
       showAuthMessage('msg-auth', '¡Bienvenido! Acceso de administrador activado.', false);
       await handleSuccessfulAuthWithEmail(userEmail, []); // Array vacío, pero es admin
+      
+      // ✅ Limpiar flag después de un delay
+      setTimeout(() => {
+        window.isProcessingLogin = false;
+      }, 2000);
+      
       return true;
     }
 
@@ -10410,6 +10419,11 @@ async function tryLoginByEmail() {
     await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
     showAuthMessage('msg-auth', `¡Bienvenido! Tienes acceso a ${allowedCourses.length} curso(s).`, false);
 
+    // ✅ Limpiar flag después de un delay
+    setTimeout(() => {
+      window.isProcessingLogin = false;
+    }, 2000);
+
     // ✅ Log de auditoría
     await auditLog(AUDIT_ACTION_TYPES.LOGIN_SUCCESS, {
       email: userEmail,
@@ -10419,6 +10433,9 @@ async function tryLoginByEmail() {
     return true;
 
   } catch (error) {
+    // ✅ Limpiar flag en caso de error
+    window.isProcessingLogin = false;
+    
     console.error('[AUTH] ❌ Error en login:', error);
     let errorMessage = 'Error al iniciar sesión.';
 
@@ -12032,6 +12049,9 @@ async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
   // ✅ Si NO es admin, comportamiento normal (vista de usuario)
   // Guardar cursos permitidos en variable global para filtrar
   window.allowedCoursesForUser = allowedCourses;
+  window.currentUserEmail = userEmail; // ✅ Asegurar que el email esté guardado
+  
+  console.log('[DEBUG] No es admin, preparando vista de usuario...');
 
   // ✅ Refresh en background (no bloquear login)
   if (hasRemote()) {
@@ -12046,7 +12066,10 @@ async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
 
   try {
     await runLoader();
-  } catch (e) { }
+    console.log('[DEBUG] Loader completado');
+  } catch (e) { 
+    console.error('[DEBUG] Error en runLoader:', e);
+  }
 
   clearAttempts();
 
@@ -12055,9 +12078,19 @@ async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
   });
 
   // ✅ Construir grid de usuario (vista simplificada)
+  console.log('[DEBUG] Construyendo grid de usuario...');
   buildUserGrid();
   $('#year_master').textContent = new Date().getFullYear();
+  
+  console.log('[DEBUG] Llamando a showUserView()...');
   showUserView();
+  console.log('[DEBUG] showUserView() completado');
+  
+  // ✅ Asegurar que la vista de acceso esté oculta
+  const accessEl = $('#access');
+  if (accessEl) {
+    accessEl.classList.add('hidden');
+  }
 }
 
 // ✅ Función para logout de Firebase
@@ -12191,7 +12224,14 @@ function setupAuthStateListener() {
       }
 
       // ✅ SEGUNDO: Verificar cursos para usuarios que no están en ninguna vista específica
+      // ✅ MEJORADO: Solo ejecutar si NO se está procesando un login activo
       if (!urlParams.has('code') && !isInMaster && !isInUserView && !isInContent) {
+        // ✅ Verificar si ya se está procesando un login (evitar duplicados)
+        if (window.isProcessingLogin) {
+          log('[AUTH] ⏳ Login ya en proceso, omitiendo listener');
+          return;
+        }
+        
         log('[AUTH] 🔍 Verificando cursos para usuario con email...');
         const allowedCourses = await getCoursesForEmail(userEmail);
         log('[AUTH] 📚 Cursos encontrados en listener:', allowedCourses.length);
@@ -12200,12 +12240,20 @@ function setupAuthStateListener() {
           log('[AUTH] ✅ Mostrando vista de usuario desde listener');
           window.currentUserEmail = userEmail;
           window.allowedCoursesForUser = allowedCourses;
+          
+          // ✅ Marcar que estamos procesando login
+          window.isProcessingLogin = true;
 
           if (isInAccess && accessEl) {
             accessEl.classList.add('hidden');
           }
 
           await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
+          
+          // ✅ Limpiar flag después de un delay
+          setTimeout(() => {
+            window.isProcessingLogin = false;
+          }, 2000);
         }
       }
     } else {
