@@ -10244,6 +10244,9 @@ async function tryLoginByCode(code) {
 
 // ✅ Función para manejar pestañas de autenticación
 function switchAuthTab(tab) {
+  // ✅ Marcar que estamos cambiando de pestaña (evitar que el listener se ejecute)
+  window.isSwitchingTab = true;
+  
   const tabCode = $('#tab-code');
   const tabAccount = $('#tab-account');
   const formCode = $('#form-code');
@@ -10262,6 +10265,11 @@ function switchAuthTab(tab) {
     // Mostrar formulario de login por defecto
     showLoginForm();
   }
+  
+  // ✅ Limpiar flag después de un breve delay
+  setTimeout(() => {
+    window.isSwitchingTab = false;
+  }, 500);
 }
 
 // ✅ Función para mostrar formulario de login
@@ -12224,11 +12232,30 @@ function setupAuthStateListener() {
       }
 
       // ✅ SEGUNDO: Verificar cursos para usuarios que no están en ninguna vista específica
-      // ✅ MEJORADO: Solo ejecutar si NO se está procesando un login activo
-      if (!urlParams.has('code') && !isInMaster && !isInUserView && !isInContent) {
+      // ✅ MEJORADO: Solo ejecutar si NO se está procesando un login activo Y NO se está cambiando de pestaña
+      if (!urlParams.has('code') && !isInMaster && !isInUserView && !isInContent && isInAccess) {
         // ✅ Verificar si ya se está procesando un login (evitar duplicados)
         if (window.isProcessingLogin) {
           log('[AUTH] ⏳ Login ya en proceso, omitiendo listener');
+          return;
+        }
+        
+        // ✅ Verificar si se está cambiando de pestaña (evitar ejecución automática)
+        if (window.isSwitchingTab) {
+          log('[AUTH] ⏳ Cambiando de pestaña, omitiendo listener');
+          return;
+        }
+        
+        // ✅ Solo ejecutar si la pantalla de acceso está realmente visible
+        // y el usuario no está simplemente navegando
+        const formAccount = $('#form-account');
+        const formCode = $('#form-code');
+        const isAccountTabActive = formAccount && !formAccount.classList.contains('hidden');
+        const isCodeTabActive = formCode && !formCode.classList.contains('hidden');
+        
+        // ✅ Solo ejecutar si estamos en la pestaña de cuenta Y no se está cambiando de pestaña
+        if (!isAccountTabActive || isCodeTabActive) {
+          log('[AUTH] ⏳ No está en pestaña de cuenta o está en pestaña de código, omitiendo listener');
           return;
         }
         
