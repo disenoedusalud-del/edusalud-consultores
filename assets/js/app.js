@@ -7086,20 +7086,9 @@ function buildUserGrid() {
     // ✅ Event listener en el botón
     openBtn.addEventListener('click', openCourse);
 
-    // ✅ Event listener en toda la tarjeta (pero no en botones ni lista de archivos)
+    // ✅ Event listener en toda la tarjeta
     cardEl.style.cursor = 'pointer';
-    cardEl.addEventListener('click', (e) => {
-      // ✅ No abrir curso si se hace click en botones, inputs, o lista de archivos
-      const target = e.target;
-      if (target.closest('button') || 
-          target.closest('input') || 
-          target.closest('.filelist') || 
-          target.closest('.file') ||
-          target.closest('[data-edit-form]')) {
-        return; // No hacer nada si se clickea en estos elementos
-      }
-      openCourse(e);
-    });
+    cardEl.addEventListener('click', openCourse);
 
     buttonContainer.appendChild(openBtn);
     cardEl.appendChild(cardContent);
