@@ -13062,32 +13062,49 @@ window.limpiarTodoYRecargar = async function () {
   // ✅ Finalizar medición de inicialización
   endPerformanceMeasure('Inicialización total', initStart);
   
-  // ✅ Asegurar que showAccess() se ejecute al final, incluso si hubo errores anteriores
+  // ✅ Asegurar que showAccess() se ejecute al final, SOLO si no hay usuario autenticado
   setTimeout(() => {
-    const accessEl = document.getElementById('access');
+    // ✅ NO interferir si hay un usuario autenticado de Firebase
+    if (window.firebaseAuth) {
+      const currentUser = window.firebaseAuth.currentUser;
+      if (currentUser) {
+        log('[INIT] Usuario ya autenticado, omitiendo verificación de acceso');
+        return; // No hacer nada si hay usuario autenticado
+      }
+    }
+    
+    // ✅ NO interferir si hay un usuario en memoria
+    if (window.currentUserEmail) {
+      log('[INIT] Usuario en memoria, omitiendo verificación de acceso');
+      return;
+    }
+    
+    // ✅ NO interferir si hay una vista visible (master, user-view, o content)
     const contentEl = document.getElementById('content');
     const masterEl = document.getElementById('master');
     const userViewEl = document.getElementById('user-view');
+    const hasVisibleView = (contentEl && !contentEl.classList.contains('hidden')) ||
+                          (masterEl && !masterEl.classList.contains('hidden')) ||
+                          (userViewEl && !userViewEl.classList.contains('hidden'));
     
-    // Solo forzar mostrar acceso si no hay ninguna vista visible y el acceso está oculto
+    if (hasVisibleView) {
+      log('[INIT] Vista visible detectada, omitiendo verificación de acceso');
+      return;
+    }
+    
+    // ✅ Solo verificar acceso si no hay usuario y no hay vista visible
+    const accessEl = document.getElementById('access');
     if (accessEl && accessEl.classList.contains('hidden')) {
-      const hasVisibleView = (contentEl && !contentEl.classList.contains('hidden')) ||
-                            (masterEl && !masterEl.classList.contains('hidden')) ||
-                            (userViewEl && !userViewEl.classList.contains('hidden'));
-      
-      // Si no hay vista visible, mostrar acceso
-      if (!hasVisibleView) {
-        log('[INIT] ⚠️ Forzando mostrar acceso (ninguna vista visible)');
-        try {
-          showAccess();
-        } catch (e) {
-          warn('[INIT] Error en showAccess() final:', e);
-          // Fallback manual
-          if (accessEl) accessEl.classList.remove('hidden');
-          if (contentEl) contentEl.classList.add('hidden');
-          if (masterEl) masterEl.classList.add('hidden');
-          if (userViewEl) userViewEl.classList.add('hidden');
-        }
+      log('[INIT] ⚠️ Forzando mostrar acceso (ninguna vista visible y sin usuario)');
+      try {
+        showAccess();
+      } catch (e) {
+        warn('[INIT] Error en showAccess() final:', e);
+        // Fallback manual
+        if (accessEl) accessEl.classList.remove('hidden');
+        if (contentEl) contentEl.classList.add('hidden');
+        if (masterEl) masterEl.classList.add('hidden');
+        if (userViewEl) userViewEl.classList.add('hidden');
       }
     }
   }, 200);
