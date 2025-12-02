@@ -14053,26 +14053,58 @@ window.testGET = async function (hex) {
   }
 };
 
-// ✅ Eliminar botón course-modal-close innecesario
+// ✅ Eliminar botón course-modal-close innecesario (versión mejorada que no interfiere)
 (function() {
+  let isRemoving = false;
+  let timeoutId = null;
+  
   function removeCourseModalClose() {
+    // Prevenir ejecuciones múltiples simultáneas
+    if (isRemoving) return;
+    
     const closeBtn = document.querySelector('.course-modal-close');
     if (closeBtn) {
-      closeBtn.remove();
+      isRemoving = true;
+      try {
+        closeBtn.remove();
+      } catch (e) {
+        // Silenciar errores para no interferir con otros procesos
+      } finally {
+        isRemoving = false;
+      }
     }
   }
   
-  // Ejecutar inmediatamente y cuando cambie el DOM
-  removeCourseModalClose();
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', removeCourseModalClose);
+  // Ejecutar solo cuando el DOM esté completamente listo
+  function initRemoval() {
+    if (document.readyState === 'complete') {
+      setTimeout(removeCourseModalClose, 500);
+    } else {
+      window.addEventListener('load', () => {
+        setTimeout(removeCourseModalClose, 500);
+      });
+    }
   }
   
-  // Observar cambios en el DOM para eliminar si se crea dinámicamente
-  const observer = new MutationObserver(removeCourseModalClose);
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
+  // Inicializar después de que todo esté cargado
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initRemoval);
+  } else {
+    initRemoval();
+  }
+  
+  // Observar cambios con debounce para evitar ejecuciones excesivas
+  if (document.body) {
+    const observer = new MutationObserver(() => {
+      if (timeoutId) clearTimeout(timeoutId);
+      // Debounce de 500ms para no interferir con procesos críticos como login
+      timeoutId = setTimeout(removeCourseModalClose, 500);
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
 })();
 
