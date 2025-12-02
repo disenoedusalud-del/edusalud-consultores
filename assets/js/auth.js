@@ -8,13 +8,48 @@ if (typeof window.App === 'undefined') {
   console.error('[AUTH] ❌ App namespace no disponible. Asegúrate de cargar app.js antes de auth.js');
 }
 
-// Alias para facilitar el uso
-const App = window.App;
+// ✅ Acceder a App de forma segura
+function getApp() {
+  if (typeof window.App === 'undefined') {
+    console.error('[AUTH] ❌ App namespace no disponible. Asegúrate de cargar app.js antes de auth.js');
+    return null;
+  }
+  return window.App;
+}
 
-// ✅ Constantes locales (referencias a constantes de app.js)
-const MASTER_HASH = App.getMasterHash();
-const SUPER_ADMINS = App.getSuperAdmins();
-const AUDIT_ACTION_TYPES = App.getAuditActionTypes();
+// ✅ Funciones helper para acceder a constantes de forma segura
+function getMasterHash() {
+  const App = getApp();
+  if (!App) return null;
+  try {
+    return App.getMasterHash();
+  } catch (e) {
+    console.error('[AUTH] Error obteniendo MASTER_HASH:', e);
+    return null;
+  }
+}
+
+function getSuperAdmins() {
+  const App = getApp();
+  if (!App) return [];
+  try {
+    return App.getSuperAdmins();
+  } catch (e) {
+    console.error('[AUTH] Error obteniendo SUPER_ADMINS:', e);
+    return [];
+  }
+}
+
+function getAuditActionTypes() {
+  const App = getApp();
+  if (!App) return {};
+  try {
+    return App.getAuditActionTypes();
+  } catch (e) {
+    console.error('[AUTH] Error obteniendo AUDIT_ACTION_TYPES:', e);
+    return {};
+  }
+}
 
 // ✅ Variables globales que este módulo necesita modificar
 // Estas se acceden directamente desde window porque son compartidas
@@ -53,28 +88,35 @@ async function tryLoginByCode(code) {
     }
 
     // master
-    if (hex === MASTER_HASH) {
+    const AppInstance = getApp();
+    if (!AppInstance) {
+      msg.textContent = 'Error: App no disponible.';
+      msg.classList.add('error');
+      return false;
+    }
+    const MASTER_HASH_VAL = getMasterHash();
+    if (hex === MASTER_HASH_VAL) {
       // ✅ Establecer flag de master autenticado (CRÍTICO para validación de seguridad)
-      App.setIsMasterAuthenticated(true);
-      App.setCurrentKeyHex(MASTER_HASH);
+      AppInstance.setIsMasterAuthenticated(true);
+      AppInstance.setCurrentKeyHex(MASTER_HASH_VAL);
 
       // ✅ Refresh en background (no bloquear login) con timeout corto
-      if (App.hasRemote()) {
-        App.log('[SYNC] Iniciando refresh de todos los cursos en background...');
-        const mergedMap = App.getMergedAccessHashMap();
-        const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
-        App.log('[SYNC] Total de cursos a refrescar:', hexes.length);
+      if (AppInstance.hasRemote()) {
+        AppInstance.log('[SYNC] Iniciando refresh de todos los cursos en background...');
+        const mergedMap = AppInstance.getMergedAccessHashMap();
+        const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH_VAL);
+        AppInstance.log('[SYNC] Total de cursos a refrescar:', hexes.length);
 
         // Iniciar refresh en background (no await, con timeout global)
         Promise.race([
           Promise.allSettled(hexes.map((h, index) => {
             const isLast = index === hexes.length - 1;
             const label = isLast ? `[ÚLTIMO CURSO]` : '';
-            App.log(`${label} [SYNC] Refrescando curso ${index + 1}/${hexes.length}: ${h.substring(0, 8)}...`);
-            return App.refreshFromRemoteSilent(h)
+            AppInstance.log(`${label} [SYNC] Refrescando curso ${index + 1}/${hexes.length}: ${h.substring(0, 8)}...`);
+            return AppInstance.refreshFromRemoteSilent(h)
               .then(result => {
                 if (isLast) {
-                  App.log(`[ÚLTIMO CURSO] ✅ Refresh completado para ${h.substring(0, 8)}, resultado:`, result);
+                  AppInstance.log(`[ÚLTIMO CURSO] ✅ Refresh completado para ${h.substring(0, 8)}, resultado:`, result);
                 }
                 return result;
               })
@@ -84,7 +126,7 @@ async function tryLoginByCode(code) {
               });
           })),
           new Promise(resolve => setTimeout(() => {
-            App.log('[SYNC] Timeout refresh global, continuando...');
+            AppInstance.log('[SYNC] Timeout refresh global, continuando...');
             resolve({});
           }, 2000)) // Timeout de 2 segundos máximo para todos los cursos
         ])
@@ -92,37 +134,37 @@ async function tryLoginByCode(code) {
             if (Array.isArray(results)) {
               const successful = results.filter(r => r.status === 'fulfilled').length;
               const failed = results.filter(r => r.status === 'rejected').length;
-              App.log(`[SYNC] Refresh completado: ${successful} exitosos, ${failed} fallidos`);
+              AppInstance.log(`[SYNC] Refresh completado: ${successful} exitosos, ${failed} fallidos`);
             }
           })
           .catch(e => {
-            App.warn('[SYNC] Error general en refresh:', e);
+            AppInstance.warn('[SYNC] Error general en refresh:', e);
           });
 
-        App.log('[SYNC] Refresh iniciado en background, continuando con login...');
+        AppInstance.log('[SYNC] Refresh iniciado en background, continuando con login...');
       }
 
       // Ejecutar animación de loader ahora que ya tenemos los datos
       try {
-        await App.runLoader();
+        await AppInstance.runLoader();
       } catch (e) { }
 
-      App.clearAttempts();
-      App.setQueryParam('code', btoa(code));
+      AppInstance.clearAttempts();
+      AppInstance.setQueryParam('code', btoa(code));
 
       // ✅ Cargar cursos remotos en background (no bloquear)
-      App.refreshCustomCourses().catch(e => {
-        App.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
+      AppInstance.refreshCustomCourses().catch(e => {
+        AppInstance.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
       });
 
-      App.buildMasterGrid();
-      App.setupMasterSearch();
-      App.$('#year_master').textContent = new Date().getFullYear();
-      App.showMaster();
+      AppInstance.buildMasterGrid();
+      AppInstance.setupMasterSearch();
+      AppInstance.$('#year_master').textContent = new Date().getFullYear();
+      AppInstance.showMaster();
       // ✅ Llamar setupAdvancedFilters y setupNotificationsPanel DESPUÉS de showMaster para asegurar que los elementos estén visibles
       setTimeout(() => {
-        App.setupAdvancedFilters();
-        App.setupNotificationsPanel();
+        AppInstance.setupAdvancedFilters();
+        AppInstance.setupNotificationsPanel();
       }, 50);
 
       // ✅ Google Analytics: Tracking login exitoso Master
@@ -138,44 +180,44 @@ async function tryLoginByCode(code) {
     // normal
     // ✅ CRÍTICO: Cargar cursos personalizados ANTES de validar (por si no están cargados)
     // Esto asegura que cursos personalizados recién creados estén disponibles
-    if (App.hasRemote()) {
-      App.log('[LOGIN] Cargando cursos personalizados antes de validar...');
-      await App.refreshCustomCourses().catch(e => {
-        App.warn('[LOGIN] Error cargando cursos personalizados (continuando):', e);
+    if (AppInstance.hasRemote()) {
+      AppInstance.log('[LOGIN] Cargando cursos personalizados antes de validar...');
+      await AppInstance.refreshCustomCourses().catch(e => {
+        AppInstance.warn('[LOGIN] Error cargando cursos personalizados (continuando):', e);
       });
     }
 
     // ✅ Obtener mergedMap DESPUÉS de cargar cursos personalizados
-    const mergedMap = App.getMergedAccessHashMap();
-    App.log('[LOGIN] Validando código, cursos disponibles:', Object.keys(mergedMap).length);
-    App.log('[LOGIN] Hex a buscar:', hex.substring(0, 8) + '...');
+    const mergedMap = AppInstance.getMergedAccessHashMap();
+    AppInstance.log('[LOGIN] Validando código, cursos disponibles:', Object.keys(mergedMap).length);
+    AppInstance.log('[LOGIN] Hex a buscar:', hex.substring(0, 8) + '...');
 
     if (mergedMap && mergedMap[hex]) {
-      App.log('[LOGIN] ✅ Código válido encontrado en hashmap');
+      AppInstance.log('[LOGIN] ✅ Código válido encontrado en hashmap');
       // Mostrar loader inmediatamente
-      App.showLoader();
+      AppInstance.showLoader();
 
       // ✅ CRÍTICO: Esperar refresh ANTES de renderizar (igual que cursos base desde master)
       // Esto asegura que los archivos estén actualizados cuando se muestra el curso
-      if (App.hasRemote()) {
-        App.log('[SYNC] Iniciando refresh antes de mostrar curso...');
-        await App.refreshFromRemoteSilent(hex).catch(e => {
-          App.warn('[SYNC] Error en refresh:', e);
+      if (AppInstance.hasRemote()) {
+        AppInstance.log('[SYNC] Iniciando refresh antes de mostrar curso...');
+        await AppInstance.refreshFromRemoteSilent(hex).catch(e => {
+          AppInstance.warn('[SYNC] Error en refresh:', e);
           return false;
         });
-        App.log('[SYNC] ✅ Refresh completado, renderizando curso...');
+        AppInstance.log('[SYNC] ✅ Refresh completado, renderizando curso...');
       }
 
       // Ejecutar animación de loader después del refresh
       try {
-        await App.runLoader();
+        await AppInstance.runLoader();
       } catch (e) { }
 
-      App.setCurrentKeyHex(hex);
-      App.clearAttempts();
-      App.setQueryParam('code', btoa(code));
-      App.renderCourse(hex);
-      App.showContent();
+      AppInstance.setCurrentKeyHex(hex);
+      AppInstance.clearAttempts();
+      AppInstance.setQueryParam('code', btoa(code));
+      AppInstance.renderCourse(hex);
+      AppInstance.showContent();
 
       // ✅ Google Analytics: Tracking login exitoso curso
       if (typeof gtag !== 'undefined') {
@@ -188,14 +230,14 @@ async function tryLoginByCode(code) {
 
       return true;
     } else {
-      App.warn('[LOGIN] ❌ Código no encontrado en hashmap');
-      App.warn('[LOGIN] Cursos disponibles:', Object.keys(mergedMap || {}));
-      App.warn('[LOGIN] Hex buscado:', hex.substring(0, 8) + '...');
+      AppInstance.warn('[LOGIN] ❌ Código no encontrado en hashmap');
+      AppInstance.warn('[LOGIN] Cursos disponibles:', Object.keys(mergedMap || {}));
+      AppInstance.warn('[LOGIN] Hex buscado:', hex.substring(0, 8) + '...');
 
-      const attempts = App.recordAttempt();
+      const attempts = AppInstance.recordAttempt();
       msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
       msg.classList.add('error');
-      App.maybeShowAttemptsWarning();
+      AppInstance.maybeShowAttemptsWarning();
 
       // ✅ Google Analytics: Tracking de código inválido
       if (typeof gtag !== 'undefined') {
@@ -220,6 +262,8 @@ async function tryLoginByCode(code) {
 
 // ✅ Función para manejar pestañas de autenticación
 function switchAuthTab(tab) {
+  const App = getApp();
+  if (!App) return;
   const tabCode = App.$('#tab-code');
   const tabAccount = App.$('#tab-account');
   const formCode = App.$('#form-code');
@@ -242,6 +286,8 @@ function switchAuthTab(tab) {
 
 // ✅ Función para mostrar formulario de login
 function showLoginForm() {
+  const App = getApp();
+  if (!App) return;
   const formLogin = App.$('#form-login');
   const formRegister = App.$('#form-register');
   const formReset = App.$('#form-reset');
@@ -273,6 +319,11 @@ function showLoginForm() {
 
 // ✅ Función para mostrar mensaje de autenticación
 function showAuthMessage(elementId, message, isError = false) {
+  const App = getApp();
+  if (!App) {
+    console.error('[AUTH] App no disponible en showAuthMessage');
+    return;
+  }
   const msgEl = App.$(elementId);
   if (msgEl) {
     msgEl.textContent = message;
@@ -293,6 +344,12 @@ function showAuthMessage(elementId, message, isError = false) {
 
 // ✅ Función para login con email/password
 async function tryLoginByEmail() {
+  const App = getApp();
+  if (!App) {
+    console.error('[AUTH] App no disponible en tryLoginByEmail');
+    return false;
+  }
+  
   // ✅ Rate limiting: prevenir ataques de fuerza bruta
   if (!App.checkRateLimitSimple('login')) {
     return false;
@@ -340,7 +397,8 @@ async function tryLoginByEmail() {
       // ✅ Verificación adicional: verificar directamente si es super admin (por si checkIsAdmin falla)
       if (!isAdmin) {
         const normalizedEmail = userEmail.toLowerCase().trim();
-        const isSuperAdmin = SUPER_ADMINS.includes(normalizedEmail);
+        const superAdmins = getSuperAdmins();
+        const isSuperAdmin = superAdmins.includes(normalizedEmail);
         App.log('[AUTH] 🔍 Verificación directa de super admin:', isSuperAdmin, 'para', normalizedEmail);
         if (isSuperAdmin) {
           App.log('[AUTH] ✅ Detectado como super admin directamente');
@@ -351,7 +409,8 @@ async function tryLoginByEmail() {
       console.error('[AUTH] ❌ Error verificando si es admin:', error);
       // Si hay error, intentar verificar directamente los super admins
       const normalizedEmail = userEmail.toLowerCase().trim();
-      isAdmin = SUPER_ADMINS.includes(normalizedEmail);
+      const superAdmins = getSuperAdmins();
+      isAdmin = superAdmins.includes(normalizedEmail);
       App.log('[AUTH] 🔍 Verificación directa de super admin (fallback):', isAdmin);
     }
 
@@ -387,7 +446,8 @@ async function tryLoginByEmail() {
     showAuthMessage('msg-auth', `¡Bienvenido! Tienes acceso a ${allowedCourses.length} curso(s).`, false);
 
     // ✅ Log de auditoría
-    await App.auditLog(AUDIT_ACTION_TYPES.LOGIN_SUCCESS, {
+    const auditTypes = getAuditActionTypes();
+    await App.auditLog(auditTypes.LOGIN_SUCCESS, {
       email: userEmail,
       coursesCount: allowedCourses.length
     }, userEmail, false); // No enviar a Firebase para evitar spam
@@ -400,7 +460,8 @@ async function tryLoginByEmail() {
 
     // ✅ Log de auditoría para login fallido
     const email = App.getSafeInputValue('#input-email', 'email');
-    await App.auditLog(AUDIT_ACTION_TYPES.LOGIN_FAILED, {
+    const auditTypes = getAuditActionTypes();
+    await App.auditLog(auditTypes.LOGIN_FAILED, {
       email: email || 'unknown',
       errorCode: error.code || 'unknown'
     }, email, false); // No enviar a Firebase para evitar spam
@@ -441,6 +502,11 @@ function generateVerificationCode() {
 }
 
 async function saveVerificationCode(email, code) {
+  const App = getApp();
+  if (!App) {
+    console.error('[AUTH] App no disponible en saveVerificationCode');
+    throw new Error('App no disponible');
+  }
   try {
     const db = App.getFirebaseDB();
     if (!db) {
@@ -491,6 +557,11 @@ async function sendVerificationCode(email, code) {
 }
 
 async function verifyCode(email, code) {
+  const App = getApp();
+  if (!App) {
+    console.error('[AUTH] App no disponible en verifyCode');
+    return { valid: false, error: 'App no disponible' };
+  }
   try {
     const db = App.getFirebaseDB();
     if (!db) {
@@ -531,6 +602,11 @@ async function verifyCode(email, code) {
 
 // ✅ Función para verificar correo antes de registrar
 async function verifyEmailForRegistration() {
+  const App = getApp();
+  if (!App) {
+    console.error('[AUTH] App no disponible en verifyEmailForRegistration');
+    return false;
+  }
   if (!App.checkRateLimitSimple('register')) {
     return false;
   }
@@ -629,6 +705,11 @@ async function verifyEmailForRegistration() {
 
 // ✅ Función para registro con email/password
 async function tryRegister() {
+  const App = getApp();
+  if (!App) {
+    console.error('[AUTH] App no disponible en tryRegister');
+    return false;
+  }
   if (!App.checkRateLimitSimple('register')) {
     return false;
   }
@@ -677,7 +758,8 @@ async function tryRegister() {
     window.currentUserEmail = email;
     await handleSuccessfulAuthWithEmail(email, allowedCourses);
 
-    await App.auditLog(AUDIT_ACTION_TYPES.REGISTER_SUCCESS, {
+    const auditTypes = getAuditActionTypes();
+    await App.auditLog(auditTypes.REGISTER_SUCCESS, {
       email: email,
       coursesCount: allowedCourses.length
     }, email, true);
@@ -713,6 +795,11 @@ async function tryRegister() {
 
 // ✅ Función para verificar código de verificación
 async function verifyCodeForRegistration() {
+  const App = getApp();
+  if (!App) {
+    console.error('[AUTH] App no disponible en verifyCodeForRegistration');
+    return false;
+  }
   if (!App.checkRateLimitSimple('verify_code')) {
     return false;
   }
@@ -762,6 +849,11 @@ async function verifyCodeForRegistration() {
 
 // ✅ Función para reenviar código de verificación
 async function resendVerificationCode() {
+  const App = getApp();
+  if (!App) {
+    console.error('[AUTH] App no disponible en resendVerificationCode');
+    return false;
+  }
   const email = window.verifiedEmailForRegistration;
 
   if (!email) {
@@ -792,6 +884,11 @@ async function resendVerificationCode() {
 
 // ✅ Función para reset de contraseña
 async function tryPasswordReset() {
+  const App = getApp();
+  if (!App) {
+    console.error('[AUTH] App no disponible en tryPasswordReset');
+    return false;
+  }
   if (!App.checkRateLimitSimple('password_reset')) {
     return false;
   }
@@ -842,18 +939,24 @@ async function tryPasswordReset() {
 
 // ✅ Función para manejar autenticación exitosa con email
 async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
+  const App = getApp();
+  if (!App) {
+    console.error('[AUTH] App no disponible en handleSuccessfulAuthWithEmail');
+    return;
+  }
   App.log('[AUTH] ✅ Mostrando cursos permitidos para:', userEmail);
 
   const isAdmin = await App.checkIsAdmin(userEmail);
   if (isAdmin) {
     App.log('[AUTH] ✅ Usuario es administrador, otorgando acceso master');
+    const MASTER_HASH_VAL = getMasterHash();
     App.setIsMasterAuthenticated(true);
-    App.setCurrentKeyHex(MASTER_HASH);
+    App.setCurrentKeyHex(MASTER_HASH_VAL);
 
     if (App.hasRemote()) {
       App.log('[SYNC] Iniciando refresh de todos los cursos en background...');
       const mergedMap = App.getMergedAccessHashMap();
-      const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
+      const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH_VAL);
       App.log('[SYNC] Total de cursos a refrescar:', hexes.length);
 
       Promise.allSettled(hexes.map(h => App.refreshFromRemoteSilent(h).catch(e => {
@@ -922,16 +1025,22 @@ async function logoutFirebase() {
 
 // ✅ Función compartida para manejar autenticación exitosa (código)
 async function handleSuccessfulAuth(hex, method = 'code') {
+  const App = getApp();
+  if (!App) {
+    console.error('[AUTH] App no disponible');
+    return;
+  }
   App.log('[AUTH] ✅ Autenticación exitosa por:', method);
 
-  if (hex === MASTER_HASH) {
+  const MASTER_HASH_VAL = getMasterHash();
+  if (hex === MASTER_HASH_VAL) {
     App.setIsMasterAuthenticated(true);
-    App.setCurrentKeyHex(MASTER_HASH);
+    App.setCurrentKeyHex(MASTER_HASH_VAL);
 
     if (App.hasRemote()) {
       App.log('[SYNC] Iniciando refresh de todos los cursos en background...');
       const mergedMap = App.getMergedAccessHashMap();
-      const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
+      const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH_VAL);
       App.log('[SYNC] Total de cursos a refrescar:', hexes.length);
 
       Promise.allSettled(hexes.map(h => App.refreshFromRemoteSilent(h).catch(e => {
@@ -986,6 +1095,11 @@ async function handleSuccessfulAuth(hex, method = 'code') {
 
 // ✅ Listener para estado de autenticación persistente
 function setupAuthStateListener() {
+  const App = getApp();
+  if (!App) {
+    console.error('[AUTH] App no disponible en setupAuthStateListener');
+    return;
+  }
   if (!window.firebaseAuth) {
     App.log('[AUTH] Firebase Auth no disponible, omitiendo listener de estado');
     return;
@@ -1003,7 +1117,8 @@ function setupAuthStateListener() {
       const userViewEl = document.getElementById('user-view');
       const contentEl = document.getElementById('content');
       const accessEl = document.getElementById('access');
-      const isInMaster = App.getCurrentKeyHex() === MASTER_HASH || (masterEl && !masterEl.classList.contains('hidden'));
+      const MASTER_HASH_VAL = getMasterHash();
+      const isInMaster = App.getCurrentKeyHex() === MASTER_HASH_VAL || (masterEl && !masterEl.classList.contains('hidden'));
       const isInUserView = userViewEl && !userViewEl.classList.contains('hidden');
       const isInContent = contentEl && !contentEl.classList.contains('hidden');
       const isInAccess = accessEl && !accessEl.classList.contains('hidden');
@@ -1046,7 +1161,8 @@ function setupAuthStateListener() {
       App.log('[AUTH] Usuario no autenticado');
       window.currentUserEmail = null;
       window.allowedCoursesForUser = null;
-      if (App.getCurrentKeyHex() === MASTER_HASH || (document.getElementById('user-view') && !document.getElementById('user-view').classList.contains('hidden'))) {
+      const MASTER_HASH_VAL = getMasterHash();
+      if (App.getCurrentKeyHex() === MASTER_HASH_VAL || (document.getElementById('user-view') && !document.getElementById('user-view').classList.contains('hidden'))) {
         App.setCurrentKeyHex(null);
         App.setQueryParam('code', null);
         App.showAccess();
