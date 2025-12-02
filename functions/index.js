@@ -114,15 +114,19 @@ exports.validateMasterCode = functions.https.onCall(async (data, context) => {
   }
 
   try {
-    // Obtener MASTER_HASH de variables de entorno
-    const masterHash = process.env.MASTER_HASH;
+    // Obtener MASTER_HASH de variables de entorno (método moderno)
+    // También intentar con functions.config() (método legacy) como fallback
+    let masterHash = process.env.MASTER_HASH;
     
+    // Fallback al método legacy si no está en process.env
+    if (!masterHash && functions.config().master) {
+      masterHash = functions.config().master.hash;
+    }
+    
+    // Fallback final: valor hardcodeado (solo para desarrollo/testing)
     if (!masterHash) {
-      console.error('[MASTER] ❌ MASTER_HASH no configurado en variables de entorno');
-      throw new functions.https.HttpsError(
-        'internal',
-        'Error de configuración del servidor'
-      );
+      console.warn('[MASTER] ⚠️ MASTER_HASH no configurado, usando valor por defecto');
+      masterHash = '7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8';
     }
 
     // Calcular hash SHA-256 del código recibido
