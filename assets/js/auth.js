@@ -1,0 +1,1080 @@
+/* ============ MÓDULO DE AUTENTICACIÓN ============ */
+// ✅ Este módulo maneja todo lo relacionado con autenticación
+// ✅ Depende de window.App para acceder a funciones de app.js
+// ✅ Versión: 1.0 - Separado de app.js para mejor mantenibilidad
+
+// Verificar que App esté disponible
+if (typeof window.App === 'undefined') {
+  console.error('[AUTH] ❌ App namespace no disponible. Asegúrate de cargar app.js antes de auth.js');
+}
+
+// Alias para facilitar el uso
+const App = window.App;
+
+// ✅ Constantes locales (referencias a constantes de app.js)
+const MASTER_HASH = App.getMasterHash();
+const SUPER_ADMINS = App.getSuperAdmins();
+const AUDIT_ACTION_TYPES = App.getAuditActionTypes();
+
+// ✅ Variables globales que este módulo necesita modificar
+// Estas se acceden directamente desde window porque son compartidas
+// window.currentUserEmail
+// window.allowedCoursesForUser
+// window.isFromUserView
+// isMasterAuthenticated (se accede mediante App)
+// currentKeyHex (se accede mediante App)
+
+/* ============ FUNCIONES DE AUTENTICACIÓN ============ */
+
+// ✅ Función para login con código secreto
+async function tryLoginByCode(code) {
+  const msg = App.$('#msg');
+  msg.textContent = 'Verificando…';
+  msg.classList.remove('error');
+
+  // ✅ Sanitizar código
+  const sanitizedCode = App.safeInput(code, 'code');
+
+  if (!sanitizedCode || sanitizedCode.length === 0) {
+    msg.textContent = 'Ingrese un código válido.';
+    msg.classList.add('error');
+    return false;
+  }
+
+  try {
+    const hex = await App.sha256Hex(sanitizedCode);
+
+    // ✅ Google Analytics: Tracking de intento de login
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'login_attempt', {
+        'event_category': 'authentication',
+        'event_label': 'attempt'
+      });
+    }
+
+    // master
+    if (hex === MASTER_HASH) {
+      // ✅ Establecer flag de master autenticado (CRÍTICO para validación de seguridad)
+      App.setIsMasterAuthenticated(true);
+      App.setCurrentKeyHex(MASTER_HASH);
+
+      // ✅ Refresh en background (no bloquear login) con timeout corto
+      if (App.hasRemote()) {
+        App.log('[SYNC] Iniciando refresh de todos los cursos en background...');
+        const mergedMap = App.getMergedAccessHashMap();
+        const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
+        App.log('[SYNC] Total de cursos a refrescar:', hexes.length);
+
+        // Iniciar refresh en background (no await, con timeout global)
+        Promise.race([
+          Promise.allSettled(hexes.map((h, index) => {
+            const isLast = index === hexes.length - 1;
+            const label = isLast ? `[ÚLTIMO CURSO]` : '';
+            App.log(`${label} [SYNC] Refrescando curso ${index + 1}/${hexes.length}: ${h.substring(0, 8)}...`);
+            return App.refreshFromRemoteSilent(h)
+              .then(result => {
+                if (isLast) {
+                  App.log(`[ÚLTIMO CURSO] ✅ Refresh completado para ${h.substring(0, 8)}, resultado:`, result);
+                }
+                return result;
+              })
+              .catch(e => {
+                console.error(`[SYNC] ❌ Error refrescando curso ${h.substring(0, 8)}:`, e);
+                return false;
+              });
+          })),
+          new Promise(resolve => setTimeout(() => {
+            App.log('[SYNC] Timeout refresh global, continuando...');
+            resolve({});
+          }, 2000)) // Timeout de 2 segundos máximo para todos los cursos
+        ])
+          .then(results => {
+            if (Array.isArray(results)) {
+              const successful = results.filter(r => r.status === 'fulfilled').length;
+              const failed = results.filter(r => r.status === 'rejected').length;
+              App.log(`[SYNC] Refresh completado: ${successful} exitosos, ${failed} fallidos`);
+            }
+          })
+          .catch(e => {
+            App.warn('[SYNC] Error general en refresh:', e);
+          });
+
+        App.log('[SYNC] Refresh iniciado en background, continuando con login...');
+      }
+
+      // Ejecutar animación de loader ahora que ya tenemos los datos
+      try {
+        await App.runLoader();
+      } catch (e) { }
+
+      App.clearAttempts();
+      App.setQueryParam('code', btoa(code));
+
+      // ✅ Cargar cursos remotos en background (no bloquear)
+      App.refreshCustomCourses().catch(e => {
+        App.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
+      });
+
+      App.buildMasterGrid();
+      App.setupMasterSearch();
+      App.$('#year_master').textContent = new Date().getFullYear();
+      App.showMaster();
+      // ✅ Llamar setupAdvancedFilters y setupNotificationsPanel DESPUÉS de showMaster para asegurar que los elementos estén visibles
+      setTimeout(() => {
+        App.setupAdvancedFilters();
+        App.setupNotificationsPanel();
+      }, 50);
+
+      // ✅ Google Analytics: Tracking login exitoso Master
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'login_success_master', {
+          'event_category': 'authentication'
+        });
+      }
+
+      return true;
+    }
+
+    // normal
+    // ✅ CRÍTICO: Cargar cursos personalizados ANTES de validar (por si no están cargados)
+    // Esto asegura que cursos personalizados recién creados estén disponibles
+    if (App.hasRemote()) {
+      App.log('[LOGIN] Cargando cursos personalizados antes de validar...');
+      await App.refreshCustomCourses().catch(e => {
+        App.warn('[LOGIN] Error cargando cursos personalizados (continuando):', e);
+      });
+    }
+
+    // ✅ Obtener mergedMap DESPUÉS de cargar cursos personalizados
+    const mergedMap = App.getMergedAccessHashMap();
+    App.log('[LOGIN] Validando código, cursos disponibles:', Object.keys(mergedMap).length);
+    App.log('[LOGIN] Hex a buscar:', hex.substring(0, 8) + '...');
+
+    if (mergedMap && mergedMap[hex]) {
+      App.log('[LOGIN] ✅ Código válido encontrado en hashmap');
+      // Mostrar loader inmediatamente
+      App.showLoader();
+
+      // ✅ CRÍTICO: Esperar refresh ANTES de renderizar (igual que cursos base desde master)
+      // Esto asegura que los archivos estén actualizados cuando se muestra el curso
+      if (App.hasRemote()) {
+        App.log('[SYNC] Iniciando refresh antes de mostrar curso...');
+        await App.refreshFromRemoteSilent(hex).catch(e => {
+          App.warn('[SYNC] Error en refresh:', e);
+          return false;
+        });
+        App.log('[SYNC] ✅ Refresh completado, renderizando curso...');
+      }
+
+      // Ejecutar animación de loader después del refresh
+      try {
+        await App.runLoader();
+      } catch (e) { }
+
+      App.setCurrentKeyHex(hex);
+      App.clearAttempts();
+      App.setQueryParam('code', btoa(code));
+      App.renderCourse(hex);
+      App.showContent();
+
+      // ✅ Google Analytics: Tracking login exitoso curso
+      if (typeof gtag !== 'undefined') {
+        const courseData = mergedMap[hex];
+        gtag('event', 'login_success_course', {
+          'event_category': 'authentication',
+          'event_label': courseData.card?.tag || 'unknown'
+        });
+      }
+
+      return true;
+    } else {
+      App.warn('[LOGIN] ❌ Código no encontrado en hashmap');
+      App.warn('[LOGIN] Cursos disponibles:', Object.keys(mergedMap || {}));
+      App.warn('[LOGIN] Hex buscado:', hex.substring(0, 8) + '...');
+
+      const attempts = App.recordAttempt();
+      msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
+      msg.classList.add('error');
+      App.maybeShowAttemptsWarning();
+
+      // ✅ Google Analytics: Tracking de código inválido
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'login_error', {
+          'event_category': 'authentication',
+          'event_label': 'invalid_code',
+          'value': attempts
+        });
+      }
+
+      return false;
+    }
+  } catch (e) {
+    console.error(e);
+    msg.textContent = 'Ocurrió un error al verificar el código.';
+    msg.classList.add('error');
+    return false;
+  }
+}
+
+/* ============ Firebase Authentication ============ */
+
+// ✅ Función para manejar pestañas de autenticación
+function switchAuthTab(tab) {
+  const tabCode = App.$('#tab-code');
+  const tabAccount = App.$('#tab-account');
+  const formCode = App.$('#form-code');
+  const formAccount = App.$('#form-account');
+
+  if (tab === 'code') {
+    if (tabCode) tabCode.classList.add('active');
+    if (tabAccount) tabAccount.classList.remove('active');
+    if (formCode) formCode.classList.remove('hidden');
+    if (formAccount) formAccount.classList.add('hidden');
+  } else {
+    if (tabCode) tabCode.classList.remove('active');
+    if (tabAccount) tabAccount.classList.add('active');
+    if (formCode) formCode.classList.add('hidden');
+    if (formAccount) formAccount.classList.remove('hidden');
+    // Mostrar formulario de login por defecto
+    showLoginForm();
+  }
+}
+
+// ✅ Función para mostrar formulario de login
+function showLoginForm() {
+  const formLogin = App.$('#form-login');
+  const formRegister = App.$('#form-register');
+  const formReset = App.$('#form-reset');
+
+  if (formLogin) {
+    formLogin.classList.remove('hidden');
+  }
+  if (formRegister) {
+    formRegister.classList.add('hidden');
+    // Resetear formulario de registro al paso 1
+    const step1 = App.$('#register-step-1');
+    const step2 = App.$('#register-step-2');
+    const step3 = App.$('#register-step-3');
+    if (step1) step1.style.display = 'block';
+    if (step2) step2.style.display = 'none';
+    if (step3) step3.style.display = 'none';
+    window.verifiedEmailForRegistration = null;
+    window.verifiedCoursesForRegistration = null;
+    window.verifiedIsAdmin = null;
+    showAuthMessage('msg-register', '', false);
+    showAuthMessage('msg-register-step2', '', false);
+    showAuthMessage('msg-register-step3', '', false);
+    App.clearFieldErrors();
+  }
+  if (formReset) {
+    formReset.classList.add('hidden');
+  }
+}
+
+// ✅ Función para mostrar mensaje de autenticación
+function showAuthMessage(elementId, message, isError = false) {
+  const msgEl = App.$(elementId);
+  if (msgEl) {
+    msgEl.textContent = message;
+    msgEl.classList.remove('error');
+    if (isError) {
+      msgEl.classList.add('error');
+    }
+    // Asegurar que el mensaje sea visible
+    msgEl.style.display = 'block';
+    msgEl.style.visibility = 'visible';
+    App.log('[AUTH] 💬 Mensaje mostrado:', elementId, message);
+  } else {
+    App.warn('[AUTH] ⚠️ No se encontró el elemento para mensaje:', elementId);
+  }
+}
+
+// ✅ Funciones de autenticación con email/password
+
+// ✅ Función para login con email/password
+async function tryLoginByEmail() {
+  // ✅ Rate limiting: prevenir ataques de fuerza bruta
+  if (!App.checkRateLimitSimple('login')) {
+    return false;
+  }
+
+  // ✅ Sanitizar inputs
+  const email = App.getSafeInputValue('#input-email', 'email');
+  const password = App.getSafeInputValue('#input-password', 'password'); // Password no se sanitiza
+
+  if (!email || !password) {
+    showAuthMessage('msg-auth', 'Por favor, completa todos los campos.', true);
+    return false;
+  }
+
+  if (!email.includes('@')) {
+    showAuthMessage('msg-auth', 'Por favor, ingresa un correo válido.', true);
+    App.markFieldError('input-email');
+    return false;
+  }
+
+  App.clearFieldErrors();
+  showAuthMessage('msg-auth', 'Iniciando sesión…', false);
+
+  try {
+    if (!window.firebaseAuth) {
+      showAuthMessage('msg-auth', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
+      return false;
+    }
+
+    const userCredential = await window.firebaseAuth.signInWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+    const userEmail = user.email.toLowerCase().trim();
+
+    App.log('[AUTH] ✅ Login exitoso:', userEmail);
+
+    window.currentUserEmail = userEmail;
+
+    // ✅ PRIMERO: Verificar si es administrador
+    let isAdmin = false;
+    try {
+      App.log('[AUTH] 🔍 Verificando si', userEmail, 'es administrador...');
+      isAdmin = await App.checkIsAdmin(userEmail);
+      App.log('[AUTH] 🔍 Resultado de checkIsAdmin para', userEmail, ':', isAdmin);
+
+      // ✅ Verificación adicional: verificar directamente si es super admin (por si checkIsAdmin falla)
+      if (!isAdmin) {
+        const normalizedEmail = userEmail.toLowerCase().trim();
+        const isSuperAdmin = SUPER_ADMINS.includes(normalizedEmail);
+        App.log('[AUTH] 🔍 Verificación directa de super admin:', isSuperAdmin, 'para', normalizedEmail);
+        if (isSuperAdmin) {
+          App.log('[AUTH] ✅ Detectado como super admin directamente');
+          isAdmin = true;
+        }
+      }
+    } catch (error) {
+      console.error('[AUTH] ❌ Error verificando si es admin:', error);
+      // Si hay error, intentar verificar directamente los super admins
+      const normalizedEmail = userEmail.toLowerCase().trim();
+      isAdmin = SUPER_ADMINS.includes(normalizedEmail);
+      App.log('[AUTH] 🔍 Verificación directa de super admin (fallback):', isAdmin);
+    }
+
+    if (isAdmin) {
+      // ✅ Es administrador, otorgar acceso master directamente
+      App.log('[AUTH] ✅ Usuario es administrador, otorgando acceso master');
+      showAuthMessage('msg-auth', '¡Bienvenido! Acceso de administrador activado.', false);
+      await handleSuccessfulAuthWithEmail(userEmail, []); // Array vacío, pero es admin
+      return true;
+    }
+
+    // ✅ Si NO es admin, verificar cursos permitidos
+    showAuthMessage('msg-auth', 'Verificando cursos disponibles…', false);
+
+    let allowedCourses;
+    try {
+      allowedCourses = await App.getCoursesForEmail(userEmail);
+    } catch (error) {
+      console.error('[AUTH] ❌ Error obteniendo cursos:', error);
+      showAuthMessage('msg-auth', 'Error al verificar cursos. Por favor, intente nuevamente.', true);
+      return false;
+    }
+
+    App.log('[AUTH] Cursos permitidos para', userEmail, ':', allowedCourses.length);
+
+    if (allowedCourses.length === 0) {
+      showAuthMessage('msg-auth', 'No tienes acceso a ningún curso. Contacta al administrador para solicitar acceso.', true);
+      return false;
+    }
+
+    // ✅ USAR LA FUNCIÓN EXISTENTE (LÓGICA INTACTA)
+    await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
+    showAuthMessage('msg-auth', `¡Bienvenido! Tienes acceso a ${allowedCourses.length} curso(s).`, false);
+
+    // ✅ Log de auditoría
+    await App.auditLog(AUDIT_ACTION_TYPES.LOGIN_SUCCESS, {
+      email: userEmail,
+      coursesCount: allowedCourses.length
+    }, userEmail, false); // No enviar a Firebase para evitar spam
+
+    return true;
+
+  } catch (error) {
+    console.error('[AUTH] ❌ Error en login:', error);
+    let errorMessage = 'Error al iniciar sesión.';
+
+    // ✅ Log de auditoría para login fallido
+    const email = App.getSafeInputValue('#input-email', 'email');
+    await App.auditLog(AUDIT_ACTION_TYPES.LOGIN_FAILED, {
+      email: email || 'unknown',
+      errorCode: error.code || 'unknown'
+    }, email, false); // No enviar a Firebase para evitar spam
+
+    // ✅ Manejar el código nuevo de Firebase que combina user-not-found y wrong-password
+    if (error.code === 'auth/invalid-login-credentials' ||
+      error.code === 'auth/user-not-found' ||
+      error.code === 'auth/wrong-password') {
+      errorMessage = 'Correo o contraseña incorrectos. Verifica tus credenciales e intenta nuevamente.';
+      App.markFieldError('input-email');
+      App.markFieldError('input-password');
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = 'Correo electrónico inválido.';
+      App.markFieldError('input-email');
+    } else if (error.code === 'auth/user-disabled') {
+      errorMessage = 'Esta cuenta ha sido deshabilitada.';
+    } else if (error.code === 'auth/too-many-requests') {
+      errorMessage = 'Demasiados intentos fallidos. Intenta más tarde.';
+    } else if (error.code === 'auth/network-request-failed') {
+      errorMessage = 'Error de conexión. Verifica tu internet e intenta nuevamente.';
+    } else {
+      // ✅ Mensaje genérico sin mencionar Firebase
+      errorMessage = 'No se pudo iniciar sesión. Verifica tus credenciales e intenta nuevamente.';
+    }
+
+    showAuthMessage('msg-auth', errorMessage, true);
+    return false;
+  }
+}
+
+// ✅ Funciones auxiliares de verificación
+function normalizeEmailKey(email) {
+  return email.toLowerCase().trim().replace(/\./g, '_');
+}
+
+function generateVerificationCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+async function saveVerificationCode(email, code) {
+  try {
+    const db = App.getFirebaseDB();
+    if (!db) {
+      throw new Error('Firebase no disponible');
+    }
+
+    const emailKey = normalizeEmailKey(email);
+    const codeRef = db.ref(`${App.getVerificationCodesPath()}/${emailKey}`);
+
+    const codeData = {
+      code: code,
+      email: email.toLowerCase().trim(),
+      createdAt: Date.now(),
+      expiresAt: Date.now() + (10 * 60 * 1000), // 10 minutos
+      used: false
+    };
+
+    await codeRef.set(codeData);
+    App.log('[VERIFICATION] ✅ Código guardado en Firebase para:', email);
+    return true;
+  } catch (error) {
+    App.error('[VERIFICATION] ❌ Error guardando código:', error);
+    throw error;
+  }
+}
+
+async function sendVerificationCode(email, code) {
+  try {
+    if (typeof emailjs === 'undefined') {
+      console.error('[VERIFICATION] ❌ EmailJS no está cargado');
+      throw new Error('EmailJS no está disponible. Por favor, recarga la página.');
+    }
+
+    const SERVICE_ID = 'service_ectemf7';
+    const TEMPLATE_ID = 'template_g9pmmxm';
+
+    const result = await emailjs.send(SERVICE_ID, TEMPLATE_ID, {
+      email: email,
+      code: code,
+      from_name: 'EduSalud'
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('[VERIFICATION] ❌ Error enviando código:', error);
+    throw error;
+  }
+}
+
+async function verifyCode(email, code) {
+  try {
+    const db = App.getFirebaseDB();
+    if (!db) {
+      throw new Error('Firebase no disponible');
+    }
+
+    const emailKey = normalizeEmailKey(email);
+    const codeRef = db.ref(`${App.getVerificationCodesPath()}/${emailKey}`);
+    const snapshot = await codeRef.once('value');
+
+    if (!snapshot.exists()) {
+      return { valid: false, error: 'Código no encontrado. Solicita uno nuevo.' };
+    }
+
+    const codeData = snapshot.val();
+    const now = Date.now();
+
+    if (codeData.used) {
+      return { valid: false, error: 'Este código ya fue utilizado.' };
+    }
+
+    if (now > codeData.expiresAt) {
+      return { valid: false, error: 'El código ha expirado. Solicita uno nuevo.' };
+    }
+
+    if (codeData.code !== code.trim()) {
+      return { valid: false, error: 'Código incorrecto. Intenta nuevamente.' };
+    }
+
+    await codeRef.update({ used: true });
+    App.log('[VERIFICATION] ✅ Código verificado correctamente');
+    return { valid: true };
+  } catch (error) {
+    App.error('[VERIFICATION] ❌ Error verificando código:', error);
+    return { valid: false, error: 'Error al verificar el código. Intenta nuevamente.' };
+  }
+}
+
+// ✅ Función para verificar correo antes de registrar
+async function verifyEmailForRegistration() {
+  if (!App.checkRateLimitSimple('register')) {
+    return false;
+  }
+
+  const email = App.getSafeInputValue('#input-register-email', 'email');
+
+  if (!email) {
+    showAuthMessage('msg-register', 'Por favor, ingresa tu correo electrónico.', true);
+    return false;
+  }
+
+  if (!email.includes('@')) {
+    showAuthMessage('msg-register', 'Por favor, ingresa un correo válido.', true);
+    App.markFieldError('input-register-email');
+    return false;
+  }
+
+  App.clearFieldErrors();
+  const normalizedEmail = email;
+  showAuthMessage('msg-register', 'Verificando autorización del correo…', false);
+
+  try {
+    const isAdmin = await App.checkIsAdmin(normalizedEmail);
+    let allowedCourses = [];
+
+    if (!isAdmin) {
+      allowedCourses = await App.getCoursesForEmail(normalizedEmail);
+      if (allowedCourses.length === 0) {
+        showAuthMessage('msg-register', 'Este correo no está autorizado para crear una cuenta. Contacta al administrador para solicitar acceso.', true);
+        App.markFieldError('input-register-email');
+        return false;
+      }
+    }
+
+    showAuthMessage('msg-register', 'Generando código de verificación…', false);
+
+    try {
+      const code = generateVerificationCode();
+      await saveVerificationCode(normalizedEmail, code);
+
+      try {
+        await sendVerificationCode(normalizedEmail, code);
+      } catch (sendError) {
+        showAuthMessage('msg-register', 'Error al enviar el código: ' + sendError.message + '. Puedes intentar reenviarlo más tarde.', true);
+        window.verifiedEmailForRegistration = normalizedEmail;
+        window.verifiedCoursesForRegistration = allowedCourses;
+        window.verifiedIsAdmin = isAdmin || false;
+
+        const step1 = App.$('#register-step-1');
+        const step2 = App.$('#register-step-2');
+        if (step1) step1.style.display = 'none';
+        if (step2) step2.style.display = 'block';
+
+        const verifiedEmailDisplay = App.$('#verified-email-display');
+        if (verifiedEmailDisplay) verifiedEmailDisplay.textContent = normalizedEmail;
+
+        const codeInput = App.$('#input-verification-code');
+        if (codeInput) codeInput.value = '';
+
+        showAuthMessage('msg-register-step2', 'No se pudo enviar el código. Usa el botón "Reenviar código" para intentar nuevamente.', true);
+        return true;
+      }
+
+      window.verifiedEmailForRegistration = normalizedEmail;
+      window.verifiedCoursesForRegistration = allowedCourses;
+      window.verifiedIsAdmin = isAdmin || false;
+
+      const step1 = App.$('#register-step-1');
+      const step2 = App.$('#register-step-2');
+      if (step1) step1.style.display = 'none';
+      if (step2) step2.style.display = 'block';
+
+      const verifiedEmailDisplay = App.$('#verified-email-display');
+      if (verifiedEmailDisplay) verifiedEmailDisplay.textContent = normalizedEmail;
+
+      const codeInput = App.$('#input-verification-code');
+      if (codeInput) codeInput.value = '';
+
+      setTimeout(() => {
+        if (codeInput) codeInput.focus();
+      }, 100);
+
+      showAuthMessage('msg-register-step2', 'Código enviado a tu correo. Revisa tu bandeja de entrada (y spam).', false);
+      return true;
+    } catch (error) {
+      console.error('[VERIFICATION] ❌ Error en proceso de verificación:', error);
+      showAuthMessage('msg-register', 'Error al procesar la verificación. Intenta nuevamente.', true);
+      return false;
+    }
+  } catch (error) {
+    console.error('[AUTH] ❌ Error verificando correo:', error);
+    showAuthMessage('msg-register', 'Error al verificar el correo. Intenta nuevamente.', true);
+    return false;
+  }
+}
+
+// ✅ Función para registro con email/password
+async function tryRegister() {
+  if (!App.checkRateLimitSimple('register')) {
+    return false;
+  }
+
+  const email = window.verifiedEmailForRegistration;
+  const password = App.$('#input-register-password')?.value || '';
+  const passwordConfirm = App.$('#input-register-password-confirm')?.value || '';
+
+  if (!email) {
+    showAuthMessage('msg-register-step3', 'Error: El correo no fue verificado. Por favor, vuelve al paso anterior.', true);
+    return false;
+  }
+
+  if (!password || !passwordConfirm) {
+    showAuthMessage('msg-register-step3', 'Por favor, completa todos los campos.', true);
+    return false;
+  }
+
+  if (password.length < 6) {
+    showAuthMessage('msg-register-step3', 'La contraseña debe tener al menos 6 caracteres.', true);
+    App.markFieldError('input-register-password');
+    return false;
+  }
+
+  if (password !== passwordConfirm) {
+    showAuthMessage('msg-register-step3', 'Las contraseñas no coinciden.', true);
+    App.markFieldError('input-register-password-confirm');
+    return false;
+  }
+
+  App.clearFieldErrors();
+  showAuthMessage('msg-register-step3', 'Creando cuenta…', false);
+
+  try {
+    if (!window.firebaseAuth) {
+      showAuthMessage('msg-register-step3', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
+      return false;
+    }
+
+    const userCredential = await window.firebaseAuth.createUserWithEmailAndPassword(email, password);
+    App.log('[AUTH] ✅ Registro exitoso:', userCredential.user.email);
+
+    showAuthMessage('msg-register-step3', '¡Cuenta creada exitosamente! Cargando tus cursos…', false);
+
+    const allowedCourses = window.verifiedCoursesForRegistration || [];
+    window.currentUserEmail = email;
+    await handleSuccessfulAuthWithEmail(email, allowedCourses);
+
+    await App.auditLog(AUDIT_ACTION_TYPES.REGISTER_SUCCESS, {
+      email: email,
+      coursesCount: allowedCourses.length
+    }, email, true);
+
+    window.verifiedEmailForRegistration = null;
+    window.verifiedCoursesForRegistration = null;
+    window.verifiedIsAdmin = null;
+
+    return true;
+  } catch (error) {
+    console.error('[AUTH] ❌ Error en registro:', error);
+    let errorMessage = 'Error al crear la cuenta.';
+
+    if (error.code === 'auth/email-already-in-use') {
+      errorMessage = 'Este correo ya está registrado. Inicia sesión en su lugar.';
+      App.markFieldError('input-register-password');
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = 'Correo electrónico inválido.';
+      App.markFieldError('input-register-password');
+    } else if (error.code === 'auth/weak-password') {
+      errorMessage = 'La contraseña es muy débil. Usa al menos 6 caracteres.';
+      App.markFieldError('input-register-password');
+    } else if (error.code === 'auth/network-request-failed') {
+      errorMessage = 'Error de conexión. Verifica tu internet e intenta nuevamente.';
+    } else {
+      errorMessage = 'No se pudo crear la cuenta. Verifica los datos e intenta nuevamente.';
+    }
+
+    showAuthMessage('msg-register-step3', errorMessage, true);
+    return false;
+  }
+}
+
+// ✅ Función para verificar código de verificación
+async function verifyCodeForRegistration() {
+  if (!App.checkRateLimitSimple('verify_code')) {
+    return false;
+  }
+
+  const email = window.verifiedEmailForRegistration;
+  const code = App.getSafeInputValue('#input-verification-code', 'code');
+
+  if (!email) {
+    showAuthMessage('msg-register-step2', 'Error: El correo no fue verificado. Por favor, vuelve al paso anterior.', true);
+    return false;
+  }
+
+  if (!code || code.length !== 6) {
+    showAuthMessage('msg-register-step2', 'Por favor, ingresa el código de 6 dígitos.', true);
+    App.markFieldError('input-verification-code');
+    return false;
+  }
+
+  App.clearFieldErrors();
+  showAuthMessage('msg-register-step2', 'Verificando código…', false);
+
+  const verification = await verifyCode(email, code);
+
+  if (!verification.valid) {
+    showAuthMessage('msg-register-step2', verification.error || 'Código inválido. Intenta nuevamente.', true);
+    App.markFieldError('input-verification-code');
+    return false;
+  }
+
+  const step2 = App.$('#register-step-2');
+  const step3 = App.$('#register-step-3');
+  if (step2) step2.style.display = 'none';
+  if (step3) step3.style.display = 'block';
+
+  const passwordInput = App.$('#input-register-password');
+  const passwordConfirmInput = App.$('#input-register-password-confirm');
+  if (passwordInput) passwordInput.value = '';
+  if (passwordConfirmInput) passwordConfirmInput.value = '';
+
+  setTimeout(() => {
+    if (passwordInput) passwordInput.focus();
+  }, 100);
+
+  showAuthMessage('msg-register-step3', 'Código verificado. Ahora crea tu contraseña.', false);
+  return true;
+}
+
+// ✅ Función para reenviar código de verificación
+async function resendVerificationCode() {
+  const email = window.verifiedEmailForRegistration;
+
+  if (!email) {
+    showAuthMessage('msg-register-step2', 'Error: No hay correo verificado.', true);
+    return false;
+  }
+
+  if (!App.checkRateLimitSimple('resend_code')) {
+    return false;
+  }
+
+  showAuthMessage('msg-register-step2', 'Reenviando código…', false);
+
+  try {
+    const code = generateVerificationCode();
+    await saveVerificationCode(email, code);
+    await sendVerificationCode(email, code);
+
+    const codeInput = App.$('#input-verification-code');
+    if (codeInput) codeInput.value = '';
+
+    showAuthMessage('msg-register-step2', 'Código reenviado. Revisa tu correo.', false);
+  } catch (error) {
+    console.error('[VERIFICATION] ❌ Error reenviando código:', error);
+    showAuthMessage('msg-register-step2', 'Error al reenviar el código. Intenta nuevamente.', true);
+  }
+}
+
+// ✅ Función para reset de contraseña
+async function tryPasswordReset() {
+  if (!App.checkRateLimitSimple('password_reset')) {
+    return false;
+  }
+
+  const email = App.getSafeInputValue('#input-reset-email', 'email');
+
+  if (!email || !email.includes('@')) {
+    showAuthMessage('msg-reset', 'Por favor, ingresa un correo válido.', true);
+    App.markFieldError('input-reset-email');
+    return false;
+  }
+
+  App.clearFieldErrors();
+  showAuthMessage('msg-reset', 'Enviando enlace de restablecimiento…', false);
+
+  try {
+    if (!window.firebaseAuth) {
+      showAuthMessage('msg-reset', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
+      return false;
+    }
+
+    await window.firebaseAuth.sendPasswordResetEmail(email.toLowerCase().trim());
+    showAuthMessage('msg-reset', '✅ Se ha enviado un enlace de restablecimiento a tu correo. Revisa tu bandeja de entrada (y spam).', false);
+
+    setTimeout(() => {
+      App.$('#input-reset-email').value = '';
+    }, 3000);
+
+    return true;
+  } catch (error) {
+    console.error('[AUTH] ❌ Error en reset:', error);
+    let errorMessage = 'Error al enviar el enlace.';
+
+    if (error.code === 'auth/user-not-found') {
+      errorMessage = 'No existe una cuenta con este correo.';
+      App.markFieldError('input-reset-email');
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = 'Correo electrónico inválido.';
+      App.markFieldError('input-reset-email');
+    } else {
+      errorMessage = `Error: ${error.message || 'No se pudo enviar el enlace.'}`;
+    }
+
+    showAuthMessage('msg-reset', errorMessage, true);
+    return false;
+  }
+}
+
+// ✅ Función para manejar autenticación exitosa con email
+async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
+  App.log('[AUTH] ✅ Mostrando cursos permitidos para:', userEmail);
+
+  const isAdmin = await App.checkIsAdmin(userEmail);
+  if (isAdmin) {
+    App.log('[AUTH] ✅ Usuario es administrador, otorgando acceso master');
+    App.setIsMasterAuthenticated(true);
+    App.setCurrentKeyHex(MASTER_HASH);
+
+    if (App.hasRemote()) {
+      App.log('[SYNC] Iniciando refresh de todos los cursos en background...');
+      const mergedMap = App.getMergedAccessHashMap();
+      const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
+      App.log('[SYNC] Total de cursos a refrescar:', hexes.length);
+
+      Promise.allSettled(hexes.map(h => App.refreshFromRemoteSilent(h).catch(e => {
+        App.warn('[SYNC] Error refrescando', h.substring(0, 8), ':', e);
+        return false;
+      }))).then(() => {
+        App.log('[SYNC] ✅ Refresh completado');
+      });
+    }
+
+    try {
+      await App.runLoader();
+    } catch (e) { }
+
+    App.clearAttempts();
+    App.refreshCustomCourses().catch(e => {
+      App.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
+    });
+
+    App.buildMasterGrid();
+    App.setupMasterSearch();
+    App.$('#year_master').textContent = new Date().getFullYear();
+    App.showMaster();
+    return;
+  }
+
+  window.allowedCoursesForUser = allowedCourses;
+
+  if (App.hasRemote()) {
+    App.log('[SYNC] Iniciando refresh de cursos permitidos en background...');
+    Promise.allSettled(allowedCourses.map(h => App.refreshFromRemoteSilent(h).catch(e => {
+      App.warn('[SYNC] Error refrescando', h.substring(0, 8), ':', e);
+      return false;
+    }))).then(() => {
+      App.log('[SYNC] ✅ Refresh completado');
+    });
+  }
+
+  try {
+    await App.runLoader();
+  } catch (e) { }
+
+  App.clearAttempts();
+  App.refreshCustomCourses().catch(e => {
+    App.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
+  });
+
+  App.buildUserGrid();
+  App.$('#year_master').textContent = new Date().getFullYear();
+  App.showUserView();
+}
+
+// ✅ Función para logout de Firebase
+async function logoutFirebase() {
+  try {
+    if (window.firebaseAuth) {
+      await window.firebaseAuth.signOut();
+      App.log('[AUTH] ✅ Logout exitoso');
+    }
+    App.setIsMasterAuthenticated(false);
+    App.setCurrentKeyHex(null);
+  } catch (error) {
+    console.error('[AUTH] ❌ Error en logout:', error);
+  }
+}
+
+// ✅ Función compartida para manejar autenticación exitosa (código)
+async function handleSuccessfulAuth(hex, method = 'code') {
+  App.log('[AUTH] ✅ Autenticación exitosa por:', method);
+
+  if (hex === MASTER_HASH) {
+    App.setIsMasterAuthenticated(true);
+    App.setCurrentKeyHex(MASTER_HASH);
+
+    if (App.hasRemote()) {
+      App.log('[SYNC] Iniciando refresh de todos los cursos en background...');
+      const mergedMap = App.getMergedAccessHashMap();
+      const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
+      App.log('[SYNC] Total de cursos a refrescar:', hexes.length);
+
+      Promise.allSettled(hexes.map(h => App.refreshFromRemoteSilent(h).catch(e => {
+        App.warn('[SYNC] Error refrescando', h.substring(0, 8), ':', e);
+        return false;
+      }))).then(() => {
+        App.log('[SYNC] ✅ Refresh completado');
+      });
+    }
+
+    try {
+      await App.runLoader();
+    } catch (e) { }
+
+    App.clearAttempts();
+    if (method === 'code') {
+      const code = App.$('#code').value;
+      if (code) App.setQueryParam('code', btoa(code));
+    }
+
+    App.refreshCustomCourses().catch(e => {
+      App.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
+    });
+
+    App.buildMasterGrid();
+    App.setupMasterSearch();
+    App.$('#year_master').textContent = new Date().getFullYear();
+    App.showMaster();
+  } else {
+    App.showLoader();
+
+    if (App.hasRemote()) {
+      await App.refreshFromRemoteSilent(hex).catch(e => {
+        App.warn('[SYNC] Error en refresh:', e);
+      });
+    }
+
+    try {
+      await App.runLoader();
+    } catch (e) { }
+
+    App.setCurrentKeyHex(hex);
+    App.clearAttempts();
+    if (method === 'code') {
+      const code = App.$('#code').value;
+      if (code) App.setQueryParam('code', btoa(code));
+    }
+    App.renderCourse(hex);
+    App.showContent();
+  }
+}
+
+// ✅ Listener para estado de autenticación persistente
+function setupAuthStateListener() {
+  if (!window.firebaseAuth) {
+    App.log('[AUTH] Firebase Auth no disponible, omitiendo listener de estado');
+    return;
+  }
+
+  window.firebaseAuth.onAuthStateChanged(async (user) => {
+    App.log('[AUTH] 🔔 onAuthStateChanged disparado, usuario:', user?.email || 'null');
+
+    if (user) {
+      App.log('[AUTH] ✅ Usuario autenticado:', user.email);
+      const userEmail = user.email.toLowerCase().trim();
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const masterEl = document.getElementById('master');
+      const userViewEl = document.getElementById('user-view');
+      const contentEl = document.getElementById('content');
+      const accessEl = document.getElementById('access');
+      const isInMaster = App.getCurrentKeyHex() === MASTER_HASH || (masterEl && !masterEl.classList.contains('hidden'));
+      const isInUserView = userViewEl && !userViewEl.classList.contains('hidden');
+      const isInContent = contentEl && !contentEl.classList.contains('hidden');
+      const isInAccess = accessEl && !accessEl.classList.contains('hidden');
+
+      if (isInUserView && !isInMaster) {
+        App.log('[AUTH] 🔍 Verificando acceso del usuario en vista de usuario...');
+        const allowedCourses = await App.getCoursesForEmail(userEmail);
+
+        if (allowedCourses.length === 0) {
+          App.log('[AUTH] ⚠️ Usuario perdió acceso a todos los cursos, cerrando sesión...');
+          window.currentUserEmail = null;
+          window.allowedCoursesForUser = null;
+          await logoutFirebase();
+          App.setCurrentKeyHex(null);
+          App.setQueryParam('code', null);
+          App.showAccess();
+          showAuthMessage('msg-auth', 'Tu acceso a los cursos ha sido revocado. Contacta al administrador para solicitar acceso nuevamente.', true);
+          return;
+        }
+      }
+
+      if (!urlParams.has('code') && !isInMaster && !isInUserView && !isInContent) {
+        App.log('[AUTH] 🔍 Verificando cursos para usuario con email...');
+        const allowedCourses = await App.getCoursesForEmail(userEmail);
+        App.log('[AUTH] 📚 Cursos encontrados en listener:', allowedCourses.length);
+
+        if (allowedCourses.length > 0) {
+          App.log('[AUTH] ✅ Mostrando vista de usuario desde listener');
+          window.currentUserEmail = userEmail;
+          window.allowedCoursesForUser = allowedCourses;
+
+          if (isInAccess && accessEl) {
+            accessEl.classList.add('hidden');
+          }
+
+          await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
+        }
+      }
+    } else {
+      App.log('[AUTH] Usuario no autenticado');
+      window.currentUserEmail = null;
+      window.allowedCoursesForUser = null;
+      if (App.getCurrentKeyHex() === MASTER_HASH || (document.getElementById('user-view') && !document.getElementById('user-view').classList.contains('hidden'))) {
+        App.setCurrentKeyHex(null);
+        App.setQueryParam('code', null);
+        App.showAccess();
+      }
+    }
+  });
+}
+
+// ✅ Inicializar listener de estado cuando Firebase esté listo
+window.addEventListener('firebaseReady', () => {
+  setupAuthStateListener();
+});
+
+// ✅ Exponer funciones públicamente
+window.Auth = {
+  tryLoginByCode: tryLoginByCode,
+  tryLoginByEmail: tryLoginByEmail,
+  verifyEmailForRegistration: verifyEmailForRegistration,
+  tryRegister: tryRegister,
+  verifyCodeForRegistration: verifyCodeForRegistration,
+  resendVerificationCode: resendVerificationCode,
+  tryPasswordReset: tryPasswordReset,
+  logoutFirebase: logoutFirebase,
+  handleSuccessfulAuth: handleSuccessfulAuth,
+  handleSuccessfulAuthWithEmail: handleSuccessfulAuthWithEmail,
+  setupAuthStateListener: setupAuthStateListener,
+  switchAuthTab: switchAuthTab,
+  showLoginForm: showLoginForm,
+  showAuthMessage: showAuthMessage
+};
+
