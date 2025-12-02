@@ -1463,6 +1463,7 @@ a:focus-visible {
   overflow: visible;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
+  z-index: 1;
 }
 
 .master-card::before {
@@ -1497,10 +1498,11 @@ a:focus-visible {
 }
 
 .master-card:hover {
-  transform: translateY(-4px) scale(1.01);
+  transform: translateY(-2px) scale(1.005);
   box-shadow:
     0px -16px 24px 0px rgba(255, 255, 255, 0.08) inset,
     0 12px 48px rgba(90, 169, 255, .5);
+  z-index: 10;
 }
 
 .master-card:hover::before {
@@ -2903,7 +2905,7 @@ img[loading="lazy"].loaded {
 /* Grid de cursos en vista de usuario */
 #userGrid {
   display: grid;
-  gap: 20px;
+  gap: 24px;
   width: 100%;
 }
 
@@ -2911,6 +2913,7 @@ img[loading="lazy"].loaded {
 @media (min-width: 901px) {
   #userGrid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 28px;
   }
 }
 
@@ -2918,7 +2921,7 @@ img[loading="lazy"].loaded {
 @media (min-width: 601px) and (max-width: 900px) {
   #userGrid {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 16px;
+    gap: 20px;
   }
 }
 
@@ -2926,7 +2929,7 @@ img[loading="lazy"].loaded {
 @media (max-width: 600px) {
   #userGrid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 16px;
   }
 }
 
