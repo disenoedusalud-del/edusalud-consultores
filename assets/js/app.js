@@ -14053,58 +14053,24 @@ window.testGET = async function (hex) {
   }
 };
 
-// ✅ Eliminar botón course-modal-close innecesario (versión mejorada que no interfiere)
-(function() {
-  let isRemoving = false;
-  let timeoutId = null;
-  
-  function removeCourseModalClose() {
-    // Prevenir ejecuciones múltiples simultáneas
-    if (isRemoving) return;
-    
-    const closeBtn = document.querySelector('.course-modal-close');
-    if (closeBtn) {
-      isRemoving = true;
-      try {
-        closeBtn.remove();
-      } catch (e) {
-        // Silenciar errores para no interferir con otros procesos
-      } finally {
-        isRemoving = false;
+// ✅ Eliminar botón course-modal-close innecesario
+// Nota: El CSS ya lo oculta con display: none !important, así que este código es opcional
+// TEMPORALMENTE DESHABILITADO para no interferir con el login - el CSS es suficiente
+/*
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    try {
+      const closeBtn = document.querySelector('button.course-modal-close');
+      if (closeBtn) {
+        const isInImportantForm = closeBtn.closest('#form-login, #form-register, #form-code, #access, #input-email, #input-password, #btn-login');
+        if (!isInImportantForm) {
+          closeBtn.remove();
+        }
       }
+    } catch (e) {
+      // Silenciar errores
     }
-  }
-  
-  // Ejecutar solo cuando el DOM esté completamente listo
-  function initRemoval() {
-    if (document.readyState === 'complete') {
-      setTimeout(removeCourseModalClose, 500);
-    } else {
-      window.addEventListener('load', () => {
-        setTimeout(removeCourseModalClose, 500);
-      });
-    }
-  }
-  
-  // Inicializar después de que todo esté cargado
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initRemoval);
-  } else {
-    initRemoval();
-  }
-  
-  // Observar cambios con debounce para evitar ejecuciones excesivas
-  if (document.body) {
-    const observer = new MutationObserver(() => {
-      if (timeoutId) clearTimeout(timeoutId);
-      // Debounce de 500ms para no interferir con procesos críticos como login
-      timeoutId = setTimeout(removeCourseModalClose, 500);
-    });
-    
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
-  }
-})();
+  }, 3000);
+});
+*/
 
