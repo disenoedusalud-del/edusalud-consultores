@@ -130,18 +130,13 @@ exports.validateMasterCodeHTTP = functions.https.onRequest(async (req, res) => {
   }
 
   try {
-    // Obtener MASTER_HASH de variables de entorno (método moderno)
-    // También intentar con functions.config() (método legacy) como fallback
+    // Obtener MASTER_HASH de variables de entorno (Firebase Functions v2)
     let masterHash = process.env.MASTER_HASH;
     
-    // Fallback al método legacy si no está en process.env
-    if (!masterHash && functions.config().master) {
-      masterHash = functions.config().master.hash;
-    }
-    
-    // Fallback final: valor hardcodeado (solo para desarrollo/testing)
+    // Fallback temporal: valor hardcodeado (solo para desarrollo/testing)
+    // ⚠️ IMPORTANTE: Configurar MASTER_HASH en Firebase Console > Functions > Configuration
     if (!masterHash) {
-      console.warn('[MASTER] ⚠️ MASTER_HASH no configurado, usando valor por defecto');
+      console.warn('[MASTER] ⚠️ MASTER_HASH no configurado en variables de entorno, usando valor por defecto');
       masterHash = '7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8';
     }
 
