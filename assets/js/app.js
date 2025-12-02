@@ -7101,8 +7101,7 @@ function buildUserGrid() {
 
   // ✅ Finalizar medición de renderizado
   endPerformanceMeasure('Renderizado del grid', gridStart, {
-    cursos: coursesArray.length,
-    paginado: coursesArray.length > COURSES_PER_PAGE
+    cursos: coursesToShow.length
   });
 
   // ✅ Aplicar lazy loading a todas las imágenes del grid
