@@ -6916,6 +6916,9 @@ function updateFileListOnly(keyHex) {
 
 /* ============ render user view ============ */
 function buildUserGrid() {
+  // ✅ Iniciar medición de renderizado del grid
+  const gridStart = startPerformanceMeasure('Renderizado del grid');
+  
   const grid = $('#userGrid');
   const emptyState = $('#userEmptyState');
   if (!grid) return;
