@@ -14053,3 +14053,26 @@ window.testGET = async function (hex) {
   }
 };
 
+// ✅ Eliminar botón course-modal-close innecesario
+(function() {
+  function removeCourseModalClose() {
+    const closeBtn = document.querySelector('.course-modal-close');
+    if (closeBtn) {
+      closeBtn.remove();
+    }
+  }
+  
+  // Ejecutar inmediatamente y cuando cambie el DOM
+  removeCourseModalClose();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', removeCourseModalClose);
+  }
+  
+  // Observar cambios en el DOM para eliminar si se crea dinámicamente
+  const observer = new MutationObserver(removeCourseModalClose);
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+})();
+
