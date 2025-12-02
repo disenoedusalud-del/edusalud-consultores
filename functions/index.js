@@ -1,6 +1,7 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { Resend } = require('resend');
+const crypto = require('crypto');
 
 admin.initializeApp();
 
@@ -88,5 +89,92 @@ exports.sendVerificationCode = functions.https.onRequest(async (req, res) => {
     console.error('❌ Error enviando email:', error);
     console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     res.status(500).json({ error: 'Error enviando email: ' + error.message });
+  }
+});
+
+// ✅ Cloud Function para validar código master y establecer Custom Claims
+exports.validateMasterCode = functions.https.onCall(async (data, context) => {
+  // Permitir autenticación anónima o autenticada
+  // Si no hay usuario, se creará uno anónimo en el cliente antes de llamar
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'El usuario debe estar autenticado para validar el código master'
+    );
+  }
+
+  const { code } = data;
+
+  // Validar que se proporcionó el código
+  if (!code || typeof code !== 'string') {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'El código master es requerido'
+    );
+  }
+
+  try {
+    // Obtener MASTER_HASH de variables de entorno
+    const masterHash = process.env.MASTER_HASH;
+    
+    if (!masterHash) {
+      console.error('[MASTER] ❌ MASTER_HASH no configurado en variables de entorno');
+      throw new functions.https.HttpsError(
+        'internal',
+        'Error de configuración del servidor'
+      );
+    }
+
+    // Calcular hash SHA-256 del código recibido
+    const codeHash = crypto
+      .createHash('sha256')
+      .update(code.trim())
+      .digest('hex');
+
+    console.log('[MASTER] Validando código master...');
+    console.log('[MASTER] Hash recibido:', codeHash.substring(0, 8) + '...');
+    console.log('[MASTER] Hash esperado:', masterHash.substring(0, 8) + '...');
+
+    // Comparar hash
+    if (codeHash !== masterHash) {
+      console.log('[MASTER] ❌ Código master inválido');
+      throw new functions.https.HttpsError(
+        'permission-denied',
+        'Código master inválido'
+      );
+    }
+
+    // Código válido: establecer Custom Claim isMaster
+    const uid = context.auth.uid;
+    const user = await admin.auth().getUser(uid);
+    
+    // Obtener claims existentes
+    const customClaims = user.customClaims || {};
+    
+    // Agregar claim isMaster
+    customClaims.isMaster = true;
+    
+    // Establecer claims actualizados
+    await admin.auth().setCustomUserClaims(uid, customClaims);
+    
+    console.log('[MASTER] ✅ Código master válido. Custom Claim isMaster establecido para:', user.email);
+
+    // Retornar éxito
+    return {
+      success: true,
+      message: 'Código master válido. Acceso de administrador otorgado.'
+    };
+  } catch (error) {
+    // Si ya es un HttpsError, re-lanzarlo
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+    
+    // Otros errores
+    console.error('[MASTER] ❌ Error validando código master:', error);
+    throw new functions.https.HttpsError(
+      'internal',
+      'Error al validar el código master: ' + error.message
+    );
   }
 });
