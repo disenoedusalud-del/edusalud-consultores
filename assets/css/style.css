@@ -1277,6 +1277,7 @@ a:focus-visible {
     0 8px 32px rgba(0, 0, 0, .4);
   backdrop-filter: blur(8px);
   overflow: visible;
+  z-index: 1;
 }
 
 /* ✅ Mobile: Limitar altura de imagen */
@@ -1334,6 +1335,7 @@ a:focus-visible {
     0 8px 32px rgba(0, 0, 0, .4);
   backdrop-filter: blur(8px);
   overflow: visible;
+  z-index: 1;
 }
 
 .card-right::before {
@@ -1968,16 +1970,25 @@ a:focus-visible {
   animation: slideDown 0.2s ease-out;
 }
 
-/* ✅ Asegurar que el contenedor del botón de ajustes en vista de contenido esté por encima */
-#content .course-header-mobile .row > div:has(#btn-settings-content) {
-  position: relative !important;
-  z-index: 10001;
+/* ✅ Asegurar que el contenedor del botón de ajustes en vista de contenido esté por encima de las tarjetas */
+#content .course-header-mobile {
+  position: relative;
+  z-index: 100;
 }
 
-/* ✅ Fallback para navegadores que no soportan :has() */
+#content .course-header-mobile .row > div[style*="position: relative"] {
+  position: relative !important;
+  z-index: 10002 !important;
+}
+
 #content #btn-settings-content {
   position: relative;
-  z-index: 10001;
+  z-index: 10002;
+}
+
+/* ✅ Menú desplegable en vista de contenido debe estar por encima de todo */
+#content .settings-dropdown {
+  z-index: 10003 !important;
 }
 
 @keyframes slideDown {
