@@ -63,7 +63,17 @@ function getAuditActionTypes() {
 
 // ✅ Función para login con código secreto
 async function tryLoginByCode(code) {
+  const App = getApp();
+  if (!App) {
+    console.error('[AUTH] App no disponible en tryLoginByCode');
+    return false;
+  }
+  
   const msg = App.$('#msg');
+  if (!msg) {
+    console.error('[AUTH] No se encontró el elemento #msg');
+    return false;
+  }
   msg.textContent = 'Verificando…';
   msg.classList.remove('error');
 
@@ -88,35 +98,39 @@ async function tryLoginByCode(code) {
     }
 
     // master
-    const AppInstance = getApp();
-    if (!AppInstance) {
-      msg.textContent = 'Error: App no disponible.';
+    const MASTER_HASH_VAL = getMasterHash();
+    if (!MASTER_HASH_VAL) {
+      msg.textContent = 'Error: No se pudo obtener el hash master.';
       msg.classList.add('error');
       return false;
     }
-    const MASTER_HASH_VAL = getMasterHash();
+    
+    App.log('[LOGIN] Validando código master, hex generado:', hex.substring(0, 8) + '...');
+    App.log('[LOGIN] MASTER_HASH esperado:', MASTER_HASH_VAL.substring(0, 8) + '...');
+    
     if (hex === MASTER_HASH_VAL) {
+      App.log('[LOGIN] ✅ Código master válido!');
       // ✅ Establecer flag de master autenticado (CRÍTICO para validación de seguridad)
-      AppInstance.setIsMasterAuthenticated(true);
-      AppInstance.setCurrentKeyHex(MASTER_HASH_VAL);
+      App.setIsMasterAuthenticated(true);
+      App.setCurrentKeyHex(MASTER_HASH_VAL);
 
       // ✅ Refresh en background (no bloquear login) con timeout corto
-      if (AppInstance.hasRemote()) {
-        AppInstance.log('[SYNC] Iniciando refresh de todos los cursos en background...');
-        const mergedMap = AppInstance.getMergedAccessHashMap();
+      if (App.hasRemote()) {
+        App.log('[SYNC] Iniciando refresh de todos los cursos en background...');
+        const mergedMap = App.getMergedAccessHashMap();
         const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH_VAL);
-        AppInstance.log('[SYNC] Total de cursos a refrescar:', hexes.length);
+        App.log('[SYNC] Total de cursos a refrescar:', hexes.length);
 
         // Iniciar refresh en background (no await, con timeout global)
         Promise.race([
           Promise.allSettled(hexes.map((h, index) => {
             const isLast = index === hexes.length - 1;
             const label = isLast ? `[ÚLTIMO CURSO]` : '';
-            AppInstance.log(`${label} [SYNC] Refrescando curso ${index + 1}/${hexes.length}: ${h.substring(0, 8)}...`);
-            return AppInstance.refreshFromRemoteSilent(h)
+            App.log(`${label} [SYNC] Refrescando curso ${index + 1}/${hexes.length}: ${h.substring(0, 8)}...`);
+            return App.refreshFromRemoteSilent(h)
               .then(result => {
                 if (isLast) {
-                  AppInstance.log(`[ÚLTIMO CURSO] ✅ Refresh completado para ${h.substring(0, 8)}, resultado:`, result);
+                  App.log(`[ÚLTIMO CURSO] ✅ Refresh completado para ${h.substring(0, 8)}, resultado:`, result);
                 }
                 return result;
               })
@@ -126,7 +140,7 @@ async function tryLoginByCode(code) {
               });
           })),
           new Promise(resolve => setTimeout(() => {
-            AppInstance.log('[SYNC] Timeout refresh global, continuando...');
+            App.log('[SYNC] Timeout refresh global, continuando...');
             resolve({});
           }, 2000)) // Timeout de 2 segundos máximo para todos los cursos
         ])
@@ -134,37 +148,37 @@ async function tryLoginByCode(code) {
             if (Array.isArray(results)) {
               const successful = results.filter(r => r.status === 'fulfilled').length;
               const failed = results.filter(r => r.status === 'rejected').length;
-              AppInstance.log(`[SYNC] Refresh completado: ${successful} exitosos, ${failed} fallidos`);
+              App.log(`[SYNC] Refresh completado: ${successful} exitosos, ${failed} fallidos`);
             }
           })
           .catch(e => {
-            AppInstance.warn('[SYNC] Error general en refresh:', e);
+            App.warn('[SYNC] Error general en refresh:', e);
           });
 
-        AppInstance.log('[SYNC] Refresh iniciado en background, continuando con login...');
+        App.log('[SYNC] Refresh iniciado en background, continuando con login...');
       }
 
       // Ejecutar animación de loader ahora que ya tenemos los datos
       try {
-        await AppInstance.runLoader();
+        await App.runLoader();
       } catch (e) { }
 
-      AppInstance.clearAttempts();
-      AppInstance.setQueryParam('code', btoa(code));
+      App.clearAttempts();
+      App.setQueryParam('code', btoa(code));
 
       // ✅ Cargar cursos remotos en background (no bloquear)
-      AppInstance.refreshCustomCourses().catch(e => {
-        AppInstance.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
+      App.refreshCustomCourses().catch(e => {
+        App.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
       });
 
-      AppInstance.buildMasterGrid();
-      AppInstance.setupMasterSearch();
-      AppInstance.$('#year_master').textContent = new Date().getFullYear();
-      AppInstance.showMaster();
+      App.buildMasterGrid();
+      App.setupMasterSearch();
+      App.$('#year_master').textContent = new Date().getFullYear();
+      App.showMaster();
       // ✅ Llamar setupAdvancedFilters y setupNotificationsPanel DESPUÉS de showMaster para asegurar que los elementos estén visibles
       setTimeout(() => {
-        AppInstance.setupAdvancedFilters();
-        AppInstance.setupNotificationsPanel();
+        App.setupAdvancedFilters();
+        App.setupNotificationsPanel();
       }, 50);
 
       // ✅ Google Analytics: Tracking login exitoso Master
@@ -180,44 +194,44 @@ async function tryLoginByCode(code) {
     // normal
     // ✅ CRÍTICO: Cargar cursos personalizados ANTES de validar (por si no están cargados)
     // Esto asegura que cursos personalizados recién creados estén disponibles
-    if (AppInstance.hasRemote()) {
-      AppInstance.log('[LOGIN] Cargando cursos personalizados antes de validar...');
-      await AppInstance.refreshCustomCourses().catch(e => {
-        AppInstance.warn('[LOGIN] Error cargando cursos personalizados (continuando):', e);
+    if (App.hasRemote()) {
+      App.log('[LOGIN] Cargando cursos personalizados antes de validar...');
+      await App.refreshCustomCourses().catch(e => {
+        App.warn('[LOGIN] Error cargando cursos personalizados (continuando):', e);
       });
     }
 
     // ✅ Obtener mergedMap DESPUÉS de cargar cursos personalizados
-    const mergedMap = AppInstance.getMergedAccessHashMap();
-    AppInstance.log('[LOGIN] Validando código, cursos disponibles:', Object.keys(mergedMap).length);
-    AppInstance.log('[LOGIN] Hex a buscar:', hex.substring(0, 8) + '...');
+    const mergedMap = App.getMergedAccessHashMap();
+    App.log('[LOGIN] Validando código, cursos disponibles:', Object.keys(mergedMap).length);
+    App.log('[LOGIN] Hex a buscar:', hex.substring(0, 8) + '...');
 
     if (mergedMap && mergedMap[hex]) {
-      AppInstance.log('[LOGIN] ✅ Código válido encontrado en hashmap');
+      App.log('[LOGIN] ✅ Código válido encontrado en hashmap');
       // Mostrar loader inmediatamente
-      AppInstance.showLoader();
+      App.showLoader();
 
       // ✅ CRÍTICO: Esperar refresh ANTES de renderizar (igual que cursos base desde master)
       // Esto asegura que los archivos estén actualizados cuando se muestra el curso
-      if (AppInstance.hasRemote()) {
-        AppInstance.log('[SYNC] Iniciando refresh antes de mostrar curso...');
-        await AppInstance.refreshFromRemoteSilent(hex).catch(e => {
-          AppInstance.warn('[SYNC] Error en refresh:', e);
+      if (App.hasRemote()) {
+        App.log('[SYNC] Iniciando refresh antes de mostrar curso...');
+        await App.refreshFromRemoteSilent(hex).catch(e => {
+          App.warn('[SYNC] Error en refresh:', e);
           return false;
         });
-        AppInstance.log('[SYNC] ✅ Refresh completado, renderizando curso...');
+        App.log('[SYNC] ✅ Refresh completado, renderizando curso...');
       }
 
       // Ejecutar animación de loader después del refresh
       try {
-        await AppInstance.runLoader();
+        await App.runLoader();
       } catch (e) { }
 
-      AppInstance.setCurrentKeyHex(hex);
-      AppInstance.clearAttempts();
-      AppInstance.setQueryParam('code', btoa(code));
-      AppInstance.renderCourse(hex);
-      AppInstance.showContent();
+      App.setCurrentKeyHex(hex);
+      App.clearAttempts();
+      App.setQueryParam('code', btoa(code));
+      App.renderCourse(hex);
+      App.showContent();
 
       // ✅ Google Analytics: Tracking login exitoso curso
       if (typeof gtag !== 'undefined') {
@@ -230,14 +244,14 @@ async function tryLoginByCode(code) {
 
       return true;
     } else {
-      AppInstance.warn('[LOGIN] ❌ Código no encontrado en hashmap');
-      AppInstance.warn('[LOGIN] Cursos disponibles:', Object.keys(mergedMap || {}));
-      AppInstance.warn('[LOGIN] Hex buscado:', hex.substring(0, 8) + '...');
+      App.warn('[LOGIN] ❌ Código no encontrado en hashmap');
+      App.warn('[LOGIN] Cursos disponibles:', Object.keys(mergedMap || {}));
+      App.warn('[LOGIN] Hex buscado:', hex.substring(0, 8) + '...');
 
-      const attempts = AppInstance.recordAttempt();
+      const attempts = App.recordAttempt();
       msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
       msg.classList.add('error');
-      AppInstance.maybeShowAttemptsWarning();
+      App.maybeShowAttemptsWarning();
 
       // ✅ Google Analytics: Tracking de código inválido
       if (typeof gtag !== 'undefined') {
