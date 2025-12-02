@@ -13025,7 +13025,31 @@ window.limpiarTodoYRecargar = async function () {
       warn('Parámetro code inválido', e);
     }
   }
-  showAccess();
+  
+  // ✅ Asegurar que showAccess() se ejecute SIEMPRE al cargar la página
+  try {
+    showAccess();
+  } catch (e) {
+    warn('[INIT] Error en showAccess(), reintentando...', e);
+    // Reintentar después de un pequeño delay
+    setTimeout(() => {
+      try {
+        showAccess();
+      } catch (e2) {
+        console.error('[INIT] Error crítico en showAccess():', e2);
+        // Forzar mostrar acceso manualmente como último recurso
+        const accessEl = document.getElementById('access');
+        const contentEl = document.getElementById('content');
+        const masterEl = document.getElementById('master');
+        const userViewEl = document.getElementById('user-view');
+        if (accessEl) accessEl.classList.remove('hidden');
+        if (contentEl) contentEl.classList.add('hidden');
+        if (masterEl) masterEl.classList.add('hidden');
+        if (userViewEl) userViewEl.classList.add('hidden');
+      }
+    }, 100);
+  }
+  
   maybeShowAttemptsWarning();
 
   // ✅ Cargar cursos remotos (no bloquear con await para no demorar carga)
@@ -13037,6 +13061,36 @@ window.limpiarTodoYRecargar = async function () {
 
   // ✅ Finalizar medición de inicialización
   endPerformanceMeasure('Inicialización total', initStart);
+  
+  // ✅ Asegurar que showAccess() se ejecute al final, incluso si hubo errores anteriores
+  setTimeout(() => {
+    const accessEl = document.getElementById('access');
+    const contentEl = document.getElementById('content');
+    const masterEl = document.getElementById('master');
+    const userViewEl = document.getElementById('user-view');
+    
+    // Solo forzar mostrar acceso si no hay ninguna vista visible y el acceso está oculto
+    if (accessEl && accessEl.classList.contains('hidden')) {
+      const hasVisibleView = (contentEl && !contentEl.classList.contains('hidden')) ||
+                            (masterEl && !masterEl.classList.contains('hidden')) ||
+                            (userViewEl && !userViewEl.classList.contains('hidden'));
+      
+      // Si no hay vista visible, mostrar acceso
+      if (!hasVisibleView) {
+        log('[INIT] ⚠️ Forzando mostrar acceso (ninguna vista visible)');
+        try {
+          showAccess();
+        } catch (e) {
+          warn('[INIT] Error en showAccess() final:', e);
+          // Fallback manual
+          if (accessEl) accessEl.classList.remove('hidden');
+          if (contentEl) contentEl.classList.add('hidden');
+          if (masterEl) masterEl.classList.add('hidden');
+          if (userViewEl) userViewEl.classList.add('hidden');
+        }
+      }
+    }
+  }, 200);
 })();
 
 /* ============ Modal agregar curso ============ */
