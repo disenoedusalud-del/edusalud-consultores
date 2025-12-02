@@ -3438,8 +3438,8 @@ async function refreshFromRemote(hex, context) {
     if (stableStringify(remote) !== stableStringify(current)) {
       saveFilesOverride(hex, remote);
       if (context === 'course') {
-        if (currentKeyHex === hex) {
-          renderCourse(hex);
+        if (App.getCurrentKeyHex() === hex) {
+          App.renderCourse(hex);
         }
       } else {
         // En master, reconstruir todo el grid (solo si está autenticado)
@@ -6277,8 +6277,8 @@ function maybeShowAttemptsWarning() {
 /* ============ vistas ============ */
 function showAccess() {
   // ✅ Limpiar flags de autenticación al mostrar acceso
-  isMasterAuthenticated = false;
-  currentKeyHex = null;
+  App.setIsMasterAuthenticated(false);
+  App.setCurrentKeyHex(null);
   window.currentUserEmail = null;
   window.allowedCoursesForUser = null;
   window.isFromUserView = false;
@@ -7081,9 +7081,9 @@ function buildUserGrid() {
 
       // ✅ Marcar que estamos en un curso desde vista de usuario
       window.isFromUserView = true;
-      currentKeyHex = hex;
-      renderCourse(hex);
-      showContent();
+      App.setCurrentKeyHex(hex);
+      App.renderCourse(hex);
+      App.showContent();
     };
 
     // ✅ Event listener en el botón
@@ -7347,9 +7347,9 @@ function buildMasterGrid() {
 
       // ✅ Limpiar flag cuando se abre desde master (no desde vista de usuario)
       window.isFromUserView = false;
-      currentKeyHex = hex;
-      renderCourse(hex);
-      showContent();
+      App.setCurrentKeyHex(hex);
+      App.renderCourse(hex);
+      App.showContent();
     });
     headerActions.appendChild(open);
 
@@ -10053,807 +10053,9 @@ function showKeyboardShortcutsHelp() {
 }
 
 /* ============ login ============ */
-async function tryLoginByCode(code) {
-  const msg = $('#msg');
-  msg.textContent = 'Verificando…';
-  msg.classList.remove('error');
-
-  // ✅ Sanitizar código
-  const sanitizedCode = safeInput(code, 'code');
-
-  if (!sanitizedCode || sanitizedCode.length === 0) {
-    msg.textContent = 'Ingrese un código válido.';
-    msg.classList.add('error');
-    return false;
-  }
-
-  try {
-    const hex = await sha256Hex(sanitizedCode);
-
-    // ✅ Google Analytics: Tracking de intento de login
-    if (typeof gtag !== 'undefined') {
-      gtag('event', 'login_attempt', {
-        'event_category': 'authentication',
-        'event_label': 'attempt'
-      });
-    }
-
-    // master
-    if (hex === MASTER_HASH) {
-      // ✅ Establecer flag de master autenticado (CRÍTICO para validación de seguridad)
-      isMasterAuthenticated = true;
-      currentKeyHex = MASTER_HASH;
-
-      // ✅ Refresh en background (no bloquear login) con timeout corto
-      if (hasRemote()) {
-        log('[SYNC] Iniciando refresh de todos los cursos en background...');
-        const mergedMap = getMergedAccessHashMap();
-        const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
-        log('[SYNC] Total de cursos a refrescar:', hexes.length);
-
-        // Iniciar refresh en background (no await, con timeout global)
-        Promise.race([
-          Promise.allSettled(hexes.map((h, index) => {
-            const isLast = index === hexes.length - 1;
-            const label = isLast ? `[ÚLTIMO CURSO]` : '';
-            log(`${label} [SYNC] Refrescando curso ${index + 1}/${hexes.length}: ${h.substring(0, 8)}...`);
-            return refreshFromRemoteSilent(h)
-              .then(result => {
-                if (isLast) {
-                  log(`[ÚLTIMO CURSO] ✅ Refresh completado para ${h.substring(0, 8)}, resultado:`, result);
-                }
-                return result;
-              })
-              .catch(e => {
-                console.error(`[SYNC] ❌ Error refrescando curso ${h.substring(0, 8)}:`, e);
-                return false;
-              });
-          })),
-          new Promise(resolve => setTimeout(() => {
-            log('[SYNC] Timeout refresh global, continuando...');
-            resolve({});
-          }, 2000)) // Timeout de 2 segundos máximo para todos los cursos
-        ])
-          .then(results => {
-            if (Array.isArray(results)) {
-              const successful = results.filter(r => r.status === 'fulfilled').length;
-              const failed = results.filter(r => r.status === 'rejected').length;
-              log(`[SYNC] Refresh completado: ${successful} exitosos, ${failed} fallidos`);
-            }
-          })
-          .catch(e => {
-            warn('[SYNC] Error general en refresh:', e);
-          });
-
-        log('[SYNC] Refresh iniciado en background, continuando con login...');
-      }
-
-      // Ejecutar animación de loader ahora que ya tenemos los datos
-      try {
-        await runLoader();
-      } catch (e) { }
-
-      clearAttempts();
-      setQueryParam('code', btoa(code));
-
-      // ✅ Cargar cursos remotos en background (no bloquear)
-      refreshCustomCourses().catch(e => {
-        warn('[MASTER] Error cargando cursos remotos (continuando):', e);
-      });
-
-      buildMasterGrid();
-      setupMasterSearch();
-      $('#year_master').textContent = new Date().getFullYear();
-      showMaster();
-      // ✅ Llamar setupAdvancedFilters y setupNotificationsPanel DESPUÉS de showMaster para asegurar que los elementos estén visibles
-      setTimeout(() => {
-        setupAdvancedFilters();
-        setupNotificationsPanel();
-      }, 50);
-
-      // ✅ Google Analytics: Tracking login exitoso Master
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'login_success_master', {
-          'event_category': 'authentication'
-        });
-      }
-
-      return true;
-    }
-
-    // normal
-    // ✅ CRÍTICO: Cargar cursos personalizados ANTES de validar (por si no están cargados)
-    // Esto asegura que cursos personalizados recién creados estén disponibles
-    if (hasRemote()) {
-      log('[LOGIN] Cargando cursos personalizados antes de validar...');
-      await refreshCustomCourses().catch(e => {
-        warn('[LOGIN] Error cargando cursos personalizados (continuando):', e);
-      });
-    }
-
-    // ✅ Obtener mergedMap DESPUÉS de cargar cursos personalizados
-    const mergedMap = getMergedAccessHashMap();
-    log('[LOGIN] Validando código, cursos disponibles:', Object.keys(mergedMap).length);
-    log('[LOGIN] Hex a buscar:', hex.substring(0, 8) + '...');
-
-    if (mergedMap && mergedMap[hex]) {
-      log('[LOGIN] ✅ Código válido encontrado en hashmap');
-      // Mostrar loader inmediatamente
-      showLoader();
-
-      // ✅ CRÍTICO: Esperar refresh ANTES de renderizar (igual que cursos base desde master)
-      // Esto asegura que los archivos estén actualizados cuando se muestra el curso
-      if (hasRemote()) {
-        log('[SYNC] Iniciando refresh antes de mostrar curso...');
-        await refreshFromRemoteSilent(hex).catch(e => {
-          warn('[SYNC] Error en refresh:', e);
-          return false;
-        });
-        log('[SYNC] ✅ Refresh completado, renderizando curso...');
-      }
-
-      // Ejecutar animación de loader después del refresh
-      try {
-        await runLoader();
-      } catch (e) { }
-
-      currentKeyHex = hex;
-      clearAttempts();
-      setQueryParam('code', btoa(code));
-      renderCourse(hex);
-      showContent();
-
-      // ✅ Google Analytics: Tracking login exitoso curso
-      if (typeof gtag !== 'undefined') {
-        const courseData = mergedMap[hex];
-        gtag('event', 'login_success_course', {
-          'event_category': 'authentication',
-          'event_label': courseData.card?.tag || 'unknown'
-        });
-      }
-
-      return true;
-    } else {
-      warn('[LOGIN] ❌ Código no encontrado en hashmap');
-      warn('[LOGIN] Cursos disponibles:', Object.keys(mergedMap || {}));
-      warn('[LOGIN] Hex buscado:', hex.substring(0, 8) + '...');
-
-      const attempts = recordAttempt();
-      msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
-      msg.classList.add('error');
-      maybeShowAttemptsWarning();
-
-      // ✅ Google Analytics: Tracking de código inválido
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'login_error', {
-          'event_category': 'authentication',
-          'event_label': 'invalid_code',
-          'value': attempts
-        });
-      }
-
-      return false;
-    }
-  } catch (e) {
-    console.error(e);
-    msg.textContent = 'Ocurrió un error al verificar el código.';
-    msg.classList.add('error');
-    return false;
-  }
-}
-
-/* ============ Firebase Authentication ============ */
-
-// ✅ Función para manejar pestañas de autenticación
-function switchAuthTab(tab) {
-  const tabCode = $('#tab-code');
-  const tabAccount = $('#tab-account');
-  const formCode = $('#form-code');
-  const formAccount = $('#form-account');
-
-  if (tab === 'code') {
-    if (tabCode) tabCode.classList.add('active');
-    if (tabAccount) tabAccount.classList.remove('active');
-    if (formCode) formCode.classList.remove('hidden');
-    if (formAccount) formAccount.classList.add('hidden');
-  } else {
-    if (tabCode) tabCode.classList.remove('active');
-    if (tabAccount) tabAccount.classList.add('active');
-    if (formCode) formCode.classList.add('hidden');
-    if (formAccount) formAccount.classList.remove('hidden');
-    // Mostrar formulario de login por defecto
-    showLoginForm();
-  }
-}
-
-// ✅ Función para mostrar formulario de login
-function showLoginForm() {
-  const formLogin = $('#form-login');
-  const formRegister = $('#form-register');
-  const formReset = $('#form-reset');
-
-  if (formLogin) {
-    formLogin.classList.remove('hidden');
-  }
-  if (formRegister) {
-    formRegister.classList.add('hidden');
-    // Resetear formulario de registro al paso 1
-    const step1 = $('#register-step-1');
-    const step2 = $('#register-step-2');
-    const step3 = $('#register-step-3');
-    if (step1) step1.style.display = 'block';
-    if (step2) step2.style.display = 'none';
-    if (step3) step3.style.display = 'none';
-    window.verifiedEmailForRegistration = null;
-    window.verifiedCoursesForRegistration = null;
-    window.verifiedIsAdmin = null;
-    showAuthMessage('msg-register', '', false);
-    showAuthMessage('msg-register-step2', '', false);
-    showAuthMessage('msg-register-step3', '', false);
-    clearFieldErrors();
-  }
-  if (formReset) {
-    formReset.classList.add('hidden');
-  }
-}
-
-// ✅ Función para mostrar mensaje de autenticación
-function showAuthMessage(elementId, message, isError = false) {
-  const msgEl = $(elementId);
-  if (msgEl) {
-    msgEl.textContent = message;
-    msgEl.classList.remove('error');
-    if (isError) {
-      msgEl.classList.add('error');
-    }
-    // Asegurar que el mensaje sea visible
-    msgEl.style.display = 'block';
-    msgEl.style.visibility = 'visible';
-    log('[AUTH] 💬 Mensaje mostrado:', elementId, message);
-  } else {
-    warn('[AUTH] ⚠️ No se encontró el elemento para mensaje:', elementId);
-  }
-}
-
-// ✅ Funciones de autenticación con email/password
-
-// ✅ Función para login con email/password
-async function tryLoginByEmail() {
-  // ✅ Rate limiting: prevenir ataques de fuerza bruta
-  if (!checkRateLimitSimple('login')) {
-    return false;
-  }
-
-  // ✅ Sanitizar inputs
-  const email = getSafeInputValue('#input-email', 'email');
-  const password = getSafeInputValue('#input-password', 'password'); // Password no se sanitiza
-
-  if (!email || !password) {
-    showAuthMessage('msg-auth', 'Por favor, completa todos los campos.', true);
-    return false;
-  }
-
-  if (!email.includes('@')) {
-    showAuthMessage('msg-auth', 'Por favor, ingresa un correo válido.', true);
-    markFieldError('input-email');
-    return false;
-  }
-
-  clearFieldErrors();
-  showAuthMessage('msg-auth', 'Iniciando sesión…', false);
-
-  try {
-    if (!window.firebaseAuth) {
-      showAuthMessage('msg-auth', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
-      return false;
-    }
-
-    const userCredential = await window.firebaseAuth.signInWithEmailAndPassword(email, password);
-    const user = userCredential.user;
-    const userEmail = user.email.toLowerCase().trim();
-
-    log('[AUTH] ✅ Login exitoso:', userEmail);
-
-    window.currentUserEmail = userEmail;
-
-    // ✅ PRIMERO: Verificar si es administrador
-    let isAdmin = false;
-    try {
-      log('[AUTH] 🔍 Verificando si', userEmail, 'es administrador...');
-      isAdmin = await checkIsAdmin(userEmail);
-      log('[AUTH] 🔍 Resultado de checkIsAdmin para', userEmail, ':', isAdmin);
-
-      // ✅ Verificación adicional: verificar directamente si es super admin (por si checkIsAdmin falla)
-      if (!isAdmin) {
-        const normalizedEmail = userEmail.toLowerCase().trim();
-        const isSuperAdmin = SUPER_ADMINS.includes(normalizedEmail);
-        log('[AUTH] 🔍 Verificación directa de super admin:', isSuperAdmin, 'para', normalizedEmail);
-        if (isSuperAdmin) {
-          log('[AUTH] ✅ Detectado como super admin directamente');
-          isAdmin = true;
-        }
-      }
-    } catch (error) {
-      console.error('[AUTH] ❌ Error verificando si es admin:', error);
-      // Si hay error, intentar verificar directamente los super admins
-      const normalizedEmail = userEmail.toLowerCase().trim();
-      isAdmin = SUPER_ADMINS.includes(normalizedEmail);
-      log('[AUTH] 🔍 Verificación directa de super admin (fallback):', isAdmin);
-    }
-
-    if (isAdmin) {
-      // ✅ Es administrador, otorgar acceso master directamente
-      log('[AUTH] ✅ Usuario es administrador, otorgando acceso master');
-      showAuthMessage('msg-auth', '¡Bienvenido! Acceso de administrador activado.', false);
-      await handleSuccessfulAuthWithEmail(userEmail, []); // Array vacío, pero es admin
-      return true;
-    }
-
-    // ✅ Si NO es admin, verificar cursos permitidos
-    showAuthMessage('msg-auth', 'Verificando cursos disponibles…', false);
-
-    let allowedCourses;
-    try {
-      allowedCourses = await getCoursesForEmail(userEmail);
-    } catch (error) {
-      console.error('[AUTH] ❌ Error obteniendo cursos:', error);
-      showAuthMessage('msg-auth', 'Error al verificar cursos. Por favor, intente nuevamente.', true);
-      return false;
-    }
-
-    log('[AUTH] Cursos permitidos para', userEmail, ':', allowedCourses.length);
-
-    if (allowedCourses.length === 0) {
-      showAuthMessage('msg-auth', 'No tienes acceso a ningún curso. Contacta al administrador para solicitar acceso.', true);
-      return false;
-    }
-
-    // ✅ USAR LA FUNCIÓN EXISTENTE (LÓGICA INTACTA)
-    await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
-    showAuthMessage('msg-auth', `¡Bienvenido! Tienes acceso a ${allowedCourses.length} curso(s).`, false);
-
-    // ✅ Log de auditoría
-    await auditLog(AUDIT_ACTION_TYPES.LOGIN_SUCCESS, {
-      email: userEmail,
-      coursesCount: allowedCourses.length
-    }, userEmail, false); // No enviar a Firebase para evitar spam
-
-    return true;
-
-  } catch (error) {
-    console.error('[AUTH] ❌ Error en login:', error);
-    let errorMessage = 'Error al iniciar sesión.';
-
-    // ✅ Log de auditoría para login fallido
-    const email = getSafeInputValue('#input-email', 'email');
-    await auditLog(AUDIT_ACTION_TYPES.LOGIN_FAILED, {
-      email: email || 'unknown',
-      errorCode: error.code || 'unknown'
-    }, email, false); // No enviar a Firebase para evitar spam
-
-    // ✅ Manejar el código nuevo de Firebase que combina user-not-found y wrong-password
-    if (error.code === 'auth/invalid-login-credentials' ||
-      error.code === 'auth/user-not-found' ||
-      error.code === 'auth/wrong-password') {
-      errorMessage = 'Correo o contraseña incorrectos. Verifica tus credenciales e intenta nuevamente.';
-      markFieldError('input-email');
-      markFieldError('input-password');
-    } else if (error.code === 'auth/invalid-email') {
-      errorMessage = 'Correo electrónico inválido.';
-      markFieldError('input-email');
-    } else if (error.code === 'auth/user-disabled') {
-      errorMessage = 'Esta cuenta ha sido deshabilitada.';
-    } else if (error.code === 'auth/too-many-requests') {
-      errorMessage = 'Demasiados intentos fallidos. Intenta más tarde.';
-    } else if (error.code === 'auth/network-request-failed') {
-      errorMessage = 'Error de conexión. Verifica tu internet e intenta nuevamente.';
-    } else {
-      // ✅ Mensaje genérico sin mencionar Firebase
-      errorMessage = 'No se pudo iniciar sesión. Verifica tus credenciales e intenta nuevamente.';
-    }
-
-    showAuthMessage('msg-auth', errorMessage, true);
-    return false;
-  }
-}
-
-// ✅ Función para verificar correo antes de registrar
-async function verifyEmailForRegistration() {
-  // ✅ Rate limiting: prevenir spam de registros
-  if (!checkRateLimitSimple('register')) {
-    return false;
-  }
-
-  console.log('[VERIFICATION] 🚀 Iniciando verificación de email...');
-  // ✅ Sanitizar email
-  const email = getSafeInputValue('#input-register-email', 'email');
-  console.log('[VERIFICATION] 📧 Email ingresado:', email);
-
-  if (!email) {
-    showAuthMessage('msg-register', 'Por favor, ingresa tu correo electrónico.', true);
-    return false;
-  }
-
-  if (!email.includes('@')) {
-    showAuthMessage('msg-register', 'Por favor, ingresa un correo válido.', true);
-    markFieldError('input-register-email');
-    return false;
-  }
-
-  clearFieldErrors();
-  const normalizedEmail = email; // Ya está en lowercase por safeInput
-  console.log('[VERIFICATION] 📧 Email normalizado:', normalizedEmail);
-
-  showAuthMessage('msg-register', 'Verificando autorización del correo…', false);
-
-  try {
-    // ✅ PRIMERO: Verificar si es administrador
-    const isAdmin = await checkIsAdmin(normalizedEmail);
-    let allowedCourses = [];
-
-    if (!isAdmin) {
-      // ✅ Si NO es admin, verificar si está en algún curso
-      allowedCourses = await getCoursesForEmail(normalizedEmail);
-
-      if (allowedCourses.length === 0) {
-        showAuthMessage('msg-register', 'Este correo no está autorizado para crear una cuenta. Contacta al administrador para solicitar acceso.', true);
-        markFieldError('input-register-email');
-        return false;
-      }
-    }
-
-    // ✅ Correo autorizado (admin o tiene cursos), generar y enviar código
-    showAuthMessage('msg-register', 'Generando código de verificación…', false);
-
-    try {
-      const code = generateVerificationCode();
-      console.log('[VERIFICATION] 🔑 Código generado: ***'); // Código oculto por seguridad
-      await saveVerificationCode(normalizedEmail, code);
-      console.log('[VERIFICATION] 💾 Código guardado en Firebase');
-
-      try {
-        console.log('[VERIFICATION] 🔄 Llamando a sendVerificationCode...');
-        await sendVerificationCode(normalizedEmail, code);
-        console.log('[VERIFICATION] ✅ sendVerificationCode completado');
-      } catch (sendError) {
-        // Si falla el envío, mostrar error pero no bloquear el flujo
-        // El código ya está guardado en Firebase, el usuario puede pedir reenvío
-        console.error('[VERIFICATION] ❌ Error enviando código:', sendError);
-        const errorMessage = sendError.message || 'Error al enviar el código';
-
-        // Mostrar error pero permitir continuar (el código está guardado)
-        showAuthMessage('msg-register', 'Error al enviar el código: ' + errorMessage + '. Puedes intentar reenviarlo más tarde.', true);
-
-        // Aún así, mostrar el paso 2 para que pueda pedir reenvío
-        window.verifiedEmailForRegistration = normalizedEmail;
-        window.verifiedCoursesForRegistration = allowedCourses;
-        window.verifiedIsAdmin = isAdmin || false;
-
-        const step1 = $('#register-step-1');
-        const step2 = $('#register-step-2');
-        if (step1) step1.style.display = 'none';
-        if (step2) step2.style.display = 'block';
-
-        const verifiedEmailDisplay = $('#verified-email-display');
-        if (verifiedEmailDisplay) verifiedEmailDisplay.textContent = normalizedEmail;
-
-        const codeInput = $('#input-verification-code');
-        if (codeInput) codeInput.value = '';
-
-        showAuthMessage('msg-register-step2', 'No se pudo enviar el código. Usa el botón "Reenviar código" para intentar nuevamente.', true);
-        return true; // Permitir continuar para que pueda reenviar
-      }
-
-      // ✅ Código enviado exitosamente
-      window.verifiedEmailForRegistration = normalizedEmail;
-      window.verifiedCoursesForRegistration = allowedCourses;
-      window.verifiedIsAdmin = isAdmin || false;
-
-      // Ocultar paso 1 y mostrar paso 2 (verificación de código)
-      const step1 = $('#register-step-1');
-      const step2 = $('#register-step-2');
-      if (step1) step1.style.display = 'none';
-      if (step2) step2.style.display = 'block';
-
-      // Mostrar email verificado
-      const verifiedEmailDisplay = $('#verified-email-display');
-      if (verifiedEmailDisplay) verifiedEmailDisplay.textContent = normalizedEmail;
-
-      // Limpiar campo de código
-      const codeInput = $('#input-verification-code');
-      if (codeInput) codeInput.value = '';
-
-      // Enfocar el campo de código
-      setTimeout(() => {
-        if (codeInput) codeInput.focus();
-      }, 100);
-
-      showAuthMessage('msg-register-step2', 'Código enviado a tu correo. Revisa tu bandeja de entrada (y spam).', false);
-
-      return true;
-    } catch (error) {
-      console.error('[VERIFICATION] ❌ Error en proceso de verificación:', error);
-      showAuthMessage('msg-register', 'Error al procesar la verificación. Intenta nuevamente.', true);
-      return false;
-    }
-
-  } catch (error) {
-    console.error('[AUTH] ❌ Error verificando correo:', error);
-    showAuthMessage('msg-register', 'Error al verificar el correo. Intenta nuevamente.', true);
-    return false;
-  }
-}
-
-// ✅ Función para registro con email/password (correo ya verificado)
-async function tryRegister() {
-  // ✅ Rate limiting: prevenir spam de registros
-  if (!checkRateLimitSimple('register')) {
-    return false;
-  }
-
-  // ✅ Usar el correo ya verificado (ya sanitizado)
-  const email = window.verifiedEmailForRegistration;
-  // ✅ Passwords no se sanitizan, se mantienen como están
-  const password = $('#input-register-password')?.value || '';
-  const passwordConfirm = $('#input-register-password-confirm')?.value || '';
-
-  if (!email) {
-    showAuthMessage('msg-register-step3', 'Error: El correo no fue verificado. Por favor, vuelve al paso anterior.', true);
-    return false;
-  }
-
-  if (!password || !passwordConfirm) {
-    showAuthMessage('msg-register-step3', 'Por favor, completa todos los campos.', true);
-    return false;
-  }
-
-  if (password.length < 6) {
-    showAuthMessage('msg-register-step3', 'La contraseña debe tener al menos 6 caracteres.', true);
-    markFieldError('input-register-password');
-    return false;
-  }
-
-  if (password !== passwordConfirm) {
-    showAuthMessage('msg-register-step3', 'Las contraseñas no coinciden.', true);
-    markFieldError('input-register-password-confirm');
-    return false;
-  }
-
-  clearFieldErrors();
-  showAuthMessage('msg-register-step3', 'Creando cuenta…', false);
-
-  try {
-    if (!window.firebaseAuth) {
-      showAuthMessage('msg-register-step3', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
-      return false;
-    }
-
-    const userCredential = await window.firebaseAuth.createUserWithEmailAndPassword(email, password);
-    const user = userCredential.user;
-
-    log('[AUTH] ✅ Registro exitoso:', user.email);
-
-    showAuthMessage('msg-register-step3', '¡Cuenta creada exitosamente! Cargando tus cursos…', false);
-
-    // ✅ Usar los cursos ya verificados (puede ser array vacío si es admin)
-    const allowedCourses = window.verifiedCoursesForRegistration || [];
-    window.currentUserEmail = email;
-    await handleSuccessfulAuthWithEmail(email, allowedCourses);
-
-    // ✅ Log de auditoría
-    await auditLog(AUDIT_ACTION_TYPES.REGISTER_SUCCESS, {
-      email: email,
-      coursesCount: allowedCourses.length
-    }, email, true); // Enviar a Firebase
-
-    // Limpiar variables temporales
-    window.verifiedEmailForRegistration = null;
-    window.verifiedCoursesForRegistration = null;
-    window.verifiedIsAdmin = null; // ✅ Limpiar flag de admin
-
-    return true;
-
-  } catch (error) {
-    console.error('[AUTH] ❌ Error en registro:', error);
-    let errorMessage = 'Error al crear la cuenta.';
-
-    // ✅ Manejar errores de Firebase con mensajes amigables
-    if (error.code === 'auth/email-already-in-use') {
-      errorMessage = 'Este correo ya está registrado. Inicia sesión en su lugar.';
-      markFieldError('input-register-password');
-    } else if (error.code === 'auth/invalid-email') {
-      errorMessage = 'Correo electrónico inválido.';
-      markFieldError('input-register-password');
-    } else if (error.code === 'auth/weak-password') {
-      errorMessage = 'La contraseña es muy débil. Usa al menos 6 caracteres.';
-      markFieldError('input-register-password');
-    } else if (error.code === 'auth/network-request-failed') {
-      errorMessage = 'Error de conexión. Verifica tu internet e intenta nuevamente.';
-    } else {
-      // ✅ Mensaje genérico sin mencionar Firebase
-      errorMessage = 'No se pudo crear la cuenta. Verifica los datos e intenta nuevamente.';
-    }
-
-    showAuthMessage('msg-register-step3', errorMessage, true);
-    return false;
-  }
-}
-
-// ✅ Función para verificar código de verificación
-async function verifyCodeForRegistration() {
-  // ✅ Rate limiting: prevenir spam de códigos
-  if (!checkRateLimitSimple('verify_code')) {
-    return false;
-  }
-
-  const email = window.verifiedEmailForRegistration; // Ya sanitizado
-  // ✅ Sanitizar código
-  const code = getSafeInputValue('#input-verification-code', 'code');
-
-  if (!email) {
-    showAuthMessage('msg-register-step2', 'Error: El correo no fue verificado. Por favor, vuelve al paso anterior.', true);
-    return false;
-  }
-
-  if (!code || code.length !== 6) {
-    showAuthMessage('msg-register-step2', 'Por favor, ingresa el código de 6 dígitos.', true);
-    markFieldError('input-verification-code');
-    return false;
-  }
-
-  clearFieldErrors();
-  showAuthMessage('msg-register-step2', 'Verificando código…', false);
-
-  const verification = await verifyCode(email, code);
-
-  if (!verification.valid) {
-    showAuthMessage('msg-register-step2', verification.error || 'Código inválido. Intenta nuevamente.', true);
-    markFieldError('input-verification-code');
-    return false;
-  }
-
-  // Código verificado, mostrar paso 3 (crear contraseña)
-  const step2 = $('#register-step-2');
-  const step3 = $('#register-step-3');
-  if (step2) step2.style.display = 'none';
-  if (step3) step3.style.display = 'block';
-
-  // Limpiar campos de contraseña
-  const passwordInput = $('#input-register-password');
-  const passwordConfirmInput = $('#input-register-password-confirm');
-  if (passwordInput) passwordInput.value = '';
-  if (passwordConfirmInput) passwordConfirmInput.value = '';
-
-  // Enfocar el primer campo de contraseña
-  setTimeout(() => {
-    if (passwordInput) passwordInput.focus();
-  }, 100);
-
-  showAuthMessage('msg-register-step3', 'Código verificado. Ahora crea tu contraseña.', false);
-  return true;
-}
-
-// ✅ Función para reenviar código de verificación
-async function resendVerificationCode() {
-  const email = window.verifiedEmailForRegistration;
-
-  if (!email) {
-    showAuthMessage('msg-register-step2', 'Error: No hay correo verificado.', true);
-    return false;
-  }
-
-  if (!checkRateLimitSimple('resend_code')) { // Usa configuración mejorada
-    return false;
-  }
-
-  showAuthMessage('msg-register-step2', 'Reenviando código…', false);
-
-  try {
-    const code = generateVerificationCode();
-    await saveVerificationCode(email, code);
-    await sendVerificationCode(email, code);
-
-    // Limpiar campo de código
-    const codeInput = $('#input-verification-code');
-    if (codeInput) codeInput.value = '';
-
-    showAuthMessage('msg-register-step2', 'Código reenviado. Revisa tu correo.', false);
-  } catch (error) {
-    console.error('[VERIFICATION] ❌ Error reenviando código:', error);
-    showAuthMessage('msg-register-step2', 'Error al reenviar el código. Intenta nuevamente.', true);
-  }
-}
-
-// ✅ Función para reset de contraseña
-async function tryPasswordReset() {
-  // ✅ Rate limiting: prevenir spam de resets
-  if (!checkRateLimitSimple('password_reset')) {
-    return false;
-  }
-
-  // ✅ Sanitizar email
-  const email = getSafeInputValue('#input-reset-email', 'email');
-
-  if (!email || !email.includes('@')) {
-    showAuthMessage('msg-reset', 'Por favor, ingresa un correo válido.', true);
-    markFieldError('input-reset-email');
-    return false;
-  }
-
-  clearFieldErrors();
-  showAuthMessage('msg-reset', 'Enviando enlace de restablecimiento…', false);
-
-  try {
-    if (!window.firebaseAuth) {
-      showAuthMessage('msg-reset', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
-      return false;
-    }
-
-    await window.firebaseAuth.sendPasswordResetEmail(email.toLowerCase().trim());
-
-    showAuthMessage('msg-reset', '✅ Se ha enviado un enlace de restablecimiento a tu correo. Revisa tu bandeja de entrada (y spam).', false);
-
-    setTimeout(() => {
-      $('#input-reset-email').value = '';
-    }, 3000);
-
-    return true;
-
-  } catch (error) {
-    console.error('[AUTH] ❌ Error en reset:', error);
-    let errorMessage = 'Error al enviar el enlace.';
-
-    if (error.code === 'auth/user-not-found') {
-      errorMessage = 'No existe una cuenta con este correo.';
-      markFieldError('input-reset-email');
-    } else if (error.code === 'auth/invalid-email') {
-      errorMessage = 'Correo electrónico inválido.';
-      markFieldError('input-reset-email');
-    } else {
-      errorMessage = `Error: ${error.message || 'No se pudo enviar el enlace.'}`;
-    }
-
-    showAuthMessage('msg-reset', errorMessage, true);
-    return false;
-  }
-}
-
-// ✅ Funciones auxiliares para manejo de errores de campos
-function clearFieldErrors() {
-  const fields = ['input-email', 'input-password', 'input-register-email', 'input-register-password', 'input-register-password-confirm', 'input-reset-email'];
-  fields.forEach(id => {
-    const field = $(`#${id}`);
-    if (field) {
-      field.style.borderColor = '';
-      field.style.backgroundColor = '';
-    }
-  });
-}
-
-function markFieldError(fieldId) {
-  const field = $(`#${fieldId}`);
-  if (field) {
-    field.style.borderColor = '#ff7a7a';
-    field.style.backgroundColor = 'rgba(255, 122, 122, 0.1)';
-  }
-}
-
-function showAuthMessage(elementId, message, isError) {
-  const msgEl = $(`#${elementId}`);
-  if (!msgEl) return;
-
-  msgEl.textContent = message;
-  msgEl.className = isError ? 'msg error' : 'msg';
-  msgEl.style.display = 'block';
-
-  if (msgEl.scrollIntoView) {
-    msgEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-}
-
-// ✅ Funciones de Google Sign-In eliminadas (ahora se usa email/password)
-
-// ✅ Funciones de registro y recuperación implementadas arriba (tryRegister, tryPasswordReset)
+/* ============ AUTENTICACIÓN ============ */
+// ✅ Las funciones de autenticación se han movido a auth.js
+// ✅ Este archivo mantiene solo las funciones auxiliares que se usan en otras partes
 
 /* ============ Gestión de Correos Permitidos por Curso ============ */
 
@@ -11986,274 +11188,64 @@ async function addAdminUI() {
   }
 }
 
-// ✅ Función para manejar autenticación exitosa con email (mostrar solo cursos permitidos)
-async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
-  log('[AUTH] ✅ Mostrando cursos permitidos para:', userEmail);
-
-  // ✅ VERIFICAR SI ES ADMINISTRADOR (otorgar acceso master)
-  const isAdmin = await checkIsAdmin(userEmail);
-  if (isAdmin) {
-    log('[AUTH] ✅ Usuario es administrador, otorgando acceso master');
-    // Establecer flags de master
-    isMasterAuthenticated = true;
-    currentKeyHex = MASTER_HASH;
-
-    // ✅ Refresh en background (no bloquear login)
-    if (hasRemote()) {
-      log('[SYNC] Iniciando refresh de todos los cursos en background...');
-      const mergedMap = getMergedAccessHashMap();
-      const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
-      log('[SYNC] Total de cursos a refrescar:', hexes.length);
-
-      Promise.allSettled(hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
-        warn('[SYNC] Error refrescando', h.substring(0, 8), ':', e);
-        return false;
-      }))).then(() => {
-        log('[SYNC] ✅ Refresh completado');
-      });
-    }
-
-    try {
-      await runLoader();
-    } catch (e) { }
-
-    clearAttempts();
-
-    refreshCustomCourses().catch(e => {
-      warn('[MASTER] Error cargando cursos remotos (continuando):', e);
-    });
-
-    // ✅ Mostrar vista master para administradores
-    buildMasterGrid();
-    setupMasterSearch();
-    $('#year_master').textContent = new Date().getFullYear();
-    showMaster();
-    return;
-  }
-
-  // ✅ Si NO es admin, comportamiento normal (vista de usuario)
-  // Guardar cursos permitidos en variable global para filtrar
-  window.allowedCoursesForUser = allowedCourses;
-
-  // ✅ Refresh en background (no bloquear login)
-  if (hasRemote()) {
-    log('[SYNC] Iniciando refresh de cursos permitidos en background...');
-    Promise.allSettled(allowedCourses.map(h => refreshFromRemoteSilent(h).catch(e => {
-      warn('[SYNC] Error refrescando', h.substring(0, 8), ':', e);
-      return false;
-    }))).then(() => {
-      log('[SYNC] ✅ Refresh completado');
-    });
-  }
-
-  try {
-    await runLoader();
-  } catch (e) { }
-
-  clearAttempts();
-
-  refreshCustomCourses().catch(e => {
-    warn('[MASTER] Error cargando cursos remotos (continuando):', e);
-  });
-
-  // ✅ Construir grid de usuario (vista simplificada)
-  buildUserGrid();
-  $('#year_master').textContent = new Date().getFullYear();
-  showUserView();
-}
-
-// ✅ Función para logout de Firebase
-async function logoutFirebase() {
-  try {
-    if (window.firebaseAuth) {
-      await window.firebaseAuth.signOut();
-      log('[AUTH] ✅ Logout exitoso');
-    }
-    // ✅ Limpiar flag de master al cerrar sesión
-    isMasterAuthenticated = false;
-    currentKeyHex = null;
-  } catch (error) {
-    console.error('[AUTH] ❌ Error en logout:', error);
-  }
-}
-
-// ✅ Función compartida para manejar autenticación exitosa (código o Google)
-async function handleSuccessfulAuth(hex, method = 'code') {
-  log('[AUTH] ✅ Autenticación exitosa por:', method);
-
-  // Si es master, mostrar vista master
-  if (hex === MASTER_HASH) {
-    // ✅ Establecer flag de master autenticado
-    isMasterAuthenticated = true;
-    currentKeyHex = MASTER_HASH; // ✅ Establecer currentKeyHex para validación
-    // ✅ Refresh en background (no bloquear login)
-    if (hasRemote()) {
-      log('[SYNC] Iniciando refresh de todos los cursos en background...');
-      const mergedMap = getMergedAccessHashMap();
-      const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH);
-      log('[SYNC] Total de cursos a refrescar:', hexes.length);
-
-      Promise.allSettled(hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
-        warn('[SYNC] Error refrescando', h.substring(0, 8), ':', e);
-        return false;
-      }))).then(() => {
-        log('[SYNC] ✅ Refresh completado');
-      });
-    }
-
-    try {
-      await runLoader();
-    } catch (e) { }
-
-    clearAttempts();
-    if (method === 'code') {
-      const code = $('#code').value;
-      if (code) setQueryParam('code', btoa(code));
-    }
-
-    refreshCustomCourses().catch(e => {
-      warn('[MASTER] Error cargando cursos remotos (continuando):', e);
-    });
-
-    buildMasterGrid();
-    setupMasterSearch();
-    $('#year_master').textContent = new Date().getFullYear();
-    showMaster();
-  } else {
-    // Curso individual
-    showLoader();
-
-    if (hasRemote()) {
-      await refreshFromRemoteSilent(hex).catch(e => {
-        warn('[SYNC] Error en refresh:', e);
-      });
-    }
-
-    try {
-      await runLoader();
-    } catch (e) { }
-
-    currentKeyHex = hex;
-    clearAttempts();
-    if (method === 'code') {
-      const code = $('#code').value;
-      if (code) setQueryParam('code', btoa(code));
-    }
-    renderCourse(hex);
-    showContent();
-  }
-}
-
-// ✅ Listener para estado de autenticación persistente
-function setupAuthStateListener() {
-  if (!window.firebaseAuth) {
-    log('[AUTH] Firebase Auth no disponible, omitiendo listener de estado');
-    return;
-  }
-
-  window.firebaseAuth.onAuthStateChanged(async (user) => {
-    log('[AUTH] 🔔 onAuthStateChanged disparado, usuario:', user?.email || 'null');
-
-    if (user) {
-      log('[AUTH] ✅ Usuario autenticado:', user.email);
-      const userEmail = user.email.toLowerCase().trim();
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const masterEl = document.getElementById('master');
-      const userViewEl = document.getElementById('user-view');
-      const contentEl = document.getElementById('content');
-      const accessEl = document.getElementById('access');
-      const isInMaster = currentKeyHex === MASTER_HASH || (masterEl && !masterEl.classList.contains('hidden'));
-      const isInUserView = userViewEl && !userViewEl.classList.contains('hidden');
-      const isInContent = contentEl && !contentEl.classList.contains('hidden');
-      const isInAccess = accessEl && !accessEl.classList.contains('hidden');
-
-      // ✅ PRIMERO: Verificar si el usuario está en vista de usuario y perdió acceso
-      if (isInUserView && !isInMaster) {
-        log('[AUTH] 🔍 Verificando acceso del usuario en vista de usuario...');
-        const allowedCourses = await getCoursesForEmail(userEmail);
-
-        if (allowedCourses.length === 0) {
-          log('[AUTH] ⚠️ Usuario perdió acceso a todos los cursos, cerrando sesión...');
-          window.currentUserEmail = null;
-          window.allowedCoursesForUser = null;
-
-          // Cerrar sesión de Firebase
-          await logoutFirebase();
-
-          // Limpiar estado
-          currentKeyHex = null;
-          setQueryParam('code', null);
-
-          // Mostrar mensaje y redirigir a pantalla de acceso
-          showAccess();
-          showAuthMessage('msg-auth', 'Tu acceso a los cursos ha sido revocado. Contacta al administrador para solicitar acceso nuevamente.', true);
-          return; // Salir temprano
-        }
-      }
-
-      // ✅ SEGUNDO: Verificar cursos para usuarios que no están en ninguna vista específica
-      if (!urlParams.has('code') && !isInMaster && !isInUserView && !isInContent) {
-        log('[AUTH] 🔍 Verificando cursos para usuario con email...');
-        const allowedCourses = await getCoursesForEmail(userEmail);
-        log('[AUTH] 📚 Cursos encontrados en listener:', allowedCourses.length);
-
-        if (allowedCourses.length > 0) {
-          log('[AUTH] ✅ Mostrando vista de usuario desde listener');
-          window.currentUserEmail = userEmail;
-          window.allowedCoursesForUser = allowedCourses;
-
-          if (isInAccess && accessEl) {
-            accessEl.classList.add('hidden');
-          }
-
-          await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
-        }
-      }
-    } else {
-      log('[AUTH] Usuario no autenticado');
-      window.currentUserEmail = null;
-      window.allowedCoursesForUser = null;
-      if (currentKeyHex === MASTER_HASH || (document.getElementById('user-view') && !document.getElementById('user-view').classList.contains('hidden'))) {
-        currentKeyHex = null;
-        setQueryParam('code', null);
-        showAccess();
-      }
-    }
-  });
-}
+/* ============ AUTENTICACIÓN ============ */
+// ✅ Las funciones handleSuccessfulAuthWithEmail, logoutFirebase, handleSuccessfulAuth y setupAuthStateListener
+// ✅ se han movido a auth.js
 
 // ✅ Inicializar listener de estado cuando Firebase esté listo
+// ✅ Esto se maneja en auth.js ahora
 window.addEventListener('firebaseReady', () => {
-  setupAuthStateListener();
+  if (window.Auth && window.Auth.setupAuthStateListener) {
+    window.Auth.setupAuthStateListener();
+  }
 });
 
 /* ============ eventos ============ */
-$('#btn-enter').addEventListener('click', () => tryLoginByCode($('#code').value));
-$('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#btn-enter').click(); } });
+// ✅ Event listeners de autenticación se configuran en auth.js
+// ✅ Estos event listeners se configuran después de que auth.js se carga
+if (window.Auth && window.Auth.tryLoginByCode) {
+  $('#btn-enter').addEventListener('click', () => window.Auth.tryLoginByCode($('#code').value));
+  $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#btn-enter').click(); } });
+} else {
+  // Fallback si auth.js no se ha cargado aún
+  $('#btn-enter').addEventListener('click', () => {
+    console.warn('[APP] Auth module not loaded yet');
+  });
+}
 // ✅ Logout integrado (se actualiza más abajo)
 
 // ✅ Botón "Compartir enlace con código" eliminado por solicitud del usuario
 // ✅ Logout del master se maneja más abajo
 
 // ✅ Event listeners para pestañas de autenticación
-const tabCode = $('#tab-code');
-const tabAccount = $('#tab-account');
-if (tabCode) {
-  tabCode.addEventListener('click', () => switchAuthTab('code'));
-}
-if (tabAccount) {
-  tabAccount.addEventListener('click', () => switchAuthTab('account'));
+// ✅ Estos se configuran después de que auth.js se carga
+function setupAuthTabListeners() {
+  const tabCode = $('#tab-code');
+  const tabAccount = $('#tab-account');
+  if (tabCode && window.Auth && window.Auth.switchAuthTab) {
+    tabCode.addEventListener('click', () => window.Auth.switchAuthTab('code'));
+  }
+  if (tabAccount && window.Auth && window.Auth.switchAuthTab) {
+    tabAccount.addEventListener('click', () => window.Auth.switchAuthTab('account'));
+  }
 }
 
 // ✅ Función para configurar event listeners de autenticación email/password
 function setupEmailPasswordListeners() {
   console.log('[SETUP] 🔧 Configurando event listeners de autenticación...');
+  
+  // ✅ Verificar que Auth esté disponible
+  if (!window.Auth) {
+    console.warn('[SETUP] ⚠️ Auth module no disponible, reintentando en 100ms...');
+    setTimeout(setupEmailPasswordListeners, 100);
+    return;
+  }
+  
   // Event listeners para autenticación email/password
   const btnLogin = $('#btn-login');
-  if (btnLogin) {
+  if (btnLogin && window.Auth.tryLoginByEmail) {
     btnLogin.addEventListener('click', () => {
-      tryLoginByEmail();
+      window.Auth.tryLoginByEmail();
     });
   }
 
@@ -12280,50 +11272,50 @@ function setupEmailPasswordListeners() {
   // ✅ Event listener para verificar correo antes de registrar
   const btnVerifyEmail = $('#btn-verify-email');
   console.log('[SETUP] 🔍 Buscando botón btn-verify-email:', btnVerifyEmail);
-  if (btnVerifyEmail) {
+  if (btnVerifyEmail && window.Auth.verifyEmailForRegistration) {
     console.log('[SETUP] ✅ Botón encontrado, registrando event listener');
     btnVerifyEmail.addEventListener('click', async () => {
       console.log('[VERIFICATION] 🖱️ Botón "Verificar correo" clickeado');
-      await verifyEmailForRegistration();
+      await window.Auth.verifyEmailForRegistration();
     });
   } else {
-    console.error('[SETUP] ❌ Botón btn-verify-email NO encontrado');
+    console.error('[SETUP] ❌ Botón btn-verify-email NO encontrado o Auth no disponible');
   }
 
   // Enter en campo de correo para verificar
   const inputRegisterEmail = $('#input-register-email');
-  if (inputRegisterEmail) {
+  if (inputRegisterEmail && window.Auth.verifyEmailForRegistration) {
     inputRegisterEmail.addEventListener('keypress', async (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        await verifyEmailForRegistration();
+        await window.Auth.verifyEmailForRegistration();
       }
     });
   }
 
   // ✅ Event listener para verificar código
   const btnVerifyCode = $('#btn-verify-code');
-  if (btnVerifyCode) {
+  if (btnVerifyCode && window.Auth.verifyCodeForRegistration) {
     btnVerifyCode.addEventListener('click', async () => {
-      await verifyCodeForRegistration();
+      await window.Auth.verifyCodeForRegistration();
     });
   }
 
   // ✅ Event listener para reenviar código
   const btnResendCode = $('#btn-resend-code');
-  if (btnResendCode) {
+  if (btnResendCode && window.Auth.resendVerificationCode) {
     btnResendCode.addEventListener('click', async () => {
-      await resendVerificationCode();
+      await window.Auth.resendVerificationCode();
     });
   }
 
   // ✅ Enter en campo de código para verificar
   const inputVerificationCode = $('#input-verification-code');
-  if (inputVerificationCode) {
+  if (inputVerificationCode && window.Auth.verifyCodeForRegistration) {
     inputVerificationCode.addEventListener('keypress', async (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        await verifyCodeForRegistration();
+        await window.Auth.verifyCodeForRegistration();
       }
     });
 
@@ -12346,9 +11338,11 @@ function setupEmailPasswordListeners() {
       window.verifiedCoursesForRegistration = null;
       window.verifiedIsAdmin = null;
 
-      showAuthMessage('msg-register', '', false);
-      showAuthMessage('msg-register-step2', '', false);
-      clearFieldErrors();
+      if (window.Auth && window.Auth.showAuthMessage) {
+        window.Auth.showAuthMessage('msg-register', '', false);
+        window.Auth.showAuthMessage('msg-register-step2', '', false);
+      }
+      App.clearFieldErrors();
     });
   }
 
@@ -12363,20 +11357,20 @@ function setupEmailPasswordListeners() {
       }
     });
   }
-  if (inputRegisterPasswordConfirm) {
+  if (inputRegisterPasswordConfirm && window.Auth.tryRegister) {
     inputRegisterPasswordConfirm.addEventListener('keypress', async (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        await tryRegister();
+        await window.Auth.tryRegister();
       }
     });
   }
 
   // Registro (paso 3)
   const btnRegister = $('#btn-register');
-  if (btnRegister) {
+  if (btnRegister && window.Auth.tryRegister) {
     btnRegister.addEventListener('click', () => {
-      tryRegister();
+      window.Auth.tryRegister();
     });
   }
 
@@ -12396,16 +11390,18 @@ function setupEmailPasswordListeners() {
       if (passwordConfirmInput) passwordConfirmInput.value = '';
 
       // Limpiar mensajes
-      showAuthMessage('msg-register-step3', '', false);
-      clearFieldErrors();
+      if (window.Auth && window.Auth.showAuthMessage) {
+        window.Auth.showAuthMessage('msg-register-step3', '', false);
+      }
+      App.clearFieldErrors();
     });
   }
 
   // Reset password
   const btnReset = $('#btn-reset');
-  if (btnReset) {
+  if (btnReset && window.Auth.tryPasswordReset) {
     btnReset.addEventListener('click', () => {
-      tryPasswordReset();
+      window.Auth.tryPasswordReset();
     });
   }
 
@@ -12432,9 +11428,11 @@ function setupEmailPasswordListeners() {
       window.verifiedCoursesForRegistration = null;
       window.verifiedIsAdmin = null;
       window.verifiedCoursesForRegistration = null;
-      showAuthMessage('msg-register', '', false);
-      showAuthMessage('msg-register-step2', '', false);
-      clearFieldErrors();
+      if (window.Auth && window.Auth.showAuthMessage) {
+        window.Auth.showAuthMessage('msg-register', '', false);
+        window.Auth.showAuthMessage('msg-register-step2', '', false);
+      }
+      App.clearFieldErrors();
     });
   }
 
@@ -12455,9 +11453,11 @@ function setupEmailPasswordListeners() {
       window.verifiedCoursesForRegistration = null;
       window.verifiedIsAdmin = null;
       window.verifiedCoursesForRegistration = null;
-      showAuthMessage('msg-register', '', false);
-      showAuthMessage('msg-register-step2', '', false);
-      clearFieldErrors();
+      if (window.Auth && window.Auth.showAuthMessage) {
+        window.Auth.showAuthMessage('msg-register', '', false);
+        window.Auth.showAuthMessage('msg-register-step2', '', false);
+      }
+      App.clearFieldErrors();
     });
   }
 
@@ -12483,7 +11483,7 @@ function setupEmailPasswordListeners() {
   if (inputEmail) {
     inputEmail.addEventListener('input', () => {
       if (inputEmail.style.borderColor === '#ff7a7a') {
-        clearFieldErrors();
+        App.clearFieldErrors();
       }
     });
   }
@@ -12493,7 +11493,7 @@ function setupEmailPasswordListeners() {
 
     inputPassword.addEventListener('input', () => {
       if (inputPassword.style.borderColor === '#ff7a7a') {
-        clearFieldErrors();
+        App.clearFieldErrors();
       }
     });
   }
@@ -12559,15 +11559,32 @@ function setupEmailPasswordListeners() {
   }
 }
 
-// ✅ Configurar listeners cuando el DOM esté listo
+// ✅ Configurar listeners cuando el DOM esté listo y auth.js esté cargado
 console.log('[SETUP] 🔍 Verificando estado del DOM. readyState:', document.readyState);
-if (document.readyState === 'loading') {
-  console.log('[SETUP] ⏳ DOM aún cargando, esperando DOMContentLoaded...');
-  document.addEventListener('DOMContentLoaded', setupEmailPasswordListeners);
+function setupAuthListeners() {
+  setupAuthTabListeners();
+  if (document.readyState === 'loading') {
+    console.log('[SETUP] ⏳ DOM aún cargando, esperando DOMContentLoaded...');
+    document.addEventListener('DOMContentLoaded', setupEmailPasswordListeners);
+  } else {
+    // DOM ya está listo
+    console.log('[SETUP] ✅ DOM ya está listo, ejecutando setupEmailPasswordListeners inmediatamente');
+    setupEmailPasswordListeners();
+  }
+}
+
+// ✅ Esperar a que auth.js se cargue
+if (window.Auth) {
+  setupAuthListeners();
 } else {
-  // DOM ya está listo
-  console.log('[SETUP] ✅ DOM ya está listo, ejecutando setupEmailPasswordListeners inmediatamente');
-  setupEmailPasswordListeners();
+  // Si auth.js aún no se ha cargado, esperar un poco
+  setTimeout(() => {
+    if (window.Auth) {
+      setupAuthListeners();
+    } else {
+      console.warn('[SETUP] ⚠️ Auth module no disponible después de esperar');
+    }
+  }, 100);
 }
 
 // ✅ Event listeners para modal de correos por curso
@@ -12742,12 +11759,14 @@ if (inputCourseEmail) {
 const btnUserLogout = $('#btn-user-logout');
 if (btnUserLogout) {
   btnUserLogout.addEventListener('click', async () => {
-    await logoutFirebase();
+    if (window.Auth && window.Auth.logoutFirebase) {
+      await window.Auth.logoutFirebase();
+    }
     window.currentUserEmail = null;
     window.allowedCoursesForUser = null;
-    currentKeyHex = null;
-    setQueryParam('code', null);
-    showAccess();
+    App.setCurrentKeyHex(null);
+    App.setQueryParam('code', null);
+    App.showAccess();
   });
 }
 
@@ -12756,11 +11775,11 @@ const btnBackToUser = $('#btn-back-to-user');
 if (btnBackToUser) {
   btnBackToUser.addEventListener('click', () => {
     // Limpiar curso actual y flag
-    currentKeyHex = null;
+    App.setCurrentKeyHex(null);
     window.isFromUserView = false;
-    setQueryParam('code', null);
+    App.setQueryParam('code', null);
     // Regresar a vista de usuario
-    showUserView();
+    App.showUserView();
   });
 }
 
@@ -12769,15 +11788,15 @@ const btnBackToMaster = $('#btn-back-to-master');
 if (btnBackToMaster) {
   btnBackToMaster.addEventListener('click', () => {
     // Limpiar curso actual
-    currentKeyHex = MASTER_HASH; // ✅ Mantener como master para validación
+    App.setCurrentKeyHex(MASTER_HASH); // ✅ Mantener como master para validación
     window.isFromUserView = false;
-    setQueryParam('code', null);
+    App.setQueryParam('code', null);
     // Regresar a vista maestra
-    buildMasterGrid();
-    setupMasterSearch();
-    showMaster();
+    App.buildMasterGrid();
+    App.setupMasterSearch();
+    App.showMaster();
     setTimeout(() => {
-      setupNotificationsPanel();
+      App.setupNotificationsPanel();
     }, 50);
   });
 }
@@ -12789,25 +11808,29 @@ $('#btn-logout').addEventListener('click', async () => {
 
   if (isFromUserView) {
     // Regresar a vista de usuario (no cerrar sesión)
-    currentKeyHex = null;
+    App.setCurrentKeyHex(null);
     window.isFromUserView = false;
-    setQueryParam('code', null);
-    showUserView();
+    App.setQueryParam('code', null);
+    App.showUserView();
   } else {
     // Si viene de master o acceso directo, cerrar sesión
-    currentKeyHex = null;
+    App.setCurrentKeyHex(null);
     window.isFromUserView = false;
-    setQueryParam('code', null);
-    await logoutFirebase();
-    showAccess();
+    App.setQueryParam('code', null);
+    if (window.Auth && window.Auth.logoutFirebase) {
+      await window.Auth.logoutFirebase();
+    }
+    App.showAccess();
   }
 });
 
 // ✅ Integrar logout de Firebase con logout del master
 $('#btn-master-exit').addEventListener('click', async () => {
-  setQueryParam('code', null);
-  await logoutFirebase();
-  showAccess();
+  App.setQueryParam('code', null);
+  if (window.Auth && window.Auth.logoutFirebase) {
+    await window.Auth.logoutFirebase();
+  }
+  App.showAccess();
 });
 
 // ✅ FUNCIÓN GLOBAL: Ver qué hay guardado en localStorage
@@ -12975,6 +11998,97 @@ window.limpiarTodoYRecargar = async function () {
   setTimeout(() => {
     location.reload(true);
   }, 500);
+};
+
+/* ============ NAMESPACE: API PÚBLICA PARA MÓDULOS ============ */
+// ✅ Exponer funciones que otros módulos (como auth.js) necesitan
+// ✅ Esto permite separar el código de autenticación sin romper dependencias
+window.App = {
+  // ============ Funciones de navegación/vistas ============
+  showAccess: showAccess,
+  showContent: showContent,
+  showMaster: showMaster,
+  showUserView: showUserView,
+  
+  // ============ Funciones de renderizado ============
+  buildUserGrid: buildUserGrid,
+  buildMasterGrid: buildMasterGrid,
+  renderCourse: renderCourse,
+  setupMasterSearch: setupMasterSearch,
+  
+  // ============ Funciones de utilidad básica ============
+  log: log,
+  warn: warn,
+  error: error,
+  $: $, // selector
+  
+  // ============ Funciones de seguridad/utilidad ============
+  getSafeInputValue: getSafeInputValue,
+  safeInput: safeInput,
+  sha256Hex: sha256Hex,
+  clearFieldErrors: clearFieldErrors,
+  markFieldError: markFieldError,
+  escapeHTML: escapeHTML,
+  sanitizeHTML: sanitizeHTML,
+  
+  // ============ Funciones de Firebase/Backend ============
+  getCoursesForEmail: getCoursesForEmail,
+  checkIsAdmin: checkIsAdmin,
+  checkEmailAllowedForCourse: checkEmailAllowedForCourse,
+  refreshFromRemoteSilent: refreshFromRemoteSilent,
+  refreshCustomCourses: refreshCustomCourses,
+  hasRemote: hasRemote,
+  getMergedAccessHashMap: getMergedAccessHashMap,
+  getFirebaseDB: getFirebaseDB,
+  getFirestoreDB: getFirestoreDB,
+  
+  // ============ Funciones de UI/Loading ============
+  runLoader: runLoader,
+  showLoader: showLoader,
+  hideLoader: hideLoader,
+  
+  // ============ Funciones de auditoría ============
+  auditLog: auditLog,
+  
+  // ============ Variables globales (getters/setters) ============
+  getMasterHash: () => MASTER_HASH,
+  getSuperAdmins: () => SUPER_ADMINS,
+  getIsMasterAuthenticated: () => isMasterAuthenticated,
+  setIsMasterAuthenticated: (value) => { isMasterAuthenticated = value; },
+  getCurrentKeyHex: () => currentKeyHex,
+  setCurrentKeyHex: (value) => { currentKeyHex = value; },
+  
+  // ============ Funciones de rate limiting ============
+  checkRateLimitSimple: checkRateLimitSimple,
+  
+  // ============ Funciones de verificación de código ============
+  generateVerificationCode: generateVerificationCode,
+  saveVerificationCode: saveVerificationCode,
+  verifyCode: verifyCode,
+  sendVerificationCode: sendVerificationCode,
+  normalizeEmailKey: normalizeEmailKey,
+  
+  // ============ Funciones de query params ============
+  setQueryParam: setQueryParam,
+  
+  // ============ Funciones de refresh ============
+  stopPeriodicRefresh: stopPeriodicRefresh,
+  
+  // ============ Funciones de settings ============
+  setupSettingsMenuContent: setupSettingsMenuContent,
+  maybeShowAttemptsWarning: maybeShowAttemptsWarning,
+  setupAdvancedFilters: setupAdvancedFilters,
+  setupNotificationsPanel: setupNotificationsPanel,
+  
+  // ============ Funciones de intentos ============
+  recordAttempt: recordAttempt,
+  clearAttempts: clearAttempts,
+  getAttemptsCount: getAttemptsCount,
+  
+  // ============ Constantes ============
+  getVerificationCodesPath: () => VERIFICATION_CODES_PATH,
+  getCourseEmailsPath: () => COURSE_EMAILS_PATH,
+  getAuditActionTypes: () => AUDIT_ACTION_TYPES
 };
 
 /* ============ init ============ */
