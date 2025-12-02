@@ -11222,14 +11222,39 @@ window.addEventListener('firebaseReady', () => {
 
 /* ============ eventos ============ */
 // ✅ Event listeners de autenticación se configuran en auth.js
-// ✅ Estos event listeners se configuran después de que auth.js se carga
+// ✅ Esperar a que auth.js esté listo antes de configurar listeners
+function setupCodeLoginButton() {
+  if (window.Auth && window.Auth.tryLoginByCode) {
+    const btnEnter = $('#btn-enter');
+    const codeInput = $('#code');
+    if (btnEnter) {
+      // Remover listener anterior si existe
+      btnEnter.replaceWith(btnEnter.cloneNode(true));
+      const newBtnEnter = $('#btn-enter');
+      newBtnEnter.addEventListener('click', () => {
+        const code = codeInput ? codeInput.value : '';
+        window.Auth.tryLoginByCode(code);
+      });
+    }
+    if (codeInput) {
+      codeInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const btn = $('#btn-enter');
+          if (btn) btn.click();
+        }
+      });
+    }
+  }
+}
+
+// ✅ Configurar cuando auth.js esté listo
 if (window.Auth && window.Auth.tryLoginByCode) {
-  $('#btn-enter').addEventListener('click', () => window.Auth.tryLoginByCode($('#code').value));
-  $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#btn-enter').click(); } });
+  setupCodeLoginButton();
 } else {
-  // Fallback si auth.js no se ha cargado aún
-  $('#btn-enter').addEventListener('click', () => {
-    console.warn('[APP] Auth module not loaded yet');
+  // Esperar a que auth.js se cargue
+  window.addEventListener('authReady', () => {
+    setupCodeLoginButton();
   });
 }
 // ✅ Logout integrado (se actualiza más abajo)
