@@ -3153,3 +3153,8 @@ img[loading="lazy"].loaded {
     padding: 8px 10px;
   }
 }
+
+/* ✅ Ocultar botón course-modal-close innecesario */
+.course-modal-close {
+  display: none !important;
+}
