@@ -97,25 +97,7 @@ async function tryLoginByCode(code) {
       });
     }
 
-    // master - Validar usando Cloud Function
-    // Primero, asegurar que hay un usuario autenticado (anónimo o existente)
-    let currentUser = window.firebaseAuth?.currentUser;
-    
-    if (!currentUser) {
-      App.log('[LOGIN] No hay usuario autenticado, creando usuario anónimo temporal...');
-      try {
-        // Crear usuario anónimo para poder llamar a la Cloud Function
-        const userCredential = await window.firebaseAuth.signInAnonymously();
-        currentUser = userCredential.user;
-        App.log('[LOGIN] ✅ Usuario anónimo creado:', currentUser.uid);
-      } catch (error) {
-        App.error('[LOGIN] ❌ Error creando usuario anónimo:', error);
-        msg.textContent = 'Error de autenticación. Por favor, recarga la página.';
-        msg.classList.add('error');
-        return false;
-      }
-    }
-    
+    // master - Validar usando Cloud Function (HTTP, no requiere autenticación)
     // Verificar si Firebase Functions está disponible
     if (!window.firebaseFunctions) {
       App.warn('[LOGIN] Firebase Functions no disponible, usando validación local como fallback');
@@ -124,7 +106,9 @@ async function tryLoginByCode(code) {
       if (MASTER_HASH_VAL && hex === MASTER_HASH_VAL) {
         App.log('[LOGIN] ✅ Código master válido (fallback local)');
         App.setIsMasterAuthenticated(true);
-        App.setCurrentKeyHex(MASTER_HASH_VAL);
+        if (MASTER_HASH_VAL) {
+          App.setCurrentKeyHex(MASTER_HASH_VAL);
+        }
         // Continuar con el flujo normal...
       } else {
         msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
@@ -132,53 +116,44 @@ async function tryLoginByCode(code) {
         return false;
       }
     } else {
-      // Usar Cloud Function para validar código master
+      // Usar Cloud Function HTTP para validar código master
       App.log('[LOGIN] Validando código master con Cloud Function...');
       
       try {
-        const validateMasterCode = window.firebaseFunctions.httpsCallable('validateMasterCode');
-        const result = await validateMasterCode({ code: sanitizedCode });
+        // Obtener la URL de la función (necesitamos construirla manualmente)
+        const projectId = 'edusalud-platfor';
+        const region = 'us-central1';
+        const functionUrl = `https://${region}-${projectId}.cloudfunctions.net/validateMasterCodeHTTP`;
         
-        if (result.data && result.data.success) {
-          App.log('[LOGIN] ✅ Código master válido! Custom Claim establecido.');
-          
-          // Forzar refresco del token para obtener el Custom Claim actualizado
-          await currentUser.getIdToken(true);
-          
-          // Verificar que el Custom Claim se estableció correctamente
-          const token = await currentUser.getIdTokenResult();
-          if (token.claims.isMaster) {
-            App.log('[LOGIN] ✅ Custom Claim isMaster verificado');
-            App.setIsMasterAuthenticated(true);
-            // Obtener MASTER_HASH para usar como currentKeyHex (necesario para compatibilidad)
-            const MASTER_HASH_VAL = getMasterHash();
-            if (MASTER_HASH_VAL) {
-              App.setCurrentKeyHex(MASTER_HASH_VAL);
-            }
-          } else {
-            App.warn('[LOGIN] ⚠️ Custom Claim no encontrado en token, esperando...');
-            // Esperar un momento y reintentar
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const token2 = await currentUser.getIdTokenResult(true);
-            if (token2.claims.isMaster) {
-              App.log('[LOGIN] ✅ Custom Claim isMaster verificado (reintento)');
-              App.setIsMasterAuthenticated(true);
-              const MASTER_HASH_VAL = getMasterHash();
-              if (MASTER_HASH_VAL) {
-                App.setCurrentKeyHex(MASTER_HASH_VAL);
-              }
-            } else {
-              throw new Error('Custom Claim no se estableció correctamente');
-            }
+        App.log('[LOGIN] Llamando a:', functionUrl);
+        
+        // Llamar a la función HTTP
+        const response = await fetch(functionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ code: sanitizedCode })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          App.log('[LOGIN] ✅ Código master válido!');
+          App.setIsMasterAuthenticated(true);
+          // Obtener MASTER_HASH para usar como currentKeyHex (necesario para compatibilidad)
+          const MASTER_HASH_VAL = getMasterHash();
+          if (MASTER_HASH_VAL) {
+            App.setCurrentKeyHex(MASTER_HASH_VAL);
           }
         } else {
-          throw new Error('Respuesta inválida de Cloud Function');
+          throw new Error(result.error || 'Código master inválido');
         }
       } catch (error) {
         App.error('[LOGIN] ❌ Error validando código master:', error);
         
         // Si es error de código inválido, mostrar mensaje específico
-        if (error.code === 'functions/permission-denied' || error.message?.includes('inválido')) {
+        if (error.message?.includes('inválido') || error.message?.includes('invalid')) {
           msg.textContent = 'Código master inválido. Verifique y vuelva a intentar.';
         } else {
           msg.textContent = 'Error al validar el código. Por favor, intente nuevamente.';
