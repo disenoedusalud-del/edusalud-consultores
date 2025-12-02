@@ -27,10 +27,11 @@
     if (typeof firebase === 'undefined') {
       console.log('[FIREBASE] Cargando librerías desde CDN...');
       
-      // Cargar Firebase App, Realtime Database y Authentication
+      // Cargar Firebase App, Realtime Database, Authentication y Functions
       await loadScript('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
       await loadScript('https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js');
       await loadScript('https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js');
+      await loadScript('https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js');
       
       console.log('[FIREBASE] ✅ Librerías cargadas');
     }
@@ -49,13 +50,18 @@
     const auth = firebase.auth();
     window.firebaseAuth = auth; // Exponer globalmente
     
+    // ✅ Obtener Functions
+    const functions = firebase.functions();
+    window.firebaseFunctions = functions; // Exponer globalmente
+    
     console.log('[FIREBASE] ✅ Realtime Database listo para sincronización en tiempo real');
     console.log('[FIREBASE] ✅ Authentication listo');
+    console.log('[FIREBASE] ✅ Functions listo');
     console.log('[FIREBASE] ✅ Proyecto:', firebaseConfig.projectId);
     console.log('[FIREBASE] 💡 Usando Realtime Database (alternativa gratuita sin facturación)');
     
     // Disparar evento personalizado cuando Firebase esté listo
-    window.dispatchEvent(new CustomEvent('firebaseReady', { detail: { db, auth } }));
+    window.dispatchEvent(new CustomEvent('firebaseReady', { detail: { db, auth, functions } }));
 
   } catch (error) {
     console.error('[FIREBASE] ❌ Error inicializando Firebase:', error);
