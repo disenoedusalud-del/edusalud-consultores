@@ -10057,6 +10057,26 @@ function showKeyboardShortcutsHelp() {
 // ✅ Las funciones de autenticación se han movido a auth.js
 // ✅ Este archivo mantiene solo las funciones auxiliares que se usan en otras partes
 
+// ✅ Funciones auxiliares para manejo de errores de campos (usadas en otras partes)
+function clearFieldErrors() {
+  const fields = ['input-email', 'input-password', 'input-register-email', 'input-register-password', 'input-register-password-confirm', 'input-reset-email'];
+  fields.forEach(id => {
+    const field = $(`#${id}`);
+    if (field) {
+      field.style.borderColor = '';
+      field.style.backgroundColor = '';
+    }
+  });
+}
+
+function markFieldError(fieldId) {
+  const field = $(`#${fieldId}`);
+  if (field) {
+    field.style.borderColor = '#ff7a7a';
+    field.style.backgroundColor = 'rgba(255, 122, 122, 0.1)';
+  }
+}
+
 /* ============ Gestión de Correos Permitidos por Curso ============ */
 
 // ✅ Constantes para gestión de correos permitidos por curso
