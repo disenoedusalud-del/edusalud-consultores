@@ -2171,7 +2171,7 @@ function setupRealTimeValidation(input, validator, options = {}) {
     minLength = 0,
     maxLength = Infinity,
     debounceMs = 300,
-    showIndicator = false, // ✅ Desactivado por defecto
+    showIndicator = true,
     showMessage = true
   } = options;
 
@@ -2185,6 +2185,16 @@ function setupRealTimeValidation(input, validator, options = {}) {
     input.parentElement.appendChild(errorContainer);
   }
 
+  // Agregar indicador visual si no existe
+  let indicator = input.parentElement.querySelector('.validation-indicator');
+  if (!indicator && showIndicator) {
+    indicator = document.createElement('span');
+    indicator.className = 'validation-indicator';
+    indicator.setAttribute('aria-hidden', 'true');
+    input.parentElement.style.position = 'relative';
+    input.parentElement.appendChild(indicator);
+  }
+
   // Función de validación con debounce
   let timeoutId;
   const validate = () => {
@@ -2193,17 +2203,22 @@ function setupRealTimeValidation(input, validator, options = {}) {
       const value = input.value;
       const result = validator(value, minLength, maxLength);
 
-      // Actualizar estado visual del input (sin indicador verde)
-      if (value.length === 0) {
-        input.classList.remove('input-valid', 'input-invalid');
-      } else if (result.valid) {
-        input.classList.add('input-valid');
-        input.classList.remove('input-invalid');
-        input.setAttribute('aria-invalid', 'false');
-      } else {
-        input.classList.add('input-invalid');
-        input.classList.remove('input-valid');
-        input.setAttribute('aria-invalid', 'true');
+      // Actualizar estado visual
+      if (indicator) {
+        if (value.length === 0) {
+          indicator.className = 'validation-indicator';
+          input.classList.remove('input-valid', 'input-invalid');
+        } else if (result.valid) {
+          indicator.className = 'validation-indicator validation-indicator-valid';
+          input.classList.add('input-valid');
+          input.classList.remove('input-invalid');
+          input.setAttribute('aria-invalid', 'false');
+        } else {
+          indicator.className = 'validation-indicator validation-indicator-invalid';
+          input.classList.add('input-invalid');
+          input.classList.remove('input-valid');
+          input.setAttribute('aria-invalid', 'true');
+        }
       }
 
       // Mostrar mensaje de error
@@ -6918,9 +6933,6 @@ function buildUserGrid() {
 
   if (emptyState) emptyState.style.display = 'none';
   grid.style.display = 'grid';
-  grid.style.gap = '24px'; // ✅ Asegurar separación entre tarjetas
-  grid.style.rowGap = '24px'; // ✅ Separación vertical
-  grid.style.columnGap = '24px'; // ✅ Separación horizontal
 
   // Filtrar solo cursos permitidos
   const coursesToShow = allowedCourses
@@ -7022,6 +7034,18 @@ function buildUserGrid() {
       cardContent.appendChild(placeholder);
     }
 
+    // ✅ Botón "Abrir" fuera de la imagen, debajo
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = 'padding:16px; background:var(--card-bg, rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.06); border-top:none; border-radius:0 0 12px 12px; flex-shrink:0;';
+
+    const openBtn = document.createElement('button');
+    openBtn.className = 'btn';
+    openBtn.type = 'button';
+    openBtn.textContent = 'Abrir';
+    openBtn.style.cssText = 'width:100%;';
+    openBtn.setAttribute('aria-label', `Abrir curso: ${data.title || 'Curso'}`);
+    openBtn.setAttribute('title', `Abrir el curso "${data.title || 'Curso'}"`);
+
     // ✅ Función para abrir el curso (reutilizable)
     const openCourse = async (e) => {
       if (e) {
@@ -7059,12 +7083,34 @@ function buildUserGrid() {
       showContent();
     };
 
-    // ✅ Event listener en toda la tarjeta (clic en cualquier parte de la tarjeta)
-    cardEl.style.cursor = 'pointer';
-    cardEl.addEventListener('click', openCourse);
+    // ✅ Event listener en el botón
+    openBtn.addEventListener('click', openCourse);
 
+    // ✅ Event listener en toda la tarjeta (pero no en botones ni lista de archivos)
+    cardEl.style.cursor = 'pointer';
+    cardEl.addEventListener('click', (e) => {
+      // ✅ No abrir curso si se hace click en botones, inputs, o lista de archivos
+      const target = e.target;
+      if (target.closest('button') || 
+          target.closest('input') || 
+          target.closest('.filelist') || 
+          target.closest('.file') ||
+          target.closest('[data-edit-form]')) {
+        return; // No hacer nada si se clickea en estos elementos
+      }
+      openCourse(e);
+    });
+
+    buttonContainer.appendChild(openBtn);
     cardEl.appendChild(cardContent);
+    cardEl.appendChild(buttonContainer);
     grid.appendChild(cardEl);
+  });
+
+  // ✅ Finalizar medición de renderizado
+  endPerformanceMeasure('Renderizado del grid', gridStart, {
+    cursos: coursesArray.length,
+    paginado: coursesArray.length > COURSES_PER_PAGE
   });
 
   // ✅ Aplicar lazy loading a todas las imágenes del grid
@@ -7201,7 +7247,12 @@ function buildMasterGrid() {
     const right = document.createElement('div');
     right.className = 'right';
 
-    // ✅ Mostrar clasificación del curso (badge sobre la imagen en left)
+    // cabecera derecha (clasificación + título + meta + código secreto + botón abrir curso)
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;';
+    const t = document.createElement('div');
+
+    // ✅ Mostrar clasificación del curso (badge en la parte superior)
     const courseType = data.type || 'curso';
     const typeLabels = {
       'curso': '<i class="ph ph-book-open"></i> Curso',
@@ -7212,10 +7263,10 @@ function buildMasterGrid() {
     };
     const typeLabel = typeLabels[courseType] || '<i class="ph ph-book-open"></i> Curso';
 
-    // cabecera derecha (título + meta + código secreto + botón abrir curso)
-    const header = document.createElement('div');
-    header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;';
-    const t = document.createElement('div');
+    const typeBadge = document.createElement('div');
+    typeBadge.style.cssText = 'font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9;';
+    typeBadge.innerHTML = typeLabel;
+    t.appendChild(typeBadge);
 
     // ✅ Crear título y meta
     const titleDiv = document.createElement('div');
@@ -8463,64 +8514,6 @@ function buildMasterGrid() {
       }
     }
 
-    // ✅ Badge de tipo sobre la imagen (agregar después de crear la imagen)
-    const typeBadge = document.createElement('div');
-    typeBadge.className = 'master-card-type-badge';
-    typeBadge.style.cssText = 'position: absolute; top: 12px; left: 12px; font-size: 11px; font-weight: 600; color: var(--accent); background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); padding: 6px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; z-index: 5; pointer-events: none;';
-    typeBadge.innerHTML = typeLabel;
-    left.appendChild(typeBadge);
-
-    // ✅ Sistema de expansión: ocultar información inicialmente
-    right.style.cssText = 'max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out; opacity: 0; padding-top: 0; padding-bottom: 0;';
-    cardEl.dataset.expanded = 'false';
-    cardEl.style.cursor = 'pointer';
-    
-    // ✅ Función para toggle de expansión
-    const toggleExpand = (e) => {
-      // ✅ Prevenir toggle si se hace clic en un botón, input, enlace o dentro de right
-      if (e.target.closest('button, input, a, .right')) {
-        e.stopPropagation();
-        return;
-      }
-      
-      const isExpanded = cardEl.dataset.expanded === 'true';
-      
-      if (isExpanded) {
-        // Colapsar
-        cardEl.dataset.expanded = 'false';
-        right.style.maxHeight = '0';
-        right.style.opacity = '0';
-        right.style.paddingTop = '0';
-        right.style.paddingBottom = '0';
-      } else {
-        // Expandir
-        cardEl.dataset.expanded = 'true';
-        // Calcular altura aproximada del contenido
-        right.style.maxHeight = '2000px'; // Valor alto para permitir expansión completa
-        right.style.opacity = '1';
-        right.style.paddingTop = '18px';
-        right.style.paddingBottom = '18px';
-      }
-    };
-    
-    // ✅ Event listener para toggle solo en left/imagen
-    left.addEventListener('click', toggleExpand);
-    
-    // ✅ Prevenir que los botones dentro de right activen el toggle
-    right.addEventListener('click', (e) => {
-      e.stopPropagation();
-    });
-    
-    // ✅ Prevenir toggle en todos los botones dentro de right (después de que se crean)
-    setTimeout(() => {
-      const allButtons = right.querySelectorAll('button');
-      allButtons.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-        });
-      });
-    }, 0);
-    
     cardEl.appendChild(left);
     cardEl.appendChild(right);
     grid.appendChild(cardEl);
@@ -10262,9 +10255,6 @@ async function tryLoginByCode(code) {
 
 // ✅ Función para manejar pestañas de autenticación
 function switchAuthTab(tab) {
-  // ✅ Marcar que estamos cambiando de pestaña (evitar que el listener se ejecute)
-  window.isSwitchingTab = true;
-  
   const tabCode = $('#tab-code');
   const tabAccount = $('#tab-account');
   const formCode = $('#form-code');
@@ -10283,11 +10273,6 @@ function switchAuthTab(tab) {
     // Mostrar formulario de login por defecto
     showLoginForm();
   }
-  
-  // ✅ Limpiar flag después de un breve delay
-  setTimeout(() => {
-    window.isSwitchingTab = false;
-  }, 500);
 }
 
 // ✅ Función para mostrar formulario de login
@@ -10347,9 +10332,6 @@ async function tryLoginByEmail() {
   if (!checkRateLimitSimple('login')) {
     return false;
   }
-
-  // ✅ Marcar que estamos procesando login
-  window.isProcessingLogin = true;
 
   // ✅ Sanitizar inputs
   const email = getSafeInputValue('#input-email', 'email');
@@ -10413,12 +10395,6 @@ async function tryLoginByEmail() {
       log('[AUTH] ✅ Usuario es administrador, otorgando acceso master');
       showAuthMessage('msg-auth', '¡Bienvenido! Acceso de administrador activado.', false);
       await handleSuccessfulAuthWithEmail(userEmail, []); // Array vacío, pero es admin
-      
-      // ✅ Limpiar flag después de un delay
-      setTimeout(() => {
-        window.isProcessingLogin = false;
-      }, 2000);
-      
       return true;
     }
 
@@ -10445,11 +10421,6 @@ async function tryLoginByEmail() {
     await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
     showAuthMessage('msg-auth', `¡Bienvenido! Tienes acceso a ${allowedCourses.length} curso(s).`, false);
 
-    // ✅ Limpiar flag después de un delay
-    setTimeout(() => {
-      window.isProcessingLogin = false;
-    }, 2000);
-
     // ✅ Log de auditoría
     await auditLog(AUDIT_ACTION_TYPES.LOGIN_SUCCESS, {
       email: userEmail,
@@ -10459,9 +10430,6 @@ async function tryLoginByEmail() {
     return true;
 
   } catch (error) {
-    // ✅ Limpiar flag en caso de error
-    window.isProcessingLogin = false;
-    
     console.error('[AUTH] ❌ Error en login:', error);
     let errorMessage = 'Error al iniciar sesión.';
 
@@ -12075,9 +12043,6 @@ async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
   // ✅ Si NO es admin, comportamiento normal (vista de usuario)
   // Guardar cursos permitidos en variable global para filtrar
   window.allowedCoursesForUser = allowedCourses;
-  window.currentUserEmail = userEmail; // ✅ Asegurar que el email esté guardado
-  
-  console.log('[DEBUG] No es admin, preparando vista de usuario...');
 
   // ✅ Refresh en background (no bloquear login)
   if (hasRemote()) {
@@ -12092,10 +12057,7 @@ async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
 
   try {
     await runLoader();
-    console.log('[DEBUG] Loader completado');
-  } catch (e) { 
-    console.error('[DEBUG] Error en runLoader:', e);
-  }
+  } catch (e) { }
 
   clearAttempts();
 
@@ -12104,19 +12066,9 @@ async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
   });
 
   // ✅ Construir grid de usuario (vista simplificada)
-  console.log('[DEBUG] Construyendo grid de usuario...');
   buildUserGrid();
   $('#year_master').textContent = new Date().getFullYear();
-  
-  console.log('[DEBUG] Llamando a showUserView()...');
   showUserView();
-  console.log('[DEBUG] showUserView() completado');
-  
-  // ✅ Asegurar que la vista de acceso esté oculta
-  const accessEl = $('#access');
-  if (accessEl) {
-    accessEl.classList.add('hidden');
-  }
 }
 
 // ✅ Función para logout de Firebase
@@ -12250,33 +12202,7 @@ function setupAuthStateListener() {
       }
 
       // ✅ SEGUNDO: Verificar cursos para usuarios que no están en ninguna vista específica
-      // ✅ MEJORADO: Solo ejecutar si NO se está procesando un login activo Y NO se está cambiando de pestaña
-      if (!urlParams.has('code') && !isInMaster && !isInUserView && !isInContent && isInAccess) {
-        // ✅ Verificar si ya se está procesando un login (evitar duplicados)
-        if (window.isProcessingLogin) {
-          log('[AUTH] ⏳ Login ya en proceso, omitiendo listener');
-          return;
-        }
-        
-        // ✅ Verificar si se está cambiando de pestaña (evitar ejecución automática)
-        if (window.isSwitchingTab) {
-          log('[AUTH] ⏳ Cambiando de pestaña, omitiendo listener');
-          return;
-        }
-        
-        // ✅ Solo ejecutar si la pantalla de acceso está realmente visible
-        // y el usuario no está simplemente navegando
-        const formAccount = $('#form-account');
-        const formCode = $('#form-code');
-        const isAccountTabActive = formAccount && !formAccount.classList.contains('hidden');
-        const isCodeTabActive = formCode && !formCode.classList.contains('hidden');
-        
-        // ✅ Solo ejecutar si estamos en la pestaña de cuenta Y no se está cambiando de pestaña
-        if (!isAccountTabActive || isCodeTabActive) {
-          log('[AUTH] ⏳ No está en pestaña de cuenta o está en pestaña de código, omitiendo listener');
-          return;
-        }
-        
+      if (!urlParams.has('code') && !isInMaster && !isInUserView && !isInContent) {
         log('[AUTH] 🔍 Verificando cursos para usuario con email...');
         const allowedCourses = await getCoursesForEmail(userEmail);
         log('[AUTH] 📚 Cursos encontrados en listener:', allowedCourses.length);
@@ -12285,20 +12211,12 @@ function setupAuthStateListener() {
           log('[AUTH] ✅ Mostrando vista de usuario desde listener');
           window.currentUserEmail = userEmail;
           window.allowedCoursesForUser = allowedCourses;
-          
-          // ✅ Marcar que estamos procesando login
-          window.isProcessingLogin = true;
 
           if (isInAccess && accessEl) {
             accessEl.classList.add('hidden');
           }
 
           await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
-          
-          // ✅ Limpiar flag después de un delay
-          setTimeout(() => {
-            window.isProcessingLogin = false;
-          }, 2000);
         }
       }
     } else {
