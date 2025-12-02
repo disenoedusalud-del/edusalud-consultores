@@ -1205,6 +1205,51 @@ window.Auth = {
   setupAuthStateListener: setupAuthStateListener,
   switchAuthTab: switchAuthTab,
   showLoginForm: showLoginForm,
-  showAuthMessage: showAuthMessage
+  showAuthMessage: showAuthMessage,
+  setupEmailPasswordListeners: setupEmailPasswordListeners,
+  setupAuthTabListeners: setupAuthTabListeners
 };
+
+// ✅ Función para configurar event listeners de código de acceso
+function setupCodeLoginListeners() {
+  const App = getApp();
+  if (!App) {
+    console.error('[AUTH] App no disponible en setupCodeLoginListeners');
+    return;
+  }
+  
+  const btnEnter = App.$('#btn-enter');
+  const codeInput = App.$('#code');
+  
+  if (btnEnter) {
+    btnEnter.addEventListener('click', () => {
+      const code = codeInput ? codeInput.value : '';
+      tryLoginByCode(code);
+    });
+  }
+  
+  if (codeInput) {
+    codeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (btnEnter) {
+          btnEnter.click();
+        }
+      }
+    });
+  }
+}
+
+// ✅ Configurar event listeners cuando el DOM esté listo
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    setupCodeLoginListeners();
+  });
+} else {
+  // DOM ya está listo
+  setupCodeLoginListeners();
+}
+
+// ✅ Disparar evento personalizado para indicar que Auth está listo
+window.dispatchEvent(new CustomEvent('authReady'));
 
