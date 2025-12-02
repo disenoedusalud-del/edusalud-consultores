@@ -92,25 +92,41 @@ exports.sendVerificationCode = functions.https.onRequest(async (req, res) => {
   }
 });
 
-// ✅ Cloud Function para validar código master y establecer Custom Claims
-exports.validateMasterCode = functions.https.onCall(async (data, context) => {
-  // Permitir autenticación anónima o autenticada
-  // Si no hay usuario, se creará uno anónimo en el cliente antes de llamar
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
-      'unauthenticated',
-      'El usuario debe estar autenticado para validar el código master'
-    );
+// ✅ Cloud Function para validar código master (HTTP, no requiere autenticación previa)
+exports.validateMasterCodeHTTP = functions.https.onRequest(async (req, res) => {
+  // ✅ Habilitar CORS
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  
+  // ✅ Manejar preflight OPTIONS
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  
+  // ✅ Solo permitir POST
+  if (req.method !== 'POST') {
+    res.status(405).json({ success: false, error: 'Método no permitido. Use POST.' });
+    return;
   }
 
-  const { code } = data;
+  let code;
+  
+  // ✅ Obtener código del body (JSON) o query parameters
+  if (req.body && typeof req.body === 'object') {
+    code = req.body.code;
+  } else if (req.query && req.query.code) {
+    code = req.query.code;
+  } else {
+    res.status(400).json({ success: false, error: 'El código master es requerido' });
+    return;
+  }
 
   // Validar que se proporcionó el código
   if (!code || typeof code !== 'string') {
-    throw new functions.https.HttpsError(
-      'invalid-argument',
-      'El código master es requerido'
-    );
+    res.status(400).json({ success: false, error: 'El código master es requerido' });
+    return;
   }
 
   try {
@@ -142,43 +158,27 @@ exports.validateMasterCode = functions.https.onCall(async (data, context) => {
     // Comparar hash
     if (codeHash !== masterHash) {
       console.log('[MASTER] ❌ Código master inválido');
-      throw new functions.https.HttpsError(
-        'permission-denied',
-        'Código master inválido'
-      );
+      res.status(403).json({ 
+        success: false, 
+        error: 'Código master inválido' 
+      });
+      return;
     }
 
-    // Código válido: establecer Custom Claim isMaster
-    const uid = context.auth.uid;
-    const user = await admin.auth().getUser(uid);
-    
-    // Obtener claims existentes
-    const customClaims = user.customClaims || {};
-    
-    // Agregar claim isMaster
-    customClaims.isMaster = true;
-    
-    // Establecer claims actualizados
-    await admin.auth().setCustomUserClaims(uid, customClaims);
-    
-    console.log('[MASTER] ✅ Código master válido. Custom Claim isMaster establecido para:', user.email);
+    // ✅ Código válido: retornar éxito
+    // Nota: No establecemos Custom Claims aquí porque no hay usuario autenticado
+    // El cliente establecerá el flag de master localmente
+    console.log('[MASTER] ✅ Código master válido');
 
-    // Retornar éxito
-    return {
+    res.status(200).json({
       success: true,
       message: 'Código master válido. Acceso de administrador otorgado.'
-    };
+    });
   } catch (error) {
-    // Si ya es un HttpsError, re-lanzarlo
-    if (error instanceof functions.https.HttpsError) {
-      throw error;
-    }
-    
-    // Otros errores
     console.error('[MASTER] ❌ Error validando código master:', error);
-    throw new functions.https.HttpsError(
-      'internal',
-      'Error al validar el código master: ' + error.message
-    );
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error al validar el código master: ' + error.message 
+    });
   }
 });
