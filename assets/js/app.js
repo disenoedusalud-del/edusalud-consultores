@@ -13473,10 +13473,56 @@ window.testGET = async function (hex) {
   }
 };
 
+// 🧪 TEST DE CONEXIÓN DIRECTA CON GOOGLE APPS SCRIPT (SIN JSONP)
+window.testGASDirect = async function() {
+  console.log('═══════════════════════════════════════════');
+  console.log('🧪 TEST DIRECTO CON GAS (FETCH)');
+  console.log('═══════════════════════════════════════════');
+  
+  try {
+    const token = await getAuthToken();
+    console.log('✅ Token obtenido:', token ? token.substring(0, 30) + '...' : 'NO HAY TOKEN');
+    
+    if (!token) {
+      console.log('❌ ERROR: No se pudo obtener token');
+      return false;
+    }
+    
+    // Probar con fetch directo (no JSONP)
+    const url = REMOTE_BASE_URL + '?action=get_courses&token=' + encodeURIComponent(token) + '&ts=' + Date.now();
+    console.log('');
+    console.log('📡 URL de prueba:', url.substring(0, 150) + '...');
+    console.log('📡 Probando con fetch directo...');
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      mode: 'no-cors' // Google Apps Script no permite CORS, pero podemos ver el error
+    });
+    
+    console.log('📡 Respuesta recibida (status):', response.status);
+    console.log('📡 Respuesta recibida (ok):', response.ok);
+    console.log('📡 Respuesta recibida (type):', response.type);
+    
+    // Con no-cors no podemos leer el body, pero podemos ver si hay error
+    if (response.type === 'opaque') {
+      console.log('✅ Respuesta recibida (opaque = posible éxito con no-cors)');
+      console.log('⚠️ Nota: Con no-cors no podemos leer el contenido, pero la petición llegó');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('❌ ERROR en test directo:', error.message);
+    console.error('❌ Stack:', error.stack);
+    return false;
+  } finally {
+    console.log('═══════════════════════════════════════════');
+  }
+};
+
 // 🧪 TEST DE CONEXIÓN CON GOOGLE APPS SCRIPT (CURSOS)
 window.testGASCourses = async function() {
   console.log('═══════════════════════════════════════════');
-  console.log('🧪 TEST DE CONEXIÓN CON GAS (CURSOS)');
+  console.log('🧪 TEST DE CONEXIÓN CON GAS (CURSOS - JSONP)');
   console.log('═══════════════════════════════════════════');
   
   try {
