@@ -164,12 +164,30 @@ exports.validateMasterCodeHTTP = onRequest(
       console.log('[MASTER] Hash esperado (primeros 16):', masterHash.substring(0, 16) + '...');
       console.log('[MASTER] ¿Coinciden?:', codeHash === masterHash ? '✅ SÍ' : '❌ NO');
 
+      // Función auxiliar para encontrar primera diferencia
+      function findFirstDifference(str1, str2) {
+        for (let i = 0; i < Math.min(str1.length, str2.length); i++) {
+          if (str1[i] !== str2[i]) {
+            return `Posición ${i}: recibido="${str1[i]}", esperado="${str2[i]}"`;
+          }
+        }
+        if (str1.length !== str2.length) {
+          return `Longitudes diferentes: recibido=${str1.length}, esperado=${str2.length}`;
+        }
+        return 'Sin diferencias encontradas';
+      }
+
       // Comparar hash
+      console.log('[MASTER] Comparando hashes...');
+      console.log('[MASTER] Hash recibido === Hash esperado:', codeHash === masterHash);
       if (codeHash !== masterHash) {
         console.log('[MASTER] ❌ Código master inválido');
+        const diff = findFirstDifference(codeHash, masterHash);
+        console.log('[MASTER] Diferencia:', diff);
         res.status(403).json({ 
           success: false, 
-          error: 'Código master inválido' 
+          error: 'Código master inválido',
+          hint: 'Verifica que el código sea exactamente: EDUMASTER123456987 (sin espacios)'
         });
         return;
       }
