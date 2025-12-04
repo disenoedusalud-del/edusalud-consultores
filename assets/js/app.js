@@ -3758,6 +3758,8 @@ async function remoteGetCourses() {
     const token = await getAuthToken();
     if (!token) {
       warn('[COURSE GET] ⚠️ No se pudo obtener token de autenticación. Continuando sin token...');
+    } else {
+      log('[COURSE GET] ✅ Token obtenido (primeros 20 chars):', token.substring(0, 20) + '...');
     }
 
     return new Promise((resolve) => {
@@ -3772,7 +3774,12 @@ async function remoteGetCourses() {
       // ✅ Agregar token si está disponible
       if (token) {
         url += '&token=' + encodeURIComponent(token);
+        log('[COURSE GET] ✅ Token agregado a la URL');
+      } else {
+        warn('[COURSE GET] ⚠️ URL sin token - puede ser rechazado por GAS');
       }
+      
+      log('[COURSE GET] URL completa:', url.substring(0, 100) + '...');
       
       script.src = url;
       script.async = true;
@@ -3793,10 +3800,24 @@ async function remoteGetCourses() {
         resolved = true;
         clearTimeout(timeout);
 
+        log('[COURSE GET] ✅ Callback ejecutado, datos recibidos:', data);
+
+        // ✅ Verificar si hay error de autenticación
+        if (data && data.error === 'Unauthorized') {
+          console.error('[COURSE GET] ❌ Error de autenticación:', data.message);
+          warn('[COURSE GET] ⚠️ Token rechazado por Google Apps Script');
+          warn('[COURSE GET] ⚠️ Verifica que el token esté configurado en GAS ejecutando setupSecretToken()');
+          cleanup();
+          resolve({});
+          return;
+        }
+
         let courses = {};
         if (data && typeof data.courses === 'object') {
           courses = data.courses;
           log('[COURSE GET] ✅ Cursos remotos obtenidos:', Object.keys(courses).length);
+        } else if (data && data.success === false) {
+          warn('[COURSE GET] ⚠️ Error en respuesta:', data.error || data.message);
         } else {
           warn('[COURSE GET] ⚠️ Datos recibidos no tienen formato esperado:', data);
         }
@@ -3813,18 +3834,32 @@ async function remoteGetCourses() {
         resolve({});
       }, 10000);
 
-      script.onerror = () => {
+      script.onerror = (error) => {
         if (resolved) return;
         resolved = true;
         clearTimeout(timeout);
         console.error('[COURSE GET] ❌ Error cargando cursos remotos');
+        console.error('[COURSE GET] URL que falló:', url);
+        console.error('[COURSE GET] Error details:', error);
+        console.error('[COURSE GET] Token usado:', token ? token.substring(0, 20) + '...' : 'NO HAY TOKEN');
+        warn('[COURSE GET] ⚠️ Esto puede ser porque:');
+        warn('[COURSE GET]   1. Google Apps Script rechazó la petición (token inválido)');
+        warn('[COURSE GET]   2. La URL de Google Apps Script no es correcta');
+        warn('[COURSE GET]   3. Hay un problema de CORS o red');
         cleanup();
         resolve({});
       };
 
       // ✅ Agregar script DESPUÉS de registrar callback
       log('[COURSE GET] Callback registrado:', callbackName);
-      log('[COURSE GET] URL completa:', script.src);
+      log('[COURSE GET] URL completa (primeros 150 chars):', script.src.substring(0, 150) + '...');
+      log('[COURSE GET] Token en URL:', token ? 'Sí (primeros 20: ' + token.substring(0, 20) + '...)' : 'NO');
+      
+      // ✅ Agregar listener para ver si el script carga correctamente
+      script.onload = () => {
+        log('[COURSE GET] ✅ Script cargado correctamente');
+      };
+      
       document.body.appendChild(script);
     });
   } catch (e) {
@@ -13428,6 +13463,41 @@ window.testGET = async function (hex) {
   } catch (e) {
     console.error('❌ Error:', e);
     return null;
+  }
+};
+
+// 🧪 TEST DE CONEXIÓN CON GOOGLE APPS SCRIPT (CURSOS)
+window.testGASCourses = async function() {
+  console.log('═══════════════════════════════════════════');
+  console.log('🧪 TEST DE CONEXIÓN CON GAS (CURSOS)');
+  console.log('═══════════════════════════════════════════');
+  
+  try {
+    const token = await getAuthToken();
+    console.log('✅ Token obtenido:', token ? token.substring(0, 30) + '...' : 'NO HAY TOKEN');
+    
+    if (!token) {
+      console.log('❌ ERROR: No se pudo obtener token');
+      return false;
+    }
+    
+    console.log('');
+    console.log('📡 Probando obtener cursos remotos...');
+    const courses = await remoteGetCourses();
+    
+    if (courses && Object.keys(courses).length > 0) {
+      console.log('✅ CONEXIÓN EXITOSA - Cursos obtenidos:', Object.keys(courses).length);
+      return true;
+    } else {
+      console.log('⚠️ No se recibieron cursos (puede ser normal si no hay cursos)');
+      console.log('✅ Pero no hubo error de autenticación, así que el token es válido');
+      return true;
+    }
+  } catch (error) {
+    console.error('❌ ERROR en test de conexión:', error.message);
+    return false;
+  } finally {
+    console.log('═══════════════════════════════════════════');
   }
 };
 
