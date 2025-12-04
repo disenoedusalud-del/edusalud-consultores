@@ -3206,17 +3206,26 @@ function hasRemote() { return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE
 function stableStringify(obj) { try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 
 // ✅ Helper para obtener token de Firebase Auth para autenticación con GAS
+// ⚠️ IMPORTANTE: Si no hay usuario autenticado, usa token secreto compartido
+// Este token debe coincidir con el configurado en Google Apps Script
 async function getAuthToken() {
   try {
     const currentUser = window.firebaseAuth?.currentUser;
     if (currentUser) {
+      // Si hay usuario autenticado, usar su token de Firebase Auth
       const token = await currentUser.getIdToken();
       return token;
     }
   } catch (error) {
-    warn('[AUTH] Error obteniendo token para GAS:', error);
+    warn('[AUTH] Error obteniendo token de Firebase Auth:', error);
   }
-  return null;
+  
+  // ⚠️ FALLBACK: Token secreto compartido (debe coincidir con GAS)
+  // ✅ Token configurado: GAS_SECRET_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+  const GAS_SECRET_TOKEN = 'GAS_SECRET_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6';
+  
+  warn('[AUTH] No hay usuario autenticado, usando token secreto compartido');
+  return GAS_SECRET_TOKEN;
 }
 
 async function remoteGetFiles(hex) {
