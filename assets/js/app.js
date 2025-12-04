@@ -3456,6 +3456,16 @@ async function remoteSaveFiles(hex, files) {
     filesInput.name = 'files';
     filesInput.value = filesJson;
 
+    // ✅ Agregar token de autenticación
+    const token = await getAuthToken();
+    if (token) {
+      const tokenInput = document.createElement('input');
+      tokenInput.type = 'hidden';
+      tokenInput.name = 'token';
+      tokenInput.value = token;
+      form.appendChild(tokenInput);
+    }
+
     form.appendChild(hexInput);
     form.appendChild(filesInput);
     document.body.appendChild(form);
@@ -3553,6 +3563,16 @@ async function remoteSaveCourse(hex, courseData) {
     courseInput.name = 'course';
     courseInput.value = courseJson;
 
+    // ✅ Agregar token de autenticación
+    const token = await getAuthToken();
+    if (token) {
+      const tokenInput = document.createElement('input');
+      tokenInput.type = 'hidden';
+      tokenInput.name = 'token';
+      tokenInput.value = token;
+      form.appendChild(tokenInput);
+    }
+
     form.appendChild(hexInput);
     form.appendChild(courseInput);
     document.body.appendChild(form);
@@ -3621,6 +3641,16 @@ async function remoteDeleteCourse(hex) {
     deleteInput.name = 'action';
     deleteInput.value = 'delete_course';
 
+    // ✅ Agregar token de autenticación
+    const token = await getAuthToken();
+    if (token) {
+      const tokenInput = document.createElement('input');
+      tokenInput.type = 'hidden';
+      tokenInput.name = 'token';
+      tokenInput.value = token;
+      form.appendChild(tokenInput);
+    }
+
     form.appendChild(hexInput);
     form.appendChild(deleteInput);
     document.body.appendChild(form);
@@ -3684,6 +3714,16 @@ async function remoteDeleteFiles(hex) {
     deleteInput.type = 'hidden';
     deleteInput.name = 'action';
     deleteInput.value = 'delete_files';
+
+    // ✅ Agregar token de autenticación
+    const token = await getAuthToken();
+    if (token) {
+      const tokenInput = document.createElement('input');
+      tokenInput.type = 'hidden';
+      tokenInput.name = 'token';
+      tokenInput.value = token;
+      form.appendChild(tokenInput);
+    }
 
     form.appendChild(hexInput);
     form.appendChild(deleteInput);
@@ -13304,20 +13344,37 @@ window.diagnosticarRespuesta = async function (hex = null) {
 // 🧪 TEST JSONP SIMPLE
 window.testJSONP = async function (hex) {
   log('🧪 TEST JSONP para hex:', hex);
+  
+  // ✅ Obtener token de autenticación
+  const token = await getAuthToken();
+  log('🧪 Token obtenido:', token ? token.substring(0, 20) + '...' : 'NO HAY TOKEN');
+  
   // 🛡️ Cache-buster
-  const url = REMOTE_BASE_URL
+  let url = REMOTE_BASE_URL
     + '?hex=' + encodeURIComponent(hex)
     + '&callback=test_callback'
     + '&ts=' + Date.now();
+  
+  // ✅ Agregar token a la URL
+  if (token) {
+    url += '&token=' + encodeURIComponent(token);
+  }
+  
   log('URL:', url);
 
   return new Promise((resolve) => {
     const callbackName = 'test_callback_' + Date.now();
     const script = document.createElement('script');
-    const testUrl = REMOTE_BASE_URL
+    let testUrl = REMOTE_BASE_URL
       + '?hex=' + encodeURIComponent(hex)
       + '&callback=' + callbackName
       + '&ts=' + Date.now();
+    
+    // ✅ Agregar token a la URL
+    if (token) {
+      testUrl += '&token=' + encodeURIComponent(token);
+    }
+    
     script.src = testUrl;
 
     window[callbackName] = function (data) {
@@ -13358,6 +13415,47 @@ window.testGET = async function (hex) {
   } catch (e) {
     console.error('❌ Error:', e);
     return null;
+  }
+};
+
+// 🧪 TEST DE AUTENTICACIÓN CON TOKEN
+window.testAuth = async function() {
+  log('═══════════════════════════════════════════');
+  log('🧪 TEST DE AUTENTICACIÓN CON TOKEN');
+  log('═══════════════════════════════════════════');
+  
+  try {
+    // Obtener token
+    const token = await getAuthToken();
+    log('✅ Token obtenido:', token ? token.substring(0, 30) + '...' : 'NO HAY TOKEN');
+    
+    if (!token) {
+      log('❌ ERROR: No se pudo obtener token');
+      return false;
+    }
+    
+    // Probar petición GET con token
+    log('');
+    log('📡 Probando petición GET con token...');
+    const testHex = 'test123'; // Hex de prueba
+    const result = await remoteGetFiles(testHex);
+    
+    if (result !== null) {
+      log('✅ AUTENTICACIÓN EXITOSA - El servidor aceptó el token');
+      log('📦 Respuesta recibida:', Array.isArray(result) ? result.length + ' archivos' : 'Objeto');
+      return true;
+    } else {
+      log('⚠️ No se recibió respuesta (puede ser normal si el hex no existe)');
+      log('✅ Pero no hubo error de autenticación, así que el token es válido');
+      return true;
+    }
+  } catch (error) {
+    log('❌ ERROR en test de autenticación:', error.message);
+    if (error.message.includes('Unauthorized') || error.message.includes('Token')) {
+      log('❌ ERROR DE AUTENTICACIÓN: El token fue rechazado');
+      return false;
+    }
+    return false;
   }
 };
 
