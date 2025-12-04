@@ -136,6 +136,12 @@ exports.validateMasterCodeHTTP = onRequest(
       // ✅ Obtener MASTER_HASH desde Secret Manager (inyectado como variable de entorno)
       const masterHash = process.env.MASTER_HASH;
 
+      console.log('[MASTER] ===== INICIO VALIDACIÓN =====');
+      console.log('[MASTER] Código recibido (longitud):', code ? code.length : 0);
+      console.log('[MASTER] Código recibido (primeros 10 chars):', code ? code.substring(0, 10) : 'null');
+      console.log('[MASTER] MASTER_HASH disponible:', masterHash ? 'Sí (longitud: ' + masterHash.length + ')' : 'NO');
+      console.log('[MASTER] MASTER_HASH (primeros 16 chars):', masterHash ? masterHash.substring(0, 16) + '...' : 'null');
+
       if (!masterHash) {
         console.error('[MASTER] ❌ MASTER_HASH no está disponible en las variables de entorno');
         res.status(500).json({
@@ -152,8 +158,11 @@ exports.validateMasterCodeHTTP = onRequest(
         .digest('hex');
 
       console.log('[MASTER] Validando código master...');
-      console.log('[MASTER] Hash recibido:', codeHash.substring(0, 8) + '...');
-      console.log('[MASTER] Hash esperado:', masterHash.substring(0, 8) + '...');
+      console.log('[MASTER] Hash recibido (completo):', codeHash);
+      console.log('[MASTER] Hash esperado (completo):', masterHash);
+      console.log('[MASTER] Hash recibido (primeros 16):', codeHash.substring(0, 16) + '...');
+      console.log('[MASTER] Hash esperado (primeros 16):', masterHash.substring(0, 16) + '...');
+      console.log('[MASTER] ¿Coinciden?:', codeHash === masterHash ? '✅ SÍ' : '❌ NO');
 
       // Comparar hash
       if (codeHash !== masterHash) {
