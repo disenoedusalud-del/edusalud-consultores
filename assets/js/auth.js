@@ -87,12 +87,15 @@ async function tryLoginByCode(code) {
   }
 
   try {
-    const hex = await App.sha256Hex(sanitizedCode);
-    
-    // ✅ Debug: Ver qué código se está procesando
+    // ✅ Debug: Ver qué código se está procesando ANTES de hashear
+    App.log('[LOGIN] ===== INICIO VALIDACIÓN =====');
     App.log('[LOGIN] Código ingresado (longitud):', sanitizedCode.length);
     App.log('[LOGIN] Código ingresado (completo):', sanitizedCode);
+    App.log('[LOGIN] Código ingresado (códigos ASCII):', Array.from(sanitizedCode).map(c => c.charCodeAt(0)).join(','));
+    
+    const hex = await App.sha256Hex(sanitizedCode);
     App.log('[LOGIN] Hash calculado localmente:', hex);
+    App.log('[LOGIN] Hash esperado (según README):', '7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8');
 
     // ✅ Google Analytics: Tracking de intento de login
     if (typeof gtag !== 'undefined') {
@@ -132,6 +135,9 @@ async function tryLoginByCode(code) {
         
         // Llamar a la función HTTP
         App.log('[LOGIN] Enviando código master (primeros 5 chars):', sanitizedCode.substring(0, 5) + '...');
+        App.log('[LOGIN] Código completo que se envía:', sanitizedCode);
+        App.log('[LOGIN] Longitud del código:', sanitizedCode.length);
+        App.log('[LOGIN] Body JSON que se envía:', JSON.stringify({ code: sanitizedCode }));
         
         const response = await fetch(functionUrl, {
           method: 'POST',
