@@ -1,4 +1,5 @@
 const functions = require('firebase-functions');
+const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const { Resend } = require('resend');
 const crypto = require('crypto');
@@ -93,87 +94,90 @@ exports.sendVerificationCode = functions.https.onRequest(async (req, res) => {
 });
 
 // ✅ Cloud Function para validar código master (HTTP, no requiere autenticación previa)
-exports.validateMasterCodeHTTP = functions.https.onRequest(async (req, res) => {
-  // ✅ Habilitar CORS
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type');
-  
-  // ✅ Manejar preflight OPTIONS
-  if (req.method === 'OPTIONS') {
-    res.status(204).send('');
-    return;
-  }
-  
-  // ✅ Solo permitir POST
-  if (req.method !== 'POST') {
-    res.status(405).json({ success: false, error: 'Método no permitido. Use POST.' });
-    return;
-  }
-
-  let code;
-  
-  // ✅ Obtener código del body (JSON) o query parameters
-  if (req.body && typeof req.body === 'object') {
-    code = req.body.code;
-  } else if (req.query && req.query.code) {
-    code = req.query.code;
-  } else {
-    res.status(400).json({ success: false, error: 'El código master es requerido' });
-    return;
-  }
-
-  // Validar que se proporcionó el código
-  if (!code || typeof code !== 'string') {
-    res.status(400).json({ success: false, error: 'El código master es requerido' });
-    return;
-  }
-
-  try {
-    // Obtener MASTER_HASH de variables de entorno (Firebase Functions v2)
-    let masterHash = process.env.MASTER_HASH;
+exports.validateMasterCodeHTTP = onRequest(
+  { secrets: ['MASTER_HASH'] }, // 👈 Aquí enlazamos el secret de Secret Manager
+  async (req, res) => {
+    // ✅ Habilitar CORS
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
     
-    // Fallback temporal: valor hardcodeado (solo para desarrollo/testing)
-    // ⚠️ IMPORTANTE: Configurar MASTER_HASH en Firebase Console > Functions > Configuration
-    if (!masterHash) {
-      console.warn('[MASTER] ⚠️ MASTER_HASH no configurado en variables de entorno, usando valor por defecto');
-      masterHash = '7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8';
+    // ✅ Manejar preflight OPTIONS
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
     }
-
-    // Calcular hash SHA-256 del código recibido
-    const codeHash = crypto
-      .createHash('sha256')
-      .update(code.trim())
-      .digest('hex');
-
-    console.log('[MASTER] Validando código master...');
-    console.log('[MASTER] Hash recibido:', codeHash.substring(0, 8) + '...');
-    console.log('[MASTER] Hash esperado:', masterHash.substring(0, 8) + '...');
-
-    // Comparar hash
-    if (codeHash !== masterHash) {
-      console.log('[MASTER] ❌ Código master inválido');
-      res.status(403).json({ 
-        success: false, 
-        error: 'Código master inválido' 
-      });
+    
+    // ✅ Solo permitir POST
+    if (req.method !== 'POST') {
+      res.status(405).json({ success: false, error: 'Método no permitido. Use POST.' });
       return;
     }
 
-    // ✅ Código válido: retornar éxito
-    // Nota: No establecemos Custom Claims aquí porque no hay usuario autenticado
-    // El cliente establecerá el flag de master localmente
-    console.log('[MASTER] ✅ Código master válido');
+    let code;
+    
+    // ✅ Obtener código del body (JSON) o query parameters
+    if (req.body && typeof req.body === 'object') {
+      code = req.body.code;
+    } else if (req.query && req.query.code) {
+      code = req.query.code;
+    } else {
+      res.status(400).json({ success: false, error: 'El código master es requerido' });
+      return;
+    }
 
-    res.status(200).json({
-      success: true,
-      message: 'Código master válido. Acceso de administrador otorgado.'
-    });
-  } catch (error) {
-    console.error('[MASTER] ❌ Error validando código master:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error al validar el código master: ' + error.message 
-    });
+    // Validar que se proporcionó el código
+    if (!code || typeof code !== 'string') {
+      res.status(400).json({ success: false, error: 'El código master es requerido' });
+      return;
+    }
+
+    try {
+      // ✅ Obtener MASTER_HASH desde Secret Manager (inyectado como variable de entorno)
+      const masterHash = process.env.MASTER_HASH;
+
+      if (!masterHash) {
+        console.error('[MASTER] ❌ MASTER_HASH no está disponible en las variables de entorno');
+        res.status(500).json({
+          success: false,
+          error: 'Configuración del servidor incompleta (MASTER_HASH no definido)',
+        });
+        return;
+      }
+
+      // Calcular hash SHA-256 del código recibido
+      const codeHash = crypto
+        .createHash('sha256')
+        .update(code.trim())
+        .digest('hex');
+
+      console.log('[MASTER] Validando código master...');
+      console.log('[MASTER] Hash recibido:', codeHash.substring(0, 8) + '...');
+      console.log('[MASTER] Hash esperado:', masterHash.substring(0, 8) + '...');
+
+      // Comparar hash
+      if (codeHash !== masterHash) {
+        console.log('[MASTER] ❌ Código master inválido');
+        res.status(403).json({ 
+          success: false, 
+          error: 'Código master inválido' 
+        });
+        return;
+      }
+
+      // ✅ Código válido: retornar éxito
+      console.log('[MASTER] ✅ Código master válido');
+
+      res.status(200).json({
+        success: true,
+        message: 'Código master válido. Acceso de administrador otorgado.',
+      });
+    } catch (error) {
+      console.error('[MASTER] ❌ Error validando código master:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Error al validar el código master: ' + error.message,
+      });
+    }
   }
-});
+);
