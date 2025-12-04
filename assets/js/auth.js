@@ -126,6 +126,8 @@ async function tryLoginByCode(code) {
         App.log('[LOGIN] Llamando a:', functionUrl);
         
         // Llamar a la función HTTP
+        App.log('[LOGIN] Enviando código master (primeros 5 chars):', sanitizedCode.substring(0, 5) + '...');
+        
         const response = await fetch(functionUrl, {
           method: 'POST',
           headers: {
@@ -134,7 +136,20 @@ async function tryLoginByCode(code) {
           body: JSON.stringify({ code: sanitizedCode })
         });
         
-        const result = await response.json();
+        App.log('[LOGIN] Respuesta recibida - Status:', response.status, response.statusText);
+        
+        // Verificar si la respuesta es JSON válido
+        let result;
+        try {
+          result = await response.json();
+        } catch (parseError) {
+          const textResponse = await response.text();
+          App.error('[LOGIN] ❌ Error parseando respuesta JSON:', parseError);
+          App.error('[LOGIN] Respuesta recibida (texto):', textResponse);
+          throw new Error('Error en la respuesta del servidor: ' + response.statusText);
+        }
+        
+        App.log('[LOGIN] Resultado parseado:', result);
         
         if (result.success) {
           App.log('[LOGIN] ✅ Código master válido!');
@@ -145,6 +160,7 @@ async function tryLoginByCode(code) {
             App.setCurrentKeyHex(MASTER_HASH_VAL);
           }
         } else {
+          App.error('[LOGIN] ❌ Código master rechazado:', result.error);
           throw new Error(result.error || 'Código master inválido');
         }
       } catch (error) {
