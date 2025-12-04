@@ -120,10 +120,8 @@ async function tryLoginByCode(code) {
       App.log('[LOGIN] Validando código master con Cloud Function...');
       
       try {
-        // Obtener la URL de la función (necesitamos construirla manualmente)
-        const projectId = 'edusalud-platfor';
-        const region = 'us-central1';
-        const functionUrl = `https://${region}-${projectId}.cloudfunctions.net/validateMasterCodeHTTP`;
+        // ✅ URL de la función v2 desplegada (usando Secret Manager)
+        const functionUrl = 'https://validatemastercodehttp-nzqxumxiba-uc.a.run.app';
         
         App.log('[LOGIN] Llamando a:', functionUrl);
         
