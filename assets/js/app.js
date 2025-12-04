@@ -3754,14 +3754,27 @@ async function remoteGetCourses() {
   try {
     log('[COURSE GET] Obteniendo cursos remotos...');
 
+    // ✅ Obtener token de autenticación
+    const token = await getAuthToken();
+    if (!token) {
+      warn('[COURSE GET] ⚠️ No se pudo obtener token de autenticación. Continuando sin token...');
+    }
+
     return new Promise((resolve) => {
       const callbackName = '_gas_jsonp_courses_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
       const script = document.createElement('script');
       // 🛡️ Cache-buster para evitar respuestas viejas
-      script.src = REMOTE_BASE_URL
+      let url = REMOTE_BASE_URL
         + '?action=get_courses'
         + '&callback=' + callbackName
         + '&ts=' + Date.now();
+      
+      // ✅ Agregar token si está disponible
+      if (token) {
+        url += '&token=' + encodeURIComponent(token);
+      }
+      
+      script.src = url;
       script.async = true;
 
       let resolved = false;
