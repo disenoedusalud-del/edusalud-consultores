@@ -13420,41 +13420,48 @@ window.testGET = async function (hex) {
 
 // 🧪 TEST DE AUTENTICACIÓN CON TOKEN
 window.testAuth = async function() {
-  log('═══════════════════════════════════════════');
-  log('🧪 TEST DE AUTENTICACIÓN CON TOKEN');
-  log('═══════════════════════════════════════════');
+  console.log('═══════════════════════════════════════════');
+  console.log('🧪 TEST DE AUTENTICACIÓN CON TOKEN');
+  console.log('═══════════════════════════════════════════');
   
   try {
     // Obtener token
     const token = await getAuthToken();
-    log('✅ Token obtenido:', token ? token.substring(0, 30) + '...' : 'NO HAY TOKEN');
+    console.log('✅ Token obtenido:', token ? token.substring(0, 30) + '...' : 'NO HAY TOKEN');
+    console.log('📋 Token completo (primeros 50 chars):', token ? token.substring(0, 50) : 'NO HAY TOKEN');
     
     if (!token) {
-      log('❌ ERROR: No se pudo obtener token');
+      console.error('❌ ERROR: No se pudo obtener token');
       return false;
     }
     
     // Probar petición GET con token
-    log('');
-    log('📡 Probando petición GET con token...');
+    console.log('');
+    console.log('📡 Probando petición GET con token...');
     const testHex = 'test123'; // Hex de prueba
     const result = await remoteGetFiles(testHex);
     
+    console.log('📦 Resultado recibido:', result);
+    
     if (result !== null) {
-      log('✅ AUTENTICACIÓN EXITOSA - El servidor aceptó el token');
-      log('📦 Respuesta recibida:', Array.isArray(result) ? result.length + ' archivos' : 'Objeto');
+      console.log('✅ AUTENTICACIÓN EXITOSA - El servidor aceptó el token');
+      console.log('📦 Respuesta recibida:', Array.isArray(result) ? result.length + ' archivos' : 'Objeto');
+      console.log('═══════════════════════════════════════════');
       return true;
     } else {
-      log('⚠️ No se recibió respuesta (puede ser normal si el hex no existe)');
-      log('✅ Pero no hubo error de autenticación, así que el token es válido');
+      console.log('⚠️ No se recibió respuesta (puede ser normal si el hex no existe)');
+      console.log('✅ Pero no hubo error de autenticación, así que el token es válido');
+      console.log('═══════════════════════════════════════════');
       return true;
     }
   } catch (error) {
-    log('❌ ERROR en test de autenticación:', error.message);
+    console.error('❌ ERROR en test de autenticación:', error.message);
     if (error.message.includes('Unauthorized') || error.message.includes('Token')) {
-      log('❌ ERROR DE AUTENTICACIÓN: El token fue rechazado');
+      console.error('❌ ERROR DE AUTENTICACIÓN: El token fue rechazado');
+      console.log('═══════════════════════════════════════════');
       return false;
     }
+    console.log('═══════════════════════════════════════════');
     return false;
   }
 };
