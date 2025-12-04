@@ -138,9 +138,12 @@ exports.validateMasterCodeHTTP = onRequest(
 
       console.log('[MASTER] ===== INICIO VALIDACIÓN =====');
       console.log('[MASTER] Código recibido (longitud):', code ? code.length : 0);
+      console.log('[MASTER] Código recibido (completo):', code);
       console.log('[MASTER] Código recibido (primeros 10 chars):', code ? code.substring(0, 10) : 'null');
+      console.log('[MASTER] Código recibido (códigos ASCII):', code ? Array.from(code).map(c => c.charCodeAt(0)).join(',') : 'null');
       console.log('[MASTER] MASTER_HASH disponible:', masterHash ? 'Sí (longitud: ' + masterHash.length + ')' : 'NO');
       console.log('[MASTER] MASTER_HASH (primeros 16 chars):', masterHash ? masterHash.substring(0, 16) + '...' : 'null');
+      console.log('[MASTER] MASTER_HASH (completo):', masterHash);
 
       if (!masterHash) {
         console.error('[MASTER] ❌ MASTER_HASH no está disponible en las variables de entorno');
