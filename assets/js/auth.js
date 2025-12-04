@@ -88,6 +88,11 @@ async function tryLoginByCode(code) {
 
   try {
     const hex = await App.sha256Hex(sanitizedCode);
+    
+    // ✅ Debug: Ver qué código se está procesando
+    App.log('[LOGIN] Código ingresado (longitud):', sanitizedCode.length);
+    App.log('[LOGIN] Código ingresado (completo):', sanitizedCode);
+    App.log('[LOGIN] Hash calculado localmente:', hex);
 
     // ✅ Google Analytics: Tracking de intento de login
     if (typeof gtag !== 'undefined') {
