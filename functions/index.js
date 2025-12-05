@@ -60,37 +60,54 @@ exports.sendVerificationCode = functions.https.onRequest(async (req, res) => {
   }
   
   try {
-    console.log('Intentando enviar email a:', email);
-    console.log('API Key configurada:', resendApiKey ? 'Sí (longitud: ' + resendApiKey.length + ')' : 'No');
-    
-    // Enviar email con Resend
-    const result = await resend.emails.send({
-      from: 'EduSalud <onboarding@resend.dev>', // Cambia esto después de verificar tu dominio
-      to: email,
-      subject: 'Código de verificación - EduSalud',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #5aa9ff;">Código de verificación</h2>
-          <p>Hola,</p>
-          <p>Tu código de verificación para crear tu cuenta en EduSalud es:</p>
-          <div style="background: #f0f0f0; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0; border-radius: 8px;">
-            ${code}
-          </div>
-          <p>Este código expira en <strong>10 minutos</strong>.</p>
-          <p>Si no solicitaste este código, ignora este mensaje.</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-          <p style="color: #666; font-size: 12px;">EduSalud - Portal de Recursos para Consultores</p>
-        </div>
-      `
+    const masterHash = process.env.MASTER_HASH;
+  
+    if (!masterHash) {
+      console.error('[MASTER] ❌ MASTER_HASH no está disponible en las variables de entorno');
+      res.status(500).json({
+        success: false,
+        error: 'Configuración del servidor incompleta (MASTER_HASH no definido)',
+      });
+      return;
+    }
+  
+    // 👉 LOG del código recibido
+    console.log('[MASTER] Código recibido (completo):', `"${code}"`);
+  
+    const codeHash = crypto
+      .createHash('sha256')
+      .update(code.trim())
+      .digest('hex');
+  
+    // 👉 LOGS DETALLADOS
+    console.log('[MASTER] Hash recibido (completo):', codeHash);
+    console.log('[MASTER] Hash esperado (completo):', masterHash);
+    console.log('[MASTER] ¿Coinciden?:', codeHash === masterHash);
+    console.log('[MASTER] Longitud hash recibido:', codeHash.length);
+    console.log('[MASTER] Longitud hash esperado:', masterHash.length);
+  
+    if (codeHash !== masterHash) {
+      console.log('[MASTER] ❌ Código master inválido');
+      res.status(403).json({ 
+        success: false, 
+        error: 'Código master inválido' 
+      });
+      return;
+    }
+  
+    console.log('[MASTER] ✅ Código master válido');
+  
+    res.status(200).json({
+      success: true,
+      message: 'Código master válido. Acceso de administrador otorgado.',
     });
-    
-    console.log('✅ Email enviado exitosamente:', JSON.stringify(result, null, 2));
-    res.status(200).json({ success: true, messageId: result.id });
   } catch (error) {
-    console.error('❌ Error enviando email:', error);
-    console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-    res.status(500).json({ error: 'Error enviando email: ' + error.message });
-  }
+    console.error('[MASTER] ❌ Error validando código master:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al validar el código master: ' + error.message,
+    });
+  }  
 });
 
 // ✅ Cloud Function para validar código master (HTTP, no requiere autenticación previa)
