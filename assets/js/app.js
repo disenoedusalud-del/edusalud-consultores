@@ -3201,7 +3201,7 @@ window.eliminarLinkFirebase = async function (courseHex, firebaseId) {
 log('[FIRESTORE] ✅ Funciones Firebase registradas globalmente');
 
 /* ============ sincronización remota (opcional) ============ */
-const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbztpMUW7wlF_Ikum-sIwGHEVCKblcsGiQhmBaeB-_vJ-uhtSuH9ipd0PjRiBagq8jmM/exec';
+const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbwcpxFztXhNzzSxPKpOcVxHXRBXVAjIT10aHvtIb-AU-sYqQGAowNwyUf0Bd0sm5-8c/exec';
 function hasRemote() { return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE_URL.startsWith('http'); }
 function stableStringify(obj) { try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 
