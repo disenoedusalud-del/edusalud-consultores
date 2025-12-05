@@ -3762,136 +3762,114 @@ async function remoteGetCourses() {
       log('[COURSE GET] ✅ Token obtenido (primeros 20 chars):', token.substring(0, 20) + '...');
     }
 
-    return new Promise((resolve) => {
-      const callbackName = '_gas_jsonp_courses_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      const script = document.createElement('script');
-      // 🛡️ Cache-buster para evitar respuestas viejas
-      let url = REMOTE_BASE_URL
-        + '?action=get_courses'
-        + '&callback=' + callbackName
-        + '&ts=' + Date.now();
-      
-      // ✅ Agregar token si está disponible
-      if (token) {
-        url += '&token=' + encodeURIComponent(token);
-        log('[COURSE GET] ✅ Token agregado a la URL');
-      } else {
-        warn('[COURSE GET] ⚠️ URL sin token - puede ser rechazado por GAS');
+    // ✅ NUEVO ENFOQUE: Usar fetch en lugar de JSONP para evitar script.onerror
+    let url = REMOTE_BASE_URL
+      + '?action=get_courses'
+      + '&ts=' + Date.now();
+    
+    if (token) {
+      url += '&token=' + encodeURIComponent(token);
+      log('[COURSE GET] ✅ Token agregado a la URL');
+    } else {
+      warn('[COURSE GET] ⚠️ URL sin token - puede ser rechazado por GAS');
+    }
+
+    log('[COURSE GET] URL completa (primeros 250 chars):', url.substring(0, 250));
+
+    try {
+      // Intentar con fetch primero (sin callback, para obtener JSON puro)
+      const response = await fetch(url, {
+        method: 'GET',
+        mode: 'cors', // Intentar CORS primero
+        cache: 'no-cache'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
-      // ✅ Logging detallado de la URL
-      log('[COURSE GET] URL completa (primeros 250 chars):', url.substring(0, 250));
-      log('[COURSE GET] URL contiene token:', url.includes('token=') ? 'SÍ' : 'NO');
-      if (url.includes('token=')) {
-        const tokenStart = url.indexOf('token=') + 6;
-        const tokenEnd = url.indexOf('&', tokenStart);
-        const tokenInUrl = tokenEnd > 0 ? url.substring(tokenStart, tokenEnd) : url.substring(tokenStart);
-        log('[COURSE GET] Token en URL (decodificado, primeros 30):', decodeURIComponent(tokenInUrl).substring(0, 30) + '...');
-        log('[COURSE GET] Token esperado (primeros 30):', 'GAS_SECRET_a1b2c3d4e5f6g7h8i9j...');
-        log('[COURSE GET] ¿Tokens coinciden?:', decodeURIComponent(tokenInUrl).startsWith('GAS_SECRET_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6') ? '✅ SÍ' : '❌ NO');
+
+      const data = await response.json();
+      log('[COURSE GET] ✅ Respuesta recibida vía fetch');
+
+      if (data && data.error === 'Unauthorized') {
+        console.error('[COURSE GET] ❌ Error de autenticación:', data.message);
+        return {};
       }
+
+      let courses = {};
+      if (data && typeof data.courses === 'object') {
+        courses = data.courses;
+        log('[COURSE GET] ✅ Cursos remotos obtenidos:', Object.keys(courses).length);
+      }
+
+      return courses;
+    } catch (fetchError) {
+      // Si fetch falla (probablemente por CORS), intentar con JSONP como fallback
+      log('[COURSE GET] ⚠️ Fetch falló, intentando con JSONP:', fetchError.message);
       
-      script.src = url;
-      script.async = true;
+      return new Promise((resolve) => {
+        const callbackName = '_gas_jsonp_courses_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        const script = document.createElement('script');
+        const jsonpUrl = url + '&callback=' + callbackName;
+        
+        script.src = jsonpUrl;
+        script.async = true;
 
-      let resolved = false;
-      const cleanup = () => {
-        try {
-          if (script.parentNode) document.body.removeChild(script);
-        } catch (e) { }
-        try {
-          if (window[callbackName]) delete window[callbackName];
-        } catch (e) { }
-      };
+        let resolved = false;
+        const cleanup = () => {
+          try {
+            if (script.parentNode) document.body.removeChild(script);
+          } catch (e) { }
+          try {
+            if (window[callbackName]) delete window[callbackName];
+          } catch (e) { }
+        };
 
-      // ✅ CRÍTICO: Registrar callback ANTES de agregar script al DOM
-      window[callbackName] = function (data) {
-        if (resolved) return;
-        resolved = true;
-        clearTimeout(timeout);
-
-        log('[COURSE GET] ✅ Callback ejecutado, datos recibidos:', data);
-
-        // ✅ Verificar si hay error de autenticación
-        if (data && data.error === 'Unauthorized') {
-          console.error('[COURSE GET] ❌ Error de autenticación:', data.message);
-          warn('[COURSE GET] ⚠️ Token rechazado por Google Apps Script');
-          warn('[COURSE GET] ⚠️ Token enviado (primeros 30):', token ? token.substring(0, 30) + '...' : 'NO HAY TOKEN');
-          warn('[COURSE GET] ⚠️ Token esperado: GAS_SECRET_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6');
-          warn('[COURSE GET] ⚠️ Verifica en Google Apps Script:');
-          warn('[COURSE GET]   1. Ejecuta getStoredToken() para verificar el token guardado');
-          warn('[COURSE GET]   2. Compara con el token que se está enviando');
-          warn('[COURSE GET]   3. Si no coinciden, ejecuta setupSecretToken() de nuevo');
-          cleanup();
-          resolve({});
-          return;
-        }
-
-        let courses = {};
-        if (data && typeof data.courses === 'object') {
-          courses = data.courses;
-          log('[COURSE GET] ✅ Cursos remotos obtenidos:', Object.keys(courses).length);
-        } else if (data && data.success === false) {
-          warn('[COURSE GET] ⚠️ Error en respuesta:', data.error || data.message);
-        } else {
-          warn('[COURSE GET] ⚠️ Datos recibidos no tienen formato esperado:', data);
-        }
-
-        cleanup();
-        resolve(courses);
-      };
-
-      const timeout = setTimeout(() => {
-        if (resolved) return;
-        resolved = true;
-        warn('[COURSE GET] ⚠️ Timeout después de 10s');
-        cleanup();
-        resolve({});
-      }, 10000);
-
-      script.onerror = (error) => {
-        // ⚠️ NO marcar como resuelto inmediatamente - esperar más tiempo por si el callback se ejecuta
-        // El JSONP funciona cuando se abre directamente, así que el problema puede ser timing
-        setTimeout(() => {
-          if (resolved) {
-            log('[COURSE GET] ✅ Callback se ejecutó después del error (falso positivo)');
-            return;
-          }
+        window[callbackName] = function (data) {
+          if (resolved) return;
           resolved = true;
           clearTimeout(timeout);
-          console.error('[COURSE GET] ❌ Error cargando cursos remotos (después de esperar callback)');
-          console.error('[COURSE GET] URL que falló:', url.substring(0, 250));
-          console.error('[COURSE GET] Callback esperado:', callbackName);
-          console.error('[COURSE GET] ¿Callback existe en window?:', typeof window[callbackName] !== 'undefined' ? 'SÍ' : 'NO');
-          console.error('[COURSE GET] Token usado:', token ? token.substring(0, 20) + '...' : 'NO HAY TOKEN');
-          warn('[COURSE GET] ⚠️ El script.onerror se ejecutó pero la URL funciona directamente');
-          warn('[COURSE GET] ⚠️ Esto puede ser un problema de timing o de ejecución del callback');
+
+          log('[COURSE GET] ✅ Callback ejecutado (JSONP fallback)');
+
+          if (data && data.error === 'Unauthorized') {
+            console.error('[COURSE GET] ❌ Error de autenticación:', data.message);
+            cleanup();
+            resolve({});
+            return;
+          }
+
+          let courses = {};
+          if (data && typeof data.courses === 'object') {
+            courses = data.courses;
+            log('[COURSE GET] ✅ Cursos remotos obtenidos (JSONP):', Object.keys(courses).length);
+          }
+
+          cleanup();
+          resolve(courses);
+        };
+
+        const timeout = setTimeout(() => {
+          if (resolved) return;
+          resolved = true;
+          warn('[COURSE GET] ⚠️ Timeout después de 10s (JSONP fallback)');
           cleanup();
           resolve({});
-        }, 5000); // Aumentar a 5 segundos para dar más tiempo
-      };
+        }, 10000);
 
-      // ✅ Agregar script DESPUÉS de registrar callback
-      log('[COURSE GET] Callback registrado:', callbackName);
-      log('[COURSE GET] URL completa (primeros 150 chars):', script.src.substring(0, 150) + '...');
-      log('[COURSE GET] Token en URL:', token ? 'Sí (primeros 20: ' + token.substring(0, 20) + '...)' : 'NO');
-      
-      // ✅ Agregar listener para ver si el script carga correctamente
-      script.onload = () => {
-        log('[COURSE GET] ✅ Script cargado correctamente');
-      };
-      
-      // ✅ Verificar que el callback esté registrado antes de agregar el script
-      if (typeof window[callbackName] !== 'function') {
-        console.error('[COURSE GET] ❌ ERROR: Callback no está registrado antes de agregar script');
-        cleanup();
-        resolve({});
-        return;
-      }
-      
-      log('[COURSE GET] ✅ Callback verificado, agregando script al DOM...');
-      document.body.appendChild(script);
-    });
+        script.onerror = () => {
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(timeout);
+          console.error('[COURSE GET] ❌ Error en JSONP fallback');
+          cleanup();
+          resolve({});
+        };
+
+        log('[COURSE GET] Intentando JSONP fallback...');
+        document.body.appendChild(script);
+      });
+    }
   } catch (e) {
     console.error('Error en remoteGetCourses:', e);
     return {};
