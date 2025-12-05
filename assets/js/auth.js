@@ -134,6 +134,17 @@ async function tryLoginByCode(code) {
         App.log('[LOGIN] Llamando a:', functionUrl);
         
         // Llamar a la función HTTP
+        // ✅ Forzar console.log para que siempre se vea
+        console.log('[LOGIN] ===== DETALLES DEL CÓDIGO MASTER =====');
+        console.log('[LOGIN] Enviando código master (primeros 5 chars):', sanitizedCode.substring(0, 5) + '...');
+        console.log('[LOGIN] Código completo que se envía:', sanitizedCode);
+        console.log('[LOGIN] Longitud del código:', sanitizedCode.length);
+        console.log('[LOGIN] Código esperado (según README):', 'EDUMASTER123456987');
+        console.log('[LOGIN] ¿Coinciden?:', sanitizedCode === 'EDUMASTER123456987' ? '✅ SÍ' : '❌ NO');
+        console.log('[LOGIN] Código en ASCII:', Array.from(sanitizedCode).map(c => c.charCodeAt(0)).join(','));
+        console.log('[LOGIN] Body JSON que se envía:', JSON.stringify({ code: sanitizedCode }));
+        console.log('[LOGIN] ======================================');
+        
         App.log('[LOGIN] Enviando código master (primeros 5 chars):', sanitizedCode.substring(0, 5) + '...');
         App.log('[LOGIN] Código completo que se envía:', sanitizedCode);
         App.log('[LOGIN] Longitud del código:', sanitizedCode.length);
@@ -149,6 +160,8 @@ async function tryLoginByCode(code) {
           body: JSON.stringify({ code: sanitizedCode })
         });
         
+        // ✅ Forzar console.log para que siempre se vea
+        console.log('[LOGIN] Respuesta recibida - Status:', response.status, response.statusText);
         App.log('[LOGIN] Respuesta recibida - Status:', response.status, response.statusText);
         
         // Verificar si la respuesta es JSON válido
@@ -157,11 +170,14 @@ async function tryLoginByCode(code) {
           result = await response.json();
         } catch (parseError) {
           const textResponse = await response.text();
+          console.error('[LOGIN] ❌ Error parseando respuesta JSON:', parseError);
+          console.error('[LOGIN] Respuesta recibida (texto):', textResponse);
           App.error('[LOGIN] ❌ Error parseando respuesta JSON:', parseError);
           App.error('[LOGIN] Respuesta recibida (texto):', textResponse);
           throw new Error('Error en la respuesta del servidor: ' + response.statusText);
         }
         
+        console.log('[LOGIN] Resultado parseado:', result);
         App.log('[LOGIN] Resultado parseado:', result);
         
         if (result.success) {
