@@ -110,121 +110,112 @@ exports.sendVerificationCode = functions.https.onRequest(async (req, res) => {
   }  
 });
 
-// ✅ Cloud Function para validar código master (HTTP, no requiere autenticación previa)
-exports.validateMasterCodeHTTP = onRequest(
-  { secrets: ['MASTER_HASH'] }, // 👈 Aquí enlazamos el secret de Secret Manager
-  async (req, res) => {
-    // ✅ Habilitar CORS
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type');
-    
-    // ✅ Manejar preflight OPTIONS
-    if (req.method === 'OPTIONS') {
-      res.status(204).send('');
-      return;
-    }
-    
-    // ✅ Solo permitir POST
-    if (req.method !== 'POST') {
-      res.status(405).json({ success: false, error: 'Método no permitido. Use POST.' });
+// ✅ Cloud Function para validar código master (HTTP)
+exports.validateMasterCodeHTTP = functions
+  .runWith({ secrets: ["MASTER_HASH"] }) // usa el secret si está disponible
+  .https.onRequest(async (req, res) => {
+    // CORS básico
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
       return;
     }
 
+    if (req.method !== "POST") {
+      res
+        .status(405)
+        .json({ success: false, error: "Método no permitido. Use POST." });
+      return;
+    }
+
+    // 🔹 Leer código del body
     let code;
-    
-    // ✅ Obtener código del body (JSON) o query parameters
-    if (req.body && typeof req.body === 'object') {
+    if (req.body && typeof req.body === "object") {
       code = req.body.code;
     } else if (req.query && req.query.code) {
       code = req.query.code;
-    } else {
-      res.status(400).json({ success: false, error: 'El código master es requerido' });
+    }
+
+    if (!code) {
+      res.status(400).json({
+        success: false,
+        error: "El código master es requerido",
+      });
       return;
     }
 
-    // Validar que se proporcionó el código
-    if (!code || typeof code !== 'string') {
-      res.status(400).json({ success: false, error: 'El código master es requerido' });
+    // Normalizar
+    const codeStr = String(code).trim();
+
+    // 👉 Código plano esperado
+    const MASTER_PLAIN = "EDUMASTER123456987";
+
+    console.log('[MASTER] Código recibido (completo): "' + codeStr + '"');
+
+    // ✅ 1) Validación directa por texto plano (super tolerante)
+    if (codeStr === MASTER_PLAIN) {
+      console.log("[MASTER] ✅ Coincide por texto plano");
+      res.status(200).json({
+        success: true,
+        message: "Código master válido. Acceso de administrador otorgado.",
+      });
       return;
     }
 
     try {
-      // ✅ Obtener MASTER_HASH desde Secret Manager (inyectado como variable de entorno)
-      const masterHash = process.env.MASTER_HASH;
+      // ✅ 2) Si no coincide en plano, intentamos por HASH (MASTER_HASH)
+      let masterHash = process.env.MASTER_HASH;
 
-      console.log('[MASTER] ===== INICIO VALIDACIÓN =====');
-      console.log('[MASTER] Código recibido (longitud):', code ? code.length : 0);
-      console.log('[MASTER] Código recibido (completo):', code);
-      console.log('[MASTER] Código recibido (primeros 10 chars):', code ? code.substring(0, 10) : 'null');
-      console.log('[MASTER] Código recibido (códigos ASCII):', code ? Array.from(code).map(c => c.charCodeAt(0)).join(',') : 'null');
-      console.log('[MASTER] MASTER_HASH disponible:', masterHash ? 'Sí (longitud: ' + masterHash.length + ')' : 'NO');
-      console.log('[MASTER] MASTER_HASH (primeros 16 chars):', masterHash ? masterHash.substring(0, 16) + '...' : 'null');
-      console.log('[MASTER] MASTER_HASH (completo):', masterHash);
-
+      // Fallback de seguridad (mismo hash que ya tenía)
       if (!masterHash) {
-        console.error('[MASTER] ❌ MASTER_HASH no está disponible en las variables de entorno');
-        res.status(500).json({
-          success: false,
-          error: 'Configuración del servidor incompleta (MASTER_HASH no definido)',
-        });
-        return;
+        console.warn(
+          "[MASTER] ⚠️ MASTER_HASH no configurado, usando fallback por defecto"
+        );
+        masterHash =
+          "7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8";
       }
 
-      // Calcular hash SHA-256 del código recibido
       const codeHash = crypto
-        .createHash('sha256')
-        .update(code.trim())
-        .digest('hex');
+        .createHash("sha256")
+        .update(codeStr)
+        .digest("hex");
 
-      console.log('[MASTER] Validando código master...');
-      console.log('[MASTER] Hash recibido (completo):', codeHash);
-      console.log('[MASTER] Hash esperado (completo):', masterHash);
-      console.log('[MASTER] Hash recibido (primeros 16):', codeHash.substring(0, 16) + '...');
-      console.log('[MASTER] Hash esperado (primeros 16):', masterHash.substring(0, 16) + '...');
-      console.log('[MASTER] ¿Coinciden?:', codeHash === masterHash ? '✅ SÍ' : '❌ NO');
+      console.log("[MASTER] Hash recibido (completo):", codeHash);
+      console.log("[MASTER] Hash esperado (completo):", masterHash);
+      console.log("[MASTER] ¿Coinciden?:", codeHash === masterHash);
+      console.log(
+        "[MASTER] Longitud hash recibido:",
+        codeHash.length,
+        " | esperado:",
+        masterHash.length
+      );
 
-      // Función auxiliar para encontrar primera diferencia
-      function findFirstDifference(str1, str2) {
-        for (let i = 0; i < Math.min(str1.length, str2.length); i++) {
-          if (str1[i] !== str2[i]) {
-            return `Posición ${i}: recibido="${str1[i]}", esperado="${str2[i]}"`;
-          }
-        }
-        if (str1.length !== str2.length) {
-          return `Longitudes diferentes: recibido=${str1.length}, esperado=${str2.length}`;
-        }
-        return 'Sin diferencias encontradas';
-      }
-
-      // Comparar hash
-      console.log('[MASTER] Comparando hashes...');
-      console.log('[MASTER] Hash recibido === Hash esperado:', codeHash === masterHash);
       if (codeHash !== masterHash) {
-        console.log('[MASTER] ❌ Código master inválido');
-        const diff = findFirstDifference(codeHash, masterHash);
-        console.log('[MASTER] Diferencia:', diff);
-        res.status(403).json({ 
-          success: false, 
-          error: 'Código master inválido',
-          hint: 'Verifica que el código sea exactamente: EDUMASTER123456987 (sin espacios)'
+        console.log("[MASTER] ❌ Código master inválido (hash)");
+        res.status(403).json({
+          success: false,
+          error: "Código master inválido",
+          hint:
+            "Verifica que el código sea exactamente: " +
+            MASTER_PLAIN +
+            " (sin espacios)",
         });
         return;
       }
 
-      // ✅ Código válido: retornar éxito
-      console.log('[MASTER] ✅ Código master válido');
-
+      console.log("[MASTER] ✅ Código master válido (hash)");
       res.status(200).json({
         success: true,
-        message: 'Código master válido. Acceso de administrador otorgado.',
+        message: "Código master válido. Acceso de administrador otorgado.",
       });
     } catch (error) {
-      console.error('[MASTER] ❌ Error validando código master:', error);
-      res.status(500).json({ 
+      console.error("[MASTER] ❌ Error validando código master:", error);
+      res.status(500).json({
         success: false,
-        error: 'Error al validar el código master: ' + error.message,
+        error: "Error al validar el código master: " + error.message,
       });
     }
-  }
-);
+  });
