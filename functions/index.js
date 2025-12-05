@@ -150,11 +150,21 @@ exports.validateMasterCodeHTTP = functions.https.onRequest(async (req, res) => {
 
   // ✅ Validación por HASH usando MASTER_HASH
   try {
-    const masterHash = process.env.MASTER_HASH;
+    // ✅ Obtener hash maestro (soporte para process.env y functions.config)
+    let masterHash = process.env.MASTER_HASH;
+    if (!masterHash) {
+      try {
+        if (functions.config().env && functions.config().env.master_hash) {
+          masterHash = functions.config().env.master_hash;
+        }
+      } catch (e) {
+        console.warn("[MASTER] No se pudo leer functions.config()", e);
+      }
+    }
 
     if (!masterHash) {
       console.error("[MASTER] ❌ MASTER_HASH no configurado en variables de entorno");
-      res.status(500).json({ success: false, error: "Error de configuración del servidor" });
+      res.status(500).json({ success: false, error: "Error de configuración del servidor (MASTER_HASH missing)" });
       return;
     }
 
@@ -173,6 +183,12 @@ exports.validateMasterCodeHTTP = functions.https.onRequest(async (req, res) => {
         success: false,
         error: "Código master inválido",
         hint: "Verifica que el código sea correcto y no tenga espacios adicionales",
+        debug: {
+          receivedLength: codeHash.length,
+          expectedLength: masterHash.length,
+          receivedStart: codeHash.substring(0, 4),
+          expectedStart: masterHash.substring(0, 4)
+        }
       });
       return;
     }
