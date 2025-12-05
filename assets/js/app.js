@@ -8935,17 +8935,34 @@ async function getCoursesForEmail(email) {
 
 /* ============ Gestión de Administradores ============ */
 
-// ✅ Verificar si un email es administrador
-async function checkIsAdmin(email) {
+// ✅ Verificar si un email es administrador (mejorado con Custom Claims)
+async function checkIsAdmin(email = null) {
+  const auth = window.firebaseAuth || firebase.auth();
+  const user = auth.currentUser;
+
+  if (!user) {
+    log('[ADMIN] ❌ No hay usuario autenticado');
+    return false;
+  }
+
+  // Si se pasa email como parámetro, usarlo; si no, usar el email del usuario actual
+  const emailToCheck = email ? email.toLowerCase().trim() : (user.email || '').toLowerCase().trim();
+  
+  if (!emailToCheck) {
+    log('[ADMIN] ❌ No se puede determinar el email a verificar');
+    return false;
+  }
+
   // ✅ PRIMERO: Verificar Custom Claim isMaster (más seguro, viene del servidor)
+  // Forzar refresh del token para obtener claims actualizados
   try {
-    const currentUser = window.firebaseAuth?.currentUser;
-    if (currentUser) {
-      const tokenResult = await currentUser.getIdTokenResult();
-      if (tokenResult.claims.isMaster === true) {
-        log('[ADMIN] ✅ Usuario tiene Custom Claim isMaster');
-        return true;
-      }
+    const idTokenResult = await user.getIdTokenResult(true); // true = force refresh
+    const claims = idTokenResult.claims || {};
+    const isMaster = !!claims.isMaster;
+
+    if (isMaster) {
+      log('[ADMIN] ✅ Usuario tiene Custom Claim isMaster');
+      return true;
     }
   } catch (error) {
     warn('[ADMIN] Error verificando Custom Claims:', error);
@@ -8953,9 +8970,8 @@ async function checkIsAdmin(email) {
   }
 
   // ✅ SEGUNDO: Verificar si es super admin (hardcodeado - siempre disponible)
-  const normalizedEmail = email.toLowerCase().trim();
-  if (SUPER_ADMINS.includes(normalizedEmail)) {
-    log('[ADMIN] ✅ Email es super administrador (hardcodeado):', normalizedEmail);
+  if (SUPER_ADMINS.includes(emailToCheck)) {
+    log('[ADMIN] ✅ Email es super administrador (hardcodeado):', emailToCheck);
     return true;
   }
 
@@ -8967,14 +8983,14 @@ async function checkIsAdmin(email) {
       return false;
     }
 
-    const emailKey = normalizeEmailKey(email);
+    const emailKey = normalizeEmailKey(emailToCheck);
     const adminRef = db.ref(`${ADMINS_PATH}/${emailKey}`);
     const snapshot = await adminRef.once('value');
 
     if (snapshot.exists()) {
       const data = snapshot.val();
       if (data && data.active !== false) {
-        log('[ADMIN] ✅ Email encontrado en lista blanca de Firebase:', normalizedEmail);
+        log('[ADMIN] ✅ Email encontrado en lista blanca de Firebase:', emailToCheck);
         return true;
       }
     }
@@ -12007,4 +12023,29 @@ window.addEventListener('load', function() {
   }, 3000);
 });
 */
+
+// ✅ INICIALIZACIÓN: Cargar cursos personalizados desde Firebase al cargar la página
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    // Esperar un momento para que Firebase se inicialice
+    setTimeout(() => {
+      if (typeof initFirebaseCustomCoursesRealtime === 'function') {
+        log('[INIT] 🔥 Inicializando listener de cursos personalizados de Firebase...');
+        initFirebaseCustomCoursesRealtime();
+      } else {
+        warn('[INIT] ⚠️ initFirebaseCustomCoursesRealtime no disponible');
+      }
+    }, 1000); // Esperar 1 segundo para que Firebase se inicialice
+  });
+} else {
+  // DOM ya cargado, inicializar inmediatamente
+  setTimeout(() => {
+    if (typeof initFirebaseCustomCoursesRealtime === 'function') {
+      log('[INIT] 🔥 Inicializando listener de cursos personalizados de Firebase...');
+      initFirebaseCustomCoursesRealtime();
+    } else {
+      warn('[INIT] ⚠️ initFirebaseCustomCoursesRealtime no disponible');
+    }
+  }, 1000);
+}
 
