@@ -3779,13 +3779,16 @@ async function remoteGetCourses() {
         warn('[COURSE GET] ⚠️ URL sin token - puede ser rechazado por GAS');
       }
       
-      log('[COURSE GET] URL completa (primeros 200 chars):', url.substring(0, 200));
+      // ✅ Logging detallado de la URL
+      log('[COURSE GET] URL completa (primeros 250 chars):', url.substring(0, 250));
       log('[COURSE GET] URL contiene token:', url.includes('token=') ? 'SÍ' : 'NO');
       if (url.includes('token=')) {
         const tokenStart = url.indexOf('token=') + 6;
         const tokenEnd = url.indexOf('&', tokenStart);
         const tokenInUrl = tokenEnd > 0 ? url.substring(tokenStart, tokenEnd) : url.substring(tokenStart);
-        log('[COURSE GET] Token en URL (primeros 30):', tokenInUrl.substring(0, 30) + '...');
+        log('[COURSE GET] Token en URL (decodificado, primeros 30):', decodeURIComponent(tokenInUrl).substring(0, 30) + '...');
+        log('[COURSE GET] Token esperado (primeros 30):', 'GAS_SECRET_a1b2c3d4e5f6g7h8i9j...');
+        log('[COURSE GET] ¿Tokens coinciden?:', decodeURIComponent(tokenInUrl).startsWith('GAS_SECRET_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6') ? '✅ SÍ' : '❌ NO');
       }
       
       script.src = url;
@@ -13495,28 +13498,82 @@ window.testGASDirect = async function() {
       return false;
     }
     
-    // Probar con fetch directo (no JSONP)
-    const url = REMOTE_BASE_URL + '?action=get_courses&token=' + encodeURIComponent(token) + '&ts=' + Date.now();
+    // Probar con JSONP directo (igual que remoteGetCourses pero con más logging)
     console.log('');
-    console.log('📡 URL de prueba:', url.substring(0, 150) + '...');
-    console.log('📡 Probando con fetch directo...');
+    console.log('📡 Probando con JSONP directo...');
     
-    const response = await fetch(url, {
-      method: 'GET',
-      mode: 'no-cors' // Google Apps Script no permite CORS, pero podemos ver el error
+    return new Promise((resolve) => {
+      const callbackName = '_test_gas_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      const script = document.createElement('script');
+      const url = REMOTE_BASE_URL 
+        + '?action=get_courses'
+        + '&callback=' + callbackName
+        + '&token=' + encodeURIComponent(token)
+        + '&ts=' + Date.now();
+      
+      console.log('📡 URL completa:', url.substring(0, 200) + '...');
+      console.log('📡 Token en URL (primeros 30):', token.substring(0, 30) + '...');
+      
+      script.src = url;
+      script.async = true;
+      
+      let resolved = false;
+      const cleanup = () => {
+        try {
+          if (script.parentNode) document.body.removeChild(script);
+        } catch (e) {}
+        try {
+          if (window[callbackName]) delete window[callbackName];
+        } catch (e) {}
+      };
+      
+      window[callbackName] = function (data) {
+        if (resolved) return;
+        resolved = true;
+        console.log('✅ CALLBACK EJECUTADO!');
+        console.log('📦 Datos recibidos:', data);
+        
+        if (data && data.error === 'Unauthorized') {
+          console.error('❌ ERROR DE AUTENTICACIÓN:', data.message);
+          console.error('❌ El token fue rechazado por Google Apps Script');
+          cleanup();
+          resolve(false);
+          return;
+        }
+        
+        if (data && data.courses) {
+          console.log('✅ ÉXITO - Cursos recibidos:', Object.keys(data.courses).length);
+          cleanup();
+          resolve(true);
+          return;
+        }
+        
+        console.log('⚠️ Respuesta recibida pero sin formato esperado:', data);
+        cleanup();
+        resolve(true);
+      };
+      
+      const timeout = setTimeout(() => {
+        if (resolved) return;
+        resolved = true;
+        console.error('❌ TIMEOUT - El callback no se ejecutó después de 10s');
+        cleanup();
+        resolve(false);
+      }, 10000);
+      
+      script.onerror = (error) => {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeout);
+        console.error('❌ ERROR cargando script:', error);
+        console.error('❌ Esto significa que Google Apps Script rechazó la petición antes de ejecutar el código');
+        cleanup();
+        resolve(false);
+      };
+      
+      document.body.appendChild(script);
+      console.log('📡 Script agregado, esperando respuesta...');
     });
-    
-    console.log('📡 Respuesta recibida (status):', response.status);
-    console.log('📡 Respuesta recibida (ok):', response.ok);
-    console.log('📡 Respuesta recibida (type):', response.type);
-    
-    // Con no-cors no podemos leer el body, pero podemos ver si hay error
-    if (response.type === 'opaque') {
-      console.log('✅ Respuesta recibida (opaque = posible éxito con no-cors)');
-      console.log('⚠️ Nota: Con no-cors no podemos leer el contenido, pero la petición llegó');
-    }
-    
-    return true;
   } catch (error) {
     console.error('❌ ERROR en test directo:', error.message);
     console.error('❌ Stack:', error.stack);
