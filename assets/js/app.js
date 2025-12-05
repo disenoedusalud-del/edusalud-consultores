@@ -1342,6 +1342,15 @@ function initFirestoreRealtime(courseHex) {
   }
 }
 
+// ✅ Función global para detener listeners (usada en logout)
+window.stopFirestoreRealtime = function () {
+  if (typeof firestoreUnsubscribe === 'function') {
+    log('[FIREBASE] 🛑 Deteniendo listener antes de logout...');
+    firestoreUnsubscribe();
+    firestoreUnsubscribe = null;
+  }
+};
+
 /**
  * ✅ FUNCIÓN: Combinar links de Firestore con localStorage y actualizar vista
  */
@@ -4740,6 +4749,11 @@ function maybeShowAttemptsWarning() {
 
 /* ============ vistas ============ */
 function showAccess() {
+  // ✅ Detener listeners de Firebase antes de cambiar de vista
+  if (typeof window.stopFirestoreRealtime === 'function') {
+    window.stopFirestoreRealtime();
+  }
+
   // ✅ Limpiar flags de autenticación al mostrar acceso
   App.setIsMasterAuthenticated(false);
   App.setCurrentKeyHex(null);
@@ -4928,6 +4942,11 @@ function showContent() {
 }
 // ✅ Mostrar vista de usuario (diferente a vista master)
 function showUserView() {
+  // ✅ Detener listeners de Firebase antes de cambiar de vista
+  if (typeof window.stopFirestoreRealtime === 'function') {
+    window.stopFirestoreRealtime();
+  }
+
   // ✅ Quitar clase master-view para mostrar header principal
   document.body.classList.remove('master-view');
 
