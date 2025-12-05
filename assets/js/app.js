@@ -3779,7 +3779,14 @@ async function remoteGetCourses() {
         warn('[COURSE GET] ⚠️ URL sin token - puede ser rechazado por GAS');
       }
       
-      log('[COURSE GET] URL completa:', url.substring(0, 100) + '...');
+      log('[COURSE GET] URL completa (primeros 200 chars):', url.substring(0, 200));
+      log('[COURSE GET] URL contiene token:', url.includes('token=') ? 'SÍ' : 'NO');
+      if (url.includes('token=')) {
+        const tokenStart = url.indexOf('token=') + 6;
+        const tokenEnd = url.indexOf('&', tokenStart);
+        const tokenInUrl = tokenEnd > 0 ? url.substring(tokenStart, tokenEnd) : url.substring(tokenStart);
+        log('[COURSE GET] Token en URL (primeros 30):', tokenInUrl.substring(0, 30) + '...');
+      }
       
       script.src = url;
       script.async = true;
