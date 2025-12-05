@@ -111,111 +111,108 @@ exports.sendVerificationCode = functions.https.onRequest(async (req, res) => {
 });
 
 // ✅ Cloud Function para validar código master (HTTP)
-exports.validateMasterCodeHTTP = functions
-  .runWith({ secrets: ["MASTER_HASH"] }) // usa el secret si está disponible
-  .https.onRequest(async (req, res) => {
-    // CORS básico
-    res.set("Access-Control-Allow-Origin", "*");
-    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type");
+exports.validateMasterCodeHTTP = functions.https.onRequest(async (req, res) => {
+  // CORS básico
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
 
-    if (req.method === "OPTIONS") {
-      res.status(204).send("");
-      return;
-    }
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
 
-    if (req.method !== "POST") {
-      res
-        .status(405)
-        .json({ success: false, error: "Método no permitido. Use POST." });
-      return;
-    }
+  if (req.method !== "POST") {
+    res
+      .status(405)
+      .json({ success: false, error: "Método no permitido. Use POST." });
+    return;
+  }
 
-    // 🔹 Leer código del body
-    let code;
-    if (req.body && typeof req.body === "object") {
-      code = req.body.code;
-    } else if (req.query && req.query.code) {
-      code = req.query.code;
-    }
+  // 🔹 Leer código del body o query
+  let code;
+  if (req.body && typeof req.body === "object") {
+    code = req.body.code;
+  } else if (req.query && req.query.code) {
+    code = req.query.code;
+  }
 
-    if (!code) {
-      res.status(400).json({
-        success: false,
-        error: "El código master es requerido",
-      });
-      return;
-    }
+  if (!code) {
+    res.status(400).json({
+      success: false,
+      error: "El código master es requerido",
+    });
+    return;
+  }
 
-    // Normalizar
-    const codeStr = String(code).trim();
+  // Normalizar
+  const codeStr = String(code).trim();
 
-    // 👉 Código plano esperado
-    const MASTER_PLAIN = "EDUMASTER123456987";
+  // 👉 Código plano esperado
+  const MASTER_PLAIN = "EDUMASTER123456987";
 
-    console.log('[MASTER] Código recibido (completo): "' + codeStr + '"');
+  console.log('[MASTER] Código recibido (completo): "' + codeStr + '"');
 
-    // ✅ 1) Validación directa por texto plano (super tolerante)
-    if (codeStr === MASTER_PLAIN) {
-      console.log("[MASTER] ✅ Coincide por texto plano");
-      res.status(200).json({
-        success: true,
-        message: "Código master válido. Acceso de administrador otorgado.",
-      });
-      return;
-    }
+  // ✅ 1) Validación directa por texto plano
+  if (codeStr === MASTER_PLAIN) {
+    console.log("[MASTER] ✅ Coincide por texto plano");
+    res.status(200).json({
+      success: true,
+      message: "Código master válido. Acceso de administrador otorgado.",
+    });
+    return;
+  }
 
-    try {
-      // ✅ 2) Si no coincide en plano, intentamos por HASH (MASTER_HASH)
-      let masterHash = process.env.MASTER_HASH;
+  try {
+    // ✅ 2) Validación por HASH usando MASTER_HASH (si existe)
+    let masterHash = process.env.MASTER_HASH;
 
-      // Fallback de seguridad (mismo hash que ya tenía)
-      if (!masterHash) {
-        console.warn(
-          "[MASTER] ⚠️ MASTER_HASH no configurado, usando fallback por defecto"
-        );
-        masterHash =
-          "7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8";
-      }
-
-      const codeHash = crypto
-        .createHash("sha256")
-        .update(codeStr)
-        .digest("hex");
-
-      console.log("[MASTER] Hash recibido (completo):", codeHash);
-      console.log("[MASTER] Hash esperado (completo):", masterHash);
-      console.log("[MASTER] ¿Coinciden?:", codeHash === masterHash);
-      console.log(
-        "[MASTER] Longitud hash recibido:",
-        codeHash.length,
-        " | esperado:",
-        masterHash.length
+    if (!masterHash) {
+      console.warn(
+        "[MASTER] ⚠️ MASTER_HASH no configurado, usando fallback por defecto"
       );
-
-      if (codeHash !== masterHash) {
-        console.log("[MASTER] ❌ Código master inválido (hash)");
-        res.status(403).json({
-          success: false,
-          error: "Código master inválido",
-          hint:
-            "Verifica que el código sea exactamente: " +
-            MASTER_PLAIN +
-            " (sin espacios)",
-        });
-        return;
-      }
-
-      console.log("[MASTER] ✅ Código master válido (hash)");
-      res.status(200).json({
-        success: true,
-        message: "Código master válido. Acceso de administrador otorgado.",
-      });
-    } catch (error) {
-      console.error("[MASTER] ❌ Error validando código master:", error);
-      res.status(500).json({
-        success: false,
-        error: "Error al validar el código master: " + error.message,
-      });
+      masterHash =
+        "7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8";
     }
-  });
+
+    const codeHash = crypto
+      .createHash("sha256")
+      .update(codeStr)
+      .digest("hex");
+
+    console.log("[MASTER] Hash recibido (completo):", codeHash);
+    console.log("[MASTER] Hash esperado (completo):", masterHash);
+    console.log("[MASTER] ¿Coinciden?:", codeHash === masterHash);
+    console.log(
+      "[MASTER] Longitud hash recibido:",
+      codeHash.length,
+      " | esperado:",
+      masterHash.length
+    );
+
+    if (codeHash !== masterHash) {
+      console.log("[MASTER] ❌ Código master inválido (hash)");
+      res.status(403).json({
+        success: false,
+        error: "Código master inválido",
+        hint:
+          "Verifica que el código sea exactamente: " +
+          MASTER_PLAIN +
+          " (sin espacios)",
+      });
+      return;
+    }
+
+    console.log("[MASTER] ✅ Código master válido (hash)");
+    res.status(200).json({
+      success: true,
+      message: "Código master válido. Acceso de administrador otorgado.",
+    });
+  } catch (error) {
+    console.error("[MASTER] ❌ Error validando código master:", error);
+    res.status(500).json({
+      success: false,
+      error: "Error al validar el código master: " + error.message,
+    });
+  }
+});
