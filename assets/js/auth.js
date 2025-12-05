@@ -137,6 +137,8 @@ async function tryLoginByCode(code) {
         App.log('[LOGIN] Enviando código master (primeros 5 chars):', sanitizedCode.substring(0, 5) + '...');
         App.log('[LOGIN] Código completo que se envía:', sanitizedCode);
         App.log('[LOGIN] Longitud del código:', sanitizedCode.length);
+        App.log('[LOGIN] Código esperado (según README):', 'EDUMASTER123456987');
+        App.log('[LOGIN] ¿Coinciden?:', sanitizedCode === 'EDUMASTER123456987' ? '✅ SÍ' : '❌ NO');
         App.log('[LOGIN] Body JSON que se envía:', JSON.stringify({ code: sanitizedCode }));
         
         const response = await fetch(functionUrl, {
