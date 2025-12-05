@@ -127,12 +127,14 @@ exports.validateMasterCodeHTTP = functions.https.onRequest(async (req, res) => {
     return;
   }
 
-  // 🔹 Leer código del body o query
-  let code;
+  // 🔹 Leer código y email del body o query
+  let code, email;
   if (req.body && typeof req.body === "object") {
     code = req.body.code;
+    email = req.body.email;
   } else if (req.query && req.query.code) {
     code = req.query.code;
+    email = req.query.email;
   }
 
   if (!code) {
@@ -146,7 +148,6 @@ exports.validateMasterCodeHTTP = functions.https.onRequest(async (req, res) => {
   // Normalizar
   const codeStr = String(code).trim();
 
-  // 👉 Código plano esperado
   // ✅ Validación por HASH usando MASTER_HASH
   try {
     const masterHash = process.env.MASTER_HASH;
@@ -165,12 +166,6 @@ exports.validateMasterCodeHTTP = functions.https.onRequest(async (req, res) => {
     // Logs de debug seguros
     console.log("[MASTER] Verificando hash...");
     console.log("[MASTER] ¿Coinciden?:", codeHash === masterHash);
-    console.log(
-      "[MASTER] Longitud hash recibido:",
-      codeHash.length,
-      " | esperado:",
-      masterHash.length
-    );
 
     if (codeHash !== masterHash) {
       console.log("[MASTER] ❌ Código master inválido (hash)");
@@ -183,6 +178,19 @@ exports.validateMasterCodeHTTP = functions.https.onRequest(async (req, res) => {
     }
 
     console.log("[MASTER] ✅ Código master válido (hash)");
+
+    // ✅ Asignar Custom Claim si se proporcionó email
+    if (email) {
+      try {
+        const user = await admin.auth().getUserByEmail(email);
+        await admin.auth().setCustomUserClaims(user.uid, { isMaster: true });
+        console.log(`[MASTER] ✅ Custom claim 'isMaster' asignado a: ${email}`);
+      } catch (claimError) {
+        console.warn(`[MASTER] ⚠️ No se pudo asignar custom claim a ${email}:`, claimError.message);
+        // No fallamos la request principal, pero avisamos
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: "Código master válido. Acceso de administrador otorgado.",
