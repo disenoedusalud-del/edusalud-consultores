@@ -178,25 +178,20 @@ exports.validateMasterCodeHTTP = functions.https.onRequest(async (req, res) => {
       .update(codeStr)
       .digest("hex");
 
-    // Logs de debug seguros
-    console.log("[MASTER] Verificando hash...");
-    console.log("[MASTER] ¿Coinciden?:", codeHash === masterHash);
+    // Log seguro sin revelar información sensible
+    console.log("[MASTER] Verificando código maestro...");
+
+
 
     if (codeHash !== masterHash) {
-      console.log("[MASTER] ❌ Código master inválido (hash)");
+      console.log("[MASTER] ❌ Intento de acceso con código inválido");
       res.status(403).json({
         success: false,
         error: "Código master inválido",
-        hint: "Verifica que el código sea correcto y no tenga espacios adicionales",
-        debug: {
-          receivedLength: codeHash.length,
-          expectedLength: masterHash.length,
-          receivedStart: codeHash.substring(0, 4),
-          expectedStart: masterHash.substring(0, 4)
-        }
       });
       return;
     }
+
 
     console.log("[MASTER] ✅ Código master válido (hash)");
 
