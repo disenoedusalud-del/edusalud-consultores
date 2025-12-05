@@ -468,13 +468,16 @@ async function tryLoginByEmail() {
     }
 
     // ✅ Rate limiting: prevenir ataques de fuerza bruta
-    if (!App.checkRateLimitSimple('login')) {
-        return false;
-    }
+    // if (!App.checkRateLimitSimple('login')) {
+    //     console.warn('[AUTH] Rate limit excedido para login');
+    //     return false;
+    // }
 
     // ✅ Sanitizar inputs
     const email = App.getSafeInputValue('#input-email', 'email');
     const password = App.getSafeInputValue('#input-password', 'password'); // Password no se sanitiza
+
+    App.log('[AUTH] Intentando login con:', email);
 
     if (!email || !password) {
         showAuthMessage('msg-auth', 'Por favor, completa todos los campos.', true);
@@ -491,12 +494,18 @@ async function tryLoginByEmail() {
     showAuthMessage('msg-auth', 'Iniciando sesión…', false);
 
     try {
+        App.log('[AUTH] Verificando objeto firebaseAuth:', window.firebaseAuth);
+
         if (!window.firebaseAuth) {
+            console.error('[AUTH] window.firebaseAuth es undefined/null');
             showAuthMessage('msg-auth', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
             return false;
         }
 
+        App.log('[AUTH] Llamando a signInWithEmailAndPassword...');
         const userCredential = await window.firebaseAuth.signInWithEmailAndPassword(email, password);
+        App.log('[AUTH] signInWithEmailAndPassword retornó:', userCredential);
+
         const user = userCredential.user;
         const userEmail = user.email.toLowerCase().trim();
 
