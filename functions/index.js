@@ -1,5 +1,6 @@
 const functions = require('firebase-functions');
 const { onRequest } = require('firebase-functions/v2/https');
+const { defineString } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const { Resend } = require('resend');
 const crypto = require('crypto');
@@ -11,6 +12,12 @@ admin.initializeApp();
 // Para desarrollo local: crear archivo .env con RESEND_API_KEY=tu_api_key
 const resendApiKey = process.env.RESEND_API_KEY || 're_eATCWBLR_5MBUmnvRAo2y2hYkwTt1Qdis';
 const resend = new Resend(resendApiKey);
+
+// ✅ Definir variable de entorno MASTER_HASH usando Functions v2
+const masterHashParam = defineString('MASTER_HASH', {
+  default: '7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8',
+  description: 'Hash SHA-256 del código master (EDUMASTER123456987)'
+});
 
 // ✅ Cloud Function para enviar código de verificación
 exports.sendVerificationCode = functions.https.onRequest(async (req, res) => {
@@ -108,114 +115,98 @@ exports.sendVerificationCode = functions.https.onRequest(async (req, res) => {
   }
 });
 
-// ✅ Cloud Function para validar código master (HTTP)
-exports.validateMasterCodeHTTP = functions.https.onRequest(async (req, res) => {
-  // CORS básico
-  res.set("Access-Control-Allow-Origin", "*");
-  res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.set("Access-Control-Allow-Headers", "Content-Type");
-
-  if (req.method === "OPTIONS") {
-    res.status(204).send("");
-    return;
-  }
-
-  if (req.method !== "POST") {
-    res
-      .status(405)
-      .json({ success: false, error: "Método no permitido. Use POST." });
-    return;
-  }
-
-  // 🔹 Leer código y email del body o query
-  let code, email;
-  if (req.body && typeof req.body === "object") {
-    code = req.body.code;
-    email = req.body.email;
-  } else if (req.query && req.query.code) {
-    code = req.query.code;
-    email = req.query.email;
-  }
-
-  if (!code) {
-    res.status(400).json({
-      success: false,
-      error: "El código master es requerido",
-    });
-    return;
-  }
-
-  // Normalizar
-  const codeStr = String(code).trim();
-
-  // ✅ Validación por HASH usando MASTER_HASH
-  try {
-    // ✅ Obtener hash maestro (soporte para process.env y functions.config)
-    let masterHash = process.env.MASTER_HASH;
-    if (!masterHash) {
-      try {
-        if (functions.config().env && functions.config().env.master_hash) {
-          masterHash = functions.config().env.master_hash;
-        }
-      } catch (e) {
-        console.warn("[MASTER] No se pudo leer functions.config()", e);
-      }
-    }
-
-    // ✅ Asegurar que no haya espacios en blanco
-    if (masterHash) {
-      masterHash = masterHash.trim();
-    }
-
-    if (!masterHash) {
-      console.error("[MASTER] ❌ MASTER_HASH no configurado en variables de entorno");
-      res.status(500).json({ success: false, error: "Error de configuración del servidor (MASTER_HASH missing)" });
+// ✅ Cloud Function para validar código master (HTTP) - Functions v2
+exports.validateMasterCodeHTTP = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
       return;
     }
 
-    const codeHash = crypto
-      .createHash("sha256")
-      .update(codeStr)
-      .digest("hex");
+    if (req.method !== "POST") {
+      res
+        .status(405)
+        .json({ success: false, error: "Método no permitido. Use POST." });
+      return;
+    }
 
-    // Log seguro sin revelar información sensible
-    console.log("[MASTER] Verificando código maestro...");
+    // 🔹 Leer código y email del body o query
+    let code, email;
+    if (req.body && typeof req.body === "object") {
+      code = req.body.code;
+      email = req.body.email;
+    } else if (req.query && req.query.code) {
+      code = req.query.code;
+      email = req.query.email;
+    }
 
-
-
-    if (codeHash !== masterHash) {
-      console.log("[MASTER] ❌ Intento de acceso con código inválido");
-      res.status(403).json({
+    if (!code) {
+      res.status(400).json({
         success: false,
-        error: "Código master inválido",
+        error: "El código master es requerido",
       });
       return;
     }
 
+    // Normalizar
+    const codeStr = String(code).trim();
 
-    console.log("[MASTER] ✅ Código master válido (hash)");
+    // ✅ Validación por HASH usando MASTER_HASH
+    try {
+      // ✅ Obtener hash maestro desde parámetro de Functions v2
+      const masterHash = masterHashParam.value().trim();
 
-    // ✅ Asignar Custom Claim si se proporcionó email
-    if (email) {
-      try {
-        const user = await admin.auth().getUserByEmail(email);
-        await admin.auth().setCustomUserClaims(user.uid, { isMaster: true });
-        console.log(`[MASTER] ✅ Custom claim 'isMaster' asignado a: ${email}`);
-      } catch (claimError) {
-        console.warn(`[MASTER] ⚠️ No se pudo asignar custom claim a ${email}:`, claimError.message);
-        // No fallamos la request principal, pero avisamos
+      if (!masterHash) {
+        console.error("[MASTER] ❌ MASTER_HASH no configurado");
+        res.status(500).json({ 
+          success: false, 
+          error: "Error de configuración del servidor (MASTER_HASH missing)" 
+        });
+        return;
       }
-    }
 
-    res.status(200).json({
-      success: true,
-      message: "Código master válido. Acceso de administrador otorgado.",
-    });
-  } catch (error) {
-    console.error("[MASTER] ❌ Error validando código master:", error);
-    res.status(500).json({
-      success: false,
-      error: "Error al validar el código master: " + error.message,
-    });
+      const codeHash = crypto
+        .createHash("sha256")
+        .update(codeStr)
+        .digest("hex");
+
+      // Log seguro sin revelar información sensible
+      console.log("[MASTER] Verificando código maestro...");
+
+      if (codeHash !== masterHash) {
+        console.log("[MASTER] ❌ Intento de acceso con código inválido");
+        res.status(403).json({
+          success: false,
+          error: "Código master inválido",
+        });
+        return;
+      }
+
+      console.log("[MASTER] ✅ Código master válido (hash)");
+
+      // ✅ Asignar Custom Claim si se proporcionó email
+      if (email) {
+        try {
+          const user = await admin.auth().getUserByEmail(email);
+          await admin.auth().setCustomUserClaims(user.uid, { isMaster: true });
+          console.log(`[MASTER] ✅ Custom claim 'isMaster' asignado a: ${email}`);
+        } catch (claimError) {
+          console.warn(`[MASTER] ⚠️ No se pudo asignar custom claim a ${email}:`, claimError.message);
+          // No fallamos la request principal, pero avisamos
+        }
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Código master válido. Acceso de administrador otorgado.",
+      });
+    } catch (error) {
+      console.error("[MASTER] ❌ Error validando código master:", error);
+      res.status(500).json({
+        success: false,
+        error: "Error al validar el código master: " + error.message,
+      });
+    }
   }
-});
+);
