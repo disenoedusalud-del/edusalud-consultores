@@ -3816,7 +3816,12 @@ async function remoteGetCourses() {
         if (data && data.error === 'Unauthorized') {
           console.error('[COURSE GET] ❌ Error de autenticación:', data.message);
           warn('[COURSE GET] ⚠️ Token rechazado por Google Apps Script');
-          warn('[COURSE GET] ⚠️ Verifica que el token esté configurado en GAS ejecutando setupSecretToken()');
+          warn('[COURSE GET] ⚠️ Token enviado (primeros 30):', token ? token.substring(0, 30) + '...' : 'NO HAY TOKEN');
+          warn('[COURSE GET] ⚠️ Token esperado: GAS_SECRET_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6');
+          warn('[COURSE GET] ⚠️ Verifica en Google Apps Script:');
+          warn('[COURSE GET]   1. Ejecuta getStoredToken() para verificar el token guardado');
+          warn('[COURSE GET]   2. Compara con el token que se está enviando');
+          warn('[COURSE GET]   3. Si no coinciden, ejecuta setupSecretToken() de nuevo');
           cleanup();
           resolve({});
           return;
