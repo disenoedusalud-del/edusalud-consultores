@@ -60,7 +60,7 @@
   <!-- Módulos JS -->
   <script src="assets/js/modules/core.js"></script>
   <script src="assets/js/modules/ui.js"></script>
-  <script src="assets/js/modules/auth.js"></script>
+
 </head>
 
 <body>
@@ -1630,8 +1630,10 @@
   <script src="assets/js/google-apps-script-code.js?v=1"></script>
   <!-- App scripts (esperan a que Firebase cargue) -->
   <script src="assets/js/electric-card.js?v=9" defer></script>
-  <script src="assets/js/app.js?v=162" defer></script>
-  <script src="assets/js/auth.js?v=162" defer></script>
+  <!-- Lógica principal -->
+  <script src="assets/js/app.js?v=162"></script>
+  <!-- Auth Module (debe ir después de app.js) -->
+  <script src="assets/js/modules/auth.js"></script>
   <script src="assets/js/certificates.js?v=21" defer></script>
   <script>
     // ✅ Forzar actualización del Service Worker si hay una nueva versión
