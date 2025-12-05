@@ -459,156 +459,141 @@ function showAuthMessage(elementId, message, isError = false) {
     }
 }
 
-// ✅ Funciones de autenticación con email/password
+// ✅ Sanitizar inputs
+const email = App.getSafeInputValue('#input-email', 'email');
+const password = App.getSafeInputValue('#input-password', 'password'); // Password no se sanitiza
 
-// ✅ Función para login con email/password
-async function tryLoginByEmail() {
-    const App = getApp();
-    if (!App) {
-        console.error('[AUTH] App no disponible en tryLoginByEmail');
+if (!email || !password) {
+    showAuthMessage('msg-auth', 'Por favor, completa todos los campos.', true);
+    return false;
+}
+
+if (!email.includes('@')) {
+    showAuthMessage('msg-auth', 'Por favor, ingresa un correo válido.', true);
+    App.markFieldError('input-email');
+    return false;
+}
+
+App.clearFieldErrors();
+showAuthMessage('msg-auth', 'Iniciando sesión…', false);
+
+try {
+    if (!window.firebaseAuth) {
+        showAuthMessage('msg-auth', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
         return false;
     }
 
-    // ✅ Rate limiting: prevenir ataques de fuerza bruta
-    if (!App.checkRateLimitSimple('login')) {
-        return false;
-    }
+    const userCredential = await window.firebaseAuth.signInWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+    const userEmail = user.email.toLowerCase().trim();
 
-    // ✅ Sanitizar inputs
-    const email = App.getSafeInputValue('#input-email', 'email');
-    const password = App.getSafeInputValue('#input-password', 'password'); // Password no se sanitiza
+    App.log('[AUTH] ✅ Login exitoso:', userEmail);
 
-    if (!email || !password) {
-        showAuthMessage('msg-auth', 'Por favor, completa todos los campos.', true);
-        return false;
-    }
+    window.currentUserEmail = userEmail;
 
-    if (!email.includes('@')) {
-        showAuthMessage('msg-auth', 'Por favor, ingresa un correo válido.', true);
-        App.markFieldError('input-email');
-        return false;
-    }
-
-    App.clearFieldErrors();
-    showAuthMessage('msg-auth', 'Iniciando sesión…', false);
-
+    // ✅ PRIMERO: Verificar si es administrador
+    let isAdmin = false;
     try {
-        if (!window.firebaseAuth) {
-            showAuthMessage('msg-auth', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
-            return false;
-        }
+        App.log('[AUTH] 🔍 Verificando si', userEmail, 'es administrador...');
+        isAdmin = await App.checkIsAdmin(userEmail);
+        App.log('[AUTH] 🔍 Resultado de checkIsAdmin para', userEmail, ':', isAdmin);
 
-        const userCredential = await window.firebaseAuth.signInWithEmailAndPassword(email, password);
-        const user = userCredential.user;
-        const userEmail = user.email.toLowerCase().trim();
-
-        App.log('[AUTH] ✅ Login exitoso:', userEmail);
-
-        window.currentUserEmail = userEmail;
-
-        // ✅ PRIMERO: Verificar si es administrador
-        let isAdmin = false;
-        try {
-            App.log('[AUTH] 🔍 Verificando si', userEmail, 'es administrador...');
-            isAdmin = await App.checkIsAdmin(userEmail);
-            App.log('[AUTH] 🔍 Resultado de checkIsAdmin para', userEmail, ':', isAdmin);
-
-            // ✅ Verificación adicional: verificar directamente si es super admin (por si checkIsAdmin falla)
-            if (!isAdmin) {
-                const normalizedEmail = userEmail.toLowerCase().trim();
-                const superAdmins = getSuperAdmins();
-                const isSuperAdmin = superAdmins.includes(normalizedEmail);
-                App.log('[AUTH] 🔍 Verificación directa de super admin:', isSuperAdmin, 'para', normalizedEmail);
-                if (isSuperAdmin) {
-                    App.log('[AUTH] ✅ Detectado como super admin directamente');
-                    isAdmin = true;
-                }
-            }
-        } catch (error) {
-            console.error('[AUTH] ❌ Error verificando si es admin:', error);
-            // Si hay error, intentar verificar directamente los super admins
+        // ✅ Verificación adicional: verificar directamente si es super admin (por si checkIsAdmin falla)
+        if (!isAdmin) {
             const normalizedEmail = userEmail.toLowerCase().trim();
             const superAdmins = getSuperAdmins();
-            isAdmin = superAdmins.includes(normalizedEmail);
-            App.log('[AUTH] 🔍 Verificación directa de super admin (fallback):', isAdmin);
+            const isSuperAdmin = superAdmins.includes(normalizedEmail);
+            App.log('[AUTH] 🔍 Verificación directa de super admin:', isSuperAdmin, 'para', normalizedEmail);
+            if (isSuperAdmin) {
+                App.log('[AUTH] ✅ Detectado como super admin directamente');
+                isAdmin = true;
+            }
         }
-
-        if (isAdmin) {
-            // ✅ Es administrador, otorgar acceso master directamente
-            App.log('[AUTH] ✅ Usuario es administrador, otorgando acceso master');
-            showAuthMessage('msg-auth', '¡Bienvenido! Acceso de administrador activado.', false);
-            await handleSuccessfulAuthWithEmail(userEmail, []); // Array vacío, pero es admin
-            return true;
-        }
-
-        // ✅ Si NO es admin, verificar cursos permitidos
-        showAuthMessage('msg-auth', 'Verificando cursos disponibles…', false);
-
-        let allowedCourses;
-        try {
-            allowedCourses = await App.getCoursesForEmail(userEmail);
-        } catch (error) {
-            console.error('[AUTH] ❌ Error obteniendo cursos:', error);
-            showAuthMessage('msg-auth', 'Error al verificar cursos. Por favor, intente nuevamente.', true);
-            return false;
-        }
-
-        App.log('[AUTH] Cursos permitidos para', userEmail, ':', allowedCourses.length);
-
-        if (allowedCourses.length === 0) {
-            showAuthMessage('msg-auth', 'No tienes acceso a ningún curso. Contacta al administrador para solicitar acceso.', true);
-            return false;
-        }
-
-        // ✅ USAR LA FUNCIÓN EXISTENTE (LÓGICA INTACTA)
-        await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
-        showAuthMessage('msg-auth', `¡Bienvenido! Tienes acceso a ${allowedCourses.length} curso(s).`, false);
-
-        // ✅ Log de auditoría
-        const auditTypes = getAuditActionTypes();
-        await App.auditLog(auditTypes.LOGIN_SUCCESS, {
-            email: userEmail,
-            coursesCount: allowedCourses.length
-        }, userEmail, false); // No enviar a Firebase para evitar spam
-
-        return true;
-
     } catch (error) {
-        console.error('[AUTH] ❌ Error en login:', error);
-        let errorMessage = 'Error al iniciar sesión.';
+        console.error('[AUTH] ❌ Error verificando si es admin:', error);
+        // Si hay error, intentar verificar directamente los super admins
+        const normalizedEmail = userEmail.toLowerCase().trim();
+        const superAdmins = getSuperAdmins();
+        isAdmin = superAdmins.includes(normalizedEmail);
+        App.log('[AUTH] 🔍 Verificación directa de super admin (fallback):', isAdmin);
+    }
 
-        // ✅ Log de auditoría para login fallido
-        const email = App.getSafeInputValue('#input-email', 'email');
-        const auditTypes = getAuditActionTypes();
-        await App.auditLog(auditTypes.LOGIN_FAILED, {
-            email: email || 'unknown',
-            errorCode: error.code || 'unknown'
-        }, email, false); // No enviar a Firebase para evitar spam
+    if (isAdmin) {
+        // ✅ Es administrador, otorgar acceso master directamente
+        App.log('[AUTH] ✅ Usuario es administrador, otorgando acceso master');
+        showAuthMessage('msg-auth', '¡Bienvenido! Acceso de administrador activado.', false);
+        await handleSuccessfulAuthWithEmail(userEmail, []); // Array vacío, pero es admin
+        return true;
+    }
 
-        // ✅ Manejar el código nuevo de Firebase que combina user-not-found y wrong-password
-        if (error.code === 'auth/invalid-login-credentials' ||
-            error.code === 'auth/user-not-found' ||
-            error.code === 'auth/wrong-password') {
-            errorMessage = 'Correo o contraseña incorrectos. Verifica tus credenciales e intenta nuevamente.';
-            App.markFieldError('input-email');
-            App.markFieldError('input-password');
-        } else if (error.code === 'auth/invalid-email') {
-            errorMessage = 'Correo electrónico inválido.';
-            App.markFieldError('input-email');
-        } else if (error.code === 'auth/user-disabled') {
-            errorMessage = 'Esta cuenta ha sido deshabilitada.';
-        } else if (error.code === 'auth/too-many-requests') {
-            errorMessage = 'Demasiados intentos fallidos. Intenta más tarde.';
-        } else if (error.code === 'auth/network-request-failed') {
-            errorMessage = 'Error de conexión. Verifica tu internet e intenta nuevamente.';
-        } else {
-            // ✅ Mensaje genérico sin mencionar Firebase
-            errorMessage = 'No se pudo iniciar sesión. Verifica tus credenciales e intenta nuevamente.';
-        }
+    // ✅ Si NO es admin, verificar cursos permitidos
+    showAuthMessage('msg-auth', 'Verificando cursos disponibles…', false);
 
-        showAuthMessage('msg-auth', errorMessage, true);
+    let allowedCourses;
+    try {
+        allowedCourses = await App.getCoursesForEmail(userEmail);
+    } catch (error) {
+        console.error('[AUTH] ❌ Error obteniendo cursos:', error);
+        showAuthMessage('msg-auth', 'Error al verificar cursos. Por favor, intente nuevamente.', true);
         return false;
     }
+
+    App.log('[AUTH] Cursos permitidos para', userEmail, ':', allowedCourses.length);
+
+    if (allowedCourses.length === 0) {
+        showAuthMessage('msg-auth', 'No tienes acceso a ningún curso. Contacta al administrador para solicitar acceso.', true);
+        return false;
+    }
+
+    // ✅ USAR LA FUNCIÓN EXISTENTE (LÓGICA INTACTA)
+    await handleSuccessfulAuthWithEmail(userEmail, allowedCourses);
+    showAuthMessage('msg-auth', `¡Bienvenido! Tienes acceso a ${allowedCourses.length} curso(s).`, false);
+
+    // ✅ Log de auditoría
+    const auditTypes = getAuditActionTypes();
+    await App.auditLog(auditTypes.LOGIN_SUCCESS, {
+        email: userEmail,
+        coursesCount: allowedCourses.length
+    }, userEmail, false); // No enviar a Firebase para evitar spam
+
+    return true;
+
+} catch (error) {
+    console.error('[AUTH] ❌ Error en login:', error);
+    let errorMessage = 'Error al iniciar sesión.';
+
+    // ✅ Log de auditoría para login fallido
+    const email = App.getSafeInputValue('#input-email', 'email');
+    const auditTypes = getAuditActionTypes();
+    await App.auditLog(auditTypes.LOGIN_FAILED, {
+        email: email || 'unknown',
+        errorCode: error.code || 'unknown'
+    }, email, false); // No enviar a Firebase para evitar spam
+
+    // ✅ Manejar el código nuevo de Firebase que combina user-not-found y wrong-password
+    if (error.code === 'auth/invalid-login-credentials' ||
+        error.code === 'auth/user-not-found' ||
+        error.code === 'auth/wrong-password') {
+        errorMessage = 'Correo o contraseña incorrectos. Verifica tus credenciales e intenta nuevamente.';
+        App.markFieldError('input-email');
+        App.markFieldError('input-password');
+    } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Correo electrónico inválido.';
+        App.markFieldError('input-email');
+    } else if (error.code === 'auth/user-disabled') {
+        errorMessage = 'Esta cuenta ha sido deshabilitada.';
+    } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Demasiados intentos fallidos. Intenta más tarde.';
+    } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Error de conexión. Verifica tu internet e intenta nuevamente.';
+    } else {
+        // ✅ Mensaje genérico sin mencionar Firebase
+        errorMessage = 'No se pudo iniciar sesión. Verifica tus credenciales e intenta nuevamente.';
+    }
+
+    showAuthMessage('msg-auth', errorMessage, true);
+    return false;
+}
 }
 
 // ✅ Funciones auxiliares de verificación
@@ -1353,12 +1338,18 @@ function setupEmailPasswordListeners() {
         return;
     }
 
+    App.log('[AUTH] 🔧 Configurando event listeners de autenticación...');
+
     // Event listeners para autenticación email/password
     const btnLogin = App.$('#btn-login');
     if (btnLogin) {
+        App.log('[AUTH] ✅ Botón login encontrado');
         btnLogin.addEventListener('click', () => {
+            App.log('[AUTH] 🖱️ Click en botón login');
             tryLoginByEmail();
         });
+    } else {
+        App.warn('[AUTH] ⚠️ Botón login no encontrado');
     }
 
     // Enter en campos de login
@@ -1596,10 +1587,14 @@ function setupAuthTabListeners() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         setupCodeLoginListeners();
+        setupEmailPasswordListeners();
+        setupAuthTabListeners();
     });
 } else {
     // DOM ya está listo
     setupCodeLoginListeners();
+    setupEmailPasswordListeners();
+    setupAuthTabListeners();
 }
 
 // ✅ Disparar evento personalizado para indicar que Auth está listo
