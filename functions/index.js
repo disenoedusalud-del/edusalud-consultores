@@ -162,6 +162,11 @@ exports.validateMasterCodeHTTP = functions.https.onRequest(async (req, res) => {
       }
     }
 
+    // ✅ Asegurar que no haya espacios en blanco
+    if (masterHash) {
+      masterHash = masterHash.trim();
+    }
+
     if (!masterHash) {
       console.error("[MASTER] ❌ MASTER_HASH no configurado en variables de entorno");
       res.status(500).json({ success: false, error: "Error de configuración del servidor (MASTER_HASH missing)" });
