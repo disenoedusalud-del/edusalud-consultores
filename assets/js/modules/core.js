@@ -12,6 +12,11 @@ const log = Logger.log;
 const warn = Logger.warn;
 const error = Logger.error;
 
+// ✅ Exponer globalmente
+window.log = log;
+window.warn = warn;
+window.error = error;
+
 /* ===================== SEGURIDAD: SANITIZACIÓN XSS ===================== */
 
 /**
