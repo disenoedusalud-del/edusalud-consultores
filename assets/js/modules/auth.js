@@ -18,16 +18,7 @@ function getApp() {
 }
 
 // ✅ Funciones helper para acceder a constantes de forma segura
-function getMasterHash() {
-    const App = getApp();
-    if (!App) return null;
-    try {
-        return App.getMasterHash();
-    } catch (e) {
-        console.error('[AUTH] Error obteniendo MASTER_HASH:', e);
-        return null;
-    }
-}
+// ✅ MASTER_HASH eliminado del frontend - validación ahora solo en servidor
 
 function getSuperAdmins() {
     const App = getApp();
@@ -110,20 +101,9 @@ async function tryLoginByCode(code) {
         let isMasterCode = false;
 
         if (!window.firebaseFunctions) {
-            App.warn('[LOGIN] Firebase Functions no disponible, usando validación local como fallback');
-            // Fallback a validación local (temporal hasta que Functions esté disponible)
-            const MASTER_HASH_VAL = getMasterHash();
-            if (MASTER_HASH_VAL && hex === MASTER_HASH_VAL) {
-                App.log('[LOGIN] ✅ Código master válido (fallback local)');
-                isMasterCode = true;
-                App.setIsMasterAuthenticated(true);
-                if (MASTER_HASH_VAL) {
-                    App.setCurrentKeyHex(MASTER_HASH_VAL);
-                }
-            } else {
-                App.log('[LOGIN] No es código master (fallback local), verificando si es código de curso...');
-                isMasterCode = false;
-            }
+            App.warn('[LOGIN] Firebase Functions no disponible - no se puede validar código master');
+            App.log('[LOGIN] No es posible validar código master sin Cloud Function, verificando si es código de curso...');
+            isMasterCode = false;
         } else {
             // Usar Cloud Function HTTP para validar código master
             App.log('[LOGIN] Validando código master con Cloud Function...');
@@ -188,11 +168,8 @@ async function tryLoginByCode(code) {
                         App.log('[LOGIN] ✅ Código master válido!');
                         isMasterCode = true;
                         App.setIsMasterAuthenticated(true);
-                        // Obtener MASTER_HASH para usar como currentKeyHex (necesario para compatibilidad)
-                        const MASTER_HASH_VAL = getMasterHash();
-                        if (MASTER_HASH_VAL) {
-                            App.setCurrentKeyHex(MASTER_HASH_VAL);
-                        }
+                        // ✅ Master autenticado - no necesitamos currentKeyHex para master
+                        App.setCurrentKeyHex(null);
                     } else {
                         // Log detallado del debug info si existe
                         if (result.debug) {
@@ -218,14 +195,11 @@ async function tryLoginByCode(code) {
         if (isMasterCode) {
             App.log('[LOGIN] ✅ Código master válido! Continuando con flujo master...');
 
-            // Obtener MASTER_HASH para usar en el filtro
-            const MASTER_HASH_VAL = getMasterHash();
-
             // ✅ Refresh en background (no bloquear login) con timeout corto
             if (App.hasRemote()) {
                 App.log('[SYNC] Iniciando refresh de todos los cursos en background...');
                 const mergedMap = App.getMergedAccessHashMap();
-                const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH_VAL);
+                const hexes = Object.keys(mergedMap);
                 App.log('[SYNC] Total de cursos a refrescar:', hexes.length);
 
                 // Iniciar refresh en background (no await, con timeout global)
@@ -1165,14 +1139,13 @@ async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
     const isAdmin = await App.checkIsAdmin(userEmail);
     if (isAdmin) {
         App.log('[AUTH] ✅ Usuario es administrador, otorgando acceso master');
-        const MASTER_HASH_VAL = getMasterHash();
         App.setIsMasterAuthenticated(true);
-        App.setCurrentKeyHex(MASTER_HASH_VAL);
+        App.setCurrentKeyHex(null);
 
         if (App.hasRemote()) {
             App.log('[SYNC] Iniciando refresh de todos los cursos en background...');
             const mergedMap = App.getMergedAccessHashMap();
-            const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH_VAL);
+            const hexes = Object.keys(mergedMap);
             App.log('[SYNC] Total de cursos a refrescar:', hexes.length);
 
             Promise.allSettled(hexes.map(h => App.refreshFromRemoteSilent(h).catch(e => {
@@ -1253,15 +1226,15 @@ async function handleSuccessfulAuth(hex, method = 'code') {
     }
     App.log('[AUTH] ✅ Autenticación exitosa por:', method);
 
-    const MASTER_HASH_VAL = getMasterHash();
-    if (hex === MASTER_HASH_VAL) {
+    // ✅ Verificar si es master mediante Custom Claims (ya no usamos hash en frontend)
+    if (isMasterCode) {
         App.setIsMasterAuthenticated(true);
-        App.setCurrentKeyHex(MASTER_HASH_VAL);
+        App.setCurrentKeyHex(null);
 
         if (App.hasRemote()) {
             App.log('[SYNC] Iniciando refresh de todos los cursos en background...');
             const mergedMap = App.getMergedAccessHashMap();
-            const hexes = Object.keys(mergedMap).filter(h => h !== MASTER_HASH_VAL);
+            const hexes = Object.keys(mergedMap);
             App.log('[SYNC] Total de cursos a refrescar:', hexes.length);
 
             Promise.allSettled(hexes.map(h => App.refreshFromRemoteSilent(h).catch(e => {
@@ -1338,8 +1311,7 @@ function setupAuthStateListener() {
             const userViewEl = document.getElementById('user-view');
             const contentEl = document.getElementById('content');
             const accessEl = document.getElementById('access');
-            const MASTER_HASH_VAL = getMasterHash();
-            const isInMaster = App.getCurrentKeyHex() === MASTER_HASH_VAL || (masterEl && !masterEl.classList.contains('hidden'));
+            const isInMaster = App.getIsMasterAuthenticated() || (masterEl && !masterEl.classList.contains('hidden'));
             const isInUserView = userViewEl && !userViewEl.classList.contains('hidden');
             const isInContent = contentEl && !contentEl.classList.contains('hidden');
             const isInAccess = accessEl && !accessEl.classList.contains('hidden');
@@ -1382,8 +1354,7 @@ function setupAuthStateListener() {
             App.log('[AUTH] Usuario no autenticado');
             window.currentUserEmail = null;
             window.allowedCoursesForUser = null;
-            const MASTER_HASH_VAL = getMasterHash();
-            if (App.getCurrentKeyHex() === MASTER_HASH_VAL || (document.getElementById('user-view') && !document.getElementById('user-view').classList.contains('hidden'))) {
+            if (App.getIsMasterAuthenticated() || (document.getElementById('user-view') && !document.getElementById('user-view').classList.contains('hidden'))) {
                 App.setCurrentKeyHex(null);
                 App.setQueryParam('code', null);
                 App.showAccess();
