@@ -1520,15 +1520,17 @@ const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbwcpxFztXhNzzSx
 function hasRemote() { return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE_URL.startsWith('http'); }
 function stableStringify(obj) { try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 
-// ✅ Helper para obtener token de Firebase Auth para autenticación con GAS
+// ✅ Helper global para obtener el ID Token actual de Firebase
 // ⚠️ IMPORTANTE: Si no hay usuario autenticado, usa token secreto compartido
 // Este token debe coincidir con el configurado en Google Apps Script
-async function getAuthToken() {
+async function getAuthToken(forceRefresh = true) {
   try {
     const currentUser = window.firebaseAuth?.currentUser;
     if (currentUser) {
       // Si hay usuario autenticado, usar su token de Firebase Auth
-      const token = await currentUser.getIdToken();
+      // ✅ Force refresh para obtener claims actualizados (isMaster, etc.)
+      const token = await currentUser.getIdToken(forceRefresh);
+      log('[AUTH] ID Token obtenido (recortado):', token.substring(0, 10) + '...');
       return token;
     }
   } catch (error) {
