@@ -592,7 +592,7 @@ async function tryLoginByEmail() {
             errorCode: error.code || 'unknown'
         }, email, false); // No enviar a Firebase para evitar spam
 
-        // ✅ Manejar el código nuevo de Firebase que combina user-not-found y wrong-password
+        // ✅ Manejar errores específicos
         if (error.code === 'auth/invalid-login-credentials' ||
             error.code === 'auth/user-not-found' ||
             error.code === 'auth/wrong-password') {
@@ -608,6 +608,19 @@ async function tryLoginByEmail() {
             errorMessage = 'Demasiados intentos fallidos. Intenta más tarde.';
         } else if (error.code === 'auth/network-request-failed') {
             errorMessage = 'Error de conexión. Verifica tu internet e intenta nuevamente.';
+        } else if (error.message && error.message.includes('permission_denied')) {
+            // ✅ ERROR DE PERMISOS: El usuario se autenticó pero no puede leer la BD
+            console.warn('[AUTH] ⚠️ Usuario autenticado pero sin permisos de lectura (permission_denied)');
+
+            // Intentar ver si es un problema de reglas de seguridad para un usuario nuevo
+            // Asumimos que si entró, es un usuario válido, pero tal vez sus permisos no se han propagado
+            // O es un usuario que no tiene cursos asignados y las reglas bloquean la lectura
+
+            showAuthMessage('msg-auth', 'Sesión iniciada, pero no tienes cursos asignados o permisos suficientes.', true);
+
+            // Opcional: Cerrar sesión para no dejarlo en un estado limbo
+            // await logoutFirebase(); 
+            return false;
         } else {
             // ✅ Mensaje genérico sin mencionar Firebase
             errorMessage = 'No se pudo iniciar sesión. Verifica tus credenciales e intenta nuevamente.';
