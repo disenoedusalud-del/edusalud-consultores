@@ -151,7 +151,7 @@
 
                     // Si hay función validateMasterCodeHTTP, la usamos
                     try {
-                        const response = await fetch('https://us-central1-edusalud-platfor.cloudfunctions.net/validateMasterCodeHTTP', {
+                        const response = await fetch('https://validatemastercodehttp-nzqxumxiba-uc.a.run.app', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ code: codeTrimmed }) // No enviamos email aquí porque es login anónimo por código
