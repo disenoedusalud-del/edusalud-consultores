@@ -1,16 +1,4 @@
-/* ===================== OPTIMIZACIÓN: LOGGING CONDICIONAL ===================== */
-// ✅ Sistema de logging optimizado: desactiva logs en producción para mejor rendimiento
-const IS_PRODUCTION = true; // Cambiar a false para ver logs en desarrollo
-const Logger = {
-  log: IS_PRODUCTION ? () => { } : (...args) => console.log(...args),
-  warn: IS_PRODUCTION ? () => { } : (...args) => console.warn(...args),
-  error: (...args) => console.error(...args), // Errores siempre se muestran
-  info: IS_PRODUCTION ? () => { } : (...args) => console.info(...args)
-};
-// Alias para compatibilidad
-const log = Logger.log;
-const warn = Logger.warn;
-const error = Logger.error;
+// ✅ Logging moved to modules/core.js
 
 /* ===================== FIREBASE FIRESTORE - TIEMPO REAL ===================== */
 // ✅ Firebase se carga dinámicamente desde /src/firebase.js
@@ -66,1698 +54,21 @@ setTimeout(() => {
 
 log('[APP] Iniciando aplicación con soporte Firebase...');
 
-/* ===================== SEGURIDAD: SANITIZACIÓN XSS ===================== */
+// ✅ Sanitization moved to modules/core.js
 
-/**
- * ✅ Escapa HTML para prevenir XSS
- * Convierte caracteres especiales en entidades HTML
- */
-function escapeHTML(str) {
-  if (typeof str !== 'string') {
-    if (str == null) return '';
-    return String(str);
-  }
-  try {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  } catch (e) {
-    // Fallback si document.createElement falla (no debería pasar)
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-}
+// ✅ Rate Limiting moved to modules/core.js
 
-/**
- * ✅ Sanitiza texto para usar en innerHTML de forma segura
- * Solo permite texto plano, sin etiquetas HTML
- */
-function sanitizeHTML(str) {
-  if (typeof str !== 'string') return '';
-  return escapeHTML(str);
-}
+// ✅ Audit Logs moved to modules/core.js
 
-/**
- * ✅ Sanitiza y permite solo etiquetas seguras (para markdown básico)
- * Por ahora solo escapa todo, pero se puede extender
- */
-function sanitizeRichText(str) {
-  return sanitizeHTML(str);
-}
+// ✅ Debounce moved to modules/core.js
 
-/* ===================== HELPER DE SANITIZACIÓN ===================== */
+// ✅ Retry moved to modules/core.js
 
-/**
- * ✅ Función helper para sanitizar inputs según su tipo
- * @param {string} value - Valor a sanitizar
- * @param {string} type - Tipo de input: 'text', 'url', 'email', 'code', 'tag', 'color'
- * @returns {string|object} Valor sanitizado o objeto con validación
- */
-function safeInput(value, type = 'text') {
-  if (value == null) value = '';
-  if (typeof value !== 'string') value = String(value);
+// ✅ Memoization moved to modules/core.js
 
-  const trimmed = value.trim();
+// ✅ Search Cache moved to modules/core.js
 
-  switch (type) {
-    case 'text':
-    case 'title':
-    case 'meta':
-      return sanitizeHTML(trimmed);
-
-    case 'url':
-      const urlValidation = validateURL(trimmed);
-      if (urlValidation.valid) {
-        return sanitizeHTML(urlValidation.url);
-      }
-      return sanitizeHTML(trimmed); // Sanitizar aunque sea inválido
-
-    case 'email':
-      const emailValidation = validateEmail(trimmed);
-      if (emailValidation.valid) {
-        return trimmed.toLowerCase(); // Emails se normalizan a lowercase
-      }
-      return sanitizeHTML(trimmed);
-
-    case 'code':
-    case 'tag':
-      // Solo letras, números, guiones y guiones bajos
-      return sanitizeHTML(trimmed.replace(/[^a-zA-Z0-9_-]/g, ''));
-
-    case 'color':
-      // Validar formato hexadecimal
-      if (/^#[0-9A-Fa-f]{6}$/.test(trimmed)) {
-        return trimmed.toUpperCase();
-      }
-      return '#5aa9ff'; // Color por defecto si es inválido
-
-    case 'password':
-      // Las contraseñas NO se sanitizan (se mantienen como están)
-      return value; // No trim ni sanitize para passwords
-
-    default:
-      return sanitizeHTML(trimmed);
-  }
-}
-
-/**
- * ✅ Obtener y sanitizar valor de un input de forma segura
- * @param {string|HTMLElement} selector - Selector CSS o elemento DOM
- * @param {string} type - Tipo de input (ver safeInput)
- * @returns {string} Valor sanitizado
- */
-function getSafeInputValue(selector, type = 'text') {
-  const element = typeof selector === 'string' ? $(selector) : selector;
-  if (!element) return '';
-  return safeInput(element.value, type);
-}
-
-/* ===================== RATE LIMITING MEJORADO ===================== */
-
-/**
- * ✅ Sistema de rate limiting mejorado con ventanas de tiempo y límites específicos
- */
-
-// Configuración de límites por tipo de acción
-const RATE_LIMIT_CONFIG = {
-  // Acciones críticas (autenticación)
-  'login': { windowMs: 60000, maxAttempts: 5 }, // 5 intentos por minuto
-  'register': { windowMs: 300000, maxAttempts: 3 }, // 3 intentos por 5 minutos
-  'password_reset': { windowMs: 300000, maxAttempts: 3 }, // 3 intentos por 5 minutos
-  'resend_code': { windowMs: 60000, maxAttempts: 3 }, // 3 intentos por minuto
-  'verify_code': { windowMs: 60000, maxAttempts: 10 }, // 10 intentos por minuto
-
-  // Acciones de gestión de cursos
-  'crear curso': { windowMs: 10000, maxAttempts: 3 }, // 3 intentos por 10 segundos
-  'editar curso': { windowMs: 5000, maxAttempts: 5 }, // 5 intentos por 5 segundos
-  'eliminar curso': { windowMs: 10000, maxAttempts: 2 }, // 2 intentos por 10 segundos
-
-  // Acciones de gestión de emails
-  'agregar email': { windowMs: 5000, maxAttempts: 5 }, // 5 intentos por 5 segundos
-  'agregar admin': { windowMs: 10000, maxAttempts: 3 }, // 3 intentos por 10 segundos
-
-  // Acciones generales (fallback)
-  'default': { windowMs: 2000, maxAttempts: 1 } // 1 intento por 2 segundos
-};
-
-// Almacenamiento de intentos por acción (sliding window)
-const rateLimitStore = {};
-
-/**
- * ✅ Limpiar intentos antiguos de una acción
- * @param {string} action - Nombre de la acción
- */
-function cleanOldAttempts(action) {
-  const config = RATE_LIMIT_CONFIG[action] || RATE_LIMIT_CONFIG.default;
-  const windowMs = config.windowMs;
-  const now = Date.now();
-
-  if (!rateLimitStore[action]) {
-    rateLimitStore[action] = [];
-    return;
-  }
-
-  // Eliminar intentos fuera de la ventana de tiempo
-  rateLimitStore[action] = rateLimitStore[action].filter(
-    timestamp => now - timestamp < windowMs
-  );
-}
-
-/**
- * ✅ Verificar rate limit mejorado con ventana de tiempo
- * @param {string} action - Nombre de la acción
- * @param {Object} customConfig - Configuración personalizada opcional { windowMs, maxAttempts }
- * @returns {Object} { allowed: boolean, remaining: number, resetAt: number }
- */
-function checkRateLimit(action, customConfig = null) {
-  const config = customConfig || RATE_LIMIT_CONFIG[action] || RATE_LIMIT_CONFIG.default;
-  const { windowMs, maxAttempts } = config;
-  const now = Date.now();
-
-  // Limpiar intentos antiguos
-  cleanOldAttempts(action);
-
-  // Inicializar si no existe
-  if (!rateLimitStore[action]) {
-    rateLimitStore[action] = [];
-  }
-
-  // Contar intentos en la ventana actual
-  const attemptsInWindow = rateLimitStore[action].length;
-
-  if (attemptsInWindow >= maxAttempts) {
-    // Calcular tiempo hasta el siguiente intento permitido
-    const oldestAttempt = rateLimitStore[action][0];
-    const resetAt = oldestAttempt + windowMs;
-    const remaining = Math.ceil((resetAt - now) / 1000);
-
-    // Mostrar mensaje de error
-    const actionName = action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-    const message = attemptsInWindow >= maxAttempts * 2
-      ? `Demasiados intentos. Por favor espera ${remaining} segundo(s) antes de intentar ${actionName} nuevamente.`
-      : `Has alcanzado el límite de intentos (${maxAttempts}). Espera ${remaining} segundo(s) antes de intentar ${actionName} nuevamente.`;
-
-    if (typeof window.showToast === 'function') {
-      window.showToast('warning', 'Límite de intentos alcanzado', message);
-    } else if (typeof window.showSuccessModal === 'function') {
-      window.showSuccessModal('Espera un momento', message);
-    } else {
-      alert(message);
-    }
-
-    return { allowed: false, remaining, resetAt };
-  }
-
-  // Registrar intento actual
-  rateLimitStore[action].push(now);
-
-  return { allowed: true, remaining: 0, resetAt: now + windowMs };
-}
-
-/**
- * ✅ Helper simplificado para compatibilidad con código existente
- * @param {string} action - Nombre de la acción
- * @param {number} customLimitMs - Límite personalizado en ms (deprecated, usar customConfig)
- * @returns {boolean} true si está permitido, false si no
- */
-function checkRateLimitSimple(action, customLimitMs = null) {
-  let customConfig = null;
-
-  // Compatibilidad con código antiguo que usa customLimitMs
-  if (customLimitMs) {
-    customConfig = { windowMs: customLimitMs, maxAttempts: 1 };
-  }
-
-  const result = checkRateLimit(action, customConfig);
-  return result.allowed;
-}
-
-// ✅ Mantener función antigua para compatibilidad
-const checkRateLimitLegacy = checkRateLimitSimple;
-
-/* ===================== SISTEMA DE LOGS DE AUDITORÍA ===================== */
-
-/**
- * ✅ Sistema de logs de auditoría para rastrear acciones importantes
- */
-
-const AUDIT_LOG_KEY = 'edusalud_audit_log';
-const AUDIT_LOG_MAX_SIZE = 500; // Máximo de logs a mantener
-const AUDIT_LOG_FIREBASE_PATH = 'auditLogs'; // Ruta en Firebase (opcional)
-
-// Tipos de acciones auditables
-const AUDIT_ACTION_TYPES = {
-  // Cursos
-  COURSE_CREATED: 'course_created',
-  COURSE_EDITED: 'course_edited',
-  COURSE_DELETED: 'course_deleted',
-
-  // Emails
-  EMAIL_ADDED: 'email_added',
-  EMAIL_REMOVED: 'email_removed',
-
-  // Administradores
-  ADMIN_ADDED: 'admin_added',
-  ADMIN_REMOVED: 'admin_removed',
-
-  // Autenticación
-  LOGIN_SUCCESS: 'login_success',
-  LOGIN_FAILED: 'login_failed',
-  REGISTER_SUCCESS: 'register_success',
-  PASSWORD_RESET: 'password_reset',
-
-  // Acciones generales
-  EXPORT_DATA: 'export_data',
-  IMPORT_DATA: 'import_data',
-  BACKUP_EXPORTED: 'backup_exported',
-  BACKUP_IMPORTED: 'backup_imported',
-  CONFIG_CHANGED: 'config_changed'
-};
-
-/**
- * ✅ Obtener logs de auditoría almacenados
- * @returns {Array} Array de logs
- */
-function getAuditLogs() {
-  try {
-    if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
-      return [];
-    }
-    const raw = localStorage.getItem(AUDIT_LOG_KEY);
-    const logs = raw ? JSON.parse(raw) : [];
-    return Array.isArray(logs) ? logs : [];
-  } catch (e) {
-    warn('[AUDIT] Error obteniendo logs:', e);
-    return [];
-  }
-}
-
-/**
- * ✅ Guardar logs de auditoría
- * @param {Array} logs - Array de logs a guardar
- */
-function saveAuditLogs(logs) {
-  try {
-    if (typeof Storage === 'undefined' || typeof localStorage === 'undefined') {
-      warn('[AUDIT] localStorage no disponible');
-      return;
-    }
-
-    // Limitar tamaño del log
-    const limitedLogs = logs.slice(-AUDIT_LOG_MAX_SIZE);
-    localStorage.setItem(AUDIT_LOG_KEY, JSON.stringify(limitedLogs));
-  } catch (e) {
-    warn('[AUDIT] Error guardando logs:', e);
-  }
-}
-
-/**
- * ✅ Registrar acción en log de auditoría
- * @param {string} action - Tipo de acción (AUDIT_ACTION_TYPES)
- * @param {Object} details - Detalles de la acción
- * @param {string} userId - ID del usuario que realizó la acción (opcional)
- * @param {boolean} sendToFirebase - Si enviar a Firebase (opcional, default: false)
- */
-async function auditLog(action, details = {}, userId = null, sendToFirebase = false) {
-  try {
-    const timestamp = Date.now();
-    const userEmail = userId || window.currentUserEmail || 'anonymous';
-    const userAgent = navigator.userAgent || 'unknown';
-    const url = window.location.href || 'unknown';
-
-    const logEntry = {
-      id: `${timestamp}_${Math.random().toString(36).substr(2, 9)}`,
-      action,
-      details: {
-        ...details,
-        // Sanitizar detalles para evitar XSS
-        ...Object.keys(details).reduce((acc, key) => {
-          if (typeof details[key] === 'string') {
-            acc[key] = sanitizeHTML(details[key]);
-          } else {
-            acc[key] = details[key];
-          }
-          return acc;
-        }, {})
-      },
-      userId: sanitizeHTML(userEmail),
-      timestamp,
-      userAgent: sanitizeHTML(userAgent.substring(0, 200)), // Limitar tamaño
-      url: sanitizeHTML(url.substring(0, 200)),
-      view: getCurrentView()
-    };
-
-    // Agregar a logs locales
-    const logs = getAuditLogs();
-    logs.push(logEntry);
-    saveAuditLogs(logs);
-
-    // Log en consola (solo en desarrollo)
-    if (!IS_PRODUCTION) {
-      log('[AUDIT]', logEntry);
-    }
-
-    // Enviar a Firebase si está disponible y se solicita
-    if (sendToFirebase && hasRemote() && db) {
-      try {
-        await db.ref(`${AUDIT_LOG_FIREBASE_PATH}/${logEntry.id}`).set({
-          ...logEntry,
-          syncedAt: firebase.database.ServerValue.TIMESTAMP
-        });
-        log('[AUDIT] ✅ Log enviado a Firebase');
-      } catch (firebaseError) {
-        warn('[AUDIT] ⚠️ Error enviando log a Firebase:', firebaseError);
-      }
-    }
-
-    // Enviar a Google Analytics (eventos importantes)
-    if (typeof gtag !== 'undefined' && IS_PRODUCTION) {
-      try {
-        gtag('event', 'audit_action', {
-          event_category: 'audit',
-          event_label: action,
-          value: 1,
-          user_id: userEmail.substring(0, 100) // Limitar tamaño
-        });
-      } catch (analyticsError) {
-        warn('[AUDIT] Error enviando a Analytics:', analyticsError);
-      }
-    }
-
-  } catch (error) {
-    // No fallar si el logging falla
-    warn('[AUDIT] Error crítico en auditLog:', error);
-  }
-}
-
-/**
- * ✅ Obtener logs de auditoría filtrados
- * @param {Object} filters - Filtros opcionales { action, userId, startDate, endDate }
- * @returns {Array} Array de logs filtrados
- */
-function getFilteredAuditLogs(filters = {}) {
-  const logs = getAuditLogs();
-
-  return logs.filter(log => {
-    if (filters.action && log.action !== filters.action) return false;
-    if (filters.userId && log.userId !== filters.userId) return false;
-    if (filters.startDate && log.timestamp < filters.startDate) return false;
-    if (filters.endDate && log.timestamp > filters.endDate) return false;
-    return true;
-  }).sort((a, b) => b.timestamp - a.timestamp); // Más recientes primero
-}
-
-/**
- * ✅ Limpiar logs de auditoría antiguos
- * @param {number} daysToKeep - Días de logs a mantener (default: 30)
- */
-function cleanOldAuditLogs(daysToKeep = 30) {
-  try {
-    const logs = getAuditLogs();
-    const cutoffDate = Date.now() - (daysToKeep * 24 * 60 * 60 * 1000);
-    const filteredLogs = logs.filter(log => log.timestamp >= cutoffDate);
-
-    if (filteredLogs.length < logs.length) {
-      saveAuditLogs(filteredLogs);
-      log(`[AUDIT] 🧹 Limpiados ${logs.length - filteredLogs.length} logs antiguos`);
-    }
-  } catch (e) {
-    warn('[AUDIT] Error limpiando logs:', e);
-  }
-}
-
-// ✅ Exponer funciones globalmente para debugging
-window.auditLog = auditLog;
-window.getAuditLogs = getAuditLogs;
-window.getFilteredAuditLogs = getFilteredAuditLogs;
-window.cleanOldAuditLogs = cleanOldAuditLogs;
-
-// ✅ Limpiar logs antiguos al iniciar (mantener últimos 30 días)
-if (typeof window !== 'undefined') {
-  setTimeout(() => cleanOldAuditLogs(30), 5000); // Ejecutar después de 5 segundos
-}
-
-log('[AUDIT] ✅ Sistema de logs de auditoría inicializado');
-
-/* ===================== OPTIMIZACIÓN: DEBOUNCE ===================== */
-
-/**
- * ✅ Debounce helper para optimizar búsquedas y eventos frecuentes
- * @param {Function} func - Función a ejecutar
- * @param {number} wait - Tiempo de espera en ms
- * @param {boolean} immediate - Ejecutar inmediatamente en la primera llamada
- */
-function debounce(func, wait, immediate = false) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      timeout = null;
-      if (!immediate) func(...args);
-    };
-    const callNow = immediate && !timeout;
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-    if (callNow) func(...args);
-  };
-}
-
-/* ===================== SISTEMA DE RETRY AUTOMÁTICO ===================== */
-
-/**
- * ✅ Retry automático con backoff exponencial
- * @param {Function} fn - Función a ejecutar (debe retornar Promise)
- * @param {Object} options - Opciones de retry
- * @param {number} options.maxRetries - Número máximo de reintentos (default: 3)
- * @param {number} options.initialDelay - Delay inicial en ms (default: 1000)
- * @param {number} options.maxDelay - Delay máximo en ms (default: 10000)
- * @param {Function} options.shouldRetry - Función que determina si se debe reintentar (default: siempre true)
- * @param {Function} options.onRetry - Callback cuando se hace un retry
- * @returns {Promise} Promise que se resuelve con el resultado o rechaza después de todos los intentos
- */
-async function retryWithBackoff(fn, options = {}) {
-  const {
-    maxRetries = 3,
-    initialDelay = 1000,
-    maxDelay = 10000,
-    shouldRetry = () => true,
-    onRetry = null
-  } = options;
-
-  let lastError;
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const result = await fn();
-      // ✅ Si es el primer intento, no loguear
-      if (attempt > 0) {
-        log(`[RETRY] ✅ Éxito después de ${attempt} reintento(s)`);
-      }
-      return result;
-    } catch (error) {
-      lastError = error;
-
-      // ✅ Verificar si se debe reintentar
-      if (attempt < maxRetries && shouldRetry(error)) {
-        // Calcular delay con backoff exponencial
-        const delay = Math.min(initialDelay * Math.pow(2, attempt), maxDelay);
-
-        if (onRetry) {
-          onRetry(attempt + 1, maxRetries, delay, error);
-        } else {
-          warn(`[RETRY] ⚠️ Intento ${attempt + 1}/${maxRetries} falló, reintentando en ${delay}ms...`, error.message);
-        }
-
-        // Esperar antes del siguiente intento
-        await new Promise(resolve => setTimeout(resolve, delay));
-      } else {
-        // No más reintentos o no se debe reintentar
-        if (attempt >= maxRetries) {
-          error('[RETRY] ❌ Todos los intentos fallaron después de', maxRetries, 'reintentos');
-        }
-        throw lastError;
-      }
-    }
-  }
-
-  throw lastError;
-}
-
-/**
- * ✅ Determina si un error de red debe ser reintentado
- */
-function shouldRetryNetworkError(error) {
-  // Reintentar errores de red, timeout, o errores 5xx
-  if (!error) return false;
-
-  const errorMessage = error.message || String(error);
-  const errorCode = error.code || error.status;
-
-  // Errores de red
-  if (errorMessage.includes('network') ||
-    errorMessage.includes('fetch') ||
-    errorMessage.includes('timeout') ||
-    errorMessage.includes('ECONNREFUSED') ||
-    errorMessage.includes('ENOTFOUND')) {
-    return true;
-  }
-
-  // Errores HTTP 5xx (errores del servidor)
-  if (errorCode >= 500 && errorCode < 600) {
-    return true;
-  }
-
-  // Errores específicos de Firebase
-  if (errorMessage.includes('permission-denied') ||
-    errorMessage.includes('unavailable') ||
-    errorMessage.includes('deadline-exceeded')) {
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * ✅ Wrapper para operaciones de Firebase con retry
- */
-async function firebaseOperationWithRetry(operation, options = {}) {
-  return retryWithBackoff(
-    () => operation(),
-    {
-      maxRetries: 3,
-      initialDelay: 1000,
-      maxDelay: 5000,
-      shouldRetry: shouldRetryNetworkError,
-      onRetry: (attempt, maxRetries, delay) => {
-        log(`[FIREBASE RETRY] Reintento ${attempt}/${maxRetries} en ${delay}ms...`);
-      },
-      ...options
-    }
-  );
-}
-
-/**
- * ✅ Wrapper para operaciones de red con retry
- */
-async function networkOperationWithRetry(operation, options = {}) {
-  return retryWithBackoff(
-    () => operation(),
-    {
-      maxRetries: 3,
-      initialDelay: 2000,
-      maxDelay: 10000,
-      shouldRetry: shouldRetryNetworkError,
-      onRetry: (attempt, maxRetries, delay) => {
-        log(`[NETWORK RETRY] Reintento ${attempt}/${maxRetries} en ${delay}ms...`);
-      },
-      ...options
-    }
-  );
-}
-
-/* ===================== MEMOIZACIÓN Y OPTIMIZACIÓN DE RE-RENDERS ===================== */
-
-/**
- * ✅ Sistema de memoización para evitar re-renders innecesarios
- */
-const renderCache = new Map();
-
-/**
- * ✅ Genera un hash simple de los datos para comparación rápida
- */
-function generateDataHash(data) {
-  try {
-    return JSON.stringify(data);
-  } catch (e) {
-    return String(data);
-  }
-}
-
-/**
- * ✅ Verifica si los datos han cambiado desde el último render
- * @param {string} cacheKey - Clave única para este render
- * @param {any} newData - Nuevos datos a comparar
- * @returns {boolean} true si los datos cambiaron
- */
-function hasDataChanged(cacheKey, newData) {
-  const newHash = generateDataHash(newData);
-  const cachedHash = renderCache.get(cacheKey);
-
-  if (cachedHash === newHash) {
-    return false; // No hay cambios
-  }
-
-  // Actualizar caché
-  renderCache.set(cacheKey, newHash);
-  return true; // Hay cambios
-}
-
-/**
- * ✅ Limpia el caché de renders
- */
-function clearRenderCache() {
-  renderCache.clear();
-  log('[RENDER CACHE] ✅ Caché de renders limpiado');
-}
-
-/**
- * ✅ Limpia el caché de un render específico
- */
-function clearRenderCacheFor(key) {
-  renderCache.delete(key);
-}
-
-/**
- * ✅ Wrapper para renderCourse con memoización
- */
-let lastRenderCourseData = null;
-let lastRenderCourseHex = null;
-
-function shouldRenderCourse(hex, data) {
-  const cacheKey = `course_${hex}`;
-  // ✅ CRÍTICO: Usar getFilesForHex() para obtener el conteo REAL de archivos
-  // No usar data?.files porque los archivos se guardan en localStorage
-  const realFiles = getFilesForHex(hex);
-  const dataToCompare = {
-    title: data?.title,
-    meta: data?.meta,
-    filesCount: (realFiles || []).length, // ✅ Usar archivos reales de localStorage
-    type: data?.type,
-    card: data?.card
-  };
-
-  // Si es el mismo curso y los datos no cambiaron, no renderizar
-  if (hex === lastRenderCourseHex && !hasDataChanged(cacheKey, dataToCompare)) {
-    log('[RENDER] ⏸️ Datos del curso no cambiaron, omitiendo re-render');
-    return false;
-  }
-
-  lastRenderCourseHex = hex;
-  lastRenderCourseData = dataToCompare;
-  return true;
-}
-
-/**
- * ✅ Wrapper para buildMasterGrid con memoización
- */
-let lastMasterGridData = null;
-
-function shouldBuildMasterGrid(coursesData) {
-  const cacheKey = 'master_grid';
-  const dataToCompare = {
-    coursesCount: Object.keys(coursesData || {}).length,
-    courses: Object.entries(coursesData || {}).map(([hex, data]) => {
-      // ✅ CRÍTICO: Usar getFilesForHex() para obtener el conteo REAL de archivos
-      // No usar data?.files porque los archivos se guardan en localStorage
-      const realFiles = getFilesForHex(hex);
-      return {
-        hex: hex.substring(0, 8),
-        title: data?.title,
-        type: data?.type,
-        filesCount: (realFiles || []).length // ✅ Usar archivos reales de localStorage
-      };
-    })
-  };
-
-  // Si los datos no cambiaron, no renderizar
-  if (!hasDataChanged(cacheKey, dataToCompare)) {
-    log('[RENDER] ⏸️ Datos del grid no cambiaron, omitiendo re-render');
-    return false;
-  }
-
-  lastMasterGridData = dataToCompare;
-  return true;
-}
-
-/* ===================== CACHÉ DE BÚSQUEDAS ===================== */
-
-/**
- * ✅ Sistema de caché para resultados de búsqueda
- * Almacena resultados para evitar recalcular filtros
- */
-const searchCache = new Map();
-const SEARCH_CACHE_MAX_SIZE = 50; // Máximo de entradas en caché
-const SEARCH_CACHE_TTL = 5 * 60 * 1000; // 5 minutos
-
-/**
- * ✅ Genera una clave única para la búsqueda
- */
-function getSearchCacheKey(query, filters) {
-  return JSON.stringify({
-    q: (query || '').toLowerCase().trim(),
-    type: filters?.type || '',
-    tag: filters?.tag || '',
-    sort: filters?.sort || 'title-asc'
-  });
-}
-
-/**
- * ✅ Obtiene resultado de búsqueda del caché
- */
-function getCachedSearchResult(key) {
-  const cached = searchCache.get(key);
-  if (!cached) return null;
-
-  // Verificar si el caché expiró
-  if (Date.now() - cached.timestamp > SEARCH_CACHE_TTL) {
-    searchCache.delete(key);
-    return null;
-  }
-
-  return cached.result;
-}
-
-/**
- * ✅ Guarda resultado de búsqueda en caché
- */
-function setCachedSearchResult(key, result) {
-  // Limpiar caché si está lleno
-  if (searchCache.size >= SEARCH_CACHE_MAX_SIZE) {
-    // Eliminar la entrada más antigua
-    const firstKey = searchCache.keys().next().value;
-    searchCache.delete(firstKey);
-  }
-
-  searchCache.set(key, {
-    result: result,
-    timestamp: Date.now()
-  });
-}
-
-/**
- * ✅ Limpia el caché de búsquedas
- */
-function clearSearchCache() {
-  searchCache.clear();
-  log('[SEARCH CACHE] ✅ Caché limpiado');
-}
-
-/**
- * ✅ Debounce mejorado con cancelación inteligente
- * Permite cancelar la ejecución si hay una nueva llamada
- */
-function smartDebounce(func, wait, options = {}) {
-  let timeout;
-  let lastArgs;
-  let lastContext;
-  const { immediate = false, maxWait = null } = options;
-  let maxTimeout;
-
-  const later = () => {
-    timeout = null;
-    if (maxTimeout) {
-      clearTimeout(maxTimeout);
-      maxTimeout = null;
-    }
-    if (!immediate) func.apply(lastContext, lastArgs);
-  };
-
-  const debounced = function (...args) {
-    lastArgs = args;
-    lastContext = this;
-
-    const callNow = immediate && !timeout;
-
-    if (timeout) {
-      clearTimeout(timeout);
-    }
-
-    timeout = setTimeout(later, wait);
-
-    // Max wait: forzar ejecución después de un tiempo máximo
-    if (maxWait && !maxTimeout) {
-      maxTimeout = setTimeout(() => {
-        if (timeout) {
-          clearTimeout(timeout);
-          timeout = null;
-        }
-        func.apply(lastContext, lastArgs);
-        maxTimeout = null;
-      }, maxWait);
-    }
-
-    if (callNow) {
-      func.apply(lastContext, lastArgs);
-    }
-  };
-
-  debounced.cancel = () => {
-    if (timeout) {
-      clearTimeout(timeout);
-      timeout = null;
-    }
-    if (maxTimeout) {
-      clearTimeout(maxTimeout);
-      maxTimeout = null;
-    }
-  };
-
-  return debounced;
-}
-
-/* ===================== SKELETON SCREENS Y LAZY LOADING ===================== */
-
-/**
- * ✅ Crea un skeleton screen para una tarjeta de curso
- */
-function createSkeletonCard() {
-  const card = document.createElement('div');
-  card.className = 'skeleton-master-card';
-  card.innerHTML = `
-    <div class="skeleton skeleton-image"></div>
-    <div class="skeleton skeleton-title"></div>
-    <div class="skeleton skeleton-text"></div>
-    <div class="skeleton skeleton-text-short"></div>
-  `;
-  return card;
-}
-
-/**
- * ✅ Crea un skeleton screen para un archivo
- */
-function createSkeletonFile() {
-  const file = document.createElement('div');
-  file.className = 'skeleton-file';
-  file.innerHTML = `
-    <div class="skeleton skeleton-file-icon"></div>
-    <div class="skeleton-file-content">
-      <div class="skeleton skeleton-file-title"></div>
-      <div class="skeleton skeleton-file-meta"></div>
-    </div>
-  `;
-  return file;
-}
-
-/**
- * ✅ Muestra skeleton screens en el grid maestro
- * @param {HTMLElement} grid - Contenedor del grid
- * @param {number} count - Número de skeletons a mostrar
- */
-function showMasterSkeletons(grid, count = 6) {
-  if (!grid) return;
-  grid.innerHTML = '';
-  for (let i = 0; i < count; i++) {
-    grid.appendChild(createSkeletonCard());
-  }
-}
-
-/**
- * ✅ Muestra skeleton screens en la lista de archivos
- * @param {HTMLElement} filelist - Contenedor de archivos
- * @param {number} count - Número de skeletons a mostrar
- */
-function showFilesSkeletons(filelist, count = 3) {
-  if (!filelist) return;
-  filelist.innerHTML = '';
-  for (let i = 0; i < count; i++) {
-    filelist.appendChild(createSkeletonFile());
-  }
-}
-
-/**
- * ✅ Lazy loading para imágenes
- * @param {HTMLImageElement} img - Elemento imagen
- */
-function setupLazyImage(img) {
-  if (!img || !('loading' in HTMLImageElement.prototype)) {
-    return; // Navegador no soporta lazy loading nativo
-  }
-
-  img.loading = 'lazy';
-
-  // Agregar clase cuando la imagen carga
-  if (img.complete) {
-    img.classList.add('loaded');
-  } else {
-    img.addEventListener('load', () => {
-      img.classList.add('loaded');
-    });
-    img.addEventListener('error', () => {
-      img.classList.add('loaded'); // Mostrar aunque haya error
-    });
-  }
-}
-
-/**
- * ✅ Aplicar lazy loading a todas las imágenes de un contenedor
- * @param {HTMLElement} container - Contenedor con imágenes
- */
-function setupLazyImages(container) {
-  if (!container) return;
-  const images = container.querySelectorAll('img:not([loading])');
-  images.forEach(img => setupLazyImage(img));
-}
-
-/**
- * ✅ Mostrar overlay de carga
- * @param {string} message - Mensaje a mostrar
- */
-function showLoadingOverlay(message = 'Cargando...') {
-  // Remover overlay existente si hay
-  const existing = document.getElementById('loading-overlay');
-  if (existing) existing.remove();
-
-  const overlay = document.createElement('div');
-  overlay.id = 'loading-overlay';
-  overlay.className = 'loading-overlay';
-  overlay.innerHTML = `
-    <div class="loading-overlay-content">
-      <div class="loading-spinner"></div>
-      <p>${escapeHTML(message)}</p>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-}
-
-/**
- * ✅ Ocultar overlay de carga
- */
-function hideLoadingOverlay() {
-  const overlay = document.getElementById('loading-overlay');
-  if (overlay) {
-    overlay.style.opacity = '0';
-    overlay.style.transition = 'opacity 0.3s ease';
-    setTimeout(() => overlay.remove(), 300);
-  }
-}
-
-/* ===================== NOTIFICACIONES TOAST ===================== */
-
-/**
- * ✅ Sistema de notificaciones toast
- */
-function showToast(type, title, message, duration = 3000) {
-  // Crear contenedor si no existe
-  let toastContainer = document.getElementById('toast-container');
-  if (!toastContainer) {
-    toastContainer = document.createElement('div');
-    toastContainer.id = 'toast-container';
-    toastContainer.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 10000;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      pointer-events: none;
-    `;
-    document.body.appendChild(toastContainer);
-  }
-
-  // Crear toast
-  const toast = document.createElement('div');
-  toast.style.cssText = `
-    background: var(--bg);
-    border: 1px solid rgba(90,169,255,0.3);
-    border-left: 4px solid ${getToastColor(type)};
-    border-radius: 8px;
-    padding: 14px 18px;
-    min-width: 300px;
-    max-width: 400px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    pointer-events: auto;
-    animation: slideInRight 0.3s ease-out;
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-  `;
-
-  // Icono
-  const icon = document.createElement('div');
-  icon.innerHTML = getToastIcon(type);
-  icon.style.cssText = `
-    font-size: 20px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  `;
-
-  // Contenido
-  const content = document.createElement('div');
-  content.style.cssText = `flex: 1;`;
-
-  const titleEl = document.createElement('div');
-  titleEl.textContent = title;
-  titleEl.style.cssText = `
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--text);
-    margin-bottom: 4px;
-  `;
-
-  const messageEl = document.createElement('div');
-  messageEl.textContent = message;
-  messageEl.style.cssText = `
-    font-size: 13px;
-    color: var(--muted);
-    line-height: 1.4;
-  `;
-
-  content.appendChild(titleEl);
-  content.appendChild(messageEl);
-
-  // Botón cerrar
-  const closeBtn = document.createElement('button');
-  closeBtn.textContent = '×';
-  closeBtn.style.cssText = `
-    background: none;
-    border: none;
-    color: var(--muted);
-    font-size: 24px;
-    cursor: pointer;
-    padding: 0;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: color 0.2s;
-  `;
-  closeBtn.addEventListener('click', () => removeToast(toast));
-  closeBtn.addEventListener('mouseenter', () => {
-    closeBtn.style.color = 'var(--text)';
-  });
-  closeBtn.addEventListener('mouseleave', () => {
-    closeBtn.style.color = 'var(--muted)';
-  });
-
-  toast.appendChild(icon);
-  toast.appendChild(content);
-  toast.appendChild(closeBtn);
-  toastContainer.appendChild(toast);
-
-  // Auto-remover después de duration
-  setTimeout(() => removeToast(toast), duration);
-
-  // Agregar animación CSS si no existe
-  if (!document.getElementById('toast-animations')) {
-    const style = document.createElement('style');
-    style.id = 'toast-animations';
-    style.textContent = `
-      @keyframes slideInRight {
-        from {
-          transform: translateX(100%);
-          opacity: 0;
-        }
-        to {
-          transform: translateX(0);
-          opacity: 1;
-        }
-      }
-      @keyframes slideOutRight {
-        from {
-          transform: translateX(0);
-          opacity: 1;
-        }
-        to {
-          transform: translateX(100%);
-          opacity: 0;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-}
-
-function getToastColor(type) {
-  const colors = {
-    success: '#4ade80',
-    error: '#ff5555',
-    warning: '#fbbf24',
-    info: '#5aa9ff'
-  };
-  return colors[type] || colors.info;
-}
-
-function getToastIcon(type) {
-  const icons = {
-    success: '<i class="ph ph-check-circle" style="font-size: 20px;"></i>',
-    error: '<i class="ph ph-x-circle" style="font-size: 20px;"></i>',
-    warning: '<i class="ph ph-warning-circle" style="font-size: 20px;"></i>',
-    info: '<i class="ph ph-info" style="font-size: 20px;"></i>'
-  };
-  return icons[type] || icons.info;
-}
-
-function removeToast(toast) {
-  toast.style.animation = 'slideOutRight 0.3s ease-out';
-  setTimeout(() => {
-    if (toast.parentElement) {
-      toast.remove();
-    }
-  }, 300);
-}
-
-// ✅ Sistema de Notificaciones Persistente
-const NOTIFICATIONS_STORAGE_KEY = 'edusalud_notifications';
-const MAX_NOTIFICATIONS = 50;
-
-function saveNotification(type, title, message, action = null) {
-  try {
-    const notifications = getNotifications();
-    const notification = {
-      id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-      type,
-      title,
-      message,
-      action,
-      timestamp: Date.now(),
-      read: false
-    };
-
-    notifications.unshift(notification);
-    const limited = notifications.slice(0, MAX_NOTIFICATIONS);
-    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(limited));
-
-    // Actualizar badge
-    updateNotificationsBadge();
-
-    return notification;
-  } catch (e) {
-    warn('[NOTIFICATIONS] Error guardando notificación:', e);
-    return null;
-  }
-}
-
-function getNotifications() {
-  try {
-    const raw = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    warn('[NOTIFICATIONS] Error obteniendo notificaciones:', e);
-    return [];
-  }
-}
-
-function markNotificationAsRead(id) {
-  try {
-    const notifications = getNotifications();
-    const index = notifications.findIndex(n => n.id === id);
-    if (index !== -1) {
-      notifications[index].read = true;
-      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(notifications));
-      updateNotificationsBadge();
-    }
-  } catch (e) {
-    warn('[NOTIFICATIONS] Error marcando notificación como leída:', e);
-  }
-}
-
-function updateNotificationsBadge() {
-  const badge = $('#notifications-badge');
-  if (badge) {
-    const notifications = getNotifications();
-    const unread = notifications.filter(n => !n.read).length;
-    if (unread > 0) {
-      badge.textContent = unread > 99 ? '99+' : unread;
-      badge.style.display = 'flex';
-    } else {
-      badge.style.display = 'none';
-    }
-  }
-}
-
-// ✅ Mejorar showToast para guardar notificaciones importantes
-const originalShowToast = showToast;
-window.showToast = function (type, title, message, duration = 3000, saveToHistory = false) {
-  // Mostrar toast normal
-  originalShowToast(type, title, message, duration);
-
-  // Guardar notificaciones importantes
-  if (saveToHistory || type === 'error' || type === 'warning') {
-    saveNotification(type, title, message);
-  }
-};
-
-// ✅ Configurar panel de notificaciones - VERSIÓN ULTRA SIMPLIFICADA
-function setupNotificationsPanel() {
-  console.log('[NOTIFICATIONS] 🔄 Iniciando configuración...');
-
-  const btnNotifications = document.getElementById('btn-notifications');
-  const panel = document.getElementById('notificationsPanel');
-
-  // ✅ Si el botón o panel no existen, simplemente retornar sin intentar de nuevo
-  if (!btnNotifications || !panel) {
-    console.log('[NOTIFICATIONS] ℹ️ Botón o panel no encontrado, omitiendo configuración');
-    return; // ✅ NO hacer setTimeout, simplemente retornar
-  }
-
-  console.log('[NOTIFICATIONS] ✅ Elementos encontrados');
-
-  // ✅ REMOVER TODOS LOS LISTENERS ANTERIORES - Clonar el botón
-  const newBtn = btnNotifications.cloneNode(true);
-  btnNotifications.parentNode.replaceChild(newBtn, btnNotifications);
-  const btn = document.getElementById('btn-notifications');
-  const panelEl = document.getElementById('notificationsPanel');
-
-  let isOpen = false;
-  let escapeHandler = null;
-
-  // ✅ Click handler ULTRA SIMPLE
-  btn.onclick = function (e) {
-    console.log('[NOTIFICATIONS] 🖱️ CLICK DETECTADO!');
-    e.preventDefault();
-    e.stopPropagation();
-
-    isOpen = !isOpen;
-
-    if (isOpen) {
-      console.log('[NOTIFICATIONS] ➕ Abriendo panel...');
-      panelEl.classList.add('show'); // ✅ Agregar clase .show para activar animación CSS
-      panelEl.style.display = 'flex';
-      panelEl.style.visibility = 'visible';
-      panelEl.style.opacity = '1';
-      panelEl.style.zIndex = '10000';
-      btn.setAttribute('aria-expanded', 'true');
-
-      // ✅ Verificar que el panel se abrió
-      setTimeout(() => {
-        const computedStyle = window.getComputedStyle(panelEl);
-        console.log('[NOTIFICATIONS] 📊 Estado del panel:', {
-          display: computedStyle.display,
-          visibility: computedStyle.visibility,
-          opacity: computedStyle.opacity,
-          zIndex: computedStyle.zIndex,
-          width: computedStyle.width,
-          height: computedStyle.height
-        });
-      }, 50);
-
-      // Mostrar vacío primero
-      const list = document.getElementById('notifications-list');
-      const empty = document.getElementById('notifications-empty');
-      if (list && empty) {
-        list.style.display = 'none';
-        empty.style.display = 'block';
-      }
-
-      const activityList = document.getElementById('activity-list');
-      const activityEmpty = document.getElementById('activity-empty');
-      if (activityList && activityEmpty) {
-        activityList.style.display = 'none';
-        activityEmpty.style.display = 'block';
-      }
-
-      // Renderizar después (MUY ASÍNCRONO para no bloquear)
-      console.log('[NOTIFICATIONS] ⏳ Programando renderizado asíncrono...');
-
-      // ✅ Renderizar notificaciones primero (más rápido)
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          try {
-            console.log('[NOTIFICATIONS] 🎨 Renderizando notificaciones...');
-            if (typeof renderNotifications === 'function') {
-              renderNotifications();
-              console.log('[NOTIFICATIONS] ✅ Notificaciones renderizadas');
-            }
-          } catch (e) {
-            console.error('[NOTIFICATIONS] ❌ Error renderizando notificaciones:', e);
-          }
-        }, 50);
-      });
-
-      // ✅ Renderizar actividad después (más pesado)
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          try {
-            console.log('[ACTIVITY] 🎨 Renderizando actividad...');
-            if (typeof renderActivity === 'function') {
-              renderActivity();
-              console.log('[ACTIVITY] ✅ Actividad renderizada');
-            }
-          } catch (e) {
-            console.error('[ACTIVITY] ❌ Error renderizando actividad:', e);
-          }
-        }, 200);
-      });
-
-      // Escape
-      if (!escapeHandler) {
-        escapeHandler = function (e) {
-          if (e.key === 'Escape' && isOpen) {
-            isOpen = false;
-            panelEl.classList.remove('show'); // ✅ Remover clase .show
-            panelEl.style.display = 'none';
-            btn.setAttribute('aria-expanded', 'false');
-            document.removeEventListener('keydown', escapeHandler);
-            escapeHandler = null;
-          }
-        };
-        document.addEventListener('keydown', escapeHandler);
-      }
-
-    } else {
-      console.log('[NOTIFICATIONS] ➖ Cerrando panel...');
-      isOpen = false;
-      panelEl.classList.remove('show'); // ✅ Remover clase .show
-      panelEl.style.display = 'none';
-      btn.setAttribute('aria-expanded', 'false');
-      if (escapeHandler) {
-        document.removeEventListener('keydown', escapeHandler);
-        escapeHandler = null;
-      }
-    }
-  };
-
-  // ✅ Botón cerrar
-  const btnClose = document.getElementById('btn-close-notifications');
-  if (btnClose) {
-    btnClose.onclick = function () {
-      isOpen = false;
-      panelEl.classList.remove('show'); // ✅ Remover clase .show
-      panelEl.style.display = 'none';
-      btn.setAttribute('aria-expanded', 'false');
-      if (escapeHandler) {
-        document.removeEventListener('keydown', escapeHandler);
-        escapeHandler = null;
-      }
-    };
-  }
-
-  // ✅ Pestañas
-  const tabNotif = document.getElementById('tab-notifications');
-  const tabAct = document.getElementById('tab-activity');
-  const contentNotif = document.getElementById('notifications-content');
-  const contentAct = document.getElementById('activity-content');
-
-  if (tabNotif) {
-    tabNotif.onclick = function () {
-      if (tabNotif) tabNotif.classList.add('active');
-      if (tabAct) tabAct.classList.remove('active');
-      if (contentNotif) contentNotif.style.display = 'block';
-      if (contentAct) contentAct.style.display = 'none';
-      if (tabNotif) tabNotif.style.borderBottomColor = 'var(--accent)';
-      if (tabAct) tabAct.style.borderBottomColor = 'transparent';
-    };
-  }
-
-  if (tabAct) {
-    tabAct.onclick = function () {
-      if (tabAct) tabAct.classList.add('active');
-      if (tabNotif) tabNotif.classList.remove('active');
-      if (contentNotif) contentNotif.style.display = 'none';
-      if (contentAct) contentAct.style.display = 'block';
-      if (tabAct) tabAct.style.borderBottomColor = 'var(--accent)';
-      if (tabNotif) tabNotif.style.borderBottomColor = 'transparent';
-      setTimeout(() => {
-        try {
-          if (typeof renderActivity === 'function') renderActivity();
-        } catch (e) { console.error(e); }
-      }, 50);
-    };
-  }
-
-  // ✅ Filtro
-  const filter = document.getElementById('filter-activity');
-  if (filter) {
-    filter.onchange = function () {
-      try {
-        if (typeof renderActivity === 'function') renderActivity(this.value);
-      } catch (e) { console.error(e); }
-    };
-  }
-
-  // ✅ Inicializar badge
-  if (typeof updateNotificationsBadge === 'function') {
-    updateNotificationsBadge();
-  }
-
-  console.log('[NOTIFICATIONS] ✅✅✅ CONFIGURACIÓN COMPLETA - BOTÓN LISTO');
-
-  // ✅ Forzar prueba inmediata
-  setTimeout(() => {
-    if (btn.onclick) {
-      console.log('[NOTIFICATIONS] ✅ Handler existe y está configurado');
-    } else {
-      console.error('[NOTIFICATIONS] ❌ Handler NO existe!');
-    }
-  }, 100);
-
-  // ✅ Exponer función global para debug
-  window.reconfigureNotificationsPanel = () => {
-    setupNotificationsPanel();
-    console.log('[NOTIFICATIONS] 🔄 Panel reconfigurado manualmente');
-  };
-}
-
-// ✅ Renderizar notificaciones (con límite y protección)
-function renderNotifications() {
-  console.log('[NOTIFICATIONS] 🎨 Iniciando renderNotifications...');
-  try {
-    const list = document.getElementById('notifications-list');
-    const empty = document.getElementById('notifications-empty');
-    if (!list || !empty) {
-      console.warn('[NOTIFICATIONS] Elementos no encontrados');
-      return;
-    }
-
-    console.log('[NOTIFICATIONS] Obteniendo notificaciones...');
-    const notifications = getNotifications();
-    if (!Array.isArray(notifications)) {
-      list.style.display = 'none';
-      empty.style.display = 'block';
-      return;
-    }
-
-    // ✅ Limitar cantidad de notificaciones para evitar bloqueo
-    const limitedNotifications = notifications.slice(0, 50);
-
-    if (limitedNotifications.length === 0) {
-      console.log('[NOTIFICATIONS] No hay notificaciones');
-      list.style.display = 'none';
-      empty.style.display = 'block';
-      return;
-    }
-
-    console.log('[NOTIFICATIONS] Renderizando', limitedNotifications.length, 'notificaciones...');
-    list.style.display = 'flex';
-    empty.style.display = 'none';
-    list.innerHTML = '';
-
-    // ✅ Renderizar en lotes pequeños para no bloquear
-    let rendered = 0;
-    const batchSize = 10;
-
-    const renderBatch = () => {
-      const batch = limitedNotifications.slice(rendered, rendered + batchSize);
-
-      batch.forEach((notification, index) => {
-        try {
-          // ✅ Validar datos de notificación
-          if (!notification || !notification.id) {
-            return;
-          }
-
-          const item = document.createElement('div');
-          item.style.cssText = `
-            padding: 12px;
-            background: ${notification.read ? 'rgba(90,169,255,0.05)' : 'rgba(90,169,255,0.1)'};
-            border-left: 3px solid ${getToastColor(notification.type || 'info')};
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.2s;
-          `;
-
-          if (!notification.read) {
-            item.style.fontWeight = '500';
-          }
-
-          item.addEventListener('click', () => {
-            try {
-              markNotificationAsRead(notification.id);
-              item.style.background = 'rgba(90,169,255,0.05)';
-              item.style.fontWeight = 'normal';
-              updateNotificationsBadge();
-            } catch (e) {
-              console.error('[NOTIFICATIONS] Error marcando como leída:', e);
-            }
-          });
-
-          const time = new Date(notification.timestamp || Date.now());
-          const timeStr = time.toLocaleString('es-ES', {
-            day: 'numeric',
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit'
-          });
-
-          const title = escapeHTML(String(notification.title || 'Sin título'));
-          const message = escapeHTML(String(notification.message || ''));
-
-          item.innerHTML = `
-            <div style="display: flex; align-items: start; gap: 12px;">
-              <div style="font-size: 20px; flex-shrink: 0;">${getToastIcon(notification.type || 'info')}</div>
-              <div style="flex: 1; min-width: 0;">
-                <div style="font-weight: 600; font-size: 13px; color: var(--text); margin-bottom: 4px;">${title}</div>
-                <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">${message}</div>
-                <div style="font-size: 11px; color: var(--muted); opacity: 0.7;">${timeStr}</div>
-              </div>
-              ${!notification.read ? '<div style="width: 8px; height: 8px; background: var(--accent); border-radius: 50%; flex-shrink: 0; margin-top: 4px;"></div>' : ''}
-            </div>
-          `;
-
-          list.appendChild(item);
-        } catch (error) {
-          console.error(`[NOTIFICATIONS] Error renderizando notificación ${rendered + index}:`, error);
-        }
-      });
-
-      rendered += batch.length;
-
-      // ✅ Continuar con siguiente lote si hay más
-      if (rendered < limitedNotifications.length) {
-        setTimeout(renderBatch, 10); // Delay muy corto entre lotes
-      } else {
-        console.log('[NOTIFICATIONS] ✅ Todas las notificaciones renderizadas');
-      }
-    };
-
-    // ✅ Iniciar renderizado por lotes
-    renderBatch();
-  } catch (error) {
-    console.error('[NOTIFICATIONS] Error crítico en renderNotifications:', error);
-    const list = $('#notifications-list');
-    const empty = $('#notifications-empty');
-    if (list) list.style.display = 'none';
-    if (empty) empty.style.display = 'block';
-  }
-}
-
-// ✅ Renderizar actividad (con protección máxima contra errores)
-function renderActivity(filter = 'all') {
-  try {
-    const list = $('#activity-list');
-    const empty = $('#activity-empty');
-    if (!list || !empty) {
-      console.warn('[ACTIVITY] Elementos no encontrados');
-      return;
-    }
-
-    // ✅ Limpiar primero
-    list.innerHTML = '';
-    list.style.display = 'none';
-    empty.style.display = 'block';
-
-    // ✅ Obtener logs con timeout para evitar bloqueo
-    let logs = [];
-    try {
-      logs = getAuditLogs();
-    } catch (error) {
-      console.error('[ACTIVITY] Error obteniendo logs:', error);
-      return;
-    }
-
-    if (!Array.isArray(logs)) {
-      console.warn('[ACTIVITY] Logs no es un array válido');
-      return;
-    }
-
-    // ✅ Limitar cantidad máxima para evitar bloqueo
-    if (logs.length > 100) {
-      logs = logs.slice(-100); // Solo los últimos 100
-    }
-
-    let filteredLogs = logs;
-
-    if (filter !== 'all') {
-      filteredLogs = logs.filter(log => log && log.action === filter);
-    }
-
-    // Ordenar por fecha (más recientes primero) y limitar a 30 (reducido)
-    filteredLogs = filteredLogs
-      .filter(log => log && log.timestamp && log.action) // ✅ Filtrar logs inválidos
-      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
-      .slice(0, 30); // ✅ Reducido a 30 para evitar bloqueo
-
-    if (filteredLogs.length === 0) {
-      return;
-    }
-
-    list.style.display = 'flex';
-    empty.style.display = 'none';
-
-    const actionLabels = {
-      'course_created': { icon: '<i class="ph ph-check-circle" style="font-size: 20px;"></i>', label: 'Curso creado', color: '#4ade80' },
-      'course_edited': { icon: '<i class="ph ph-pencil" style="font-size: 20px;"></i>', label: 'Curso editado', color: '#5aa9ff' },
-      'course_deleted': { icon: '<i class="ph ph-trash" style="font-size: 20px;"></i>', label: 'Curso eliminado', color: '#ff5555' },
-      'email_added': { icon: '<i class="ph ph-envelope" style="font-size: 20px;"></i>', label: 'Email agregado', color: '#fbbf24' },
-      'email_removed': { icon: '<i class="ph ph-envelope" style="font-size: 20px;"></i>', label: 'Email eliminado', color: '#ff5555' },
-      'admin_added': { icon: '<i class="ph ph-user" style="font-size: 20px;"></i>', label: 'Admin agregado', color: '#a855f7' },
-      'admin_removed': { icon: '<i class="ph ph-user" style="font-size: 20px;"></i>', label: 'Admin eliminado', color: '#ff5555' },
-      'backup_exported': { icon: '<i class="ph ph-floppy-disk" style="font-size: 20px;"></i>', label: 'Backup exportado', color: '#4ade80' },
-      'backup_imported': { icon: '<i class="ph ph-download" style="font-size: 20px;"></i>', label: 'Backup importado', color: '#5aa9ff' }
-    };
-
-    // ✅ Renderizar en lotes más pequeños con delay
-    let rendered = 0;
-    const batchSize = 5; // ✅ Reducido a 5
-
-    const renderBatch = () => {
-      try {
-        const batch = filteredLogs.slice(rendered, rendered + batchSize);
-
-        batch.forEach(log => {
-          try {
-            if (!log || !log.action) return;
-
-            const action = actionLabels[log.action] || { icon: '<i class="ph ph-info" style="font-size: 20px;"></i>', label: log.action || 'Acción', color: '#5aa9ff' };
-            const time = new Date(log.timestamp || Date.now());
-            const timeStr = time.toLocaleString('es-ES', {
-              day: 'numeric',
-              month: 'short',
-              hour: '2-digit',
-              minute: '2-digit'
-            });
-
-            const item = document.createElement('div');
-            item.style.cssText = `
-              padding: 12px;
-              background: rgba(90,169,255,0.05);
-              border-left: 3px solid ${action.color};
-              border-radius: 4px;
-            `;
-
-            let detailsHtml = '';
-            try {
-              if (log.details && typeof log.details === 'object' && Object.keys(log.details).length > 0) {
-                const details = Object.entries(log.details).slice(0, 2).map(([key, value]) =>
-                  escapeHTML(String(value || ''))
-                ).join(' • ');
-                if (details) {
-                  detailsHtml = `<div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">${details}</div>`;
-                }
-              }
-            } catch (e) {
-              // Ignorar errores en details
-            }
-
-            item.innerHTML = `
-              <div style="display: flex; align-items: start; gap: 12px;">
-                <div style="font-size: 20px; flex-shrink: 0;">${action.icon}</div>
-                <div style="flex: 1; min-width: 0;">
-                  <div style="font-weight: 500; font-size: 13px; color: var(--text); margin-bottom: 4px;">${escapeHTML(action.label)}</div>
-                  ${detailsHtml}
-                  <div style="font-size: 11px; color: var(--muted); opacity: 0.7;">${timeStr}</div>
-                </div>
-              </div>
-            `;
-
-            list.appendChild(item);
-          } catch (error) {
-            console.error('[ACTIVITY] Error renderizando log individual:', error);
-          }
-        });
-
-        rendered += batch.length;
-
-        // ✅ Continuar con el siguiente lote si hay más (con delay)
-        if (rendered < filteredLogs.length) {
-          setTimeout(renderBatch, 50); // ✅ Delay de 50ms entre lotes
-        }
-      } catch (error) {
-        console.error('[ACTIVITY] Error en renderBatch:', error);
-      }
-    };
-
-    // ✅ Iniciar renderizado por lotes con delay inicial
-    setTimeout(renderBatch, 0);
-  } catch (error) {
-    console.error('[ACTIVITY] Error crítico en renderActivity:', error);
-    const list = $('#activity-list');
-    const empty = $('#activity-empty');
-    if (list) {
-      list.style.display = 'none';
-      list.innerHTML = '';
-    }
-    if (empty) empty.style.display = 'block';
-  }
-}
+// ✅ UI Components moved to modules/ui.js
 
 // ✅ Configurar búsqueda de archivos
 function setupFilesSearch(hex, filelist) {
@@ -3219,11 +1530,11 @@ async function getAuthToken() {
   } catch (error) {
     warn('[AUTH] Error obteniendo token de Firebase Auth:', error);
   }
-  
+
   // ⚠️ FALLBACK: Token secreto compartido (debe coincidir con GAS)
   // ✅ Token configurado: GAS_SECRET_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
   const GAS_SECRET_TOKEN = 'GAS_SECRET_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6';
-  
+
   warn('[AUTH] No hay usuario autenticado, usando token secreto compartido');
   return GAS_SECRET_TOKEN;
 }
@@ -3286,7 +1597,7 @@ async function testWebAppResponse(hex) {
     + '?hex=' + encodeURIComponent(hex)
     + '&callback=test_callback'
     + '&ts=' + Date.now();
-  
+
   // Agregar token si está disponible
   if (token) {
     testUrl += '&token=' + encodeURIComponent(token);
@@ -3310,7 +1621,7 @@ function remoteGetFilesJSONP(hex, token = null) {
     if (!token) {
       token = await getAuthToken();
     }
-    
+
     const callbackName = '_gas_jsonp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     const script = document.createElement('script');
     // 🛡️ Cache-buster para evitar respuestas viejas del navegador/CDN
@@ -3318,7 +1629,7 @@ function remoteGetFilesJSONP(hex, token = null) {
       + '?hex=' + encodeURIComponent(hex)
       + '&callback=' + callbackName
       + '&ts=' + Date.now();
-    
+
     // Agregar token si está disponible
     if (token) {
       url += '&token=' + encodeURIComponent(token);
@@ -3766,7 +2077,7 @@ async function remoteGetCourses() {
     let url = REMOTE_BASE_URL
       + '?action=get_courses'
       + '&ts=' + Date.now();
-    
+
     if (token) {
       url += '&token=' + encodeURIComponent(token);
       log('[COURSE GET] ✅ Token agregado a la URL');
@@ -3806,12 +2117,12 @@ async function remoteGetCourses() {
     } catch (fetchError) {
       // Si fetch falla (probablemente por CORS), intentar con JSONP como fallback
       log('[COURSE GET] ⚠️ Fetch falló, intentando con JSONP:', fetchError.message);
-      
+
       return new Promise((resolve) => {
         const callbackName = '_gas_jsonp_courses_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         const script = document.createElement('script');
         const jsonpUrl = url + '&callback=' + callbackName;
-        
+
         script.src = jsonpUrl;
         script.async = true;
 
@@ -4888,7 +3199,7 @@ function updateThemeToggleUI(theme, customIconId, customTextId) {
   if (customIconId && customTextId) {
     const customIcon = document.getElementById(customIconId);
     const customText = document.getElementById(customTextId);
-    
+
     if (customIcon && customText) {
       if (theme === 'light') {
         customIcon.className = 'ph ph-moon';
@@ -5670,7 +3981,7 @@ async function testScriptConnection() {
   try {
     const response = await fetch(`${scriptUrl}?action=test`);
     const data = await response.json();
-    
+
     if (data.success) {
       if (typeof window.showToast === 'function') {
         window.showToast('success', '✅ Conexión Exitosa', 'El script está funcionando correctamente');
@@ -5693,10 +4004,10 @@ function refreshAllLists() {
 
   // Refrescar plantillas
   $('#btn-refresh-templates')?.click();
-  
+
   // Refrescar hojas
   setTimeout(() => $('#btn-refresh-sheets')?.click(), 500);
-  
+
   // Refrescar carpetas
   setTimeout(() => $('#btn-refresh-folders')?.click(), 1000);
   setTimeout(() => $('#btn-refresh-folders-prot')?.click(), 1500);
@@ -5741,7 +4052,7 @@ function clearBrowserCache() {
 async function createDemoSheet() {
   const scriptUrl = $('#input-script-url')?.value;
   const mode = $('#select-cert-mode')?.value || 'webinar';
-  
+
   if (!scriptUrl) {
     if (typeof window.showToast === 'function') {
       window.showToast('error', 'Error', 'Configura la URL del script primero');
@@ -5786,7 +4097,7 @@ async function createDemoSheet() {
 // Crear Estructura de Carpetas
 async function createFolderStructure() {
   const scriptUrl = $('#input-script-url')?.value;
-  
+
   if (!scriptUrl) {
     if (typeof window.showToast === 'function') {
       window.showToast('error', 'Error', 'Configura la URL del script primero');
@@ -5811,7 +4122,7 @@ async function createFolderStructure() {
         params: { name: `Certificados - ${eventName}` }
       })
     });
-    
+
     const mainData = await mainFolder.json();
     if (!mainData.success) throw new Error(mainData.error);
 
@@ -5856,15 +4167,15 @@ async function createFolderStructure() {
 function createCustomSelect(options, defaultValue = 'all') {
   const selectId = 'customSelect_' + Date.now();
   let selectedValue = defaultValue;
-  
+
   const optionsData = options.map(opt => ({
     value: opt.value,
     icon: opt.icon,
     label: opt.label
   }));
-  
+
   const selectedOption = optionsData.find(opt => opt.value === selectedValue) || optionsData[0];
-  
+
   const html = `
     <div class="custom-select" id="${selectId}" data-value="${selectedValue}">
       <div class="custom-select-trigger">
@@ -5882,55 +4193,55 @@ function createCustomSelect(options, defaultValue = 'all') {
       </div>
     </div>
   `;
-  
+
   // Retornar objeto con HTML y función para inicializar eventos
   return {
     html,
-    init: function(container) {
+    init: function (container) {
       const customSelect = container.querySelector(`#${selectId}`);
       const trigger = customSelect.querySelector('.custom-select-trigger');
       const options = customSelect.querySelectorAll('.custom-select-option');
       const label = customSelect.querySelector('.custom-select-label');
       const icon = trigger.querySelector('i:first-child');
-      
+
       // Toggle dropdown
       trigger.addEventListener('click', (e) => {
         e.stopPropagation();
         customSelect.classList.toggle('open');
       });
-      
+
       // Cerrar al hacer clic fuera
       document.addEventListener('click', () => {
         customSelect.classList.remove('open');
       });
-      
+
       // Seleccionar opción
       options.forEach(option => {
         option.addEventListener('click', (e) => {
           e.stopPropagation();
-          
+
           // Remover selected de todas
           options.forEach(opt => opt.classList.remove('selected'));
-          
+
           // Marcar como selected
           option.classList.add('selected');
-          
+
           // Actualizar valor
           selectedValue = option.dataset.value;
           customSelect.dataset.value = selectedValue;
-          
+
           // Actualizar trigger
           const optIcon = option.querySelector('i').className;
           const optLabel = option.querySelector('span').textContent;
           icon.className = optIcon;
           label.textContent = optLabel;
-          
+
           // Cerrar dropdown
           customSelect.classList.remove('open');
         });
       });
     },
-    getValue: function() {
+    getValue: function () {
       const customSelect = document.querySelector(`#${selectId}`);
       return customSelect ? customSelect.dataset.value : selectedValue;
     }
@@ -5969,7 +4280,7 @@ function showExportFilterModal() {
     </div>
   `;
   document.body.appendChild(modal);
-  
+
   // Crear custom select con iconos Phosphor
   const customSelect = createCustomSelect([
     { value: 'all', icon: 'ph ph-books', label: 'Todos los cursos' },
@@ -5979,14 +4290,14 @@ function showExportFilterModal() {
     { value: 'seminario', icon: 'ph ph-note', label: 'Solo Seminarios' },
     { value: 'taller', icon: 'ph ph-wrench', label: 'Solo Talleres' }
   ], 'all');
-  
+
   // Insertar HTML del custom select
   const container = modal.querySelector('#exportTypeSelectContainer');
   container.innerHTML = customSelect.html;
-  
+
   // Inicializar eventos
   customSelect.init(container);
-  
+
   // Guardar referencia para exportFilteredByType
   window.currentExportSelect = customSelect;
 }
@@ -7072,7 +5383,7 @@ function updateFileListOnly(keyHex) {
 function buildUserGrid() {
   // ✅ Iniciar medición de renderizado del grid
   const gridStart = startPerformanceMeasure('Renderizado del grid');
-  
+
   const grid = $('#userGrid');
   const emptyState = $('#userEmptyState');
   if (!grid) return;
@@ -8274,7 +6585,7 @@ function buildMasterGrid() {
 
       // Obtener todos los elementos .file actuales en el orden del DOM
       const fileElements = Array.from(list.querySelectorAll('.file'));
-      
+
       // Crear un mapa de elementos por su índice original en el array files
       const elementMap = new Map();
       fileElements.forEach((el) => {
@@ -11450,14 +9761,14 @@ function setupAuthTabListeners() {
 // ✅ Función para configurar event listeners de autenticación email/password
 function setupEmailPasswordListeners() {
   console.log('[SETUP] 🔧 Configurando event listeners de autenticación...');
-  
+
   // ✅ Verificar que Auth esté disponible
   if (!window.Auth) {
     console.warn('[SETUP] ⚠️ Auth module no disponible, reintentando en 100ms...');
     setTimeout(setupEmailPasswordListeners, 100);
     return;
   }
-  
+
   // Event listeners para autenticación email/password
   const btnLogin = $('#btn-login');
   if (btnLogin && window.Auth.tryLoginByEmail) {
@@ -12226,19 +10537,19 @@ window.App = {
   showContent: showContent,
   showMaster: showMaster,
   showUserView: showUserView,
-  
+
   // ============ Funciones de renderizado ============
   buildUserGrid: buildUserGrid,
   buildMasterGrid: buildMasterGrid,
   renderCourse: renderCourse,
   setupMasterSearch: setupMasterSearch,
-  
+
   // ============ Funciones de utilidad básica ============
   log: log,
   warn: warn,
   error: error,
   $: $, // selector
-  
+
   // ============ Funciones de seguridad/utilidad ============
   getSafeInputValue: getSafeInputValue,
   safeInput: safeInput,
@@ -12247,7 +10558,7 @@ window.App = {
   markFieldError: markFieldError,
   escapeHTML: escapeHTML,
   sanitizeHTML: sanitizeHTML,
-  
+
   // ============ Funciones de Firebase/Backend ============
   getCoursesForEmail: getCoursesForEmail,
   checkIsAdmin: checkIsAdmin,
@@ -12258,15 +10569,15 @@ window.App = {
   getMergedAccessHashMap: getMergedAccessHashMap,
   getFirebaseDB: getFirebaseDB,
   getFirestoreDB: getFirestoreDB,
-  
+
   // ============ Funciones de UI/Loading ============
   runLoader: runLoader,
   showLoader: showLoader,
   hideLoader: hideLoader,
-  
+
   // ============ Funciones de auditoría ============
   auditLog: auditLog,
-  
+
   // ============ Variables globales (getters/setters) ============
   getMasterHash: getMasterHashValue,
   getSuperAdmins: () => SUPER_ADMINS,
@@ -12274,34 +10585,34 @@ window.App = {
   setIsMasterAuthenticated: (value) => { isMasterAuthenticated = value; },
   getCurrentKeyHex: () => currentKeyHex,
   setCurrentKeyHex: (value) => { currentKeyHex = value; },
-  
+
   // ============ Funciones de rate limiting ============
   checkRateLimitSimple: checkRateLimitSimple,
-  
+
   // ============ Funciones de verificación de código ============
   generateVerificationCode: generateVerificationCode,
   saveVerificationCode: saveVerificationCode,
   verifyCode: verifyCode,
   sendVerificationCode: sendVerificationCode,
   normalizeEmailKey: normalizeEmailKey,
-  
+
   // ============ Funciones de query params ============
   setQueryParam: setQueryParam,
-  
+
   // ============ Funciones de refresh ============
   stopPeriodicRefresh: stopPeriodicRefresh,
-  
+
   // ============ Funciones de settings ============
   setupSettingsMenuContent: setupSettingsMenuContent,
   maybeShowAttemptsWarning: maybeShowAttemptsWarning,
   setupAdvancedFilters: setupAdvancedFilters,
   setupNotificationsPanel: setupNotificationsPanel,
-  
+
   // ============ Funciones de intentos ============
   recordAttempt: recordAttempt,
   clearAttempts: clearAttempts,
   getAttemptsCount: getAttemptsCount,
-  
+
   // ============ Constantes ============
   getVerificationCodesPath: () => VERIFICATION_CODES_PATH,
   getCourseEmailsPath: () => COURSE_EMAILS_PATH,
@@ -12355,7 +10666,7 @@ window.App = {
       warn('Parámetro code inválido', e);
     }
   }
-  
+
   // ✅ Asegurar que showAccess() se ejecute SIEMPRE al cargar la página
   try {
     showAccess();
@@ -12379,7 +10690,7 @@ window.App = {
       }
     }, 100);
   }
-  
+
   maybeShowAttemptsWarning();
 
   // ✅ Cargar cursos remotos (no bloquear con await para no demorar carga)
@@ -12391,7 +10702,7 @@ window.App = {
 
   // ✅ Finalizar medición de inicialización
   endPerformanceMeasure('Inicialización total', initStart);
-  
+
   // ✅ Asegurar que showAccess() se ejecute al final, SOLO si no hay usuario autenticado
   setTimeout(() => {
     // ✅ NO interferir si hay un usuario autenticado de Firebase
@@ -12402,26 +10713,26 @@ window.App = {
         return; // No hacer nada si hay usuario autenticado
       }
     }
-    
+
     // ✅ NO interferir si hay un usuario en memoria
     if (window.currentUserEmail) {
       log('[INIT] Usuario en memoria, omitiendo verificación de acceso');
       return;
     }
-    
+
     // ✅ NO interferir si hay una vista visible (master, user-view, o content)
     const contentEl = document.getElementById('content');
     const masterEl = document.getElementById('master');
     const userViewEl = document.getElementById('user-view');
     const hasVisibleView = (contentEl && !contentEl.classList.contains('hidden')) ||
-                          (masterEl && !masterEl.classList.contains('hidden')) ||
-                          (userViewEl && !userViewEl.classList.contains('hidden'));
-    
+      (masterEl && !masterEl.classList.contains('hidden')) ||
+      (userViewEl && !userViewEl.classList.contains('hidden'));
+
     if (hasVisibleView) {
       log('[INIT] Vista visible detectada, omitiendo verificación de acceso');
       return;
     }
-    
+
     // ✅ Solo verificar acceso si no hay usuario y no hay vista visible
     const accessEl = document.getElementById('access');
     if (accessEl && accessEl.classList.contains('hidden')) {
@@ -13400,22 +11711,22 @@ window.diagnosticarRespuesta = async function (hex = null) {
 // 🧪 TEST JSONP SIMPLE
 window.testJSONP = async function (hex) {
   log('🧪 TEST JSONP para hex:', hex);
-  
+
   // ✅ Obtener token de autenticación
   const token = await getAuthToken();
   log('🧪 Token obtenido:', token ? token.substring(0, 20) + '...' : 'NO HAY TOKEN');
-  
+
   // 🛡️ Cache-buster
   let url = REMOTE_BASE_URL
     + '?hex=' + encodeURIComponent(hex)
     + '&callback=test_callback'
     + '&ts=' + Date.now();
-  
+
   // ✅ Agregar token a la URL
   if (token) {
     url += '&token=' + encodeURIComponent(token);
   }
-  
+
   log('URL:', url);
 
   return new Promise((resolve) => {
@@ -13425,12 +11736,12 @@ window.testJSONP = async function (hex) {
       + '?hex=' + encodeURIComponent(hex)
       + '&callback=' + callbackName
       + '&ts=' + Date.now();
-    
+
     // ✅ Agregar token a la URL
     if (token) {
       testUrl += '&token=' + encodeURIComponent(token);
     }
-    
+
     script.src = testUrl;
 
     window[callbackName] = function (data) {
@@ -13475,55 +11786,55 @@ window.testGET = async function (hex) {
 };
 
 // 🧪 TEST DE CONEXIÓN DIRECTA CON GOOGLE APPS SCRIPT (SIN JSONP)
-window.testGASDirect = async function() {
+window.testGASDirect = async function () {
   console.log('═══════════════════════════════════════════');
   console.log('🧪 TEST DIRECTO CON GAS (FETCH)');
   console.log('═══════════════════════════════════════════');
-  
+
   try {
     const token = await getAuthToken();
     console.log('✅ Token obtenido:', token ? token.substring(0, 30) + '...' : 'NO HAY TOKEN');
-    
+
     if (!token) {
       console.log('❌ ERROR: No se pudo obtener token');
       return false;
     }
-    
+
     // Probar con JSONP directo (igual que remoteGetCourses pero con más logging)
     console.log('');
     console.log('📡 Probando con JSONP directo...');
-    
+
     return new Promise((resolve) => {
       const callbackName = '_test_gas_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
       const script = document.createElement('script');
-      const url = REMOTE_BASE_URL 
+      const url = REMOTE_BASE_URL
         + '?action=get_courses'
         + '&callback=' + callbackName
         + '&token=' + encodeURIComponent(token)
         + '&ts=' + Date.now();
-      
+
       console.log('📡 URL completa:', url.substring(0, 200) + '...');
       console.log('📡 Token en URL (primeros 30):', token.substring(0, 30) + '...');
-      
+
       script.src = url;
       script.async = true;
-      
+
       let resolved = false;
       const cleanup = () => {
         try {
           if (script.parentNode) document.body.removeChild(script);
-        } catch (e) {}
+        } catch (e) { }
         try {
           if (window[callbackName]) delete window[callbackName];
-        } catch (e) {}
+        } catch (e) { }
       };
-      
+
       window[callbackName] = function (data) {
         if (resolved) return;
         resolved = true;
         console.log('✅ CALLBACK EJECUTADO!');
         console.log('📦 Datos recibidos:', data);
-        
+
         if (data && data.error === 'Unauthorized') {
           console.error('❌ ERROR DE AUTENTICACIÓN:', data.message);
           console.error('❌ El token fue rechazado por Google Apps Script');
@@ -13531,19 +11842,19 @@ window.testGASDirect = async function() {
           resolve(false);
           return;
         }
-        
+
         if (data && data.courses) {
           console.log('✅ ÉXITO - Cursos recibidos:', Object.keys(data.courses).length);
           cleanup();
           resolve(true);
           return;
         }
-        
+
         console.log('⚠️ Respuesta recibida pero sin formato esperado:', data);
         cleanup();
         resolve(true);
       };
-      
+
       const timeout = setTimeout(() => {
         if (resolved) return;
         resolved = true;
@@ -13551,7 +11862,7 @@ window.testGASDirect = async function() {
         cleanup();
         resolve(false);
       }, 10000);
-      
+
       script.onerror = (error) => {
         if (resolved) return;
         resolved = true;
@@ -13561,7 +11872,7 @@ window.testGASDirect = async function() {
         cleanup();
         resolve(false);
       };
-      
+
       document.body.appendChild(script);
       console.log('📡 Script agregado, esperando respuesta...');
     });
@@ -13575,24 +11886,24 @@ window.testGASDirect = async function() {
 };
 
 // 🧪 TEST DE CONEXIÓN CON GOOGLE APPS SCRIPT (CURSOS)
-window.testGASCourses = async function() {
+window.testGASCourses = async function () {
   console.log('═══════════════════════════════════════════');
   console.log('🧪 TEST DE CONEXIÓN CON GAS (CURSOS - JSONP)');
   console.log('═══════════════════════════════════════════');
-  
+
   try {
     const token = await getAuthToken();
     console.log('✅ Token obtenido:', token ? token.substring(0, 30) + '...' : 'NO HAY TOKEN');
-    
+
     if (!token) {
       console.log('❌ ERROR: No se pudo obtener token');
       return false;
     }
-    
+
     console.log('');
     console.log('📡 Probando obtener cursos remotos...');
     const courses = await remoteGetCourses();
-    
+
     if (courses && Object.keys(courses).length > 0) {
       console.log('✅ CONEXIÓN EXITOSA - Cursos obtenidos:', Object.keys(courses).length);
       return true;
@@ -13610,30 +11921,30 @@ window.testGASCourses = async function() {
 };
 
 // 🧪 TEST DE AUTENTICACIÓN CON TOKEN
-window.testAuth = async function() {
+window.testAuth = async function () {
   console.log('═══════════════════════════════════════════');
   console.log('🧪 TEST DE AUTENTICACIÓN CON TOKEN');
   console.log('═══════════════════════════════════════════');
-  
+
   try {
     // Obtener token
     const token = await getAuthToken();
     console.log('✅ Token obtenido:', token ? token.substring(0, 30) + '...' : 'NO HAY TOKEN');
     console.log('📋 Token completo (primeros 50 chars):', token ? token.substring(0, 50) : 'NO HAY TOKEN');
-    
+
     if (!token) {
       console.error('❌ ERROR: No se pudo obtener token');
       return false;
     }
-    
+
     // Probar petición GET con token
     console.log('');
     console.log('📡 Probando petición GET con token...');
     const testHex = 'test123'; // Hex de prueba
     const result = await remoteGetFiles(testHex);
-    
+
     console.log('📦 Resultado recibido:', result);
-    
+
     if (result !== null) {
       console.log('✅ AUTENTICACIÓN EXITOSA - El servidor aceptó el token');
       console.log('📦 Respuesta recibida:', Array.isArray(result) ? result.length + ' archivos' : 'Objeto');
