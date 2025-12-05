@@ -1227,7 +1227,19 @@ async function handleSuccessfulAuth(hex, method = 'code') {
     App.log('[AUTH] ✅ Autenticación exitosa por:', method);
 
     // ✅ Verificar si es master mediante Custom Claims (ya no usamos hash en frontend)
-    if (isMasterCode) {
+    const user = window.firebaseAuth?.currentUser;
+    let isMaster = false;
+    if (user) {
+        try {
+            const tokenResult = await user.getIdTokenResult(true); // Force refresh
+            isMaster = !!tokenResult.claims.isMaster;
+            App.log('[AUTH] Custom Claims verificados - isMaster:', isMaster);
+        } catch (e) {
+            App.warn('[AUTH] Error verificando Custom Claims:', e);
+        }
+    }
+
+    if (isMaster) {
         App.setIsMasterAuthenticated(true);
         App.setCurrentKeyHex(null);
 
