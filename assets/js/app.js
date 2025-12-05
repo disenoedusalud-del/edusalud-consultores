@@ -664,14 +664,9 @@ function downloadFile(url, label = '') {
 }
 
 /* ============ base de cursos (hash -> data) ============ */
-// ✅ MASTER_HASH movido a función privada para seguridad
-// El valor real ahora se valida en el servidor (Cloud Function)
-// Esta función se mantiene solo para compatibilidad y comparaciones internas
-function getMasterHashValue() {
-  // ⚠️ NOTA: Este valor se usa solo para comparaciones internas y filtros
-  // La validación real del código master se hace en el servidor (Cloud Function)
-  return "7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8";
-}
+// ✅ MASTER_HASH eliminado del frontend
+// La validación del código master ahora se hace exclusivamente en el servidor (Cloud Function)
+// y mediante Custom Claims (isMaster) en el token de autenticación
 
 // ✅ CURSOS BASE ELIMINADOS - Todos los cursos ahora vienen de Firebase (customCourses)
 const ACCESS_HASH_MAP = {};
@@ -1264,8 +1259,8 @@ function initFirestoreRealtime(courseHex) {
     firestoreUnsubscribe = null;
   }
 
-  if (!courseHex || courseHex === getMasterHashValue()) {
-    log('[FIRESTORE] No iniciar listener en vista master');
+  if (!courseHex) {
+    log('[FIRESTORE] No iniciar listener sin curso');
     return;
   }
 
@@ -4339,7 +4334,6 @@ function exportFilteredByType() {
 
     // Filtrar cursos por tipo
     Object.entries(mergedMap).forEach(([hex, data]) => {
-      if (hex === getMasterHashValue()) return;
 
       if (filterType === 'all' || (data.type || 'curso') === filterType) {
         // Exportar links del curso
@@ -4820,11 +4814,10 @@ function startPeriodicRefresh(currentHex = null) {
         return;
       }
 
-      // ✅ CORREGIDO: Si currentHex es null o MASTER_HASH, refrescar todos los cursos
-      const masterHash = getMasterHashValue();
-      if (!currentHex || currentHex === masterHash) {
+      // ✅ CORREGIDO: Si currentHex es null, refrescar todos los cursos
+      if (!currentHex) {
         const mergedMap = getMergedAccessHashMap();
-        const hexes = Object.keys(mergedMap).filter(h => h !== masterHash);
+        const hexes = Object.keys(mergedMap);
         log('[PERIODIC] Total cursos a refrescar (base + personalizados):', hexes.length);
 
         const results = await Promise.allSettled(
@@ -4915,7 +4908,7 @@ function showContent() {
   const isFromUserView = window.currentUserEmail && window.allowedCoursesForUser && window.isFromUserView;
 
   // ✅ Viene de vista maestra si NO viene de usuario y hay un curso abierto (y es master autenticado)
-  const isFromMasterView = !isFromUserView && currentKeyHex && currentKeyHex !== getMasterHashValue() && isMasterAuthenticated;
+  const isFromMasterView = !isFromUserView && currentKeyHex && isMasterAuthenticated;
 
   if (btnBackToUser) {
     if (isFromUserView) {
@@ -4972,7 +4965,7 @@ function showUserView() {
 
 function showMaster() {
   // ✅ VALIDACIÓN DE SEGURIDAD: Solo permitir acceso si el usuario es master autenticado
-  if (!isMasterAuthenticated && currentKeyHex !== getMasterHashValue()) {
+  if (!isMasterAuthenticated) {
     console.error('[SECURITY] ❌ Intento de acceso no autorizado a vista maestra');
     // Redirigir a vista de acceso
     showAccess();
@@ -4999,7 +4992,6 @@ function showMaster() {
   // ✅ Forzar reflow para que la transición se active
   void masterEl.offsetWidth;
   // ❌ NO iniciar polling automático (el usuario sincroniza manualmente con el botón)
-  // startPeriodicRefresh(getMasterHashValue());
 
   // ✅ Configurar navegación entre pestañas
   setupMasterNavigation();
@@ -5024,7 +5016,7 @@ function showMaster() {
       }
 
       log('[SYNC] Refresh inmediato adicional al mostrar master...');
-      const hexes = Object.keys(ACCESS_HASH_MAP).filter(h => h !== getMasterHashValue());
+      const hexes = Object.keys(ACCESS_HASH_MAP);
       const results = await Promise.allSettled(
         hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
           warn('[SYNC] Error en refresh inmediato:', e);
@@ -5435,7 +5427,6 @@ function buildUserGrid() {
   });
 
   coursesToShow.forEach(([hex, data]) => {
-    if (hex === getMasterHashValue()) return;
 
     const cardEl = document.createElement('div');
     cardEl.className = 'master-card';
@@ -5595,7 +5586,7 @@ function buildUserGrid() {
 /* ============ render master ============ */
 function buildMasterGrid() {
   // ✅ VALIDACIÓN: Si no es master, redirigir
-  if (!isMasterAuthenticated && currentKeyHex !== getMasterHashValue()) {
+  if (!isMasterAuthenticated) {
     console.error('[SECURITY] ❌ Intento de construir grid master sin autorización');
     // Si el usuario está autenticado con email, redirigir a vista de usuario
     if (window.currentUserEmail && window.allowedCoursesForUser) {
@@ -5632,7 +5623,7 @@ function buildMasterGrid() {
   updateMasterStats(mergedMap).catch(e => warn('[STATS] Error actualizando estadísticas:', e));
 
   // ✅ Paginación: solo si hay muchos cursos (más de 12)
-  let coursesArray = Object.entries(mergedMap).filter(([hex]) => hex !== getMasterHashValue());
+  let coursesArray = Object.entries(mergedMap);
 
   // ✅ Si el usuario está autenticado con email, filtrar solo cursos permitidos
   // Si está autenticado con código master, mostrar todos los cursos
@@ -5708,8 +5699,6 @@ function buildMasterGrid() {
     : coursesArray;
 
   coursesToRender.forEach(([hex, data]) => {
-    // excluir el master si algún día lo metes en el mismo objeto
-    if (hex === getMasterHashValue()) return;
 
     const cardEl = document.createElement('div');
     cardEl.className = 'master-card';
@@ -6995,7 +6984,7 @@ function buildMasterGrid() {
   });
 
   // ✅ Finalizar medición de renderizado del grid
-  const coursesCount = Object.keys(mergedMap).filter(h => h !== getMasterHashValue()).length;
+  const coursesCount = Object.keys(mergedMap).length;
   endPerformanceMeasure('Renderizado del grid', gridStart, { cursos: coursesCount });
 
   // ✅ Agregar controles de paginación si hay más de 12 cursos
@@ -7042,7 +7031,7 @@ function buildMasterGrid() {
   }
 
   // ✅ FIREBASE: Iniciar listeners para todos los cursos en Master
-  const courseHexes = Object.keys(mergedMap).filter(h => h !== getMasterHashValue());
+  const courseHexes = Object.keys(mergedMap);
   initFirestoreRealtimeMaster(courseHexes);
 
   // herramientas exportar/importar
@@ -7055,7 +7044,7 @@ async function updateMasterStats(mergedMap) {
     mergedMap = getMergedAccessHashMap();
   }
 
-  const coursesCount = Object.keys(mergedMap).filter(h => h !== getMasterHashValue()).length;
+  const coursesCount = Object.keys(mergedMap).length;
 
   // ✅ Contar por tipo de clasificación
   const typeCounts = {
@@ -7074,30 +7063,28 @@ async function updateMasterStats(mergedMap) {
   const todayTimestamp = today.getTime();
 
   Object.keys(mergedMap).forEach(hex => {
-    if (hex !== getMasterHashValue()) {
-      const course = mergedMap[hex];
-      const type = course?.type || 'curso';
-      if (typeCounts.hasOwnProperty(type)) {
-        typeCounts[type]++;
-      } else {
-        typeCounts.curso++;
-      }
-
-      // Contar archivos
-      const files = getFilesForHex(hex);
-      if (Array.isArray(files)) {
-        totalFiles += files.length;
-      }
-
-      // Preparar datos para cursos recientes
-      coursesWithData.push({
-        hex,
-        title: course?.title || 'Sin título',
-        type: type,
-        createdAt: course?.createdAt || course?.updatedAt || 0,
-        filesCount: Array.isArray(files) ? files.length : 0
-      });
+    const course = mergedMap[hex];
+    const type = course?.type || 'curso';
+    if (typeCounts.hasOwnProperty(type)) {
+      typeCounts[type]++;
+    } else {
+      typeCounts.curso++;
     }
+
+    // Contar archivos
+    const files = getFilesForHex(hex);
+    if (Array.isArray(files)) {
+      totalFiles += files.length;
+    }
+
+    // Preparar datos para cursos recientes
+    coursesWithData.push({
+      hex,
+      title: course?.title || 'Sin título',
+      type: type,
+      createdAt: course?.createdAt || course?.updatedAt || 0,
+      filesCount: Array.isArray(files) ? files.length : 0
+    });
   });
 
   // ✅ Actualizar total de cursos
@@ -7426,7 +7413,6 @@ function setupMasterSearch() {
     const suggestions = new Set();
 
     Object.entries(mergedMap).forEach(([hex, data]) => {
-      if (hex === getMasterHashValue()) return;
 
       // Agregar título
       if (data.title) {
@@ -9356,7 +9342,6 @@ function closeGeneralEmailsModal() {
 function getAllCourses() {
   const mergedMap = getMergedAccessHashMap();
   const coursesArray = Object.entries(mergedMap)
-    .filter(([hex]) => hex !== getMasterHashValue())
     .map(([hex, data]) => ({
       hex: hex,
       title: data.title || 'Sin título',
@@ -10351,7 +10336,7 @@ const btnBackToMaster = $('#btn-back-to-master');
 if (btnBackToMaster) {
   btnBackToMaster.addEventListener('click', () => {
     // Limpiar curso actual
-    App.setCurrentKeyHex(getMasterHashValue()); // ✅ Mantener como master para validación
+    App.setCurrentKeyHex(null); // ✅ Limpiar curso actual
     window.isFromUserView = false;
     App.setQueryParam('code', null);
     // Regresar a vista maestra
@@ -10445,7 +10430,7 @@ window.forzarSincronizacion = async function () {
 
       // Refrescar todos los archivos de cada curso
       const mergedMap = getMergedAccessHashMap();
-      const hexes = Object.keys(mergedMap).filter(h => h !== getMasterHashValue());
+      const hexes = Object.keys(mergedMap);
 
       log('[SYNC FORCE] Total cursos a sincronizar:', hexes.length);
 
@@ -10614,7 +10599,6 @@ window.App = {
   auditLog: auditLog,
 
   // ============ Variables globales (getters/setters) ============
-  getMasterHash: getMasterHashValue,
   getSuperAdmins: () => SUPER_ADMINS,
   getIsMasterAuthenticated: () => isMasterAuthenticated,
   setIsMasterAuthenticated: (value) => { isMasterAuthenticated = value; },
