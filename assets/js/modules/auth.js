@@ -158,12 +158,22 @@
                         });
 
                         const data = await response.json();
+                        console.log('[LOGIN] Respuesta recibida - Status:', response.status);
+                        console.log('[LOGIN] Resultado parseado:', data);
+
                         if (data.success) {
                             if (typeof App !== 'undefined') {
                                 App.setCurrentKeyHex(masterHash);
                                 App.showMaster();
                             }
                         } else {
+                            // Log detallado del debug info si existe
+                            if (data.debug) {
+                                console.warn('[LOGIN] ⚠️ DEBUG INFO:', data.debug);
+                                console.warn(`[LOGIN] Recibido (len=${data.debug.receivedLength}): ${data.debug.receivedStart}...`);
+                                console.warn(`[LOGIN] Esperado (len=${data.debug.expectedLength}): ${data.debug.expectedStart}...`);
+                            }
+                            console.error('[LOGIN] ❌ Código master rechazado:', data.error);
                             throw new Error(data.error || 'Código inválido');
                         }
                     } catch (serverError) {
