@@ -105,23 +105,24 @@ async function tryLoginByCode(code) {
             });
         }
 
-        // master - Validar usando Cloud Function (HTTP, no requiere autenticación)
+        // ✅ PASO 1: Intentar validar si es código master
         // Verificar si Firebase Functions está disponible
+        let isMasterCode = false;
+
         if (!window.firebaseFunctions) {
             App.warn('[LOGIN] Firebase Functions no disponible, usando validación local como fallback');
             // Fallback a validación local (temporal hasta que Functions esté disponible)
             const MASTER_HASH_VAL = getMasterHash();
             if (MASTER_HASH_VAL && hex === MASTER_HASH_VAL) {
                 App.log('[LOGIN] ✅ Código master válido (fallback local)');
+                isMasterCode = true;
                 App.setIsMasterAuthenticated(true);
                 if (MASTER_HASH_VAL) {
                     App.setCurrentKeyHex(MASTER_HASH_VAL);
                 }
-                // Continuar con el flujo normal...
             } else {
-                msg.textContent = 'Código inválido. Verifique y vuelva a intentar.';
-                msg.classList.add('error');
-                return false;
+                App.log('[LOGIN] No es código master (fallback local), verificando si es código de curso...');
+                isMasterCode = false;
             }
         } else {
             // Usar Cloud Function HTTP para validar código master
@@ -174,46 +175,47 @@ async function tryLoginByCode(code) {
                     console.error('[LOGIN] Respuesta recibida (texto):', textResponse);
                     App.error('[LOGIN] ❌ Error parseando respuesta JSON:', parseError);
                     App.error('[LOGIN] Respuesta recibida (texto):', textResponse);
-                    throw new Error('Error en la respuesta del servidor: ' + response.statusText);
+                    // ✅ NO lanzar error, asumir que no es master y continuar
+                    App.log('[LOGIN] Error en Cloud Function, asumiendo que no es código master');
+                    isMasterCode = false;
                 }
 
-                console.log('[LOGIN] Resultado parseado:', result);
-                App.log('[LOGIN] Resultado parseado:', result);
+                if (result) {
+                    console.log('[LOGIN] Resultado parseado:', result);
+                    App.log('[LOGIN] Resultado parseado:', result);
 
-                if (result.success) {
-                    App.log('[LOGIN] ✅ Código master válido!');
-                    App.setIsMasterAuthenticated(true);
-                    // Obtener MASTER_HASH para usar como currentKeyHex (necesario para compatibilidad)
-                    const MASTER_HASH_VAL = getMasterHash();
-                    if (MASTER_HASH_VAL) {
-                        App.setCurrentKeyHex(MASTER_HASH_VAL);
+                    if (result.success) {
+                        App.log('[LOGIN] ✅ Código master válido!');
+                        isMasterCode = true;
+                        App.setIsMasterAuthenticated(true);
+                        // Obtener MASTER_HASH para usar como currentKeyHex (necesario para compatibilidad)
+                        const MASTER_HASH_VAL = getMasterHash();
+                        if (MASTER_HASH_VAL) {
+                            App.setCurrentKeyHex(MASTER_HASH_VAL);
+                        }
+                    } else {
+                        // Log detallado del debug info si existe
+                        if (result.debug) {
+                            console.warn('[LOGIN] ⚠️ DEBUG INFO:', result.debug);
+                            console.warn(`[LOGIN] Recibido (len=${result.debug.receivedLength}): ${result.debug.receivedStart}...`);
+                            console.warn(`[LOGIN] Esperado (len=${result.debug.expectedLength}): ${result.debug.expectedStart}...`);
+                        }
+                        App.log('[LOGIN] ❌ No es código master:', result.error);
+                        // ✅ NO lanzar error, continuar a validación de cursos
+                        App.log('[LOGIN] Verificando si es código de curso...');
+                        isMasterCode = false;
                     }
-                } else {
-                    // Log detallado del debug info si existe
-                    if (result.debug) {
-                        console.warn('[LOGIN] ⚠️ DEBUG INFO:', result.debug);
-                        console.warn(`[LOGIN] Recibido (len=${result.debug.receivedLength}): ${result.debug.receivedStart}...`);
-                        console.warn(`[LOGIN] Esperado (len=${result.debug.expectedLength}): ${result.debug.expectedStart}...`);
-                    }
-                    App.error('[LOGIN] ❌ Código master rechazado:', result.error);
-                    throw new Error(result.error || 'Código master inválido');
                 }
             } catch (error) {
                 App.error('[LOGIN] ❌ Error validando código master:', error);
-
-                // Si es error de código inválido, mostrar mensaje específico
-                if (error.message?.includes('inválido') || error.message?.includes('invalid')) {
-                    msg.textContent = 'Código master inválido. Verifique y vuelva a intentar.';
-                } else {
-                    msg.textContent = 'Error al validar el código. Por favor, intente nuevamente.';
-                }
-                msg.classList.add('error');
-                return false;
+                // ✅ NO retornar false, asumir que no es master y continuar
+                App.log('[LOGIN] Error en validación master, verificando si es código de curso...');
+                isMasterCode = false;
             }
         }
 
-        // Si llegamos aquí, el código master es válido
-        if (App.getIsMasterAuthenticated()) {
+        // ✅ PASO 2: Si es código master, ejecutar flujo master
+        if (isMasterCode) {
             App.log('[LOGIN] ✅ Código master válido! Continuando con flujo master...');
 
             // Obtener MASTER_HASH para usar en el filtro
@@ -296,23 +298,120 @@ async function tryLoginByCode(code) {
             return true;
         }
 
-        // normal
-        // ✅ CRÍTICO: Cargar cursos personalizados ANTES de validar (por si no están cargados)
-        // Esto asegura que cursos personalizados recién creados estén disponibles
+        // ✅ PASO 3: Si NO es código master, validar si es código de curso normal
+        // ✅ CRÍTICO: Asegurar que cursos personalizados estén cargados ANTES de validar
         if (App.hasRemote()) {
-            App.log('[LOGIN] Cargando cursos personalizados antes de validar...');
-            await App.refreshCustomCourses().catch(e => {
-                App.warn('[LOGIN] Error cargando cursos personalizados (continuando):', e);
-            });
+            // ✅ Si Firebase está disponible, el listener ya está cargando cursos en tiempo real
+            // Solo necesitamos esperar un momento para que termine de guardar en localStorage
+            if (App.getFirestoreDB()) {
+                App.log('[LOGIN] ⏳ Firebase activo, esperando 500ms para que listener guarde en localStorage...');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                App.log('[LOGIN] ✅ Esperado 500ms para listener de Firebase');
+            } else {
+                // ✅ Si NO hay Firebase, usar Google Sheets (JSONP)
+                App.log('[LOGIN] Cargando cursos personalizados desde Google Sheets...');
+                await App.refreshCustomCourses().catch(e => {
+                    App.warn('[LOGIN] Error cargando cursos personalizados (continuando):', e);
+                });
+                App.log('[LOGIN] ✅ Cursos cargados desde Google Sheets');
+            }
+        }
+
+        // ✅ DEBUG PROFUNDO: Verificar localStorage y loadCustomCourses ANTES de getMergedAccessHashMap
+        const customCoursesKey = 'edusalud_custom_courses';
+        const localData = localStorage.getItem(customCoursesKey);
+        App.log('[LOGIN] 🔍 DEBUG localStorage:');
+        App.log('[LOGIN]   - Existe:', localData ? 'SÍ' : 'NO');
+        if (localData) {
+            try {
+                const parsed = JSON.parse(localData);
+                App.log('[LOGIN]   - Cursos en localStorage:', Object.keys(parsed).length);
+                App.log('[LOGIN]   - Primeros 3 hashes:', Object.keys(parsed).slice(0, 3).map(k => k.substring(0, 12)));
+                App.log('[LOGIN]   - Test hex en localStorage:', hex in parsed ? '✅ SÍ' : '❌ NO');
+            } catch (e) {
+                App.error('[LOGIN]   - Error parseando localStorage:', e);
+            }
+        }
+
+        // ✅ DEBUG: Verificar loadCustomCourses
+        if (typeof App.loadCustomCourses === 'function') {
+            const loaded = App.loadCustomCourses();
+            App.log('[LOGIN] 🔍 DEBUG loadCustomCourses:');
+            App.log('[LOGIN]   - Cursos cargados:', Object.keys(loaded).length);
+            App.log('[LOGIN]   - Primeros 3 hashes:', Object.keys(loaded).slice(0, 3).map(k => k.substring(0, 12)));
+            App.log('[LOGIN]   - Test hex en loadCustomCourses:', hex in loaded ? '✅ SÍ' : '❌ NO');
         }
 
         // ✅ Obtener mergedMap DESPUÉS de cargar cursos personalizados
         const mergedMap = App.getMergedAccessHashMap();
-        App.log('[LOGIN] Validando código, cursos disponibles:', Object.keys(mergedMap).length);
-        App.log('[LOGIN] Hex a buscar:', hex.substring(0, 8) + '...');
+        App.log('[LOGIN] 📊 Validando código, cursos disponibles:', Object.keys(mergedMap).length);
+        App.log('[LOGIN] 🔍 Hex a buscar:', hex.substring(0, 8) + '...');
 
-        if (mergedMap && mergedMap[hex]) {
-            App.log('[LOGIN] ✅ Código válido encontrado en hashmap');
+        // ✅ DEBUG: Mostrar primeros 5 cursos en mergedMap
+        const coursesKeys = Object.keys(mergedMap).slice(0, 5);
+        App.log('[LOGIN] 📋 Primeros 5 cursos en mergedMap:', coursesKeys.map(k => k.substring(0, 8)));
+
+        // ✅ DEBUG: Verificar si el hex específico está en mergedMap
+        const hexExists = hex in mergedMap;
+        App.log('[LOGIN] ❓ Hex existe en mergedMap:', hexExists);
+
+        // ✅ DEBUG CRÍTICO: Ver el valor exacto de mergedMap[hex]
+        if (hexExists) {
+            App.log('[LOGIN] 🔍 Valor de mergedMap[hex]:', mergedMap[hex]);
+            App.log('[LOGIN] 🔍 Tipo de mergedMap[hex]:', typeof mergedMap[hex]);
+            App.log('[LOGIN] 🔍 mergedMap[hex] es truthy:', !!mergedMap[hex]);
+        }
+
+        // ✅ CRÍTICO: Usar 'in' operator en lugar de verificar valor truthy
+        // Esto es porque mergedMap[hex] podría ser un objeto vacío o algo que evalúa a false
+        if (mergedMap && (hex in mergedMap)) {
+            const courseData = mergedMap[hex];
+            
+            // ✅ NUEVA VALIDACIÓN: Verificar que el curso tenga datos válidos
+            // renderCourse() requiere al menos: data.title (sin fallback)
+            const hasValidData = !!(
+                courseData &&
+                typeof courseData === 'object' &&
+                Object.keys(courseData).length > 0 && // No puede ser {}
+                courseData.title &&                   // REQUERIDO: renderCourse usa data.title sin fallback
+                typeof courseData.title === 'string' &&
+                courseData.title.trim().length > 0
+            );
+            
+            if (!hasValidData) {
+                App.warn('[LOGIN] ⚠️ Hash encontrado pero curso sin datos válidos:', {
+                    hex: hex.substring(0, 8) + '...',
+                    courseData: courseData,
+                    isEmpty: Object.keys(courseData || {}).length === 0,
+                    hasTitle: !!(courseData && courseData.title),
+                    titleType: courseData ? typeof courseData.title : 'N/A',
+                    titleLength: courseData && courseData.title ? courseData.title.trim().length : 0
+                });
+                
+                msg.textContent = 'Código inválido. El curso asociado no tiene datos completos. Contacte al administrador.';
+                msg.classList.add('error');
+                App.recordAttempt();
+                App.maybeShowAttemptsWarning();
+                
+                // ✅ Google Analytics: Tracking de curso corrupto
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'login_error', {
+                        'event_category': 'authentication',
+                        'event_label': 'corrupt_course_data',
+                        'value': 1
+                    });
+                }
+                
+                return false;
+            }
+            
+            App.log('[LOGIN] ✅ Código válido encontrado con datos completos:', {
+                hex: hex.substring(0, 8) + '...',
+                title: courseData.title,
+                type: courseData.type || 'curso',
+                hasFiles: Array.isArray(courseData.files) && courseData.files.length > 0
+            });
+            
             // Mostrar loader inmediatamente
             App.showLoader();
 
@@ -340,10 +439,9 @@ async function tryLoginByCode(code) {
 
             // ✅ Google Analytics: Tracking login exitoso curso
             if (typeof gtag !== 'undefined') {
-                const courseData = mergedMap[hex];
                 gtag('event', 'login_success_course', {
                     'event_category': 'authentication',
-                    'event_label': courseData.card?.tag || 'unknown'
+                    'event_label': courseData.card?.tag || courseData.title || 'unknown'
                 });
             }
 
@@ -468,16 +566,13 @@ async function tryLoginByEmail() {
     }
 
     // ✅ Rate limiting: prevenir ataques de fuerza bruta
-    // if (!App.checkRateLimitSimple('login')) {
-    //     console.warn('[AUTH] Rate limit excedido para login');
-    //     return false;
-    // }
+    if (!App.checkRateLimitSimple('login')) {
+        return false;
+    }
 
     // ✅ Sanitizar inputs
     const email = App.getSafeInputValue('#input-email', 'email');
     const password = App.getSafeInputValue('#input-password', 'password'); // Password no se sanitiza
-
-    App.log('[AUTH] Intentando login con:', email);
 
     if (!email || !password) {
         showAuthMessage('msg-auth', 'Por favor, completa todos los campos.', true);
@@ -494,18 +589,12 @@ async function tryLoginByEmail() {
     showAuthMessage('msg-auth', 'Iniciando sesión…', false);
 
     try {
-        App.log('[AUTH] Verificando objeto firebaseAuth:', window.firebaseAuth);
-
         if (!window.firebaseAuth) {
-            console.error('[AUTH] window.firebaseAuth es undefined/null');
             showAuthMessage('msg-auth', 'Firebase Authentication no está disponible. Por favor, espere unos segundos e intente nuevamente.', true);
             return false;
         }
 
-        App.log('[AUTH] Llamando a signInWithEmailAndPassword...');
         const userCredential = await window.firebaseAuth.signInWithEmailAndPassword(email, password);
-        App.log('[AUTH] signInWithEmailAndPassword retornó:', userCredential);
-
         const user = userCredential.user;
         const userEmail = user.email.toLowerCase().trim();
 
@@ -592,7 +681,7 @@ async function tryLoginByEmail() {
             errorCode: error.code || 'unknown'
         }, email, false); // No enviar a Firebase para evitar spam
 
-        // ✅ Manejar errores específicos
+        // ✅ Manejar el código nuevo de Firebase que combina user-not-found y wrong-password
         if (error.code === 'auth/invalid-login-credentials' ||
             error.code === 'auth/user-not-found' ||
             error.code === 'auth/wrong-password') {
@@ -608,19 +697,6 @@ async function tryLoginByEmail() {
             errorMessage = 'Demasiados intentos fallidos. Intenta más tarde.';
         } else if (error.code === 'auth/network-request-failed') {
             errorMessage = 'Error de conexión. Verifica tu internet e intenta nuevamente.';
-        } else if (error.message && error.message.includes('permission_denied')) {
-            // ✅ ERROR DE PERMISOS: El usuario se autenticó pero no puede leer la BD
-            console.warn('[AUTH] ⚠️ Usuario autenticado pero sin permisos de lectura (permission_denied)');
-
-            // Intentar ver si es un problema de reglas de seguridad para un usuario nuevo
-            // Asumimos que si entró, es un usuario válido, pero tal vez sus permisos no se han propagado
-            // O es un usuario que no tiene cursos asignados y las reglas bloquean la lectura
-
-            showAuthMessage('msg-auth', 'Sesión iniciada, pero no tienes cursos asignados o permisos suficientes.', true);
-
-            // Opcional: Cerrar sesión para no dejarlo en un estado limbo
-            // await logoutFirebase(); 
-            return false;
         } else {
             // ✅ Mensaje genérico sin mencionar Firebase
             errorMessage = 'No se pudo iniciar sesión. Verifica tus credenciales e intenta nuevamente.';
@@ -1152,6 +1228,11 @@ async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
 // ✅ Función para logout de Firebase
 async function logoutFirebase() {
     try {
+        // ✅ Detener listeners de Firebase antes de salir para evitar errores de permisos
+        if (typeof window.stopFirestoreRealtime === 'function') {
+            window.stopFirestoreRealtime();
+        }
+
         if (window.firebaseAuth) {
             await window.firebaseAuth.signOut();
             App.log('[AUTH] ✅ Logout exitoso');
