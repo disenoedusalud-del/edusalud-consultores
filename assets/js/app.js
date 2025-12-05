@@ -3850,26 +3850,25 @@ async function remoteGetCourses() {
       }, 10000);
 
       script.onerror = (error) => {
-        // ⚠️ NO marcar como resuelto inmediatamente - esperar un poco por si el callback se ejecuta
-        // Esto puede pasar si Google Apps Script devuelve un error HTTP pero luego ejecuta el callback
+        // ⚠️ NO marcar como resuelto inmediatamente - esperar más tiempo por si el callback se ejecuta
+        // El JSONP funciona cuando se abre directamente, así que el problema puede ser timing
         setTimeout(() => {
-          if (resolved) return;
+          if (resolved) {
+            log('[COURSE GET] ✅ Callback se ejecutó después del error (falso positivo)');
+            return;
+          }
           resolved = true;
           clearTimeout(timeout);
           console.error('[COURSE GET] ❌ Error cargando cursos remotos (después de esperar callback)');
-          console.error('[COURSE GET] URL que falló:', url.substring(0, 200) + '...');
+          console.error('[COURSE GET] URL que falló:', url.substring(0, 250));
+          console.error('[COURSE GET] Callback esperado:', callbackName);
+          console.error('[COURSE GET] ¿Callback existe en window?:', typeof window[callbackName] !== 'undefined' ? 'SÍ' : 'NO');
           console.error('[COURSE GET] Token usado:', token ? token.substring(0, 20) + '...' : 'NO HAY TOKEN');
-          warn('[COURSE GET] ⚠️ Esto puede ser porque:');
-          warn('[COURSE GET]   1. Google Apps Script rechazó la petición (token inválido o no configurado)');
-          warn('[COURSE GET]   2. La URL de Google Apps Script no es correcta');
-          warn('[COURSE GET]   3. Hay un problema de CORS o red');
-          warn('[COURSE GET] ⚠️ SOLUCIÓN: Verifica en Google Apps Script:');
-          warn('[COURSE GET]   - Ejecuta getStoredToken() para verificar que el token esté guardado');
-          warn('[COURSE GET]   - Si no hay token, ejecuta setupSecretToken()');
-          warn('[COURSE GET]   - Verifica que el token sea: GAS_SECRET_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6');
+          warn('[COURSE GET] ⚠️ El script.onerror se ejecutó pero la URL funciona directamente');
+          warn('[COURSE GET] ⚠️ Esto puede ser un problema de timing o de ejecución del callback');
           cleanup();
           resolve({});
-        }, 2000); // Esperar 2 segundos por si el callback se ejecuta
+        }, 5000); // Aumentar a 5 segundos para dar más tiempo
       };
 
       // ✅ Agregar script DESPUÉS de registrar callback
@@ -3882,6 +3881,15 @@ async function remoteGetCourses() {
         log('[COURSE GET] ✅ Script cargado correctamente');
       };
       
+      // ✅ Verificar que el callback esté registrado antes de agregar el script
+      if (typeof window[callbackName] !== 'function') {
+        console.error('[COURSE GET] ❌ ERROR: Callback no está registrado antes de agregar script');
+        cleanup();
+        resolve({});
+        return;
+      }
+      
+      log('[COURSE GET] ✅ Callback verificado, agregando script al DOM...');
       document.body.appendChild(script);
     });
   } catch (e) {
