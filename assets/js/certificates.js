@@ -20,6 +20,17 @@ let certConfig = {
 
 // ===== FUNCIONES DE CONFIGURACIÓN =====
 
+// ✅ Helper para obtener ID Token de Firebase para autenticación con GAS
+async function getFirebaseIdToken(forceRefresh = true) {
+  const user = firebase.auth().currentUser;
+  if (!user) {
+    throw new Error('[GAS] No hay usuario autenticado. No se puede obtener el ID Token.');
+  }
+  const token = await user.getIdToken(forceRefresh);
+  console.log('[GAS] ID Token obtenido (recortado):', token.substring(0, 10) + '...');
+  return token;
+}
+
 function loadCertConfig() {
   try {
     const saved = localStorage.getItem(CERT_CONFIG_KEY);
@@ -166,7 +177,16 @@ async function testScriptConnection() {
   }
   
   try {
-    const testUrl = `${certConfig.scriptWebAppUrl}?action=test`;
+    let testUrl = `${certConfig.scriptWebAppUrl}?action=test`;
+    
+    // ✅ Agregar token de autenticación si está disponible
+    try {
+      const idToken = await getFirebaseIdToken(true);
+      testUrl += '&idToken=' + encodeURIComponent(idToken);
+    } catch (e) {
+      console.warn('[CERT] No se pudo obtener token, continuando sin autenticación:', e);
+    }
+    
     console.log('[CERT] 🧪 Probando conexión:', testUrl);
     
     const response = await fetch(testUrl, {
@@ -225,7 +245,16 @@ async function listGoogleResources(type) {
   if (!validateCertConfig()) return [];
   
   try {
-    const url = `${certConfig.scriptWebAppUrl}?action=list${type}`;
+    let url = `${certConfig.scriptWebAppUrl}?action=list${type}`;
+    
+    // ✅ Agregar token de autenticación si está disponible
+    try {
+      const idToken = await getFirebaseIdToken(true);
+      url += '&idToken=' + encodeURIComponent(idToken);
+    } catch (e) {
+      console.warn('[CERT] No se pudo obtener token, continuando sin autenticación:', e);
+    }
+    
     console.log('[CERT] 🔗 Conectando a:', url);
     
     const response = await fetch(url, {
@@ -405,15 +434,26 @@ async function createNewSheet() {
   
   try {
     console.log('[CERT] 🔗 Creando hoja:', name);
+    
+    // ✅ Preparar headers con token de autenticación
+    let headers = { 
+      'Content-Type': 'text/plain'  // ✅ Solo text/plain para evitar preflight CORS
+    };
+    
+    try {
+      const idToken = await getFirebaseIdToken(true);
+      headers['Authorization'] = 'Bearer ' + idToken;
+    } catch (e) {
+      console.warn('[CERT] No se pudo obtener token, continuando sin autenticación:', e);
+    }
+    
     const response = await fetch(certConfig.scriptWebAppUrl, {
       method: 'POST',
       mode: 'cors',
       cache: 'no-cache',
       redirect: 'follow',
       credentials: 'omit',
-      headers: { 
-        'Content-Type': 'text/plain'  // ✅ Solo text/plain para evitar preflight CORS
-      },
+      headers: headers,
       body: JSON.stringify({
         action: 'createSheet',
         params: { 
@@ -474,15 +514,26 @@ async function createNewFolder(folderType) {
   
   try {
     console.log('[CERT] 🔗 Creando carpeta:', name);
+    
+    // ✅ Preparar headers con token de autenticación
+    let headers = { 
+      'Content-Type': 'text/plain'  // ✅ Solo text/plain para evitar preflight CORS
+    };
+    
+    try {
+      const idToken = await getFirebaseIdToken(true);
+      headers['Authorization'] = 'Bearer ' + idToken;
+    } catch (e) {
+      console.warn('[CERT] No se pudo obtener token, continuando sin autenticación:', e);
+    }
+    
     const response = await fetch(certConfig.scriptWebAppUrl, {
       method: 'POST',
       mode: 'cors',
       cache: 'no-cache',
       redirect: 'follow',
       credentials: 'omit',
-      headers: { 
-        'Content-Type': 'text/plain'  // ✅ Solo text/plain para evitar preflight CORS
-      },
+      headers: headers,
       body: JSON.stringify({
         action: 'createFolder',
         params: { name }
@@ -730,15 +781,25 @@ async function generatePDFs() {
     
     console.log('[CERT] Body a enviar:', JSON.stringify(requestBody));
     
+    // ✅ Preparar headers con token de autenticación
+    let headers = { 
+      'Content-Type': 'text/plain'  // ✅ Solo text/plain para evitar preflight CORS
+    };
+    
+    try {
+      const idToken = await getFirebaseIdToken(true);
+      headers['Authorization'] = 'Bearer ' + idToken;
+    } catch (e) {
+      console.warn('[CERT] No se pudo obtener token, continuando sin autenticación:', e);
+    }
+    
     const response = await fetch(certConfig.scriptWebAppUrl, {
       method: 'POST',
       mode: 'cors',
       cache: 'no-cache',
       redirect: 'follow',
       credentials: 'omit',
-      headers: { 
-        'Content-Type': 'text/plain'  // ✅ Solo text/plain para evitar preflight CORS
-      },
+      headers: headers,
       body: JSON.stringify(requestBody)
     });
     
@@ -959,15 +1020,25 @@ async function generateLinks() {
       whatsappMessage: certConfig.whatsappMessage ? 'Personalizado' : 'Por defecto'
     });
     
+    // ✅ Preparar headers con token de autenticación
+    let headers = { 
+      'Content-Type': 'text/plain'  // ✅ Solo text/plain para evitar preflight CORS
+    };
+    
+    try {
+      const idToken = await getFirebaseIdToken(true);
+      headers['Authorization'] = 'Bearer ' + idToken;
+    } catch (e) {
+      console.warn('[CERT] No se pudo obtener token, continuando sin autenticación:', e);
+    }
+    
     const response = await fetch(certConfig.scriptWebAppUrl, {
       method: 'POST',
       mode: 'cors',
       cache: 'no-cache',
       redirect: 'follow',
       credentials: 'omit',
-      headers: { 
-        'Content-Type': 'text/plain'  // ✅ Solo text/plain para evitar preflight CORS
-      },
+      headers: headers,
       body: JSON.stringify({
         action: 'generateLinks',
         params: {
