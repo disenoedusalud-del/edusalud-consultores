@@ -1464,8 +1464,18 @@ window.eliminarLinkFirebase = async function (courseHex, firebaseId) {
 log('[FIRESTORE] ✅ Funciones Firebase registradas globalmente');
 
 /* ============ sincronización remota (opcional) ============ */
-const REMOTE_BASE_URL = 'https://script.google.com/macros/s/AKfycbwcpxFztXhNzzSxPKpOcVxHXRBXVAjIT10aHvtIb-AU-sYqQGAowNwyUf0Bd0sm5-8c/exec';
-function hasRemote() { return typeof REMOTE_BASE_URL === 'string' && REMOTE_BASE_URL.startsWith('http'); }
+// ✅ REMOTE_BASE_URL y hasRemote() ahora están en data-service.js
+// Usar las funciones de window (desde data-service.js) directamente
+// NO redeclarar REMOTE_BASE_URL - usar window.REMOTE_BASE_URL directamente
+// Función helper para obtener REMOTE_BASE_URL de forma segura
+function getRemoteBaseUrl() {
+  return window.REMOTE_BASE_URL || 'https://script.google.com/macros/s/AKfycbwcpxFztXhNzzSxPKpOcVxHXRBXVAjIT10aHvtIb-AU-sYqQGAowNwyUf0Bd0sm5-8c/exec';
+}
+// Usar window.hasRemote si está disponible, sino crear función local
+const hasRemote = window.hasRemote || (() => {
+  const url = getRemoteBaseUrl();
+  return typeof url === 'string' && url.startsWith('http');
+});
 function stableStringify(obj) { try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 
 // ✅ Helper global para obtener el ID Token actual de Firebase
@@ -1505,7 +1515,7 @@ async function remoteGetFiles(hex) {
 
   // Intentar primero con fetch (puede funcionar si el servidor tiene CORS habilitado)
   try {
-    let url = REMOTE_BASE_URL + '?hex=' + encodeURIComponent(hex);
+    let url = getRemoteBaseUrl() + '?hex=' + encodeURIComponent(hex);
     if (token) {
       url += '&token=' + encodeURIComponent(token);
     }
@@ -1547,7 +1557,7 @@ async function testWebAppResponse(hex) {
   // Obtener token de autenticación
   const token = await getAuthToken();
   // 🛡️ Cache-buster
-  let testUrl = REMOTE_BASE_URL
+  let testUrl = getRemoteBaseUrl()
     + '?hex=' + encodeURIComponent(hex)
     + '&callback=test_callback'
     + '&ts=' + Date.now();
@@ -1691,7 +1701,7 @@ async function remoteSaveFiles(hex, files) {
     const filesJson = JSON.stringify(Array.isArray(files) ? files : []);
     log('[SAVE] Enviando a remoto - hex:', hex.substring(0, 8), 'archivos:', files.length);
     log('[SAVE] Datos a guardar:', filesJson.substring(0, 100) + '...');
-    log('[SAVE] URL remoto:', REMOTE_BASE_URL);
+    log('[SAVE] URL remoto:', getRemoteBaseUrl());
 
     // ✅ Validar que tenemos los datos necesarios
     if (!hex || !filesJson) {
@@ -1707,7 +1717,7 @@ async function remoteSaveFiles(hex, files) {
 
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = REMOTE_BASE_URL;
+    form.action = getRemoteBaseUrl();
     form.target = iframe.name;
     form.enctype = 'application/x-www-form-urlencoded';
 
@@ -1737,7 +1747,7 @@ async function remoteSaveFiles(hex, files) {
 
     log('[SAVE] Formulario creado, enviando...');
     form.submit();
-    log('[SAVE] ✅ Formulario enviado a:', REMOTE_BASE_URL);
+    log('[SAVE] ✅ Formulario enviado a:', getRemoteBaseUrl());
 
     // Limpiar después de un breve delay
     setTimeout(() => {
@@ -1799,7 +1809,7 @@ async function remoteSaveCourse(hex, courseData) {
     const courseJson = JSON.stringify(courseData);
     log('[COURSE SAVE] Enviando curso a remoto - hex:', hex.substring(0, 8));
     log('[COURSE SAVE] Datos del curso:', courseJson.substring(0, 100) + '...');
-    log('[COURSE SAVE] URL remoto:', REMOTE_BASE_URL);
+    log('[COURSE SAVE] URL remoto:', getRemoteBaseUrl());
 
     // ✅ Validar que tenemos los datos necesarios
     if (!hex || !courseJson || courseJson === '{}') {
@@ -1814,7 +1824,7 @@ async function remoteSaveCourse(hex, courseData) {
 
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = REMOTE_BASE_URL;
+    form.action = getRemoteBaseUrl();
     form.target = iframe.name;
     form.enctype = 'application/x-www-form-urlencoded'; // ✅ Agregar enctype
 
@@ -1893,7 +1903,7 @@ async function remoteDeleteCourse(hex) {
 
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = REMOTE_BASE_URL;
+    form.action = getRemoteBaseUrl();
     form.target = 'hiddenFrameCourseDel';
 
     const hexInput = document.createElement('input');
@@ -1921,7 +1931,7 @@ async function remoteDeleteCourse(hex) {
     document.body.appendChild(form);
 
     form.submit();
-    log('[COURSE DELETE] ✅ Formulario de eliminación enviado a:', REMOTE_BASE_URL);
+    log('[COURSE DELETE] ✅ Formulario de eliminación enviado a:', getRemoteBaseUrl());
 
     // ✅ Limpiar formulario después de enviar
     setTimeout(() => {
@@ -1967,7 +1977,7 @@ async function remoteDeleteFiles(hex) {
 
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = REMOTE_BASE_URL;
+    form.action = getRemoteBaseUrl();
     form.target = iframe.name;
 
     const hexInput = document.createElement('input');
@@ -1995,7 +2005,7 @@ async function remoteDeleteFiles(hex) {
     document.body.appendChild(form);
 
     form.submit();
-    log('[FILES DELETE] ✅ Formulario de eliminación de links enviado a:', REMOTE_BASE_URL);
+    log('[FILES DELETE] ✅ Formulario de eliminación de links enviado a:', getRemoteBaseUrl());
 
     // ✅ Limpiar formulario después de enviar
     setTimeout(() => {
@@ -4736,7 +4746,7 @@ function startPeriodicRefresh(currentHex = null) {
   // ✅ Debug: verificar hasRemote
   const remoteAvailable = hasRemote();
   log('[PERIODIC] hasRemote():', remoteAvailable);
-  log('[PERIODIC] REMOTE_BASE_URL:', typeof REMOTE_BASE_URL !== 'undefined' ? REMOTE_BASE_URL : 'UNDEFINED');
+  log('[PERIODIC] REMOTE_BASE_URL:', getRemoteBaseUrl());
 
   if (!remoteAvailable) {
     warn('[PERIODIC] ⚠️ No se puede iniciar: REMOTE_BASE_URL no disponible');
@@ -11737,7 +11747,7 @@ window.testJSONP = async function (hex) {
   return new Promise((resolve) => {
     const callbackName = 'test_callback_' + Date.now();
     const script = document.createElement('script');
-    let testUrl = REMOTE_BASE_URL
+    let testUrl = getRemoteBaseUrl()
       + '?hex=' + encodeURIComponent(hex)
       + '&callback=' + callbackName
       + '&ts=' + Date.now();
