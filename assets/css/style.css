@@ -3194,3 +3194,25 @@ img[loading="lazy"].loaded {
   max-width: 100%;
   box-sizing: border-box;
 }
+
+/* ✅ Fix específico para el input del código master */
+.auth-form .row {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.auth-form .row .input {
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.auth-form .row .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
