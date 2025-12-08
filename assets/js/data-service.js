@@ -663,5 +663,6 @@ window.refreshCustomCourses = refreshCustomCourses;
 window.loadRemoteCoursesOnInit = loadRemoteCoursesOnInit;
 window.hasRemote = hasRemote;
 window.getAuthToken = getAuthToken;
-// REMOTE_BASE_URL se expone a través del namespace, no directamente para evitar conflictos
+// ✅ Exponer REMOTE_BASE_URL en window para que app.js pueda usarlo
+window.REMOTE_BASE_URL = REMOTE_BASE_URL;
 
