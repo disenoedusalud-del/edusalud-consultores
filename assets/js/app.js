@@ -1471,11 +1471,17 @@ log('[FIRESTORE] ✅ Funciones Firebase registradas globalmente');
 function getRemoteBaseUrl() {
   return window.REMOTE_BASE_URL || 'https://script.google.com/macros/s/AKfycbwcpxFztXhNzzSxPKpOcVxHXRBXVAjIT10aHvtIb-AU-sYqQGAowNwyUf0Bd0sm5-8c/exec';
 }
-// Usar window.hasRemote si está disponible, sino crear función local
-const hasRemote = window.hasRemote || (() => {
+// ✅ hasRemote() ahora está en data-service.js
+// NO redeclarar hasRemote - usar window.hasRemote directamente
+// Función helper para usar hasRemote de forma segura
+function getHasRemote() {
+  if (typeof window.hasRemote === 'function') {
+    return window.hasRemote();
+  }
+  // Fallback si data-service.js no está cargado
   const url = getRemoteBaseUrl();
   return typeof url === 'string' && url.startsWith('http');
-});
+}
 function stableStringify(obj) { try { return JSON.stringify(obj || []); } catch { return '[]'; } }
 
 // ✅ Helper global para obtener el ID Token actual de Firebase
@@ -1504,7 +1510,7 @@ async function getAuthToken(forceRefresh = true) {
 }
 
 async function remoteGetFiles(hex) {
-  if (!hasRemote()) return null;
+  if (!getHasRemote()) return null;
   log('[GET] Iniciando para hex:', hex.substring(0, 8));
 
   // Obtener token de autenticación
@@ -1693,7 +1699,7 @@ function remoteGetFilesJSONP(hex, token = null) {
   });
 }
 async function remoteSaveFiles(hex, files) {
-  if (!hasRemote()) {
+  if (!getHasRemote()) {
     warn('[SAVE] ⚠️ No hay remoto configurado');
     return false;
   }
@@ -1801,7 +1807,7 @@ async function refreshFromRemote(hex, context) {
 
 // ===== Sincronización remota de cursos personalizados =====
 async function remoteSaveCourse(hex, courseData) {
-  if (!hasRemote()) {
+  if (!getHasRemote()) {
     warn('[COURSE SAVE] ⚠️ No hay remoto configurado');
     return false;
   }
@@ -1892,7 +1898,7 @@ async function remoteSaveCourse(hex, courseData) {
 }
 
 async function remoteDeleteCourse(hex) {
-  if (!hasRemote()) return false;
+  if (!getHasRemote()) return false;
   try {
     log('[COURSE DELETE] Eliminando curso remoto - hex:', hex.substring(0, 8));
 
@@ -1966,7 +1972,7 @@ async function remoteDeleteCourse(hex) {
 }
 
 async function remoteDeleteFiles(hex) {
-  if (!hasRemote()) return false;
+  if (!getHasRemote()) return false;
   try {
     log('[FILES DELETE] Eliminando links de la hoja de overrides - hex:', hex.substring(0, 8));
 
@@ -2025,7 +2031,7 @@ async function remoteDeleteFiles(hex) {
 }
 
 async function remoteGetCourses() {
-  if (!hasRemote()) return {};
+  if (!getHasRemote()) return {};
   try {
     log('[COURSE GET] Obteniendo cursos remotos...');
 
@@ -2160,7 +2166,7 @@ async function refreshCustomCourses() {
     endPerformanceMeasure('Sincronización', syncStart, { metodo: 'Firebase' });
     return false;
   }
-  if (!hasRemote()) {
+  if (!getHasRemote()) {
     log('[REFRESH] Sin remoto, saltando...');
     endPerformanceMeasure('Sincronización', syncStart, { metodo: 'Sin remoto' });
     return false;
@@ -4744,7 +4750,7 @@ function startPeriodicRefresh(currentHex = null) {
   stopPeriodicRefresh();
 
   // ✅ Debug: verificar hasRemote
-  const remoteAvailable = hasRemote();
+  const remoteAvailable = getHasRemote();
   log('[PERIODIC] hasRemote():', remoteAvailable);
   log('[PERIODIC] REMOTE_BASE_URL:', getRemoteBaseUrl());
 
@@ -4963,7 +4969,7 @@ function showMaster() {
   // ✅ Lista de correos autorizados eliminada (ahora se gestiona por curso)
 
   // Refresh inmediato adicional para limpiar datos obsoletos al abrir
-  if (hasRemote()) {
+  if (getHasRemote()) {
     setTimeout(async () => {
       // ✅ Verificar si hay un input enfocado O un formulario de edición abierto
       const activeElement = document.activeElement;
@@ -5505,7 +5511,7 @@ function buildUserGrid() {
 
       showLoader();
 
-      if (hasRemote()) {
+      if (getHasRemote()) {
         await refreshFromRemoteSilent(hex).catch(e => {
           warn('[SYNC] Error en refresh:', e);
           return false;
@@ -5766,7 +5772,7 @@ function buildMasterGrid() {
       showLoader();
 
       // ✅ NUEVO: Esperar a que termine el refresh ANTES de cerrar el loader
-      if (hasRemote()) {
+      if (getHasRemote()) {
         log('[SYNC] Iniciando refresh antes del loader...');
         await refreshFromRemoteSilent(hex).catch(e => {
           warn('[SYNC] Error en refresh:', e);
