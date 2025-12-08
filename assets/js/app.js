@@ -699,6 +699,8 @@ async function addCustomCourse(hex, courseData) {
   clearFilesOverride(hex);
   log('[ADD COURSE] 🧹 localStorage de links limpiado para curso nuevo');
 
+  // ✅ Intentar guardar en Firebase (pero no bloquear si falla)
+  let firebaseSuccess = false;
   const db = getFirestoreDB();
   if (db) {
     try {
@@ -721,23 +723,26 @@ async function addCustomCourse(hex, courseData) {
       };
       await db.ref(`customCourses/${hex}`).set(firebasePayload);
       log('[ADD COURSE] ✅ Curso guardado en Firebase Realtime Database');
-      if (typeof window.showToast === 'function') {
-        window.showToast('success', 'Curso creado', `"${courseData.card?.tag || 'Curso'}" creado exitosamente`);
-      }
+      firebaseSuccess = true;
     } catch (error) {
       trackError(error, {
         operation: 'addCourse',
         source: 'Firebase',
         courseHex: hex
       });
-      if (typeof window.showToast === 'function') {
-        window.showToast('error', 'Error', 'Error guardando curso en Firebase. El curso quedó solo localmente.');
-      } else {
-        alert('⚠️ Error guardando curso en Firebase. El curso quedó solo localmente.');
-      }
+      warn('[ADD COURSE] ⚠️ Error guardando en Firebase (continuando con almacenamiento local):', error);
     }
   } else {
     warn('[ADD COURSE] ⚠️ Firebase no disponible, usando solo almacenamiento local');
+  }
+
+  // ✅ Mostrar notificación de éxito (el curso ya está guardado localmente)
+  if (typeof window.showToast === 'function') {
+    if (firebaseSuccess) {
+      window.showToast('success', 'Curso creado', `"${courseData.card?.tag || 'Curso'}" creado exitosamente`);
+    } else {
+      window.showToast('success', 'Curso creado', `"${courseData.card?.tag || 'Curso'}" creado (almacenado localmente)`);
+    }
   }
 
   const saveResult = await remoteSaveCourse(hex, normalizedCourse).catch(e => {
@@ -871,6 +876,12 @@ async function removeCustomCourse(hex) {
   delete custom[hex];
   saveCustomCourses(custom);
 
+  // ✅ Limpiar localStorage de todas formas (siempre se elimina localmente)
+  clearFilesOverride(hex);
+  log('[DELETE COURSE] ✅ Links eliminados de localStorage');
+
+  // ✅ Intentar eliminar de Firebase (pero no bloquear si falla)
+  let firebaseSuccess = false;
   const db = getFirestoreDB();
   if (db) {
     try {
@@ -881,24 +892,20 @@ async function removeCustomCourse(hex) {
       // ✅ Eliminar también todos los links asociados al curso
       await db.ref(`courses/${hex}/links`).remove();
       log('[DELETE COURSE] ✅ Links del curso eliminados de Firebase');
-
-      // ✅ Limpiar también localStorage de los links
-      clearFilesOverride(hex);
-      log('[DELETE COURSE] ✅ Links eliminados de localStorage');
-
-      // ✅ Notificación de eliminación
-      if (typeof window.showToast === 'function') {
-        window.showToast('info', 'Curso eliminado', `"${deletedCourse.title || 'Curso'}" ha sido eliminado`);
-      }
+      firebaseSuccess = true;
     } catch (error) {
-      console.error('[DELETE COURSE] ❌ Error eliminando curso en Firebase:', error);
-      if (typeof window.showToast === 'function') {
-        window.showToast('error', 'Error', 'Error al eliminar curso en Firebase');
-      }
+      console.error('[DELETE COURSE] ⚠️ Error eliminando curso en Firebase (continuando):', error);
+      warn('[DELETE COURSE] ⚠️ El curso fue eliminado localmente, pero hubo un error en Firebase');
     }
-  } else {
-    // Si no hay Firebase, limpiar localStorage de todas formas
-    clearFilesOverride(hex);
+  }
+
+  // ✅ Mostrar notificación de éxito (el curso ya está eliminado localmente)
+  if (typeof window.showToast === 'function') {
+    if (firebaseSuccess) {
+      window.showToast('info', 'Curso eliminado', `"${deletedCourse.title || 'Curso'}" ha sido eliminado`);
+    } else {
+      window.showToast('info', 'Curso eliminado', `"${deletedCourse.title || 'Curso'}" eliminado (localmente)`);
+    }
   }
 
   // ✅ Eliminar curso de Google Sheets
