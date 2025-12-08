@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sin Conexión - EduSalud</title>
+  <link rel="icon" type="image/png" href="assets/logo-edusalud.png" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #fff;
+    }
+    
+    .offline-container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      color: #333;
+    }
+    
+    .offline-icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.1); }
+    }
+    
+    h1 {
+      font-size: 32px;
+      margin-bottom: 16px;
+      color: #667eea;
+    }
+    
+    p {
+      font-size: 18px;
+      line-height: 1.6;
+      margin-bottom: 30px;
+      color: #666;
+    }
+    
+    .courses-list {
+      background: #f5f5f5;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 30px 0;
+      text-align: left;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .courses-list h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+      color: #333;
+      text-align: center;
+    }
+    
+    .course-item {
+      background: white;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .course-item:hover {
+      transform: translateX(4px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .course-item strong {
+      display: block;
+      color: #333;
+      margin-bottom: 4px;
+    }
+    
+    .course-item .meta {
+      font-size: 14px;
+      color: #666;
+    }
+    
+    .retry-button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 14px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 20px;
+    }
+    
+    .retry-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .retry-button:active {
+      transform: translateY(0);
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+      background: #ff6b6b;
+      animation: blink 1s infinite;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    
+    .status-indicator.online {
+      background: #51cf66;
+      animation: none;
+    }
+    
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 20px;
+      text-align: left;
+    }
+    
+    .info-box strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #1976d2;
+    }
+    
+    .info-box ul {
+      margin-left: 20px;
+      color: #555;
+    }
+    
+    .info-box li {
+      margin-bottom: 4px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+    }
+    
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-container">
+    <div class="offline-icon">📡</div>
+    <h1>Sin Conexión a Internet</h1>
+    <p>
+      <span class="status-indicator" id="statusIndicator"></span>
+      No hay conexión a Internet en este momento.
+    </p>
+    
+    <div class="courses-list" id="coursesList">
+      <h2>📚 Cursos Disponibles Offline</h2>
+      <div id="coursesContent">
+        <div class="empty-state">
+          <div class="empty-state-icon">📖</div>
+          <p>Cargando cursos cacheados...</p>
+        </div>
+      </div>
+    </div>
+    
+    <button class="retry-button" id="retryButton" onclick="window.location.reload()">
+      🔄 Reintentar Conexión
+    </button>
+    
+    <div class="info-box">
+      <strong>💡 Información:</strong>
+      <ul>
+        <li>Puedes ver los cursos que ya has visitado anteriormente</li>
+        <li>Los archivos descargados están disponibles</li>
+        <li>La plataforma se sincronizará automáticamente cuando recuperes la conexión</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Detectar estado de conexión
+    function updateConnectionStatus() {
+      const indicator = document.getElementById('statusIndicator');
+      const retryButton = document.getElementById('retryButton');
+      
+      if (navigator.onLine) {
+        indicator.classList.add('online');
+        retryButton.textContent = '✅ Conectado - Volver a la Plataforma';
+        retryButton.onclick = () => window.location.href = '/';
+        // Redirigir automáticamente después de 2 segundos si está online
+        setTimeout(() => {
+          if (navigator.onLine) {
+            window.location.href = '/';
+          }
+        }, 2000);
+      } else {
+        indicator.classList.remove('online');
+        retryButton.textContent = '🔄 Reintentar Conexión';
+        retryButton.onclick = () => window.location.reload();
+      }
+    }
+    
+    // Escuchar cambios de conexión
+    window.addEventListener('online', () => {
+      updateConnectionStatus();
+      console.log('[OFFLINE] ✅ Conexión restaurada');
+    });
+    
+    window.addEventListener('offline', () => {
+      updateConnectionStatus();
+      console.log('[OFFLINE] ❌ Conexión perdida');
+    });
+    
+    // Cargar cursos cacheados desde localStorage
+    function loadCachedCourses() {
+      try {
+        const coursesKey = 'edusalud_custom_courses';
+        const coursesData = localStorage.getItem(coursesKey);
+        
+        if (!coursesData) {
+          document.getElementById('coursesContent').innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">📭</div>
+              <p>No hay cursos cacheados disponibles</p>
+              <p style="font-size: 14px; margin-top: 8px;">Visita la plataforma con conexión para cachear cursos</p>
+            </div>
+          `;
+          return;
+        }
+        
+        const courses = JSON.parse(coursesData);
+        const courseKeys = Object.keys(courses);
+        
+        if (courseKeys.length === 0) {
+          document.getElementById('coursesContent').innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">📭</div>
+              <p>No hay cursos cacheados disponibles</p>
+            </div>
+          `;
+          return;
+        }
+        
+        // Ordenar cursos por título
+        const sortedCourses = courseKeys
+          .map(key => ({ hex: key, ...courses[key] }))
+          .sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+        
+        const coursesHTML = sortedCourses.map(course => `
+          <div class="course-item" onclick="viewCourse('${course.hex}')">
+            <strong>${escapeHTML(course.title || 'Curso sin título')}</strong>
+            <div class="meta">${escapeHTML(course.meta || 'Sin descripción')}</div>
+          </div>
+        `).join('');
+        
+        document.getElementById('coursesContent').innerHTML = coursesHTML;
+      } catch (error) {
+        console.error('[OFFLINE] Error cargando cursos:', error);
+        document.getElementById('coursesContent').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">⚠️</div>
+            <p>Error al cargar cursos cacheados</p>
+          </div>
+        `;
+      }
+    }
+    
+    function escapeHTML(str) {
+      if (typeof str !== 'string') return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+    
+    function viewCourse(hex) {
+      // Intentar abrir el curso en la plataforma principal
+      // Si está offline, mostrar mensaje
+      if (!navigator.onLine) {
+        alert('Necesitas conexión a Internet para ver los detalles del curso. Los archivos descargados previamente están disponibles en tu dispositivo.');
+        return;
+      }
+      window.location.href = `/?course=${hex}`;
+    }
+    
+    // Inicializar
+    updateConnectionStatus();
+    loadCachedCourses();
+    
+    // Verificar conexión periódicamente
+    setInterval(updateConnectionStatus, 3000);
+  </script>
+</body>
+</html>
+

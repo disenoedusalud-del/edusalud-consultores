@@ -1,0 +1,83 @@
+Revisando las tareas pendientes:
+Buscando información sobre las tareas pendientes mencionadas anteriormente:
+Informe de tareas pendientes — EduSalud Platform
+Resumen ejecutivo
+Fase 1 (Seguridad y autenticación): completada
+Fase 2 (Modularización): pendiente
+Fase 3 (Limpieza): pendiente
+Fase 4 (UX/Offline): pendiente
+Fase 1: Seguridad y autenticación — completada
+Completado hoy
+Cloud Function validateMasterCodeHTTP con MASTER_HASH seguro
+Reglas de Firebase Database desplegadas
+MASTER_HASH eliminado del frontend
+checkIsAdmin() actualizado para usar Custom Claims
+Autenticación con Firebase ID Token en GAS
+validateToken() simplificada en ambos scripts GAS
+Campo success agregado a todas las respuestas de GAS
+Fase 2: Modularización — pendiente
+Tareas pendientes
+2.1 Crear módulos nuevos
+[ ] phase2-1-create-utils — Crear assets/js/utils.js
+Estado: archivo existe pero no está completamente integrado
+Pendiente: eliminar funciones duplicadas de app.js
+[ ] phase2-1-create-data-service — Crear assets/js/data-service.js
+Contenido: getFirebaseDB, remoteGetFiles, refreshCustomCourses, etc.
+Depende de: phase2-1-create-utils
+[ ] phase2-1-create-ui-renderer — Crear assets/js/ui-renderer.js
+Contenido: buildMasterGrid, buildUserGrid, renderCourse, etc.
+Depende de: phase2-1-create-utils y phase2-1-create-data-service
+2.2 Refactorizar app.js
+[ ] phase2-1-refactor-app — Refactorizar app.js para usar módulos nuevos
+Mantener solo funciones core y namespace window.App
+Depende de: módulos nuevos creados
+[ ] phase2-1-update-html — Actualizar index.html para cargar módulos en orden
+Orden: firebase.js → utils.js → data-service.js → ui-renderer.js → app.js → auth.js
+2.3 Limpieza de código
+[ ] phase2-2-remove-access-hash — Eliminar constante ACCESS_HASH_MAP y referencias
+Depende de: phase2-1-refactor-app
+[ ] phase2-2-cleanup-comments — Eliminar comentarios obsoletos y código muerto
+Depende de: phase2-2-remove-access-hash
+Fase 3: UX/Offline — pendiente
+Tareas pendientes
+[ ] phase3-1-update-sw — Mejorar sw.js con caché para datos de cursos
+Estrategia de caché para datos de cursos
+Sincronización en background
+[ ] phase3-1-create-offline-page — Crear offline.html
+Página personalizada para estado offline
+Mostrar cursos cacheados
+Depende de: phase3-1-update-sw
+[ ] phase3-1-add-offline-detection — Agregar detección de estado offline en index.html
+Redirección a offline.html cuando no hay conexión
+Indicador visual de estado offline
+Depende de: phase3-1-create-offline-page
+Tareas adicionales pendientes
+Configuración y despliegue
+[ ] phase1-2-create-rules — Crear database.rules.json
+Estado: archivo existe y está desplegado
+Nota: verificar que esté actualizado
+Pruebas y verificación
+[ ] Probar autenticación con Firebase ID Token en producción
+[ ] Verificar que ambos scripts GAS funcionen con tokens
+[ ] Probar flujo completo: login → obtener archivos → generar certificados
+Priorización sugerida
+Alta prioridad
+Probar autenticación con Firebase ID Token (verificar que todo funciona)
+Copiar código actualizado a Google Apps Script (ambos proyectos)
+Verificar que success en respuestas funciona correctamente
+Media prioridad
+phase2-1-create-utils — Completar integración de utils.js
+phase2-1-create-data-service — Crear módulo de datos
+phase2-1-create-ui-renderer — Crear módulo de UI
+Baja prioridad
+phase2-1-refactor-app — Refactorizar app.js
+phase2-2-remove-access-hash — Limpiar código obsoleto
+phase3-1-update-sw — Mejorar Service Worker
+Resumen de estado
+Total de tareas: 15
+Completadas: 7 (Fase 1)
+Pendientes: 8 (Fases 2, 3 y pruebas)
+Progreso por fase
+Fase 1 (Seguridad): 100% completada
+Fase 2 (Modularización): 0% completada
+Fase 3 (UX/Offline): 0% completada

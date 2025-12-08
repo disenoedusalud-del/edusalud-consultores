@@ -1,0 +1,107 @@
+═══════════════════════════════════════════════════════════════
+  🔧 PASOS PARA CORREGIR CURSO VACÍO EN FIREBASE
+═══════════════════════════════════════════════════════════════
+
+📋 INFORMACIÓN DEL CURSO PROBLEMÁTICO:
+   Hash: 2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0
+   Problema: El curso está vacío ({}) y no tiene datos
+
+═══════════════════════════════════════════════════════════════
+  PASO 1: ABRIR FIREBASE CONSOLE
+═══════════════════════════════════════════════════════════════
+
+1. Abre tu navegador
+2. Ve a: https://console.firebase.google.com/project/edusalud-platfor/database
+3. Inicia sesión si es necesario
+
+═══════════════════════════════════════════════════════════════
+  PASO 2: NAVEGAR AL CURSO
+═══════════════════════════════════════════════════════════════
+
+1. En el panel izquierdo, busca "Realtime Database"
+2. Haz clic en "Realtime Database" (NO en Firestore)
+3. En la estructura de datos, busca y expande: "customCourses"
+4. Busca el hash que empieza con: "2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0"
+5. Haz clic en ese nodo
+
+═══════════════════════════════════════════════════════════════
+  PASO 3: VERIFICAR EL PROBLEMA
+═══════════════════════════════════════════════════════════════
+
+Deberías ver algo como:
+  {}
+
+O simplemente un objeto vacío sin propiedades.
+
+═══════════════════════════════════════════════════════════════
+  PASO 4: ELEGIR ACCIÓN
+═══════════════════════════════════════════════════════════════
+
+OPCIÓN A: ELIMINAR EL CURSO (RECOMENDADO) ✅
+
+  1. Haz clic en el ícono de ELIMINAR (🗑️) junto al nodo
+  2. Confirma la eliminación
+  3. ✅ LISTO
+
+  Próximo paso: Crea el curso nuevamente desde la vista master
+                de la aplicación usando el botón "Agregar curso"
+
+───────────────────────────────────────────────────────────────
+
+OPCIÓN B: CORREGIR MANUALMENTE
+
+  1. Haz clic en el nodo del curso
+  2. Haz clic en "Agregar campo" o edita directamente
+  3. Agrega estos campos:
+
+     title: "Nombre del Curso"          (REQUERIDO)
+     type: "curso"                      (Opcional)
+     meta: "Descripción"                (Opcional)
+     files: []                          (Opcional)
+     code: "TU_CODIGO_AQUI"             (Opcional)
+     card: {}                           (Opcional)
+     createdAt: 1733175000000            (Opcional)
+     updatedAt: 1733175000000            (Opcional)
+
+  4. Haz clic en "Guardar" o presiona Enter
+  5. ✅ LISTO
+
+═══════════════════════════════════════════════════════════════
+  PASO 5: VERIFICAR
+═══════════════════════════════════════════════════════════════
+
+1. Abre la aplicación en tu navegador
+2. Presiona F12 para abrir DevTools
+3. Ve a la pestaña "Console"
+4. Pega y ejecuta este código:
+
+   const hex = '2291db02a1c676fcb2f5effd7bba8232c1d7eb75ab236f4880aa8ce0536359c0';
+   const merged = App.getMergedAccessHashMap();
+   const course = merged[hex];
+   console.log('Curso:', course);
+   console.log('Es válido:', !!(
+       course &&
+       typeof course === 'object' &&
+       Object.keys(course).length > 0 &&
+       course.title &&
+       typeof course.title === 'string' &&
+       course.title.trim().length > 0
+   ));
+
+5. Si eliminaste: Debería mostrar "Curso: undefined" ✅
+6. Si corregiste: Debería mostrar el objeto con datos y "Es válido: true" ✅
+
+═══════════════════════════════════════════════════════════════
+  PASO 6: PROBAR LOGIN
+═══════════════════════════════════════════════════════════════
+
+1. Recarga la aplicación (F5)
+2. Si eliminaste el curso: Crea uno nuevo desde la vista master
+3. Si corregiste el curso: Prueba login con el código del curso
+4. Verifica que:
+   ✅ Se muestra el curso correctamente
+   ✅ No hay errores en consola
+   ✅ El título del curso aparece
+
+═══════════════════════════════════════════════════════════════
+
