@@ -3158,3 +3158,39 @@ img[loading="lazy"].loaded {
 .course-modal-close {
   display: none !important;
 }
+
+/* ===================== FIX: INPUTS DE AUTENTICACIÓN ===================== */
+/* ✅ Fix para inputs que se salen del contenedor en formularios de autenticación */
+
+.auth-form {
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.auth-form form,
+.auth-form > div {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.auth-form .input,
+.auth-form input[type="email"],
+.auth-form input[type="password"],
+.auth-form input[type="text"] {
+  width: 100% !important;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Asegurar que el contenedor del grid no cause desbordamiento */
+.grid.cols-2 > div:first-child {
+  min-width: 0; /* Permite que el grid shrink correctamente */
+  overflow: hidden;
+}
+
+/* Asegurar que los formularios dentro del grid no se desborden */
+.grid.cols-2 form {
+  max-width: 100%;
+  box-sizing: border-box;
+}
