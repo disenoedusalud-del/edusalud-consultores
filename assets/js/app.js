@@ -30,7 +30,7 @@ function checkFirebaseStatus() {
     log('[APP] ⏳ Firebase cargando, esperando Firestore...');
     return false;
   } else {
-    log('[APP] ℹ️ Modo sin Firebase (usando solo Google Sheets)');
+    log('[APP] ℹ️ Modo sin Firebase (usando Google Apps Script como backend)');
     return false;
   }
 }
@@ -44,7 +44,7 @@ window.addEventListener('firebaseReady', (e) => {
 
 // Escuchar evento de error de Firebase
 window.addEventListener('firebaseError', (e) => {
-  log('[APP] ⚠️ Firebase no disponible, usando Google Sheets como backend');
+  log('[APP] ⚠️ Firebase no disponible, usando Google Apps Script como backend');
 });
 
 // Verificación inicial
@@ -616,8 +616,8 @@ function downloadFile(url, label = '') {
 // La validación del código master ahora se hace exclusivamente en el servidor (Cloud Function)
 // y mediante Custom Claims (isMaster) en el token de autenticación
 
-// ✅ CURSOS BASE ELIMINADOS - Todos los cursos ahora vienen de Firebase (customCourses)
-// ACCESS_HASH_MAP eliminado - ya no se usa (antes era para Google Sheets, ahora todo es Firebase)
+// ✅ Todos los cursos vienen de Firebase (customCourses)
+// ACCESS_HASH_MAP eliminado - ya no se usa (antes era para cursos base hardcodeados)
 
 /* ============ persistencia de cursos personalizados ============ */
 const CUSTOM_COURSES_KEY = 'edusalud_custom_courses';
@@ -657,7 +657,7 @@ function saveCustomCourses(courses) {
 }
 function getMergedAccessHashMap() {
   // ✅ Todos los cursos vienen de Firebase (customCourses)
-  // ACCESS_HASH_MAP eliminado - ya no hay cursos base, solo customCourses
+  // Todos los cursos vienen de Firebase (customCourses)
   let custom = {};
   try {
     custom = loadCustomCourses();
@@ -988,7 +988,7 @@ function clearAllFilesOverrides() {
   }
 }
 function getBaseFilesForHex(hex) {
-  // ✅ Links base eliminados - Firebase es la única fuente de verdad
+  // ✅ Firebase es la única fuente de verdad para los links
   // Esta función siempre devuelve array vacío porque los links base ya no existen
   return [];
 }
@@ -2173,7 +2173,7 @@ async function refreshCustomCourses() {
     // ✅ Timeout de 10 segundos (Google Apps Script puede ser lento en primera carga)
     const timeoutPromise = new Promise((resolve) => {
       setTimeout(() => {
-        warn('[REFRESH] ⚠️ Timeout obteniendo cursos remotos después de 10s (continuando con cursos base)');
+        warn('[REFRESH] ⚠️ Timeout obteniendo cursos remotos después de 10s (continuando sin actualizar)');
         resolve({});
       }, 10000); // 10 segundos para dar tiempo a Google Apps Script
     });
@@ -2236,7 +2236,7 @@ async function refreshCustomCourses() {
     // ✅ Finalizar medición de sincronización
     const coursesCount = Object.keys(remoteCourses || {}).length;
     endPerformanceMeasure('Sincronización', syncStart, {
-      metodo: 'Google Sheets',
+      metodo: 'Google Apps Script',
       cursos: coursesCount,
       cambios: hadChanges ? 'Sí' : 'No'
     });
@@ -7237,12 +7237,12 @@ function getChangeHistory(limit = 20) {
 
 async function refreshFromRemoteSilent(hex) {
   try {
-    // ✅ FIREBASE ES LA ÚNICA FUENTE DE VERDAD - No consultar Google Sheets si Firebase está disponible
+    // ✅ FIREBASE ES LA ÚNICA FUENTE DE VERDAD - No consultar Google Apps Script si Firebase está disponible
     const db = getFirestoreDB();
     if (db) {
-      log('[REFRESH] Firebase maneja links en tiempo real, sin usar Google Sheets');
+      log('[REFRESH] Firebase maneja links en tiempo real, sin usar Google Apps Script');
       // Firebase ya tiene listeners activos que actualizan automáticamente
-      // No necesitamos consultar Google Sheets
+      // No necesitamos consultar Google Apps Script
       return false;
     }
 
@@ -10486,7 +10486,7 @@ window.limpiarTodoYRecargar = async function () {
   }
 
   log('[CLEAN] ✅ TODO LIMPIADO. Recargando...');
-  alert('✅ TODO limpiado. Solo verás datos desde Google Sheets.');
+  alert('✅ TODO limpiado. Solo verás datos desde Firebase y Google Apps Script.');
 
   // 4. Recargar página
   setTimeout(() => {
@@ -11608,7 +11608,7 @@ window.testSyncComplete = async function (hex) {
   log('  → Resultado POST:', saveOk ? '✅ ÉXITO' : '❌ FALLÓ');
   log('');
 
-  // 6. Esperar 2 segundos para que Google Sheets procese
+  // 6. Esperar 2 segundos para que Google Apps Script procese
   log('⏳ PASO 6: Esperando 2 segundos...');
   await new Promise(r => setTimeout(r, 2000));
   log('');
@@ -11639,7 +11639,7 @@ window.testSyncComplete = async function (hex) {
   } else {
     log('❌ TEST FALLÓ - La sincronización no está funcionando');
     log('🔧 Posibles causas:');
-    log('   1. El POST no llega a Google Sheets');
+    log('   1. El POST no llega a Google Apps Script');
     log('   2. Google Apps Script tiene un error');
     log('   3. La URL del WebApp es incorrecta');
     log('   4. Hay un delay en el procesamiento');
