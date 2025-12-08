@@ -617,7 +617,7 @@ function downloadFile(url, label = '') {
 // y mediante Custom Claims (isMaster) en el token de autenticación
 
 // ✅ CURSOS BASE ELIMINADOS - Todos los cursos ahora vienen de Firebase (customCourses)
-const ACCESS_HASH_MAP = {};
+// ACCESS_HASH_MAP eliminado - ya no se usa (antes era para Google Sheets, ahora todo es Firebase)
 
 /* ============ persistencia de cursos personalizados ============ */
 const CUSTOM_COURSES_KEY = 'edusalud_custom_courses';
@@ -656,9 +656,8 @@ function saveCustomCourses(courses) {
   }
 }
 function getMergedAccessHashMap() {
-  // ✅ CURSOS BASE ELIMINADOS - Solo usar cursos de Firebase (customCourses)
-  const base = ACCESS_HASH_MAP || {};
-
+  // ✅ Todos los cursos vienen de Firebase (customCourses)
+  // ACCESS_HASH_MAP eliminado - ya no hay cursos base, solo customCourses
   let custom = {};
   try {
     custom = loadCustomCourses();
@@ -666,11 +665,8 @@ function getMergedAccessHashMap() {
     warn('[HASHMAP] Error cargando cursos custom:', e);
   }
 
-  // ✅ Combinar base (vacío) con custom - Ahora solo custom tiene cursos
-  const merged = Object.assign({}, base, custom);
-  log('[HASHMAP] Cursos base:', Object.keys(base).length, 'Custom:', Object.keys(custom).length, 'Total:', Object.keys(merged).length);
-
-  return merged;
+  log('[HASHMAP] Cursos custom:', Object.keys(custom).length, 'Total:', Object.keys(custom).length);
+  return custom;
 }
 
 // Cargar cursos remotos al inicio
@@ -1300,7 +1296,7 @@ window.stopFirestoreRealtime = function () {
 function mergeFirestoreLinks(courseHex, firestoreLinks) {
   log('[FIRESTORE] 🔥 Firebase es la ÚNICA FUENTE DE VERDAD - Total:', firestoreLinks.length, 'links');
 
-  // ✅ FIREBASE ES LA ÚNICA FUENTE: Solo usar links de Firebase, ignorar ACCESS_HASH_MAP
+  // ✅ FIREBASE ES LA ÚNICA FUENTE: Solo usar links de Firebase
   const firebaseFormatted = firestoreLinks.map(link => ({
     label: link.label || '',
     url: link.url || '',
@@ -1320,7 +1316,7 @@ function mergeFirestoreLinks(courseHex, firestoreLinks) {
     return true;
   });
 
-  // ✅ SOLO LINKS DE FIREBASE - No incluir links base de ACCESS_HASH_MAP
+  // ✅ SOLO LINKS DE FIREBASE
   const merged = uniqueFirebaseLinks;
 
   saveFilesOverride(courseHex, merged);
@@ -2386,8 +2382,9 @@ async function exportOverrides() {
       admins: []
     };
 
-    // Exportar overrides (links personalizados)
-    Object.keys(ACCESS_HASH_MAP).forEach(hex => {
+    // ✅ Exportar overrides (links personalizados) de cursos custom
+    const customCoursesForOverrides = loadCustomCourses();
+    Object.keys(customCoursesForOverrides).forEach(hex => {
       const arr = loadFilesOverride(hex);
       if (Array.isArray(arr)) payload.overrides[hex] = arr;
     });
@@ -4982,7 +4979,8 @@ function showMaster() {
       }
 
       log('[SYNC] Refresh inmediato adicional al mostrar master...');
-      const hexes = Object.keys(ACCESS_HASH_MAP);
+      const customCourses = loadCustomCourses();
+      const hexes = Object.keys(customCourses);
       const results = await Promise.allSettled(
         hexes.map(h => refreshFromRemoteSilent(h).catch(e => {
           warn('[SYNC] Error en refresh inmediato:', e);
