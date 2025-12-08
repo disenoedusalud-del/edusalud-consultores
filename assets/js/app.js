@@ -391,64 +391,19 @@ function validateTag(tag, minLength = 2, maxLength = 10) {
  * @param {string} email - Email a validar
  * @returns {object} {valid: boolean, error: string}
  */
-function validateEmail(email) {
-  if (!email || typeof email !== 'string') {
-    return { valid: false, error: 'El correo electrónico es requerido' };
-  }
+// ✅ Función movida a utils.js: validateEmail
+// Ahora se usa desde window.validateEmail (o window.Utils.validateEmail)
 
-  const trimmed = email.trim().toLowerCase();
-
-  // Expresión regular mejorada para validar email
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-  if (!emailRegex.test(trimmed)) {
-    return { valid: false, error: 'Formato de correo electrónico inválido' };
-  }
-
-  // Validar longitud máxima
-  if (trimmed.length > 254) {
-    return { valid: false, error: 'El correo electrónico es demasiado largo' };
-  }
-
-  return { valid: true };
-}
-
-/**
- * ✅ Valida contraseña
- * @param {string} password - Contraseña a validar
- * @param {number} minLength - Longitud mínima (default: 6)
- * @returns {object} {valid: boolean, error: string}
- */
-function validatePassword(password, minLength = 6) {
-  if (!password || typeof password !== 'string') {
-    return { valid: false, error: 'La contraseña es requerida' };
-  }
-
-  if (password.length < minLength) {
-    return { valid: false, error: `La contraseña debe tener al menos ${minLength} caracteres` };
-  }
-
-  return { valid: true };
-}
+// ✅ Función movida a utils.js: validatePassword
+// Ahora se usa desde window.validatePassword (o window.Utils.validatePassword)
 
 /**
  * ✅ Valida código de verificación (6 dígitos)
  * @param {string} code - Código a validar
  * @returns {object} {valid: boolean, error: string}
  */
-function validateVerificationCode(code) {
-  if (!code || typeof code !== 'string') {
-    return { valid: false, error: 'El código de verificación es requerido' };
-  }
-
-  const trimmed = code.trim();
-
-  if (!/^\d{6}$/.test(trimmed)) {
-    return { valid: false, error: 'El código debe tener 6 dígitos numéricos' };
-  }
-
-  return { valid: true };
-}
+// ✅ Función movida a utils.js: validateVerificationCode
+// Ahora se usa desde window.validateVerificationCode (o window.Utils.validateVerificationCode)
 
 /**
  * ✅ Valida color hexadecimal
@@ -628,15 +583,8 @@ function setupCharacterCounter(input, maxLength, minLength = 0) {
 }
 
 /* ===================== util ===================== */
-const $ = (s) => document.querySelector(s);
-const toHex = (buffer) =>
-  Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-
-async function sha256Hex(text) {
-  const data = new TextEncoder().encode(String(text).trim());
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return toHex(hash);
-}
+// ✅ Funciones movidas a utils.js: $, toHex, sha256Hex
+// Ahora se usan desde window.$ (o window.Utils.$)
 function setQueryParam(key, value) {
   const url = new URL(window.location.href);
   if (value == null) url.searchParams.delete(key); else url.searchParams.set(key, value);
@@ -8530,24 +8478,8 @@ function showKeyboardShortcutsHelp() {
 // ✅ Este archivo mantiene solo las funciones auxiliares que se usan en otras partes
 
 // ✅ Funciones auxiliares para manejo de errores de campos (usadas en otras partes)
-function clearFieldErrors() {
-  const fields = ['input-email', 'input-password', 'input-register-email', 'input-register-password', 'input-register-password-confirm', 'input-reset-email'];
-  fields.forEach(id => {
-    const field = $(`#${id}`);
-    if (field) {
-      field.style.borderColor = '';
-      field.style.backgroundColor = '';
-    }
-  });
-}
-
-function markFieldError(fieldId) {
-  const field = $(`#${fieldId}`);
-  if (field) {
-    field.style.borderColor = '#ff7a7a';
-    field.style.backgroundColor = 'rgba(255, 122, 122, 0.1)';
-  }
-}
+// ✅ Funciones movidas a utils.js: clearFieldErrors, markFieldError
+// Ahora se usan desde window.clearFieldErrors, window.markFieldError (o window.Utils.*)
 
 /* ============ Gestión de Correos Permitidos por Curso ============ */
 
@@ -8565,10 +8497,8 @@ const SUPER_ADMINS = [
   'diseno.edusalud@unah.edu.hn'
 ];
 
-// ✅ Normalizar email para usar como key en Firebase
-function normalizeEmailKey(email) {
-  return email.toLowerCase().trim().replace(/\./g, '_');
-}
+// ✅ Función movida a utils.js: normalizeEmailKey
+// Ahora se usa desde window.normalizeEmailKey (o window.Utils.normalizeEmailKey)
 
 /* ============ Verificación de Código por Email ============ */
 
