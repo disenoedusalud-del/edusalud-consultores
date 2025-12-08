@@ -5,7 +5,7 @@
 const IS_DEVELOPMENT = false; // Cambiar a false en producción
 const VERSION = IS_DEVELOPMENT 
   ? 'edusalud-dev-' + Date.now() // Versión única cada vez en desarrollo
-  : 'edusalud-v3'; // Versión estable en producción (actualizada para limpiar cache de certificates.js)
+  : 'edusalud-v4'; // Versión estable en producción (Fase 3: soporte offline mejorado)
 
 const CACHE_NAME = VERSION;
 const RUNTIME_CACHE = 'edusalud-runtime-' + (IS_DEVELOPMENT ? Date.now() : 'v1');
@@ -21,6 +21,7 @@ if (!BASE_PATH || BASE_PATH === '') {
 }
 const STATIC_ASSETS = IS_DEVELOPMENT ? [] : [
   BASE_PATH + 'index.html',
+  BASE_PATH + 'offline.html', // ✅ Página offline personalizada
   BASE_PATH + 'assets/css/style.css',
   BASE_PATH + 'assets/js/electric-card.js',
   BASE_PATH + 'assets/js/app.js',
@@ -145,7 +146,13 @@ self.addEventListener('fetch', (event) => {
           return caches.match(request).then(cached => {
             if (cached) return cached;
             if (request.mode === 'navigate') {
-              return caches.match(BASE_PATH + 'index.html');
+              // ✅ Intentar primero index.html, luego offline.html
+              return caches.match(BASE_PATH + 'index.html')
+                .then(cachedIndex => {
+                  if (cachedIndex) return cachedIndex;
+                  return caches.match(BASE_PATH + 'offline.html')
+                    .then(offline => offline || new Response('Sin conexión', { status: 503 }));
+                });
             }
             return new Response('Sin conexión', { status: 503 });
           });
@@ -228,7 +235,13 @@ self.addEventListener('fetch', (event) => {
               console.error('[SW] ❌ Error en fetch:', url.pathname, err);
               // Si falla y está disponible offline, devolver offline fallback
               if (request.mode === 'navigate') {
-                return caches.match(BASE_PATH + 'index.html');
+                // ✅ Intentar primero index.html, luego offline.html
+                return caches.match(BASE_PATH + 'index.html')
+                  .then(cached => {
+                    if (cached) return cached;
+                    return caches.match(BASE_PATH + 'offline.html')
+                      .then(offline => offline || new Response('Sin conexión', { status: 503 }));
+                  });
               }
               return new Response('Sin conexión', {
                 status: 503,
