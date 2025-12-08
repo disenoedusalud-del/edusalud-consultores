@@ -10500,16 +10500,70 @@ window.App = {
   log: log,
   warn: warn,
   error: error,
-  $: $, // selector
+  $: window.$ || ((s) => document.querySelector(s)), // ✅ Usar función de window (utils.js)
 
   // ============ Funciones de seguridad/utilidad ============
-  getSafeInputValue: getSafeInputValue,
-  safeInput: safeInput,
-  sha256Hex: sha256Hex,
-  clearFieldErrors: clearFieldErrors,
-  markFieldError: markFieldError,
-  escapeHTML: escapeHTML,
-  sanitizeHTML: sanitizeHTML,
+  getSafeInputValue: window.getSafeInputValue || ((selector, type = 'text') => {
+    // ✅ Fallback básico
+    const element = typeof selector === 'string' ? document.querySelector(selector) : selector;
+    if (!element) return '';
+    return window.safeInput ? window.safeInput(element.value, type) : element.value;
+  }),
+  safeInput: window.safeInput || ((value, type = 'text') => {
+    // ✅ Fallback básico
+    if (value == null) value = '';
+    if (typeof value !== 'string') value = String(value);
+    return value.trim();
+  }),
+  sha256Hex: window.sha256Hex || (async (text) => {
+    // ✅ Fallback si utils.js no está cargado
+    const data = new TextEncoder().encode(String(text).trim());
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }),
+  clearFieldErrors: window.clearFieldErrors || (() => {
+    // ✅ Fallback básico
+    const fields = ['input-email', 'input-password', 'input-register-email', 'input-register-password', 'input-register-password-confirm', 'input-reset-email'];
+    fields.forEach(id => {
+      const field = document.querySelector(`#${id}`);
+      if (field) {
+        field.style.borderColor = '';
+        field.style.backgroundColor = '';
+      }
+    });
+  }),
+  markFieldError: window.markFieldError || ((fieldId) => {
+    // ✅ Fallback básico
+    const field = document.querySelector(`#${fieldId}`);
+    if (field) {
+      field.style.borderColor = '#ff7a7a';
+      field.style.backgroundColor = 'rgba(255, 122, 122, 0.1)';
+    }
+  }),
+  escapeHTML: window.escapeHTML || ((str) => {
+    // ✅ Fallback básico
+    if (typeof str !== 'string') {
+      if (str == null) return '';
+      return String(str);
+    }
+    try {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    } catch (e) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  }),
+  sanitizeHTML: window.sanitizeHTML || ((str) => {
+    // ✅ Fallback básico
+    if (typeof str !== 'string') return '';
+    return window.escapeHTML ? window.escapeHTML(str) : String(str);
+  }),
 
   // ============ Funciones de Firebase/Backend ============
   getCoursesForEmail: getCoursesForEmail,
