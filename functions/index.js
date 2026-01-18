@@ -13,11 +13,9 @@ admin.initializeApp();
 const resendApiKey = process.env.RESEND_API_KEY || 're_eATCWBLR_5MBUmnvRAo2y2hYkwTt1Qdis';
 const resend = new Resend(resendApiKey);
 
-// ✅ Definir variable de entorno MASTER_HASH usando Functions v2
-const masterHashParam = defineString('MASTER_HASH', {
-  default: '7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8',
-  description: 'Hash SHA-256 del código master (EDUMASTER123456987)'
-});
+// ✅ Hash SHA-256 del código master (EDUMASTER123456987)
+// Se puede configurar como variable de entorno MASTER_HASH, o usar el valor por defecto
+const DEFAULT_MASTER_HASH = '7d61f670561642f08322ad4860c28ba207b55e8d8158242f459f2017d4c1cfc8';
 
 // ✅ Cloud Function para enviar código de verificación
 exports.sendVerificationCode = functions.https.onRequest(async (req, res) => {
@@ -152,10 +150,10 @@ exports.validateMasterCodeHTTP = onRequest(
     // Normalizar
     const codeStr = String(code).trim();
 
-    // ✅ Validación por HASH usando MASTER_HASH
-    try {
-      // ✅ Obtener hash maestro desde parámetro de Functions v2
-      const masterHash = masterHashParam.value().trim();
+      // ✅ Validación por HASH usando MASTER_HASH
+      try {
+        // ✅ Obtener hash maestro desde variable de entorno o usar valor por defecto
+        const masterHash = (process.env.MASTER_HASH || DEFAULT_MASTER_HASH).trim();
 
       if (!masterHash) {
         console.error("[MASTER] ❌ MASTER_HASH no configurado");
@@ -185,22 +183,66 @@ exports.validateMasterCodeHTTP = onRequest(
 
       console.log("[MASTER] ✅ Código master válido (hash)");
 
-      // ✅ Asignar Custom Claim si se proporcionó email
-      if (email) {
+      // ✅ Generar custom token con claim isMaster
+      // Esto permite autenticarse sin necesidad de email/password o autenticación anónima
+      try {
+        // Crear un UID único basado en timestamp y código master
+        const tempUid = `master_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        
+        // Crear o obtener usuario temporal
+        let user;
         try {
-          const user = await admin.auth().getUserByEmail(email);
-          await admin.auth().setCustomUserClaims(user.uid, { isMaster: true });
-          console.log(`[MASTER] ✅ Custom claim 'isMaster' asignado a: ${email}`);
-        } catch (claimError) {
-          console.warn(`[MASTER] ⚠️ No se pudo asignar custom claim a ${email}:`, claimError.message);
-          // No fallamos la request principal, pero avisamos
+          user = await admin.auth().getUser(tempUid);
+        } catch (e) {
+          // Usuario no existe, crearlo
+          user = await admin.auth().createUser({
+            uid: tempUid,
+            displayName: 'Master User',
+            disabled: false
+          });
         }
+        
+        // Establecer custom claim
+        await admin.auth().setCustomUserClaims(user.uid, { isMaster: true });
+        console.log(`[MASTER] ✅ Custom claim 'isMaster' asignado a UID: ${user.uid}`);
+        
+        // Generar custom token
+        const customToken = await admin.auth().createCustomToken(user.uid, { isMaster: true });
+        console.log(`[MASTER] ✅ Custom token generado para UID: ${user.uid}`);
+        
+        res.status(200).json({
+          success: true,
+          message: "Código master válido. Acceso de administrador otorgado.",
+          customToken: customToken,
+          uid: user.uid
+        });
+      } catch (tokenError) {
+        console.error("[MASTER] ❌ Error generando custom token:", tokenError);
+        
+        // Fallback: intentar con email o uid si se proporcionó
+        const uid = req.body?.uid || req.query?.uid;
+        if (email) {
+          try {
+            const user = await admin.auth().getUserByEmail(email);
+            await admin.auth().setCustomUserClaims(user.uid, { isMaster: true });
+            console.log(`[MASTER] ✅ Custom claim 'isMaster' asignado a email: ${email} (UID: ${user.uid})`);
+          } catch (claimError) {
+            console.warn(`[MASTER] ⚠️ No se pudo asignar custom claim a ${email}:`, claimError.message);
+          }
+        } else if (uid) {
+          try {
+            await admin.auth().setCustomUserClaims(uid, { isMaster: true });
+            console.log(`[MASTER] ✅ Custom claim 'isMaster' asignado a UID: ${uid}`);
+          } catch (claimError) {
+            console.warn(`[MASTER] ⚠️ No se pudo asignar custom claim a UID ${uid}:`, claimError.message);
+          }
+        }
+        
+        res.status(200).json({
+          success: true,
+          message: "Código master válido. Acceso de administrador otorgado.",
+        });
       }
-
-      res.status(200).json({
-        success: true,
-        message: "Código master válido. Acceso de administrador otorgado.",
-      });
     } catch (error) {
       console.error("[MASTER] ❌ Error validando código master:", error);
       res.status(500).json({

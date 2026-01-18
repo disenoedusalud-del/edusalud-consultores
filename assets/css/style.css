@@ -1259,7 +1259,8 @@ a:focus-visible {
 .card-left-wrapper {
   position: relative;
   flex: 0 0 auto;
-  width: 100%; /* ✅ Ancho completo en móvil */
+  width: 100%;
+  /* ✅ Ancho completo en móvil */
   max-width: 100%;
   margin: 0 auto;
   background-color: hsla(240, 15%, 9%, 1);
@@ -1319,7 +1320,8 @@ a:focus-visible {
 .card-right {
   position: relative;
   flex: 1 1 auto;
-  width: 100%; /* ✅ Ancho completo */
+  width: 100%;
+  /* ✅ Ancho completo */
   background-color: hsla(240, 15%, 9%, 1);
   background-image:
     radial-gradient(at 88% 40%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
@@ -1371,7 +1373,8 @@ a:focus-visible {
 /* ✅ Tablets - Layout vertical para evitar overflow horizontal */
 @media (min-width: 769px) and (max-width: 1024px) {
   .course-row {
-    flex-direction: column; /* ✅ Vertical en tablets */
+    flex-direction: column;
+    /* ✅ Vertical en tablets */
     gap: 16px;
   }
 
@@ -1381,13 +1384,13 @@ a:focus-visible {
     margin: 0 auto;
     padding: 8px;
   }
-  
+
   /* ✅ Limitar altura de imagen en tablets */
   .card-left-wrapper .ec-wrapper {
     aspect-ratio: 16/9 !important;
     max-height: 280px !important;
   }
-  
+
   .card-right {
     width: 100%;
     padding: 16px;
@@ -1402,12 +1405,13 @@ a:focus-visible {
   }
 
   .card-left-wrapper {
-    flex: 0 0 360px; /* ✅ Imagen grande solo en pantallas grandes */
+    flex: 0 0 360px;
+    /* ✅ Imagen grande solo en pantallas grandes */
     max-width: 360px;
     margin: 0;
     padding: 8px;
   }
-  
+
   /* ✅ Restaurar aspect-ratio vertical en desktop */
   .card-left-wrapper .ec-wrapper {
     aspect-ratio: 3/4 !important;
@@ -1415,9 +1419,11 @@ a:focus-visible {
   }
 
   .card-right {
-    flex: 1; /* ✅ Se expande para ocupar todo el espacio restante */
+    flex: 1;
+    /* ✅ Se expande para ocupar todo el espacio restante */
     padding: 18px;
-    min-width: 0; /* ✅ Permite que flex funcione correctamente */
+    min-width: 0;
+    /* ✅ Permite que flex funcione correctamente */
   }
 }
 
@@ -1431,7 +1437,8 @@ a:focus-visible {
 
 /* Vista Master */
 #master {
-  margin-top: 0; /* ✅ Eliminar margin-top innecesario */
+  margin-top: 0;
+  /* ✅ Eliminar margin-top innecesario */
 }
 
 .master-grid {
@@ -1445,7 +1452,8 @@ a:focus-visible {
   flex-direction: column;
   /* Mobile First */
   gap: 18px;
-  width: 100%; /* ✅ Ancho completo */
+  width: 100%;
+  /* ✅ Ancho completo */
   background-color: hsla(240, 15%, 9%, 1);
   background-image:
     radial-gradient(at 88% 40%, hsla(240, 15%, 9%, 1) 0px, transparent 85%),
@@ -1517,7 +1525,8 @@ a:focus-visible {
 
 /* ✅ Mobile: Limitar altura de imagen en master-card */
 .master-card .ec-wrapper {
-  aspect-ratio: 16/9 !important; /* ✅ Cambiar de 3/4 a 16/9 en móvil */
+  aspect-ratio: 16/9 !important;
+  /* ✅ Cambiar de 3/4 a 16/9 en móvil */
   max-height: 220px !important;
   width: 100%;
 }
@@ -1543,7 +1552,8 @@ a:focus-visible {
     display: grid;
     grid-template-columns: 360px 1fr;
     gap: 10px;
-    align-items: start; /* ✅ Cambiar de center a start para mejor alineación */
+    align-items: start;
+    /* ✅ Cambiar de center a start para mejor alineación */
     margin: 0;
     position: relative;
     /* ✅ Para posicionar autocompletado */
@@ -1551,13 +1561,15 @@ a:focus-visible {
 
   /* ✅ Asegurar que la columna derecha se expanda */
   .master-card .right {
-    min-width: 0; /* ✅ Permite que flex/grid funcione correctamente */
+    min-width: 0;
+    /* ✅ Permite que flex/grid funcione correctamente */
     width: 100%;
   }
 
   /* ✅ Desktop: Restaurar aspect-ratio vertical para electric-card */
   .master-card .ec-wrapper {
-    aspect-ratio: 3/4 !important; /* ✅ Restaurar proporción vertical en desktop */
+    aspect-ratio: 3/4 !important;
+    /* ✅ Restaurar proporción vertical en desktop */
     max-height: none !important;
   }
 
@@ -1972,13 +1984,17 @@ a:focus-visible {
   animation: slideDown 0.2s ease-out;
 }
 
+.settings-dropdown.active {
+  display: block !important;
+}
+
 /* ✅ Asegurar que el contenedor del botón de ajustes en vista de contenido esté por encima de las tarjetas */
 #content .course-header-mobile {
   position: relative;
   z-index: 100;
 }
 
-#content .course-header-mobile .row > div[style*="position: relative"] {
+#content .course-header-mobile .row>div[style*="position: relative"] {
   position: relative !important;
   z-index: 10002 !important;
 }
@@ -1988,8 +2004,9 @@ a:focus-visible {
   z-index: 10002;
 }
 
-/* ✅ Menú desplegable en vista de contenido debe estar por encima de todo */
-#content .settings-dropdown {
+/* ✅ Menú desplegable en vista de contenido y master debe estar por encima de todo */
+#content .settings-dropdown,
+#master .settings-dropdown {
   z-index: 10003 !important;
 }
 
@@ -3169,7 +3186,7 @@ img[loading="lazy"].loaded {
 }
 
 .auth-form form,
-.auth-form > div {
+.auth-form>div {
   max-width: 100%;
   box-sizing: border-box;
 }
@@ -3184,8 +3201,9 @@ img[loading="lazy"].loaded {
 }
 
 /* Asegurar que el contenedor del grid no cause desbordamiento */
-.grid.cols-2 > div:first-child {
-  min-width: 0; /* Permite que el grid shrink correctamente */
+.grid.cols-2>div:first-child {
+  min-width: 0;
+  /* Permite que el grid shrink correctamente */
   overflow: hidden;
 }
 

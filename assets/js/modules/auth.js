@@ -170,6 +170,46 @@ async function tryLoginByCode(code) {
                         App.setIsMasterAuthenticated(true);
                         // ✅ Master autenticado - no necesitamos currentKeyHex para master
                         App.setCurrentKeyHex(null);
+
+                        // ✅ CRÍTICO: Usar custom token para autenticarse (la Cloud Function ya lo generó)
+                        // Esto es necesario porque la autenticación anónima está deshabilitada
+                        if (window.firebaseAuth && result.customToken) {
+                            try {
+                                App.log('[LOGIN] 🔥 Autenticando con custom token...');
+                                const userCredential = await window.firebaseAuth.signInWithCustomToken(result.customToken);
+                                const uid = userCredential.user.uid;
+                                App.log('[LOGIN] ✅ Autenticado con custom token:', uid);
+
+                                // ✅ Verificar que el claim esté presente
+                                const idTokenResult = await userCredential.user.getIdTokenResult(true);
+                                const isMaster = !!idTokenResult.claims.isMaster;
+                                App.log('[LOGIN] 📋 Claim isMaster verificado:', isMaster);
+
+                                if (!isMaster) {
+                                    App.warn('[LOGIN] ⚠️ El claim isMaster no está presente. El listener puede fallar.');
+                                    App.warn('[LOGIN] ⚠️ Claims disponibles:', Object.keys(idTokenResult.claims));
+                                }
+
+                                // ✅ Iniciar listener de Firebase después de autenticación (Desactivado por el usuario)
+                                /*
+                                App.log('[LOGIN] 🔥 Iniciando listener de Firebase después de login master...');
+                                if (typeof initFirebaseCustomCoursesRealtime === 'function') {
+                                    initFirebaseCustomCoursesRealtime().catch(e => {
+                                        App.warn('[LOGIN] ⚠️ Error iniciando listener de Firebase:', e);
+                                    });
+                                } else {
+                                    App.warn('[LOGIN] ⚠️ initFirebaseCustomCoursesRealtime no disponible');
+                                }
+                                */
+                            } catch (authError) {
+                                App.error('[LOGIN] ❌ Error autenticando con custom token:', authError);
+                                App.warn('[LOGIN] ⚠️ Continuando sin sesión de Firebase Auth (el listener puede fallar)');
+                            }
+                        } else if (!result.customToken) {
+                            App.warn('[LOGIN] ⚠️ La Cloud Function no devolvió custom token. El listener puede fallar.');
+                        } else {
+                            App.warn('[LOGIN] ⚠️ Firebase Auth no disponible');
+                        }
                     } else {
                         // Log detallado del debug info si existe
                         if (result.debug) {
@@ -252,10 +292,25 @@ async function tryLoginByCode(code) {
                 App.warn('[MASTER] Error cargando cursos remotos (continuando):', e);
             });
 
-            App.buildMasterGrid();
-            App.setupMasterSearch();
+            // App.buildMasterGrid();
+            // App.setupMasterSearch();
             App.$('#year_master').textContent = new Date().getFullYear();
             App.showMaster();
+
+            // ✅ CRÍTICO: Iniciar listener de Firebase después de mostrar vista master (Desactivado por el usuario)
+            /*
+            App.log('[MASTER] 🔥 Iniciando listener de Firebase después de mostrar vista master...');
+            setTimeout(() => {
+                if (typeof initFirebaseCustomCoursesRealtime === 'function') {
+                    initFirebaseCustomCoursesRealtime().catch(e => {
+                        App.warn('[MASTER] ⚠️ Error iniciando listener de Firebase:', e);
+                    });
+                } else {
+                    App.warn('[MASTER] ⚠️ initFirebaseCustomCoursesRealtime no disponible');
+                }
+            }, 1500); 
+            */
+
             // ✅ Llamar setupAdvancedFilters y setupNotificationsPanel DESPUÉS de showMaster para asegurar que los elementos estén visibles
             setTimeout(() => {
                 App.setupAdvancedFilters();
@@ -340,7 +395,7 @@ async function tryLoginByCode(code) {
         // Esto es porque mergedMap[hex] podría ser un objeto vacío o algo que evalúa a false
         if (mergedMap && (hex in mergedMap)) {
             const courseData = mergedMap[hex];
-            
+
             // ✅ NUEVA VALIDACIÓN: Verificar que el curso tenga datos válidos
             // renderCourse() requiere al menos: data.title (sin fallback)
             const hasValidData = !!(
@@ -351,7 +406,7 @@ async function tryLoginByCode(code) {
                 typeof courseData.title === 'string' &&
                 courseData.title.trim().length > 0
             );
-            
+
             if (!hasValidData) {
                 App.warn('[LOGIN] ⚠️ Hash encontrado pero curso sin datos válidos:', {
                     hex: hex.substring(0, 8) + '...',
@@ -361,12 +416,12 @@ async function tryLoginByCode(code) {
                     titleType: courseData ? typeof courseData.title : 'N/A',
                     titleLength: courseData && courseData.title ? courseData.title.trim().length : 0
                 });
-                
+
                 msg.textContent = 'Código inválido. El curso asociado no tiene datos completos. Contacte al administrador.';
                 msg.classList.add('error');
                 App.recordAttempt();
                 App.maybeShowAttemptsWarning();
-                
+
                 // ✅ Google Analytics: Tracking de curso corrupto
                 if (typeof gtag !== 'undefined') {
                     gtag('event', 'login_error', {
@@ -375,17 +430,17 @@ async function tryLoginByCode(code) {
                         'value': 1
                     });
                 }
-                
+
                 return false;
             }
-            
+
             App.log('[LOGIN] ✅ Código válido encontrado con datos completos:', {
                 hex: hex.substring(0, 8) + '...',
                 title: courseData.title,
                 type: courseData.type || 'curso',
                 hasFiles: Array.isArray(courseData.files) && courseData.files.length > 0
             });
-            
+
             // Mostrar loader inmediatamente
             App.showLoader();
 
@@ -515,7 +570,11 @@ function showAuthMessage(elementId, message, isError = false) {
         console.error('[AUTH] App no disponible en showAuthMessage');
         return;
     }
-    const msgEl = App.$(elementId);
+
+    // ✅ Agregar # si no lo tiene (para IDs)
+    const selector = elementId.startsWith('#') ? elementId : `#${elementId}`;
+    const msgEl = App.$(selector);
+
     if (msgEl) {
         msgEl.textContent = message;
         msgEl.classList.remove('error');
@@ -525,9 +584,15 @@ function showAuthMessage(elementId, message, isError = false) {
         // Asegurar que el mensaje sea visible
         msgEl.style.display = 'block';
         msgEl.style.visibility = 'visible';
-        App.log('[AUTH] 💬 Mensaje mostrado:', elementId, message);
+        msgEl.style.opacity = '1';
+        App.log('[AUTH] 💬 Mensaje mostrado:', selector, message);
     } else {
-        App.warn('[AUTH] ⚠️ No se encontró el elemento para mensaje:', elementId);
+        App.warn('[AUTH] ⚠️ No se encontró el elemento para mensaje:', selector);
+        // ✅ Fallback: intentar mostrar en consola o alerta
+        console.warn('[AUTH] Mensaje no mostrado:', message);
+        if (isError && typeof window.showToast === 'function') {
+            window.showToast('error', 'Error', message);
+        }
     }
 }
 
@@ -769,6 +834,13 @@ async function verifyCode(email, code) {
         const codeData = snapshot.val();
         const now = Date.now();
 
+        App.log('[VERIFICATION] 🔍 Verificando código...');
+        App.log('[VERIFICATION] 📋 Código recibido:', code);
+        App.log('[VERIFICATION] 📋 Código guardado:', codeData.code);
+        App.log('[VERIFICATION] 📋 Código recibido (trim):', code.trim());
+        App.log('[VERIFICATION] 📋 Código guardado (tipo):', typeof codeData.code);
+        App.log('[VERIFICATION] 📋 Código recibido (tipo):', typeof code);
+
         if (codeData.used) {
             return { valid: false, error: 'Este código ya fue utilizado.' };
         }
@@ -777,7 +849,14 @@ async function verifyCode(email, code) {
             return { valid: false, error: 'El código ha expirado. Solicita uno nuevo.' };
         }
 
-        if (codeData.code !== code.trim()) {
+        // ✅ Normalizar ambos códigos para comparación (convertir a string y trim)
+        const savedCode = String(codeData.code || '').trim();
+        const receivedCode = String(code || '').trim();
+
+        App.log('[VERIFICATION] 🔍 Comparando:', savedCode, '===', receivedCode);
+
+        if (savedCode !== receivedCode) {
+            App.warn('[VERIFICATION] ❌ Código no coincide');
             return { valid: false, error: 'Código incorrecto. Intenta nuevamente.' };
         }
 
@@ -795,9 +874,6 @@ async function verifyEmailForRegistration() {
     const App = getApp();
     if (!App) {
         console.error('[AUTH] App no disponible en verifyEmailForRegistration');
-        return false;
-    }
-    if (!App.checkRateLimitSimple('register')) {
         return false;
     }
 
@@ -825,10 +901,17 @@ async function verifyEmailForRegistration() {
         if (!isAdmin) {
             allowedCourses = await App.getCoursesForEmail(normalizedEmail);
             if (allowedCourses.length === 0) {
-                showAuthMessage('msg-register', 'Este correo no está autorizado para crear una cuenta. Contacta al administrador para solicitar acceso.', true);
+                // ✅ Email no autorizado - NO aplicar rate limiting (no es un intento válido)
+                showAuthMessage('msg-register', '⚠️ Este correo no está autorizado para crear una cuenta. Contacta al administrador para solicitar acceso.', true);
                 App.markFieldError('input-register-email');
                 return false;
             }
+        }
+
+        // ✅ Solo aplicar rate limiting DESPUÉS de verificar que el email está autorizado
+        if (!App.checkRateLimitSimple('register')) {
+            // Si el rate limit está activo, mostrar mensaje y salir
+            return false;
         }
 
         showAuthMessage('msg-register', 'Generando código de verificación…', false);
@@ -930,6 +1013,33 @@ async function tryRegister() {
         return false;
     }
 
+    // ✅ Verificar nuevamente si el usuario ya existe antes de intentar crear la cuenta
+    if (window.firebaseAuth) {
+        try {
+            showAuthMessage('msg-register-step3', 'Verificando cuenta…', false);
+            const signInMethods = await window.firebaseAuth.fetchSignInMethodsForEmail(email);
+
+            if (signInMethods && signInMethods.length > 0) {
+                // El usuario ya existe
+                showAuthMessage('msg-register-step3', '⚠️ Este correo ya está registrado. Por favor, inicia sesión en su lugar.', true);
+                App.markFieldError('input-register-password');
+
+                // Limpiar variables de registro
+                window.verifiedEmailForRegistration = null;
+                window.verifiedCoursesForRegistration = null;
+                window.verifiedIsAdmin = null;
+
+                return false;
+            }
+        } catch (checkError) {
+            // Si hay un error al verificar, NO continuar
+            console.error('[AUTH] ❌ Error verificando usuario antes de crear cuenta:', checkError);
+            showAuthMessage('msg-register-step3', '⚠️ Error al verificar la cuenta. Por favor, intenta nuevamente o inicia sesión si ya tienes una cuenta.', true);
+            App.markFieldError('input-register-password');
+            return false;
+        }
+    }
+
     App.clearFieldErrors();
     showAuthMessage('msg-register-step3', 'Creando cuenta…', false);
 
@@ -964,8 +1074,13 @@ async function tryRegister() {
         let errorMessage = 'Error al crear la cuenta.';
 
         if (error.code === 'auth/email-already-in-use') {
-            errorMessage = 'Este correo ya está registrado. Inicia sesión en su lugar.';
+            errorMessage = '⚠️ Este correo ya está registrado. Por favor, inicia sesión en su lugar.';
             App.markFieldError('input-register-password');
+
+            // Limpiar variables de registro
+            window.verifiedEmailForRegistration = null;
+            window.verifiedCoursesForRegistration = null;
+            window.verifiedIsAdmin = null;
         } else if (error.code === 'auth/invalid-email') {
             errorMessage = 'Correo electrónico inválido.';
             App.markFieldError('input-register-password');
@@ -990,9 +1105,8 @@ async function verifyCodeForRegistration() {
         console.error('[AUTH] App no disponible en verifyCodeForRegistration');
         return false;
     }
-    if (!App.checkRateLimitSimple('verify_code')) {
-        return false;
-    }
+    // ✅ NO aplicar rate limiting aquí - solo se aplica al solicitar nuevo código
+    // El rate limiting de 'verify_code' es demasiado restrictivo para verificar códigos
 
     const email = window.verifiedEmailForRegistration;
     const code = App.getSafeInputValue('#input-verification-code', 'code');
@@ -1017,6 +1131,42 @@ async function verifyCodeForRegistration() {
         showAuthMessage('msg-register-step2', verification.error || 'Código inválido. Intenta nuevamente.', true);
         App.markFieldError('input-verification-code');
         return false;
+    }
+
+    // ✅ Verificar si el usuario ya está registrado antes de continuar
+    if (window.firebaseAuth) {
+        try {
+            showAuthMessage('msg-register-step2', 'Verificando si la cuenta ya existe…', false);
+
+            // Intentar obtener el usuario por email usando fetchSignInMethodsForEmail
+            const signInMethods = await window.firebaseAuth.fetchSignInMethodsForEmail(email);
+
+            if (signInMethods && signInMethods.length > 0) {
+                // El usuario ya existe
+                showAuthMessage('msg-register-step2', '⚠️ Este correo ya está registrado. Por favor, inicia sesión en su lugar o usa otro correo.', true);
+                App.markFieldError('input-verification-code');
+
+                // Limpiar el código de verificación usado
+                try {
+                    const emailKey = normalizeEmailKey(email);
+                    const db = App.getFirebaseDB();
+                    if (db) {
+                        const codeRef = db.ref(`${App.getVerificationCodesPath()}/${emailKey}`);
+                        await codeRef.remove();
+                    }
+                } catch (cleanupError) {
+                    console.warn('[VERIFICATION] No se pudo limpiar el código:', cleanupError);
+                }
+
+                return false;
+            }
+        } catch (checkError) {
+            // Si hay un error al verificar, NO continuar - es mejor prevenir que permitir duplicados
+            console.error('[AUTH] ❌ Error verificando si el usuario existe:', checkError);
+            showAuthMessage('msg-register-step2', '⚠️ Error al verificar si la cuenta existe. Por favor, intenta nuevamente o inicia sesión si ya tienes una cuenta.', true);
+            App.markFieldError('input-verification-code');
+            return false;
+        }
     }
 
     const step2 = App.$('#register-step-2');
@@ -1169,6 +1319,20 @@ async function handleSuccessfulAuthWithEmail(userEmail, allowedCourses) {
         App.setupMasterSearch();
         App.$('#year_master').textContent = new Date().getFullYear();
         App.showMaster();
+
+        // ✅ CRÍTICO: Iniciar listener de Firebase después de mostrar vista master
+        // Esto es necesario para sincronización en tiempo real
+        App.log('[MASTER] 🔥 Iniciando listener de Firebase después de login admin con email...');
+        setTimeout(() => {
+            if (typeof initFirebaseCustomCoursesRealtime === 'function') {
+                initFirebaseCustomCoursesRealtime().catch(e => {
+                    App.warn('[MASTER] ⚠️ Error iniciando listener de Firebase:', e);
+                });
+            } else {
+                App.warn('[MASTER] ⚠️ initFirebaseCustomCoursesRealtime no disponible');
+            }
+        }, 1500); // Esperar 1.5 segundos para que todo esté listo
+
         return;
     }
 

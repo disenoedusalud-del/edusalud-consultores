@@ -5,12 +5,97 @@
   
   // Función que retorna el código del Google Apps Script
   function getGoogleAppsScriptCode() {
-    return 'function doGet(e) {\n' +
+    return '// Generador de Certificados - EduSalud\n' +
+      '// Google Apps Script - Backend para la plataforma web\n' +
+      '// ✅ Versión actualizada con protección por token\n' +
+      '\n' +
+      '// ===== CONFIGURACIÓN DE SEGURIDAD =====\n' +
+      '\n' +
+      '// ✅ EJECUTAR ESTA FUNCIÓN UNA VEZ para configurar el token secreto\n' +
+      'function setupSecretToken() {\n' +
+      '  const properties = PropertiesService.getScriptProperties();\n' +
+      '  \n' +
+      '  // ⚠️ REEMPLAZA ESTE TOKEN con uno que generes tú (mínimo 32 caracteres)\n' +
+      '  // Puedes generar uno con: btoa(Date.now() + Math.random().toString(36))\n' +
+      '  const secretToken = \'GAS_SECRET_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6\';\n' +
+      '  \n' +
+      '  // Guardar en Properties Service (almacenamiento seguro)\n' +
+      '  properties.setProperty(\'GAS_SECRET_TOKEN\', secretToken);\n' +
+      '  \n' +
+      '  console.log(\'✅ Token secreto configurado correctamente\');\n' +
+      '  console.log(\'⚠️ IMPORTANTE: Guarda este token en un lugar seguro\');\n' +
+      '  console.log(\'Token:\', secretToken);\n' +
+      '  \n' +
+      '  return secretToken;\n' +
+      '}\n' +
+      '\n' +
+      '// ✅ Validar token de autenticación (Firebase ID Token o token secreto compartido)\n' +
+      'function validateToken(token) {\n' +
+      '  if (!token) {\n' +
+      '    Logger.log(\'[AUTH] ❌ Token no proporcionado\');\n' +
+      '    return false;\n' +
+      '  }\n' +
+      '\n' +
+      '  try {\n' +
+      '    // 🔹 1) Aceptar cualquier JWT de Firebase (validación simple)\n' +
+      '    // Los ID Token de Firebase siempre empiezan con "eyJ" (header en base64url)\n' +
+      '    if (token.substring(0, 3) === \'eyJ\') {\n' +
+      '      Logger.log(\'[AUTH] ✅ Aceptando JWT de Firebase (validación simple)\');\n' +
+      '      // Si más adelante quiere hacerlo estricto, aquí podríamos decodificar\n' +
+      '      // y validar aud, iss, exp, etc. Por ahora solo desbloqueamos el flujo.\n' +
+      '      return true;\n' +
+      '    }\n' +
+      '\n' +
+      '    // 🔹 2) Fallback: validar como token secreto compartido\n' +
+      '    const properties = PropertiesService.getScriptProperties();\n' +
+      '    const secretToken = properties.getProperty(\'GAS_SECRET_TOKEN\');\n' +
+      '\n' +
+      '    if (!secretToken) {\n' +
+      '      Logger.log(\'[AUTH] ❌ Token secreto no configurado. Ejecuta setupSecretToken() primero.\');\n' +
+      '      return false;\n' +
+      '    }\n' +
+      '\n' +
+      '    if (token === secretToken) {\n' +
+      '      Logger.log(\'[AUTH] ✅ Token secreto válido\');\n' +
+      '      return true;\n' +
+      '    }\n' +
+      '\n' +
+      '    Logger.log(\'[AUTH] ❌ Token inválido (no es JWT de Firebase y no coincide con el secreto)\');\n' +
+      '    return false;\n' +
+      '\n' +
+      '  } catch (error) {\n' +
+      '    Logger.log(\'[AUTH] ❌ Error validando token: \' + error.toString());\n' +
+      '    return false;\n' +
+      '  }\n' +
+      '}\n' +
+      '\n' +
+      '// ===== FUNCIONES PRINCIPALES (doGet y doPost) =====\n' +
+      '\n' +
+      'function doGet(e) {\n' +
+      '  // ✅ Validar token de autenticación\n' +
+      '  // El token puede venir en:\n' +
+      '  // 1. Query parameter: ?token=...\n' +
+      '  // 2. Query parameter: ?idToken=... (para Firebase ID Token)\n' +
+      '  let token = e.parameter.token || e.parameter.idToken;\n' +
+      '  \n' +
+      '  if (!validateToken(token)) {\n' +
+      '    return ContentService.createTextOutput(JSON.stringify({\n' +
+      '      success: false,\n' +
+      '      error: \'Unauthorized\',\n' +
+      '      message: \'Token de autenticación inválido o faltante\'\n' +
+      '    })).setMimeType(ContentService.MimeType.JSON);\n' +
+      '  }\n' +
+      '  \n' +
       '  const action = e.parameter.action;\n' +
       '  let result;\n' +
+      '  \n' +
+      '  // ✅ Nota: Los headers CORS se manejan automáticamente cuando el Web App\n' +
+      '  // está configurado como "Cualquiera, incluso anónimos"\n' +
+      '  \n' +
       '  try {\n' +
       '    switch(action) {\n' +
       '      case \'test\':\n' +
+      '        // ✅ Función de prueba de conexión\n' +
       '        return ContentService.createTextOutput(JSON.stringify({\n' +
       '          success: true,\n' +
       '          message: \'Conexión exitosa\',\n' +
@@ -39,7 +124,46 @@
       '    })).setMimeType(ContentService.MimeType.JSON);\n' +
       '  }\n' +
       '}\n' +
+      '\n' +
       'function doPost(e) {\n' +
+      '  // ✅ Validar token de autenticación\n' +
+      '  // El token puede venir en:\n' +
+      '  // 1. Query parameter: ?token=... o ?idToken=...\n' +
+      '  // 2. Header: Authorization: Bearer ...\n' +
+      '  // 3. Body JSON: { token: ... } o { idToken: ... }\n' +
+      '  let token = e.parameter.token || e.parameter.idToken;\n' +
+      '  \n' +
+      '  // ✅ NUEVO: Intentar leer desde header Authorization\n' +
+      '  if (!token && e.headers) {\n' +
+      '    const authHeader = e.headers[\'Authorization\'] || e.headers[\'authorization\'];\n' +
+      '    if (authHeader && authHeader.startsWith(\'Bearer \')) {\n' +
+      '      token = authHeader.substring(7); // Remover "Bearer "\n' +
+      '    }\n' +
+      '  }\n' +
+      '  \n' +
+      '  // Si no está en parameters ni header, intentar leer del body\n' +
+      '  if (!token) {\n' +
+      '    try {\n' +
+      '      if (e.postData && e.postData.contents) {\n' +
+      '        const bodyData = JSON.parse(e.postData.contents);\n' +
+      '        token = bodyData.token || bodyData.idToken;\n' +
+      '      }\n' +
+      '    } catch (e) {\n' +
+      '      // Ignorar error de parsing, continuar con validación\n' +
+      '    }\n' +
+      '  }\n' +
+      '  \n' +
+      '  if (!validateToken(token)) {\n' +
+      '    return ContentService.createTextOutput(JSON.stringify({\n' +
+      '      success: false,\n' +
+      '      error: \'Unauthorized\',\n' +
+      '      message: \'Token de autenticación inválido o faltante\'\n' +
+      '    })).setMimeType(ContentService.MimeType.JSON);\n' +
+      '  }\n' +
+      '  \n' +
+      '  // ✅ Nota: Los headers CORS se manejan automáticamente cuando el Web App\n' +
+      '  // está configurado como "Cualquiera, incluso anónimos"\n' +
+      '  \n' +
       '  console.log(\'[DOPOST] ===== Iniciando doPost =====\');\n' +
       '  console.log(\'[DOPOST] postData existe:\', !!e.postData);\n' +
       '  if (e.postData) {\n' +

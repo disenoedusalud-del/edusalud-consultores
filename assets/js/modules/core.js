@@ -136,11 +136,11 @@ function getSafeInputValue(selector, type = 'text') {
 // Configuración de límites por tipo de acción
 const RATE_LIMIT_CONFIG = {
     // Acciones críticas (autenticación)
-    'login': { windowMs: 60000, maxAttempts: 5 }, // 5 intentos por minuto
-    'register': { windowMs: 300000, maxAttempts: 3 }, // 3 intentos por 5 minutos
-    'password_reset': { windowMs: 300000, maxAttempts: 3 }, // 3 intentos por 5 minutos
-    'resend_code': { windowMs: 60000, maxAttempts: 3 }, // 3 intentos por minuto
-    'verify_code': { windowMs: 60000, maxAttempts: 10 }, // 10 intentos por minuto
+    'login': { windowMs: 60000, maxAttempts: 10 }, // 10 intentos por minuto (más generoso por UX)
+    'register': { windowMs: 300000, maxAttempts: 5 }, // 5 intentos por 5 minutos
+    'password_reset': { windowMs: 300000, maxAttempts: 5 }, // 5 intentos por 5 minutos
+    'resend_code': { windowMs: 60000, maxAttempts: 5 }, // 5 intentos por minuto
+    'verify_code': { windowMs: 60000, maxAttempts: 15 }, // 15 intentos por minuto
 
     // Acciones de gestión de cursos
     'crear curso': { windowMs: 10000, maxAttempts: 3 }, // 3 intentos por 10 segundos
@@ -206,11 +206,25 @@ function checkRateLimit(action, customConfig = null) {
         const resetAt = oldestAttempt + windowMs;
         const remaining = Math.ceil((resetAt - now) / 1000);
 
-        // Mostrar mensaje de error
-        const actionName = action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        // Traducción amigable de acciones
+        const actionMap = {
+            'login': 'Acceso',
+            'register': 'Registro',
+            'password_reset': 'Recuperación de Contraseña',
+            'resend_code': 'Reenvío de Código',
+            'verify_code': 'Verificación',
+            'crear curso': 'Creación',
+            'editar curso': 'Edición',
+            'eliminar curso': 'Eliminación',
+            'agregar email': 'Gestión de Emails',
+            'agregar admin': 'Gestión de Accesos'
+        };
+
+        const actionName = actionMap[action] || action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
         const message = attemptsInWindow >= maxAttempts * 2
-            ? `Demasiados intentos. Por favor espera ${remaining} segundo(s) antes de intentar ${actionName} nuevamente.`
-            : `Has alcanzado el límite de intentos (${maxAttempts}). Espera ${remaining} segundo(s) antes de intentar ${actionName} nuevamente.`;
+            ? `⚡ Protección Activa: Demasiados intentos detectados. Por favor espera ${remaining} segundos antes de intentar ${actionName} de nuevo.`
+            : `🔒 Seguridad: Has superado el límite de intentos permitidos (${maxAttempts}). Por favor espera ${remaining} segundos para proteger tu cuenta.`;
 
         if (typeof window.showToast === 'function') {
             window.showToast('warning', 'Límite de intentos alcanzado', message);

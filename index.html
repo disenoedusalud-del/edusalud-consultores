@@ -67,9 +67,9 @@
           <img src="assets/logo-edusalud.png" alt="EduSalud" class="logo-img" />
         </div>
         <div>
-          <h1>Portal de Recursos para Consultores · EduSalud</h1>
-          <p class="lead">Descargue materiales oficiales (PPT, logos, manual de marca, social kit, formatos). Acceso
-            mediante código otorgado por el departamento de comunicaciones.</p>
+          <h1>Generador de Certificados · EduSalud</h1>
+          <p class="lead">Sistema oficial para la generación y gestión de certificados digitales. Acceso restringido a
+            administradores autorizados.</p>
         </div>
       </div>
 
@@ -92,30 +92,30 @@
     <section id="access" class="card" aria-labelledby="access-title">
       <h2 id="access-title" class="sr-only">Acceso restringido</h2>
 
-      <!-- Pestañas de método de acceso -->
-      <div class="auth-tabs d-flex gap-sm mb-lg" style="border-bottom:1px solid rgba(255,255,255,.08);">
-        <button id="tab-code" class="auth-tab active" type="button" data-tab="code" aria-label="Acceder con código"
-          aria-selected="true" role="tab"><i class="ph ph-key"></i> Código</button>
-        <button id="tab-account" class="auth-tab" type="button" data-tab="account" aria-label="Acceder con cuenta"
-          aria-selected="false" role="tab"><i class="ph ph-user"></i> Cuenta</button>
-      </div>
-
       <div class="grid cols-2 items-center">
         <div>
-          <!-- Formulario de acceso por código -->
+          <!-- Pestañas de método de acceso restauradas -->
+          <div class="auth-tabs d-flex gap-sm mb-lg" style="border-bottom:1px solid rgba(255,255,255,.08);">
+            <button id="tab-code" class="auth-tab active" type="button" data-tab="code"><i class="ph ph-key"></i>
+              Código</button>
+            <button id="tab-account" class="auth-tab" type="button" data-tab="account"><i class="ph ph-user"></i>
+              Cuenta</button>
+          </div>
+
+          <!-- Formulario de acceso por código (ACTIVO) -->
           <div id="form-code" class="auth-form">
             <label for="code">Ingrese su código de acceso</label>
             <div class="row">
               <input id="code" class="input" type="text" placeholder="Ej. ABC0-0000" autocomplete="one-time-code"
                 aria-label="Código de acceso" aria-describedby="msg" />
               <button id="btn-enter" class="btn" type="button"
-                aria-label="Entrar al curso con el código ingresado">Entrar</button>
+                aria-label="Entrar con el código ingresado">Entrar</button>
             </div>
-            <div id="msg" class="msg" role="alert" aria-live="polite">Si no tiene código, solicítelo a comunicaciones.
+            <div id="msg" class="msg" role="alert" aria-live="polite">Usa tu código master para acceder al generador.
             </div>
           </div>
 
-          <!-- Formulario de acceso por cuenta (Email/Password) -->
+          <!-- Formulario de acceso por cuenta (Oculto inicialmente) -->
           <div id="form-account" class="auth-form hidden">
             <!-- Formulario de Login -->
             <form id="form-login" onsubmit="event.preventDefault(); return false;">
@@ -422,7 +422,7 @@
         </div>
       </div>
 
-      <p class="footer">© <span id="year"></span> EduSalud · Materiales oficiales para consultores. by DanielZavala.
+      <p class="footer">© <span id="year"></span> EduSalud · Sistema de Gestión de Certificados. by DanielZavala.
         GraphicDesigner.</p>
     </section>
 
@@ -434,17 +434,18 @@
           <img src="assets/logo-edusalud.png" alt="EduSalud" class="logo-img" />
         </div>
         <div class="master-nav-tabs">
-          <button id="nav-tab-courses" class="master-nav-tab active" type="button" data-view="courses">
-            <i class="ph ph-books"></i> Cursos
-          </button>
-          <button id="nav-tab-certificates" class="master-nav-tab" type="button" data-view="certificates">
+          <button id="nav-tab-certificates" class="master-nav-tab active" type="button" data-view="certificates">
             <i class="ph ph-graduation-cap"></i> Generador de Certificados
+          </button>
+          <!-- Pestaña de cursos desactivada -->
+          <button id="nav-tab-courses" class="master-nav-tab" type="button" data-view="courses" style="display: none;">
+            <i class="ph ph-books"></i> Cursos
           </button>
         </div>
       </div>
 
-      <!-- Vista de Cursos (contenido actual) -->
-      <div id="master-courses-view">
+      <!-- Vista de Cursos desactivada -->
+      <div id="master-courses-view" class="hidden">
         <div class="d-flex items-center justify-between gap-sm mb-sm">
           <h3 style="margin:0">Vista Maestra · Todos los cursos</h3>
           <div class="row">
@@ -777,8 +778,8 @@
           DanielZavala. GraphicDesigner.</p>
       </div>
 
-      <!-- Vista de Generador de Certificados -->
-      <div id="master-certificates-view" class="hidden">
+      <!-- Vista de Certificados (Visible por defecto) -->
+      <div id="master-certificates-view">
         <div class="d-flex items-center justify-between gap-sm mb-lg">
           <h3 style="margin:0"><i class="ph ph-graduation-cap"></i> Generador de Certificados</h3>
           <div class="d-flex items-center gap-sm">
@@ -856,23 +857,35 @@
                   </div>
                 </div>
 
-                <!-- Categoría: Plantillas Rápidas -->
-                <div class="settings-category" data-category="templates-cert" role="menuitem" tabindex="0"
-                  aria-expanded="false" title="Acciones rápidas y plantillas">
-                  <span class="settings-category-icon"><i class="ph ph-lightning"></i></span>
-                  <span class="settings-category-label">Acciones Rápidas</span>
+                <!-- Categoría: Administradores -->
+                <div class="settings-category" data-category="admins-cert" role="menuitem" tabindex="0"
+                  aria-expanded="false" title="Gestionar correos autorizados">
+                  <span class="settings-category-icon"><i class="ph ph-crown"></i></span>
+                  <span class="settings-category-label">Administradores</span>
                   <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
                 </div>
-                <div class="settings-submenu" data-submenu="templates-cert" style="display: none;">
-                  <div class="settings-menu-item" data-action="create-demo-sheet" role="menuitem" tabindex="0"
-                    title="Crear hoja de ejemplo con datos de prueba">
-                    <i class="ph ph-table"></i> Crear Hoja de Ejemplo
-                  </div>
-                  <div class="settings-menu-item" data-action="create-folder-structure" role="menuitem" tabindex="0"
-                    title="Crear estructura de carpetas recomendada">
-                    <i class="ph ph-folder-plus"></i> Crear Estructura de Carpetas
+                <div class="settings-submenu" data-submenu="admins-cert" style="display: none;">
+                  <div class="settings-menu-item" data-action="manage-admins" role="menuitem" tabindex="0"
+                    title="Ver y agregar administradores permitidos">
+                    <i class="ph ph-users"></i> Gestionar Accesos
                   </div>
                 </div>
+
+                <!-- Categoría: Historial -->
+                <div class="settings-category" data-category="history-cert" role="menuitem" tabindex="0"
+                  aria-expanded="false" title="Ver historial de actividad">
+                  <span class="settings-category-icon"><i class="ph ph-clock-counter-clockwise"></i></span>
+                  <span class="settings-category-label">Historial</span>
+                  <span class="settings-category-arrow"><i class="ph ph-caret-right"></i></span>
+                </div>
+                <div class="settings-submenu" data-submenu="history-cert" style="display: none;">
+                  <div class="settings-menu-item" data-action="show-history" role="menuitem" tabindex="0"
+                    title="Ver historial de certificados generados">
+                    <i class="ph ph-list-numbers"></i> Historial de Generaciones
+                  </div>
+                </div>
+
+
 
               </div>
             </div>
@@ -987,6 +1000,10 @@
               <button id="btn-refresh-sheets" class="btn secondary" type="button"
                 aria-label="Actualizar lista de hojas de cálculo disponibles"><i class="ph ph-arrow-clockwise"></i>
                 Actualizar lista</button>
+              <button id="btn-open-sheet" class="btn secondary hidden" type="button"
+                aria-label="Abrir hoja de cálculo en Google Sheets" title="Abrir hoja en Google Sheets">
+                <i class="ph ph-arrow-square-out"></i> Abrir hoja
+              </button>
             </div>
           </div>
 
@@ -1594,13 +1611,21 @@
         </p>
 
         <!-- Formulario para agregar administrador -->
-        <div
+        <div id="admin-add-section"
           style="margin-bottom: 20px; padding: 16px; background: rgba(90,169,255,0.05); border-radius: 8px; border: 1px solid rgba(90,169,255,0.2);">
           <h3 style="margin:0 0 12px 0; font-size:16px; font-weight:600;">Agregar Administrador</h3>
-          <div style="display:flex; gap:8px;">
-            <input id="input-admin-email" class="input" type="email" placeholder="correo@ejemplo.com" style="flex:1;"
-              aria-label="Correo electrónico del administrador" />
-            <button id="btn-add-admin" class="btn" type="button" style="white-space:nowrap;">Agregar</button>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; gap:8px;">
+              <input id="input-admin-email" class="input" type="email" placeholder="correo@ejemplo.com" style="flex:1;"
+                aria-label="Correo electrónico del administrador" />
+              <button id="btn-add-admin" class="btn" type="button" style="white-space:nowrap;">Agregar</button>
+            </div>
+            <!-- Opción de gestión (solo visible para superadmin en JS) -->
+            <div id="container-admin-role" style="display:flex; align-items:center; gap:8px; margin-top:2px;">
+              <input type="checkbox" id="check-admin-manager" style="width:16px; height:16px; cursor:pointer;">
+              <label for="check-admin-manager" style="font-size:13px; cursor:pointer; color:var(--muted);">Permitir
+                gestionar otros administradores</label>
+            </div>
           </div>
         </div>
 
@@ -1610,6 +1635,33 @@
         </div>
 
         <div id="msg-admins" class="msg" style="margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Historial de Generaciones -->
+  <div id="modalCertHistory" class="modal">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh;">
+      <div class="modal-header">
+        <h2><i class="ph ph-clock-counter-clockwise"></i> Historial de Generaciones</h2>
+        <button class="modal-close" id="modalCertHistoryClose" aria-label="Cerrar historial"
+          title="Cerrar (Escape)">&times;</button>
+      </div>
+      <div style="padding: 20px; overflow-y: auto; max-height: calc(90vh - 100px);">
+        <p style="color:var(--muted); font-size:14px; margin-bottom:20px;">
+          Registro de las últimas generaciones de certificados y enlaces realizadas en la plataforma.
+        </p>
+
+        <div id="cert-history-list" style="display:grid; gap:12px;">
+          <p style="color:var(--muted); text-align:center; padding:40px; margin:0;">Cargando historial...</p>
+        </div>
+
+        <div style="margin-top:20px; display:flex; justify-content:center;">
+          <button id="btn-clear-history" class="btn secondary" type="button"
+            style="color:var(--danger); border-color:rgba(255,107,107,0.2);">
+            <i class="ph ph-trash"></i> Borrar Todo el Historial
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1637,16 +1689,16 @@
   <!-- Auth Module (debe ir después de app.js) -->
   <script src="assets/js/modules/auth.js?v=2"></script>
   <script src="assets/js/certificates.js?v=21" defer></script>
-  
+
   <!-- ✅ Detección de estado offline -->
   <script>
     // Detectar estado de conexión y mostrar indicador
-    (function() {
+    (function () {
       let offlineIndicator = null;
-      
+
       function createOfflineIndicator() {
         if (offlineIndicator) return;
-        
+
         offlineIndicator = document.createElement('div');
         offlineIndicator.id = 'offline-indicator';
         offlineIndicator.style.cssText = `
@@ -1678,10 +1730,10 @@
         `;
         document.body.appendChild(offlineIndicator);
       }
-      
+
       function updateOfflineStatus() {
         if (!offlineIndicator) createOfflineIndicator();
-        
+
         if (!navigator.onLine) {
           offlineIndicator.style.display = 'flex';
           console.log('[OFFLINE] ⚠️ Sin conexión detectada');
@@ -1689,7 +1741,7 @@
           offlineIndicator.style.display = 'none';
         }
       }
-      
+
       // Escuchar eventos de conexión
       window.addEventListener('online', () => {
         updateOfflineStatus();
@@ -1699,24 +1751,24 @@
           window.showToast('success', 'Conexión Restaurada', 'Ya estás conectado a Internet');
         }
       });
-      
+
       window.addEventListener('offline', () => {
         updateOfflineStatus();
         console.log('[OFFLINE] ❌ Conexión perdida');
       });
-      
+
       // Verificar estado inicial
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', updateOfflineStatus);
       } else {
         updateOfflineStatus();
       }
-      
+
       // Verificar periódicamente (por si los eventos no se disparan)
       setInterval(updateOfflineStatus, 5000);
     })();
   </script>
-  
+
   <script>
     // ✅ Forzar actualización del Service Worker si hay una nueva versión
     if ('serviceWorker' in navigator) {
