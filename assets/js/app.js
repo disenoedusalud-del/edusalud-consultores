@@ -4349,6 +4349,22 @@ function setupSettingsMenuCertificates() {
     showQuickGuideModal();
   });
 
+  // Crear Hoja de Ejemplo (Acción Rápida)
+  dropdown.querySelector('[data-action="create-demo-sheet"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
+    createDemoSheet();
+  });
+
+  // Crear Estructura de Carpetas (Acción Rápida)
+  dropdown.querySelector('[data-action="create-folder-structure"]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.style.display = 'none';
+    btnSettings.setAttribute('aria-expanded', 'false');
+    createFolderStructure();
+  });
+
   // Atajos de Teclado
   dropdown.querySelector('[data-action="keyboard-shortcuts-cert"]')?.addEventListener('click', (e) => {
     e.stopPropagation();
